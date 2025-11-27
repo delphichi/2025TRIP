@@ -1,0 +1,130 @@
+/* 設定全域字體與背景 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7f6; /* 淺灰色背景 */
+    color: #333;
+    line-height: 1.6;
+}
+
+/* 青草綠 主題顏色 */
+:root {
+    --primary-color: #7CFC00; /* 青草綠 */
+    --secondary-color: #38761D; /* 深綠色 */
+    --background-light: #FFFFFF;
+    --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 頂部標題區塊 */
+.app-header {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    padding: 20px 15px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    margin-bottom: 15px;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.8em;
+}
+
+.app-header .subtitle {
+    margin-top: 5px;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+/* 行程卡片容器 */
+.trip-schedule {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* 每日行程卡片 */
+.day-card {
+    background-color: var(--background-light);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    padding: 15px;
+    box-shadow: var(--shadow);
+    border-left: 8px solid var(--primary-color);
+}
+
+.day-title {
+    color: var(--secondary-color);
+    font-size: 1.5em;
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #ccc;
+}
+
+/* 活動列表與單項活動 */
+.activity-list {
+    padding-left: 0;
+    list-style: none;
+}
+
+.activity {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px dotted #eee;
+}
+
+.activity:last-child {
+    border-bottom: none;
+}
+
+.activity .time {
+    font-weight: bold;
+    color: var(--secondary-color);
+    background-color: #e6ffe6; /* 淺綠色標籤 */
+    padding: 4px 8px;
+    border-radius: 5px;
+    margin-right: 15px;
+    min-width: 50px; /* 確保時間標籤有最小寬度 */
+    text-align: center;
+}
+
+/* 針對特定活動類型優化顏色 */
+.activity.meal .time {
+    background-color: #fffacd; /* 淺黃色代表餐飲 */
+    color: #a0522d;
+}
+
+.activity.accommodation .time {
+    background-color: #add8e6; /* 淺藍色代表住宿 */
+    color: #4682b4;
+}
+
+/* 行程描述文字 */
+.activity p {
+    margin: 0;
+    flex-grow: 1; /* 讓文字佔滿剩餘空間 */
+}
+
+.activity strong {
+    color: #000;
+    font-weight: 600;
+}
+
+/* 頁尾備註 */
+.footer-note {
+    text-align: center;
+    color: #999;
+    padding: 20px 0 40px;
+}
+
+/* 響應式設計 (手機優先，但在較寬螢幕上看起來也舒適) */
+@media (min-width: 600px) {
+    .app-header {
+        padding: 30px 15px;
+    }
+    .day-card {
+        padding: 20px;
+    }
+}
