@@ -60,7 +60,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 // 註冊一個名為 'sw.js' 的 Service Worker 檔案
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                navigator.serviceWorker.register('./sw.js').then(function(registration) {
                     // console.log('ServiceWorker registration successful with scope: ', registration.scope);
                 }, function(err) {
                     // console.log('ServiceWorker registration failed: ', err);
@@ -70,4 +70,5 @@
     </script>
     
     </body>
+
 </html>
