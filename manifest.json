@@ -2,7 +2,7 @@
     "name": "家族快樂之旅",
     "short_name": "家族旅遊",
     "description": "2025 年 VIÑA / CHILLAN 家族專屬行程表",
-    "start_url": "/index.html",
+    "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#f4f7f6",
     "theme_color": "#7CFC00",
@@ -18,4 +18,5 @@
             "type": "image/png"
         }
     ]
+
 }
