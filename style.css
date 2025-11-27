@@ -10,7 +10,7 @@ body {
 
 /* 青草綠 主題顏色 */
 :root {
-    --primary-color: #7CFC00; /* 青草綠 */
+    --primary-color: #B9EE9B; /* 青草綠 */
     --secondary-color: #38761D; /* 深綠色 */
     --background-light: #FFFFFF;
     --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -127,4 +127,5 @@ body {
     .day-card {
         padding: 20px;
     }
+
 }
