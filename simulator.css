@@ -212,6 +212,77 @@ body.sim-body {
 .log .down { color: var(--min); }
 .log .flat { color: var(--muted); }
 
+/* Trace panel */
+.hint.sm { font-size: .78em; margin-top: 8px; line-height: 1.5; }
+.hint.sm b { color: var(--primary-dark); }
+
+.trace-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+@media (min-width: 780px) {
+    .trace-grid { grid-template-columns: 1fr 1fr; }
+}
+.trace-col {
+    background: #f7faf5;
+    border-radius: 8px;
+    padding: 10px 12px;
+    border-left: 4px solid var(--primary-dark);
+}
+.trace-col h3 {
+    margin: 0 0 6px;
+    color: var(--primary-dark);
+    font-size: 1em;
+}
+.trace-col h3 span { color: var(--accent); font-family: ui-monospace, monospace; }
+.trace-meta {
+    font-size: .78em;
+    color: var(--muted);
+    padding: 6px 8px;
+    background: #fff;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    line-height: 1.55;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.trace-log {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .78em;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 6px;
+    padding: 6px 8px;
+    line-height: 1.6;
+}
+.trace-log .t-row {
+    padding: 3px 0;
+    border-bottom: 1px dotted #e6ece2;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+.trace-log .t-row:last-child { border-bottom: none; }
+.trace-log .t-tag {
+    flex-shrink: 0;
+    min-width: 44px;
+    text-align: center;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: .85em;
+    color: #fff;
+    font-weight: 600;
+}
+.trace-log .t-tag.buy { background: var(--price); }
+.trace-log .t-tag.skip { background: #999; }
+.trace-log .t-tag.raise { background: var(--max); }
+.trace-log .t-tag.drop { background: var(--min); }
+.trace-log .t-tag.flat { background: #a09a80; }
+.trace-log .t-tag.floor { background: var(--accent); }
+.trace-log .t-tag.done { background: var(--primary-dark); }
+.trace-log .t-msg { flex-grow: 1; color: var(--ink); word-break: break-word; }
+
 .sim-footer {
     text-align: center;
     color: var(--muted);

@@ -64,8 +64,14 @@
                 <div class="stat"><span class="lbl">消費者剩餘</span><span class="val" id="stat-cs">—</span></div>
                 <div class="stat"><span class="lbl">生產者剩餘</span><span class="val" id="stat-ps">—</span></div>
                 <div class="stat"><span class="lbl">社會總福利</span><span class="val" id="stat-welfare">—</span></div>
-                <div class="stat"><span class="lbl">理論均衡價 ≈</span><span class="val" id="stat-eq">—</span></div>
+                <div class="stat"><span class="lbl">教科書均衡價</span><span class="val" id="stat-eq">—</span></div>
+                <div class="stat"><span class="lbl">偏離均衡</span><span class="val" id="stat-dev">—</span></div>
+                <div class="stat"><span class="lbl">Newsvendor 過剩</span><span class="val" id="stat-nv">—</span></div>
             </div>
+            <p class="hint sm">
+                <b>教科書均衡價</b> = 階梯式供需曲線交叉點（完全資訊、完全理性、無記憶下的理論解）。
+                <b>Newsvendor 過剩</b> = 產能相對於 Q<sup>*</sup> = μ + σ · Φ<sup>-1</sup>((p−c)/p) 的差距，正值代表烤太多。
+            </p>
         </section>
 
         <section class="panel chart-panel">
@@ -83,6 +89,26 @@
         <section class="panel agents-panel">
             <h2>生產者狀態</h2>
             <div class="producers-grid" id="producers-grid"></div>
+        </section>
+
+        <section class="panel trace-panel">
+            <h2>今日決策 trace（隨機抽樣）</h2>
+            <p class="hint">
+                每天隨機抽一位消費者 + 一家生產者，把他們觸發的規則和數值路徑全部攤開。
+                Honest 講：這不是真的 reasoning，是把 if-else 印給你看——但看得懂 agent 為什麼今天不買、明天卻抬價。
+            </p>
+            <div class="trace-grid">
+                <div class="trace-col">
+                    <h3>🛒 消費者 <span id="trace-c-title">—</span></h3>
+                    <div class="trace-meta" id="trace-c-meta">尚未開始模擬</div>
+                    <div class="trace-log" id="trace-c-log"></div>
+                </div>
+                <div class="trace-col">
+                    <h3>🏪 生產者 <span id="trace-p-title">—</span></h3>
+                    <div class="trace-meta" id="trace-p-meta">尚未開始模擬</div>
+                    <div class="trace-log" id="trace-p-log"></div>
+                </div>
+            </div>
         </section>
 
         <section class="panel log-panel">

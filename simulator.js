@@ -6,39 +6,100 @@
     const randInt = (a, b) => Math.floor(rand(a, b + 1));
     const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
     const fmt = (n, d = 2) => (n === null || n === undefined || Number.isNaN(n)) ? '—' : Number(n).toFixed(d);
+    const pct = (n, d = 1) => (n === null || n === undefined || Number.isNaN(n)) ? '—' : (n * 100).toFixed(d) + '%';
     const $ = id => document.getElementById(id);
 
+    // Beasley-Springer 標準常態反 CDF 逼近，用於 newsvendor 的 z-score
+    function normalInvCdf(p) {
+        if (p <= 0) return -Infinity;
+        if (p >= 1) return Infinity;
+        if (p < 0.5) return -normalInvCdf(1 - p);
+        const t = Math.sqrt(-2 * Math.log(1 - p));
+        const c0 = 2.515517, c1 = 0.802853, c2 = 0.010328;
+        const d1 = 1.432788, d2 = 0.189269, d3 = 0.001308;
+        return t - (c0 + c1 * t + c2 * t * t) /
+                   (1 + d1 * t + d2 * t * t + d3 * t * t * t);
+    }
+
+    // 教科書均衡：階梯式供需曲線交叉
+    // Supply(p) = Σ capacity  s.t. cost <= p
+    // Demand(p) = Σ dailyNeed s.t. maxWtp >= p
+    // 傳回 supply 首次 >= demand 的最小價格
+    function computeEquilibrium(consumers, producers) {
+        const totalDemand = consumers.reduce((s, c) => s + c.dailyNeed, 0);
+        const totalSupply = producers.reduce((s, p) => s + p.capacity, 0);
+        const prices = [...new Set([
+            ...producers.map(p => p.cost),
+            ...consumers.map(c => c.maxWtp),
+        ])].sort((a, b) => a - b);
+        for (const p of prices) {
+            const supply = producers.reduce((s, pr) =>
+                s + (pr.cost <= p ? pr.capacity : 0), 0);
+            const demand = consumers.reduce((s, c) =>
+                s + (c.maxWtp >= p ? c.dailyNeed : 0), 0);
+            if (supply >= demand && demand > 0) {
+                return { price: p, quantity: demand, totalSupply, totalDemand };
+            }
+        }
+        return { price: prices[prices.length - 1] ?? 0, quantity: 0, totalSupply, totalDemand };
+    }
+
     // ---------- agents ----------
-    // Consumer: 有限理性，資訊不完全 —— 心理價位、消費信心、體力需求、預算，
-    // 只看到「當下這一家」的報價，看不到全場即時價格；隨經驗慢慢調整心理錨。
     class Consumer {
         constructor(id, baseWtp) {
             this.id = id;
-            this.energy = randInt(40, 90);            // 0-100，越低越餓
+            this.energy = randInt(40, 90);
             this.expected = baseWtp * rand(0.75, 1.2);
-            this.confidence = rand(0.85, 1.15);       // 對心理價位的信心
+            this.confidence = rand(0.85, 1.15);
             this.maxWtp = this.expected * rand(1.2, 1.9);
-            this.dailyNeed = randInt(1, 3);           // 每天想吃幾個
+            this.dailyNeed = randInt(1, 3);
             this.budget = rand(60, 180);
             this.bought = 0;
             this.spent = 0;
             this.surplus = 0;
         }
 
-        // 進一家店，看到報價，決定買不買
-        // agent 決策：資訊不完全 —— 只知道自己的期待、體力、預算
-        decide(price) {
-            if (price > this.budget) return false;
-            if (price > this.maxWtp) return false;
-            if (this.bought >= this.dailyNeed && this.energy > 60) return false;
+        // agent 決策 —— 資訊不完全，只看見自己內部狀態 + 這一家報價
+        // trace: 可選 array，會 push {tag, msg} 讓 UI 攤開
+        decide(price, producerId, trace) {
+            const log = (tag, msg) => { if (trace) trace.push({ tag, msg }); };
+
+            if (price > this.budget) {
+                log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：預算 ${fmt(this.budget,1)} 不夠`);
+                return false;
+            }
+            if (price > this.maxWtp) {
+                log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：> 最高願付 ${fmt(this.maxWtp,1)}`);
+                return false;
+            }
+            if (this.bought >= this.dailyNeed && this.energy > 60) {
+                log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：已飽（${this.bought}/${this.dailyNeed}，體力 ${this.energy}）`);
+                return false;
+            }
 
             let cap = this.expected * this.confidence;
-            if (this.energy < 25) cap = Math.min(this.maxWtp, cap * 1.4);       // 很餓，願意多付
-            else if (this.energy < 45) cap = Math.min(this.maxWtp, cap * 1.15);
-            else if (this.energy > 80 && this.bought > 0) cap *= 0.85;          // 已經飽了，會殺價
+            let hungerLabel = '正常';
+            if (this.energy < 25) {
+                cap = Math.min(this.maxWtp, cap * 1.4);
+                hungerLabel = '很餓 ×1.4';
+            } else if (this.energy < 45) {
+                cap = Math.min(this.maxWtp, cap * 1.15);
+                hungerLabel = '餓 ×1.15';
+            } else if (this.energy > 80 && this.bought > 0) {
+                cap *= 0.85;
+                hungerLabel = '飽 ×0.85';
+            }
 
             const noise = 1 + (Math.random() - 0.5) * 0.1;
-            return price <= cap * noise;
+            const threshold = cap * noise;
+            const detail = `錨 ${fmt(this.expected,1)}×信心 ${fmt(this.confidence,2)}=${fmt(cap,2)}（${hungerLabel}）→ 閾值 ${fmt(threshold,2)}`;
+
+            if (price <= threshold) {
+                log('buy', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定買`);
+                return true;
+            }
+            log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定過貴`);
+            return false;
         }
 
         buy(price) {
@@ -50,31 +111,27 @@
         }
 
         endDay(dayAvgPrice) {
-            // 慢慢更新心理錨（觀察到市場均價）
             if (dayAvgPrice > 0) {
                 this.expected = 0.7 * this.expected + 0.3 * dayAvgPrice;
             }
-            // 每天消耗體力，肚子又餓了
             this.energy = clamp(this.energy - randInt(25, 45), 0, 100);
-            // 每天補一點預算（薪水）
             this.budget += rand(10, 25);
             this.bought = 0;
         }
     }
 
-    // Producer: 有限理性，成本錨定
-    // 決策：昨天賣得好 → 抬價；昨天堆積 → 降價；成本是硬底線
     class Producer {
         constructor(id, costMin, costMax, capMin, capMax) {
             this.id = id;
             this.cost = rand(costMin, costMax);
             this.capacity = randInt(capMin, capMax);
-            this.price = this.cost * rand(1.6, 2.2);   // 初始加價
+            this.price = this.cost * rand(1.6, 2.2);
             this.inventory = 0;
             this.soldToday = 0;
             this.wastedToday = 0;
             this.totalSurplus = 0;
-            this.history = [];                          // { day, price, sold, wasted }
+            this.history = [];
+            this.recentSales = [];   // 用來估 μ/σ 供 newsvendor 計算
         }
 
         bake() {
@@ -92,28 +149,70 @@
             return this.price;
         }
 
-        endDay(day) {
+        // Newsvendor 最優：Q* = μ + σ · Φ⁻¹((p-c)/p)，假設 s=0（隔夜作廢）
+        // 需要至少 3 天銷售紀錄；否則回傳 null
+        newsvendorQ() {
+            const n = this.recentSales.length;
+            if (n < 3) return null;
+            const mu = this.recentSales.reduce((s, x) => s + x, 0) / n;
+            const variance = this.recentSales.reduce((s, x) => s + (x - mu) ** 2, 0) / Math.max(1, n - 1);
+            const sigma = Math.sqrt(variance);
+            const fractile = (this.price - this.cost) / this.price;
+            if (fractile <= 0) return 0;
+            const z = normalInvCdf(clamp(fractile, 0.001, 0.999));
+            return Math.max(0, mu + sigma * z);
+        }
+
+        endDay(day, trace) {
+            const log = (tag, msg) => { if (trace) trace.push({ tag, msg }); };
             this.wastedToday = this.inventory;
+            const soldRatio = this.soldToday / this.capacity;
+
             this.history.push({
                 day, price: this.price,
-                sold: this.soldToday, wasted: this.wastedToday
+                sold: this.soldToday, wasted: this.wastedToday,
             });
+            this.recentSales.push(this.soldToday);
+            if (this.recentSales.length > 10) this.recentSales.shift();
 
-            // agent 決策：根據昨天調整明天的報價
-            const soldRatio = this.soldToday / this.capacity;
-            let adjust;
-            if (soldRatio >= 0.98) adjust = rand(1.06, 1.12);        // 秒殺 → 大幅抬
-            else if (soldRatio >= 0.85) adjust = rand(1.02, 1.06);   // 賣光 → 小幅抬
-            else if (soldRatio >= 0.55) adjust = rand(0.99, 1.02);   // 差不多，微調
-            else if (soldRatio >= 0.25) adjust = rand(0.93, 0.98);   // 剩不少 → 降
-            else adjust = rand(0.85, 0.92);                          // 大量作廢 → 大幅降
+            let adjust, tag, reason;
+            if (soldRatio >= 0.98) {
+                adjust = rand(1.06, 1.12); tag = 'raise';
+                reason = `賣光（${this.soldToday}/${this.capacity}），大幅抬 +${fmt((adjust - 1) * 100, 1)}%`;
+            } else if (soldRatio >= 0.85) {
+                adjust = rand(1.02, 1.06); tag = 'raise';
+                reason = `售罄率 ${fmt(soldRatio * 100, 0)}%，小幅抬 +${fmt((adjust - 1) * 100, 1)}%`;
+            } else if (soldRatio >= 0.55) {
+                adjust = rand(0.99, 1.02); tag = 'flat';
+                reason = `售罄率 ${fmt(soldRatio * 100, 0)}%，微調 ${fmt((adjust - 1) * 100, 1)}%`;
+            } else if (soldRatio >= 0.25) {
+                adjust = rand(0.93, 0.98); tag = 'drop';
+                reason = `剩不少（${fmt(soldRatio * 100, 0)}%），降 ${fmt((adjust - 1) * 100, 1)}%`;
+            } else {
+                adjust = rand(0.85, 0.92); tag = 'drop';
+                reason = `大量作廢（${fmt(soldRatio * 100, 0)}%），大幅降 ${fmt((adjust - 1) * 100, 1)}%`;
+            }
 
+            const oldPrice = this.price;
             this.price *= adjust;
-            // 硬底線：不能低於成本 + 保底利潤
             const floor = this.cost * 1.05;
-            if (this.price < floor) this.price = floor;
-            // 天花板保護（避免通膨飆走）
+            let floorNote = '';
+            if (this.price < floor) {
+                this.price = floor;
+                floorNote = `（觸底：cost×1.05=${fmt(floor)}）`;
+            }
             this.price = Math.min(this.price, this.cost * 6);
+
+            log('done', `昨日：賣 ${this.soldToday}，剩 ${this.wastedToday}（產能 ${this.capacity}）`);
+            log(tag, reason);
+            log(floorNote ? 'floor' : 'flat', `價格 ${fmt(oldPrice)} → ${fmt(this.price)} ${floorNote}`);
+
+            const nvQ = this.newsvendorQ();
+            if (nvQ !== null) {
+                const diff = this.capacity - nvQ;
+                const kind = diff > 0.5 ? '過剩' : diff < -0.5 ? '不足' : '接近';
+                log('flat', `Newsvendor Q*≈${fmt(nvQ, 1)}（產能 ${this.capacity}，${kind} ${fmt(Math.abs(diff), 1)}）`);
+            }
 
             this.inventory = 0;
         }
@@ -128,40 +227,42 @@
                 (_, i) => new Consumer(i, cfg.baseWtp));
             this.producers = Array.from({ length: cfg.producers },
                 (_, i) => new Producer(i, cfg.costMin, cfg.costMax, cfg.capMin, cfg.capMax));
-            this.dailyStats = [];   // { day, avgPrice, volume, waste, cs, ps }
-            // 理論均衡：平均成本 × 平均加價（消費者 wtp 帶動）
-            const avgCost = this.producers.reduce((s, p) => s + p.cost, 0) / cfg.producers;
-            const avgWtp = this.consumers.reduce((s, c) => s + c.expected, 0) / cfg.consumers;
-            this.eqPrice = (avgCost * 1.25 + avgWtp * 0.55) / 2 * 1.4;  // rough anchor
-            // 更好的估法：市場出清點在 max(avgCost, avgWtp*0.6~0.8) 附近
-            this.eqPrice = Math.max(avgCost * 1.2, Math.min(avgWtp, avgCost * 2.2));
+            this.dailyStats = [];
+            const eq = computeEquilibrium(this.consumers, this.producers);
+            this.eqPrice = eq.price;
+            this.eqQuantity = eq.quantity;
+            this.totalSupply = eq.totalSupply;
+            this.totalDemand = eq.totalDemand;
+            this.lastTrace = null;
         }
 
-        // 每一天的交易撮合：
-        // 1. 早上所有生產者定價 + 產麵包
-        // 2. 消費者以隨機順序輪流「上街」，每人隨機抽一家看報價，決定買不買
-        //    連續嘗試最多 M 次（模擬走訪多家店），資訊仍不完全
-        // 3. 結算
         stepOneDay() {
             this.day += 1;
             this.producers.forEach(p => p.bake());
             this.consumers.forEach(c => { c.bought = 0; });
 
-            const trades = [];   // { price, cid, pid }
-            const shopOrder = shuffle(this.consumers.slice());
-            const maxVisitsPerConsumer = Math.max(3, Math.min(this.cfg.producers, 6));
+            // 抽今日 trace 對象
+            const tracedC = randInt(0, this.consumers.length - 1);
+            const tracedP = randInt(0, this.producers.length - 1);
+            const consumerTrace = [];
+            const producerTrace = [];
+            const cSnap = { ...(({ energy, expected, confidence, maxWtp, budget, dailyNeed }) =>
+                ({ energy, expected, confidence, maxWtp, budget, dailyNeed }))(this.consumers[tracedC]) };
 
-            // 多輪：每輪每個消費者選一家店試試（模擬走訪不同店）
-            for (let round = 0; round < maxVisitsPerConsumer; round++) {
+            const trades = [];
+            const shopOrder = shuffle(this.consumers.slice());
+            const maxVisits = Math.max(3, Math.min(this.cfg.producers, 6));
+
+            for (let round = 0; round < maxVisits; round++) {
                 for (const c of shopOrder) {
                     if (c.energy > 85 && c.bought >= c.dailyNeed) continue;
-                    // 從還有庫存的店裡隨機選一家
-                    const openStores = this.producers.filter(p => p.inventory > 0);
-                    if (openStores.length === 0) break;
-                    const p = openStores[randInt(0, openStores.length - 1)];
+                    const open = this.producers.filter(p => p.inventory > 0);
+                    if (open.length === 0) break;
+                    const p = open[randInt(0, open.length - 1)];
                     const price = p.offer();
                     if (price === null) continue;
-                    if (c.decide(price)) {
+                    const trace = (c.id === tracedC) ? consumerTrace : null;
+                    if (c.decide(price, p.id, trace)) {
                         p.sell();
                         c.buy(price);
                         trades.push({ price, cid: c.id, pid: p.id });
@@ -169,14 +270,31 @@
                 }
             }
 
-            // 結算：算出今日各種指標
             const volume = trades.length;
             const avgPrice = volume > 0 ? trades.reduce((s, t) => s + t.price, 0) / volume : 0;
             const waste = this.producers.reduce((s, p) => s + p.inventory, 0);
-            // 生產者剩餘 = sum(成交價 - 對應成本)
             const ps = trades.reduce((s, t) => s + (t.price - this.producers[t.pid].cost), 0);
-            // 消費者剩餘 = sum(max_wtp - 成交價)
             const cs = trades.reduce((s, t) => s + (this.consumers[t.cid].maxWtp - t.price), 0);
+
+            const pSnap = {
+                cost: this.producers[tracedP].cost,
+                priceBefore: this.producers[tracedP].price,
+                capacity: this.producers[tracedP].capacity,
+                soldToday: this.producers[tracedP].soldToday,
+                wastedToday: this.producers[tracedP].inventory,
+            };
+            this.producers.forEach(p => {
+                p.endDay(this.day, p.id === tracedP ? producerTrace : null);
+            });
+            this.consumers.forEach(c => c.endDay(avgPrice));
+
+            // 全市場的 newsvendor 過剩率
+            let nvOptimal = 0, nvHave = 0;
+            for (const p of this.producers) {
+                const q = p.newsvendorQ();
+                if (q !== null) { nvOptimal += q; nvHave += p.capacity; }
+            }
+            const nvOverProd = nvHave > 0 ? (nvHave - nvOptimal) / nvHave : null;
 
             const prices = this.producers.map(p => p.price);
             const rec = {
@@ -185,13 +303,22 @@
                 welfare: cs + ps,
                 minPrice: Math.min(...prices),
                 maxPrice: Math.max(...prices),
+                deviation: volume > 0 ? (avgPrice - this.eqPrice) / this.eqPrice : null,
+                nvOverProd,
+                tracedConsumer: {
+                    id: tracedC, snapshot: cSnap,
+                    log: consumerTrace,
+                    finalBought: this.consumers[tracedC].bought,
+                    finalDailyNeed: cSnap.dailyNeed,
+                },
+                tracedProducer: {
+                    id: tracedP, snapshot: pSnap,
+                    log: producerTrace,
+                    priceAfter: this.producers[tracedP].price,
+                },
             };
             this.dailyStats.push(rec);
-
-            // Agent 收盤後更新自己
-            this.producers.forEach(p => p.endDay(this.day));
-            this.consumers.forEach(c => c.endDay(avgPrice));
-
+            this.lastTrace = rec;
             return rec;
         }
     }
@@ -209,7 +336,6 @@
         constructor(canvas) {
             this.canvas = canvas;
             this.ctx = canvas.getContext('2d');
-            // hi-DPI: 讓在 retina 螢幕不糊
             const dpr = window.devicePixelRatio || 1;
             const w = canvas.clientWidth || canvas.width;
             const h = canvas.clientHeight || canvas.height;
@@ -231,30 +357,24 @@
                 return;
             }
 
-            // 邊距
             const padL = 44, padR = 12, padT = 14, padB = 26;
             const chartW = w - padL - padR;
             const chartH = h - padT - padB;
 
-            // Y 軸範圍：涵蓋 min/max price
             let ymax = Math.max(eqPrice, ...stats.map(s => s.maxPrice));
             let ymin = Math.min(eqPrice, ...stats.map(s => Math.min(s.minPrice, s.avgPrice || Infinity)));
             if (!Number.isFinite(ymin)) ymin = 0;
             ymin = Math.max(0, ymin - 1);
             ymax = ymax + 1;
             const yr = ymax - ymin || 1;
-
             const vmax = Math.max(1, ...stats.map(s => s.volume));
 
             const xAt = i => padL + (stats.length === 1 ? chartW / 2 : (i / (stats.length - 1)) * chartW);
             const yAt = v => padT + chartH - ((v - ymin) / yr) * chartH;
 
-            // 均衡帶（±10%）
-            const eqLo = eqPrice * 0.9;
-            const eqHi = eqPrice * 1.1;
             ctx.fillStyle = 'rgba(56,118,29,.10)';
-            ctx.fillRect(padL, yAt(eqHi), chartW, yAt(eqLo) - yAt(eqHi));
-            ctx.strokeStyle = 'rgba(56,118,29,.55)';
+            ctx.fillRect(padL, yAt(eqPrice * 1.1), chartW, yAt(eqPrice * 0.9) - yAt(eqPrice * 1.1));
+            ctx.strokeStyle = 'rgba(56,118,29,.7)';
             ctx.setLineDash([5, 4]);
             ctx.beginPath();
             ctx.moveTo(padL, yAt(eqPrice));
@@ -262,7 +382,6 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // 網格線 (y)
             ctx.strokeStyle = '#eee';
             ctx.fillStyle = '#888';
             ctx.font = '11px sans-serif';
@@ -279,7 +398,6 @@
                 ctx.fillText(v.toFixed(1), padL - 4, y);
             }
 
-            // 成交量 bar (半透明橘)
             ctx.fillStyle = 'rgba(230,126,34,.55)';
             const barW = Math.max(2, chartW / stats.length * 0.7);
             stats.forEach((s, i) => {
@@ -288,16 +406,17 @@
                 ctx.fillRect(x, padT + chartH - bh, barW, bh);
             });
 
-            // 折線：max, min, avg
             const drawLine = (accessor, color, wid = 2) => {
                 ctx.strokeStyle = color;
                 ctx.lineWidth = wid;
                 ctx.beginPath();
+                let started = false;
                 stats.forEach((s, i) => {
                     const v = accessor(s);
                     if (!Number.isFinite(v)) return;
                     const x = xAt(i), y = yAt(v);
-                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    if (!started) { ctx.moveTo(x, y); started = true; }
+                    else ctx.lineTo(x, y);
                 });
                 ctx.stroke();
             };
@@ -305,7 +424,6 @@
             drawLine(s => s.minPrice, '#2874a6', 1.5);
             drawLine(s => s.avgPrice || null, '#38761D', 2.5);
 
-            // X 軸標籤
             ctx.fillStyle = '#888';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
@@ -314,6 +432,12 @@
                 const idx = Math.round((stats.length - 1) * i / (xTicks - 1 || 1));
                 ctx.fillText('Day ' + stats[idx].day, xAt(idx), padT + chartH + 4);
             }
+
+            ctx.fillStyle = 'rgba(56,118,29,.8)';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.font = '11px sans-serif';
+            ctx.fillText('教科書均衡 ' + fmt(eqPrice), padL + 4, yAt(eqPrice) - 8);
         }
     }
 
@@ -345,6 +469,22 @@
         $('stat-ps').textContent = fmt(rec.ps, 1);
         $('stat-welfare').textContent = fmt(rec.welfare, 1);
         $('stat-eq').textContent = fmt(market.eqPrice);
+        const dev = $('stat-dev');
+        if (rec.deviation === null) {
+            dev.textContent = '無成交'; dev.style.color = '';
+        } else {
+            const sign = rec.deviation >= 0 ? '+' : '';
+            dev.textContent = sign + pct(rec.deviation);
+            dev.style.color = Math.abs(rec.deviation) < 0.1 ? 'var(--primary-dark)'
+                : rec.deviation > 0 ? 'var(--max)' : 'var(--min)';
+        }
+        const nv = $('stat-nv');
+        if (rec.nvOverProd === null) {
+            nv.textContent = '收集資料中';
+        } else {
+            const sign = rec.nvOverProd >= 0 ? '+' : '';
+            nv.textContent = sign + pct(rec.nvOverProd);
+        }
     }
 
     function renderProducers(market) {
@@ -354,6 +494,7 @@
             const last = p.history[p.history.length - 1];
             const soldOut = last && last.sold >= p.capacity;
             const wasted = last && last.wasted > p.capacity * 0.5;
+            const nvQ = p.newsvendorQ();
             const div = document.createElement('div');
             div.className = 'producer-card' + (soldOut ? ' sold-out' : '') + (wasted ? ' waste' : '');
             div.innerHTML = `
@@ -361,8 +502,8 @@
                 <div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>
                 <div class="row"><span>成本</span><span class="v">${fmt(p.cost)}</span></div>
                 <div class="row"><span>產能</span><span class="v">${p.capacity}</span></div>
-                <div class="row"><span>昨日賣</span><span class="v">${last ? last.sold : '—'}</span></div>
-                <div class="row"><span>昨日剩</span><span class="v">${last ? last.wasted : '—'}</span></div>
+                <div class="row"><span>昨賣 / 剩</span><span class="v">${last ? last.sold + ' / ' + last.wasted : '—'}</span></div>
+                <div class="row"><span>Newsvendor Q*</span><span class="v">${nvQ === null ? '—' : fmt(nvQ, 1)}</span></div>
             `;
             grid.appendChild(div);
         });
@@ -380,10 +521,63 @@
         }
         const entry = document.createElement('div');
         entry.className = 'entry';
-        entry.innerHTML = `<span class="day">Day ${rec.day}</span> · 均價 <b>${rec.volume > 0 ? fmt(rec.avgPrice) : '無'}</b> · 量 ${rec.volume} · 廢 ${rec.waste} · <span class="${trendClass}">${trend}</span>`;
+        const devStr = rec.deviation === null ? '' :
+            ` · 距均衡 ${rec.deviation >= 0 ? '+' : ''}${pct(rec.deviation, 0)}`;
+        entry.innerHTML = `<span class="day">Day ${rec.day}</span> · 均價 <b>${rec.volume > 0 ? fmt(rec.avgPrice) : '無'}</b> · 量 ${rec.volume} · 廢 ${rec.waste}${devStr} · <span class="${trendClass}">${trend}</span>`;
         log.prepend(entry);
-        // 保留最多 40 條
         while (log.children.length > 40) log.removeChild(log.lastChild);
+    }
+
+    function renderTrace(rec) {
+        const c = rec.tracedConsumer;
+        const p = rec.tracedProducer;
+        $('trace-c-title').textContent = `#${c.id + 1}`;
+        $('trace-c-meta').textContent =
+            `初始 → 體力 ${c.snapshot.energy} · 預算 ${fmt(c.snapshot.budget, 1)} · ` +
+            `心理錨 ${fmt(c.snapshot.expected, 1)} · 信心 ${fmt(c.snapshot.confidence, 2)} · ` +
+            `最高願付 ${fmt(c.snapshot.maxWtp, 1)} · 每日需 ${c.snapshot.dailyNeed}`;
+        renderTraceLog('trace-c-log', c.log,
+            `今日走訪 ${c.log.length} 家，成交 ${c.finalBought}/${c.finalDailyNeed}`);
+
+        $('trace-p-title').textContent = `Bakery ${p.id + 1}`;
+        $('trace-p-meta').textContent =
+            `昨日 → 成本 ${fmt(p.snapshot.cost)} · 產能 ${p.snapshot.capacity} · ` +
+            `售出 ${p.snapshot.soldToday} · 剩 ${p.snapshot.wastedToday} · 昨價 ${fmt(p.snapshot.priceBefore)}`;
+        renderTraceLog('trace-p-log', p.log, `新價 ${fmt(p.priceAfter)}`);
+    }
+
+    function renderTraceLog(elId, entries, footer) {
+        const el = $(elId);
+        el.innerHTML = '';
+        if (entries.length === 0) {
+            el.innerHTML = '<div class="t-row"><span class="t-msg" style="color:#aaa">（今日無決策事件）</span></div>';
+        } else {
+            for (const e of entries) {
+                const row = document.createElement('div');
+                row.className = 't-row';
+                row.innerHTML = `<span class="t-tag ${e.tag}">${tagLabel(e.tag)}</span><span class="t-msg">${e.msg}</span>`;
+                el.appendChild(row);
+            }
+        }
+        if (footer) {
+            const f = document.createElement('div');
+            f.className = 't-row';
+            f.innerHTML = `<span class="t-tag done">結算</span><span class="t-msg">${footer}</span>`;
+            el.appendChild(f);
+        }
+    }
+
+    function tagLabel(tag) {
+        switch (tag) {
+            case 'buy': return '買';
+            case 'skip': return '略';
+            case 'raise': return '抬';
+            case 'drop': return '降';
+            case 'flat': return '平';
+            case 'floor': return '底';
+            case 'done': return '·';
+            default: return tag;
+        }
     }
 
     function tickOnce() {
@@ -392,6 +586,7 @@
         updateStatsUI(rec, market);
         renderProducers(market);
         pushLog(rec, market);
+        renderTrace(rec);
         chart.render(market.dailyStats, market.eqPrice);
     }
 
@@ -420,25 +615,26 @@
         renderProducers(market);
         $('log').innerHTML = '';
         $('stat-day').textContent = '0';
-        ['stat-price', 'stat-volume', 'stat-waste', 'stat-cs', 'stat-ps', 'stat-welfare']
-            .forEach(id => $(id).textContent = '—');
+        ['stat-price', 'stat-volume', 'stat-waste', 'stat-cs',
+         'stat-ps', 'stat-welfare', 'stat-dev', 'stat-nv']
+            .forEach(id => { $(id).textContent = '—'; $(id).style.color = ''; });
         $('stat-eq').textContent = fmt(market.eqPrice);
+        $('trace-c-title').textContent = '—';
+        $('trace-p-title').textContent = '—';
+        $('trace-c-meta').textContent = `Day 0，共 ${cfg.consumers} 位消費者，等待抽樣`;
+        $('trace-p-meta').textContent = `Day 0，共 ${cfg.producers} 家生產者，等待抽樣`;
+        $('trace-c-log').innerHTML = '';
+        $('trace-p-log').innerHTML = '';
     }
 
-    function reset() {
-        pause();
-        initMarket();
-    }
+    function reset() { pause(); initMarket(); }
 
-    // event bindings
     document.addEventListener('DOMContentLoaded', () => {
         initMarket();
         $('btn-run').addEventListener('click', start);
         $('btn-pause').addEventListener('click', pause);
         $('btn-step').addEventListener('click', () => { if (!market) initMarket(); tickOnce(); });
         $('btn-reset').addEventListener('click', reset);
-
-        // 改速度就重啟計時器
         $('cfg-speed').addEventListener('change', () => {
             if (timer) { pause(); start(); }
         });
