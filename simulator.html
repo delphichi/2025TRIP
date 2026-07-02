@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麵包經濟學模擬器</title>
+    <link rel="stylesheet" href="simulator.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#7CFC00">
+</head>
+<body class="sim-body">
+
+    <header class="sim-header">
+        <h1>🍞 麵包經濟學模擬器</h1>
+        <p class="sim-subtitle">看不見的手，跑出來給你看</p>
+    </header>
+
+    <main class="sim-main">
+
+        <section class="panel controls">
+            <h2>參數設定</h2>
+            <div class="ctrl-grid">
+                <label>消費者人數
+                    <input type="number" id="cfg-consumers" min="1" max="500" value="30">
+                </label>
+                <label>生產者家數
+                    <input type="number" id="cfg-producers" min="1" max="50" value="5">
+                </label>
+                <label>成本區間 (下)
+                    <input type="number" id="cfg-cost-min" min="1" max="100" value="4" step="0.5">
+                </label>
+                <label>成本區間 (上)
+                    <input type="number" id="cfg-cost-max" min="1" max="100" value="8" step="0.5">
+                </label>
+                <label>每日產能 (下)
+                    <input type="number" id="cfg-cap-min" min="1" max="200" value="8">
+                </label>
+                <label>每日產能 (上)
+                    <input type="number" id="cfg-cap-max" min="1" max="200" value="20">
+                </label>
+                <label>消費者心理價位
+                    <input type="number" id="cfg-wtp" min="1" max="200" value="14" step="0.5">
+                </label>
+                <label>模擬速度 (ms/天)
+                    <input type="number" id="cfg-speed" min="30" max="3000" value="450">
+                </label>
+            </div>
+            <div class="btn-row">
+                <button id="btn-run">▶ 開始</button>
+                <button id="btn-step">＋1 天</button>
+                <button id="btn-pause" disabled>⏸ 暫停</button>
+                <button id="btn-reset">↺ 重置</button>
+            </div>
+            <p class="hint">跑幾天看看，觀察成交均價會不會慢慢逼近成本上方的均衡帶。</p>
+        </section>
+
+        <section class="panel stats">
+            <h2>今日市場</h2>
+            <div class="stat-grid">
+                <div class="stat"><span class="lbl">天數</span><span class="val" id="stat-day">0</span></div>
+                <div class="stat"><span class="lbl">成交均價</span><span class="val" id="stat-price">—</span></div>
+                <div class="stat"><span class="lbl">成交量</span><span class="val" id="stat-volume">—</span></div>
+                <div class="stat"><span class="lbl">未售出 (作廢)</span><span class="val" id="stat-waste">—</span></div>
+                <div class="stat"><span class="lbl">消費者剩餘</span><span class="val" id="stat-cs">—</span></div>
+                <div class="stat"><span class="lbl">生產者剩餘</span><span class="val" id="stat-ps">—</span></div>
+                <div class="stat"><span class="lbl">社會總福利</span><span class="val" id="stat-welfare">—</span></div>
+                <div class="stat"><span class="lbl">理論均衡價 ≈</span><span class="val" id="stat-eq">—</span></div>
+            </div>
+        </section>
+
+        <section class="panel chart-panel">
+            <h2>價格 & 成交量走勢</h2>
+            <div class="legend">
+                <span class="lg-price">— 成交均價</span>
+                <span class="lg-max">— 最高報價</span>
+                <span class="lg-min">— 最低報價</span>
+                <span class="lg-vol">▓ 成交量</span>
+                <span class="lg-eq">┈ 均衡帶</span>
+            </div>
+            <canvas id="chart" width="900" height="360"></canvas>
+        </section>
+
+        <section class="panel agents-panel">
+            <h2>生產者狀態</h2>
+            <div class="producers-grid" id="producers-grid"></div>
+        </section>
+
+        <section class="panel log-panel">
+            <h2>市場日誌</h2>
+            <div class="log" id="log"></div>
+        </section>
+
+        <footer class="sim-footer">
+            <p>模擬邏輯：<strong>有限理性 Agent</strong>，不完全資訊、心理錨定、成本底線、隔夜作廢。</p>
+            <p><a href="./index.html">← 回家族旅遊 PWA</a></p>
+        </footer>
+
+    </main>
+
+    <script src="simulator.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js');
+            });
+        }
+    </script>
+</body>
+</html>

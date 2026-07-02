@@ -1,14 +1,16 @@
-const CACHE_NAME = 'family-trip-cache-v1';
+const CACHE_NAME = 'family-trip-cache-v2';
 // 列出所有需要被快取（即離線儲存）的檔案路徑
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/style.css',
-    '/manifest.json',
+    './',
+    './index.html',
+    './style.css',
+    './manifest.json',
+    './simulator.html',
+    './simulator.css',
+    './simulator.js',
     // 如果您加入了圖示，也請務必快取它們
-    '/icon-192.png',
-    '/icon-512.png'
-    // 這裡可以根據需要加入更多行程頁面或圖片
+    './icon-192.png',
+    './icon-512.png'
 ];
 
 // 1. 安裝階段 (Installation)
