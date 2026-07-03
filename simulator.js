@@ -207,7 +207,7 @@
             return Math.max(0, mu + sigma * z);
         }
 
-        endDay(day, trace, inflationPct) {
+        endDay(day, trace, inflationPct, competitorAvgPrice, competitionWeight) {
             const log = (tag, msg) => { if (trace) trace.push({ tag, msg }); };
             // 已倒店：只 push 一筆零紀錄讓累計淨利圖平線繼續
             if (this.closed) {
@@ -258,6 +258,18 @@
 
             const oldPrice = this.price;
             this.price *= adjust;
+
+            // 競爭壓力：拉向市場均價（Howard Marks 的「有效率的市場」）
+            // weight=0 → 只跟自己的售罄信號；weight=1 → 完全跟市場走
+            let compNote = '';
+            if (competitorAvgPrice > 0 && competitionWeight > 0) {
+                const beforeComp = this.price;
+                this.price = (1 - competitionWeight) * this.price + competitionWeight * competitorAvgPrice;
+                if (Math.abs(this.price - beforeComp) > 0.05) {
+                    compNote = `; 市場均 ${fmt(competitorAvgPrice)} → 拉到 ${fmt(this.price)}`;
+                }
+            }
+
             const floor = this.cost * 1.05;
             let floorNote = '';
             if (this.price < floor) {
@@ -268,7 +280,7 @@
 
             log('done', `昨日：賣 ${this.soldToday}，剩 ${this.wastedToday}（產能 ${this.capacity}）`);
             log(tag, reason);
-            log(floorNote ? 'floor' : 'flat', `價格 ${fmt(oldPrice)} → ${fmt(this.price)} ${floorNote}`);
+            log(floorNote ? 'floor' : 'flat', `價格 ${fmt(oldPrice)} → ${fmt(this.price)}${compNote} ${floorNote}`);
 
             const nvQ = this.newsvendorQ();
             const oldPlan = this.plannedQuantity;
@@ -417,8 +429,20 @@
                 soldToday: this.producers[tracedP].soldToday,
                 wastedToday: this.producers[tracedP].inventory,
             };
+            // 每家的競爭對手 = 其他還沒倒的店；用他們的均價當拉力
+            const alive = this.producers.filter(p => !p.closed);
             this.producers.forEach(p => {
-                p.endDay(this.day, p.id === tracedP ? producerTrace : null, this.cfg.inflation || 0);
+                const competitors = alive.filter(o => o.id !== p.id);
+                const avgComp = competitors.length > 0
+                    ? competitors.reduce((s, o) => s + o.price, 0) / competitors.length
+                    : 0;
+                p.endDay(
+                    this.day,
+                    p.id === tracedP ? producerTrace : null,
+                    this.cfg.inflation || 0,
+                    avgComp,
+                    this.cfg.competition || 0,
+                );
             });
 
             // 消費者更新心理錨：從自己今天買到的價 + 鄰居告訴他的價
@@ -1293,9 +1317,12 @@
         ] : null;
         const panicRaw = parseFloat($('cfg-panic')?.value);
         const panicSensitivity = clamp(Number.isFinite(panicRaw) ? panicRaw : 0.8, 0, 3);
+        const compRaw = parseFloat($('cfg-competition')?.value);
+        const competition = clamp(Number.isFinite(compRaw) ? compRaw : 0.3, 0, 1);
         return {
             consumers, producers, costMin, costMax, capMin, capMax,
-            baseWtp, alpha, gossip, inflation, panicSensitivity, speed, preset,
+            baseWtp, alpha, gossip, inflation, panicSensitivity, competition,
+            speed, preset,
         };
     }
 
