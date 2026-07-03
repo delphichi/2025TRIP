@@ -142,10 +142,13 @@
             this.totalSurplus = 0;
             this.history = [];
             this.recentSales = [];   // 用來估 μ/σ 供 newsvendor 計算
+            // 計劃產量：agent 現在能自己決定今天烤幾個，不再是總是烤滿
+            // 初始從產能上限起步，之後學著往 newsvendor 解收斂
+            this.plannedQuantity = this.capacity;
         }
 
         bake() {
-            this.inventory = this.capacity;
+            this.inventory = this.plannedQuantity;
             this.soldToday = 0;
         }
 
@@ -218,11 +221,21 @@
             log(floorNote ? 'floor' : 'flat', `價格 ${fmt(oldPrice)} → ${fmt(this.price)} ${floorNote}`);
 
             const nvQ = this.newsvendorQ();
+            const oldPlan = this.plannedQuantity;
+            let newPlan, planReason;
             if (nvQ !== null) {
-                const diff = this.capacity - nvQ;
-                const kind = diff > 0.5 ? '過剩' : diff < -0.5 ? '不足' : '接近';
-                log('flat', `Newsvendor Q*≈${fmt(nvQ, 1)}（產能 ${this.capacity}，${kind} ${fmt(Math.abs(diff), 1)}）`);
+                // 有 newsvendor 樣本：往 Q* 靠，用 70/30 慣性平滑避免劇烈跳動
+                const target = clamp(nvQ, 1, this.capacity);
+                newPlan = Math.max(1, Math.round(0.7 * oldPlan + 0.3 * target));
+                planReason = `Newsvendor Q*≈${fmt(nvQ, 1)}，目標 ${fmt(target, 1)}；慣性平滑後烤 ${newPlan}`;
+            } else {
+                // 熱身期 heuristic：昨日賣量 + 2 個緩衝
+                newPlan = clamp(this.soldToday + 2, 1, this.capacity);
+                planReason = `heuristic：昨日賣 ${this.soldToday} + 2 緩衝 = ${newPlan}（熱身，尚無 newsvendor 樣本）`;
             }
+            this.plannedQuantity = newPlan;
+            log(newPlan > oldPlan ? 'raise' : newPlan < oldPlan ? 'drop' : 'flat',
+                `計劃產量：${oldPlan} → ${newPlan}（${planReason}）`);
 
             this.inventory = 0;
         }
@@ -299,6 +312,7 @@
                 cost: this.producers[tracedP].cost,
                 priceBefore: this.producers[tracedP].price,
                 capacity: this.producers[tracedP].capacity,
+                bakedToday: this.producers[tracedP].plannedQuantity,
                 soldToday: this.producers[tracedP].soldToday,
                 wastedToday: this.producers[tracedP].inventory,
             };
@@ -307,11 +321,12 @@
             });
             this.consumers.forEach(c => c.endDay(avgPrice));
 
-            // 全市場的 newsvendor 過剩率
+            // Newsvendor 過剩率：實際計劃產量 vs Newsvendor 解的差距
+            // 產能可調後，這個 metric 反映的是「agent 學到多接近理論」，不再是硬編碼落差
             let nvOptimal = 0, nvHave = 0;
             for (const p of this.producers) {
                 const q = p.newsvendorQ();
-                if (q !== null) { nvOptimal += q; nvHave += p.capacity; }
+                if (q !== null) { nvOptimal += q; nvHave += p.plannedQuantity; }
             }
             const nvOverProd = nvHave > 0 ? (nvHave - nvOptimal) / nvHave : null;
 
@@ -852,7 +867,7 @@
                 <div class="name">🏪 Bakery ${i + 1}</div>
                 <div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>
                 <div class="row"><span>成本</span><span class="v">${fmt(p.cost)}</span></div>
-                <div class="row"><span>產能</span><span class="v">${p.capacity}</span></div>
+                <div class="row"><span>產能 / 計劃烤</span><span class="v">${p.capacity} / ${p.plannedQuantity}</span></div>
                 <div class="row"><span>昨賣 / 剩</span><span class="v">${last ? last.sold + ' / ' + last.wasted : '—'}</span></div>
                 <div class="row"><span>Newsvendor Q*</span><span class="v">${nvQ === null ? '—' : fmt(nvQ, 1)}</span></div>
             `;
@@ -893,7 +908,7 @@
         $('trace-p-title').textContent = `Bakery ${p.id + 1}`;
         $('trace-p-meta').textContent =
             `昨日 → 成本 ${fmt(p.snapshot.cost)} · 產能 ${p.snapshot.capacity} · ` +
-            `售出 ${p.snapshot.soldToday} · 剩 ${p.snapshot.wastedToday} · 昨價 ${fmt(p.snapshot.priceBefore)}`;
+            `烤了 ${p.snapshot.bakedToday} · 售出 ${p.snapshot.soldToday} · 剩 ${p.snapshot.wastedToday} · 昨價 ${fmt(p.snapshot.priceBefore)}`;
         renderTraceLog('trace-p-log', p.log, `新價 ${fmt(p.priceAfter)}`);
     }
 
