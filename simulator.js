@@ -46,7 +46,7 @@
 
     // ---------- agents ----------
     class Consumer {
-        constructor(id, baseWtp) {
+        constructor(id, baseWtp, baseAlpha) {
             this.id = id;
             this.energy = randInt(40, 90);
             this.expected = baseWtp * rand(0.75, 1.2);
@@ -54,60 +54,68 @@
             this.maxWtp = this.expected * rand(1.2, 1.9);
             this.dailyNeed = randInt(1, 3);
             this.budget = rand(60, 180);
+            // 邊際遞減係數：同一天內每多買一個，效用打折的強度
+            // α 越大 → 越快飽；α=0 → 無遞減
+            this.alpha = baseAlpha * rand(0.7, 1.3);
             this.bought = 0;
             this.spent = 0;
             this.surplus = 0;
+        }
+
+        // 第 (bought+1) 個麵包的邊際效用倍率，u(k) = exp(-α · k)
+        marginalUtility() {
+            return Math.exp(-this.alpha * this.bought);
         }
 
         // agent 決策 —— 資訊不完全，只看見自己內部狀態 + 這一家報價
         // trace: 可選 array，會 push {tag, msg} 讓 UI 攤開
         decide(price, producerId, trace) {
             const log = (tag, msg) => { if (trace) trace.push({ tag, msg }); };
+            const mu = this.marginalUtility();
+            const muPct = fmt(mu * 100, 0) + '%';
 
             if (price > this.budget) {
                 log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：預算 ${fmt(this.budget,1)} 不夠`);
                 return false;
             }
-            if (price > this.maxWtp) {
-                log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：> 最高願付 ${fmt(this.maxWtp,1)}`);
-                return false;
-            }
-            if (this.bought >= this.dailyNeed && this.energy > 60) {
-                log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：已飽（${this.bought}/${this.dailyNeed}，體力 ${this.energy}）`);
+            // 邊際上限：把 maxWtp 也乘上 MU（第 k 個麵包的效用是 maxWtp · exp(-αk)）
+            const marginalWtp = this.maxWtp * mu;
+            if (price > marginalWtp) {
+                log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：> 第 ${this.bought+1} 個的邊際 WTP ${fmt(marginalWtp,1)}（MU ${muPct}）`);
                 return false;
             }
 
-            let cap = this.expected * this.confidence;
+            let cap = this.expected * this.confidence * mu;
             let hungerLabel = '正常';
             if (this.energy < 25) {
-                cap = Math.min(this.maxWtp, cap * 1.4);
+                cap = Math.min(marginalWtp, cap * 1.4);
                 hungerLabel = '很餓 ×1.4';
             } else if (this.energy < 45) {
-                cap = Math.min(this.maxWtp, cap * 1.15);
+                cap = Math.min(marginalWtp, cap * 1.15);
                 hungerLabel = '餓 ×1.15';
-            } else if (this.energy > 80 && this.bought > 0) {
-                cap *= 0.85;
-                hungerLabel = '飽 ×0.85';
             }
 
             const noise = 1 + (Math.random() - 0.5) * 0.1;
             const threshold = cap * noise;
-            const detail = `錨 ${fmt(this.expected,1)}×信心 ${fmt(this.confidence,2)}=${fmt(cap,2)}（${hungerLabel}）→ 閾值 ${fmt(threshold,2)}`;
+            const detail = `錨 ${fmt(this.expected,1)}×信心 ${fmt(this.confidence,2)}×MU ${muPct}=${fmt(cap,2)}（${hungerLabel}）→ 閾值 ${fmt(threshold,2)}`;
 
             if (price <= threshold) {
-                log('buy', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定買`);
+                log('buy', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定買（第 ${this.bought+1} 個）`);
                 return true;
             }
             log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定過貴`);
             return false;
         }
 
+        // 傳回這次購買帶來的效用（給 market 用來算真實 CS）
         buy(price) {
+            const utility = this.maxWtp * this.marginalUtility();
             this.budget -= price;
             this.energy = clamp(this.energy + 25, 0, 100);
-            this.bought += 1;
             this.spent += price;
-            this.surplus += (this.maxWtp - price);
+            this.surplus += (utility - price);
+            this.bought += 1;
+            return utility;
         }
 
         endDay(dayAvgPrice) {
@@ -224,7 +232,7 @@
             this.cfg = cfg;
             this.day = 0;
             this.consumers = Array.from({ length: cfg.consumers },
-                (_, i) => new Consumer(i, cfg.baseWtp));
+                (_, i) => new Consumer(i, cfg.baseWtp, cfg.alpha));
             this.producers = Array.from({ length: cfg.producers },
                 (_, i) => new Producer(i, cfg.costMin, cfg.costMax, cfg.capMin, cfg.capMax));
             this.dailyStats = [];
@@ -246,8 +254,8 @@
             const tracedP = randInt(0, this.producers.length - 1);
             const consumerTrace = [];
             const producerTrace = [];
-            const cSnap = { ...(({ energy, expected, confidence, maxWtp, budget, dailyNeed }) =>
-                ({ energy, expected, confidence, maxWtp, budget, dailyNeed }))(this.consumers[tracedC]) };
+            const cSnap = { ...(({ energy, expected, confidence, maxWtp, budget, dailyNeed, alpha }) =>
+                ({ energy, expected, confidence, maxWtp, budget, dailyNeed, alpha }))(this.consumers[tracedC]) };
 
             const trades = [];
             const shopOrder = shuffle(this.consumers.slice());
@@ -264,8 +272,8 @@
                     const trace = (c.id === tracedC) ? consumerTrace : null;
                     if (c.decide(price, p.id, trace)) {
                         p.sell();
-                        c.buy(price);
-                        trades.push({ price, cid: c.id, pid: p.id });
+                        const utility = c.buy(price);
+                        trades.push({ price, cid: c.id, pid: p.id, utility });
                     }
                 }
             }
@@ -274,7 +282,8 @@
             const avgPrice = volume > 0 ? trades.reduce((s, t) => s + t.price, 0) / volume : 0;
             const waste = this.producers.reduce((s, p) => s + p.inventory, 0);
             const ps = trades.reduce((s, t) => s + (t.price - this.producers[t.pid].cost), 0);
-            const cs = trades.reduce((s, t) => s + (this.consumers[t.cid].maxWtp - t.price), 0);
+            // CS 用邊際效用而非固定 maxWtp：第 3 個麵包的效用只有第 1 個的 e^(-2α) 倍
+            const cs = trades.reduce((s, t) => s + (t.utility - t.price), 0);
 
             const pSnap = {
                 cost: this.producers[tracedP].cost,
@@ -456,8 +465,10 @@
         let capMax = parseInt($('cfg-cap-max').value) || 20;
         if (capMax < capMin) [capMin, capMax] = [capMax, capMin];
         const baseWtp = parseFloat($('cfg-wtp').value) || 14;
+        const alphaRaw = parseFloat($('cfg-alpha').value);
+        const alpha = clamp(Number.isFinite(alphaRaw) ? alphaRaw : 0.55, 0, 2);
         const speed = clamp(parseInt($('cfg-speed').value) || 450, 30, 3000);
-        return { consumers, producers, costMin, costMax, capMin, capMax, baseWtp, speed };
+        return { consumers, producers, costMin, costMax, capMin, capMax, baseWtp, alpha, speed };
     }
 
     function updateStatsUI(rec, market) {
@@ -535,7 +546,7 @@
         $('trace-c-meta').textContent =
             `初始 → 體力 ${c.snapshot.energy} · 預算 ${fmt(c.snapshot.budget, 1)} · ` +
             `心理錨 ${fmt(c.snapshot.expected, 1)} · 信心 ${fmt(c.snapshot.confidence, 2)} · ` +
-            `最高願付 ${fmt(c.snapshot.maxWtp, 1)} · 每日需 ${c.snapshot.dailyNeed}`;
+            `α=${fmt(c.snapshot.alpha, 2)} · 最高願付 ${fmt(c.snapshot.maxWtp, 1)} · 每日需 ${c.snapshot.dailyNeed}`;
         renderTraceLog('trace-c-log', c.log,
             `今日走訪 ${c.log.length} 家，成交 ${c.finalBought}/${c.finalDailyNeed}`);
 
