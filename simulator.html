@@ -44,6 +44,12 @@
                 <label>邊際遞減 α
                     <input type="number" id="cfg-alpha" min="0" max="2" value="0.55" step="0.05">
                 </label>
+                <label>口耳相傳
+                    <select id="cfg-gossip">
+                        <option value="on" selected>開（鄰居會影響心理錨）</option>
+                        <option value="off">關（自閉，只看自己）</option>
+                    </select>
+                </label>
                 <label>每天多長 (ms，越大越慢)
                     <input type="number" id="cfg-speed" min="30" max="60000" value="900">
                 </label>

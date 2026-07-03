@@ -118,13 +118,19 @@
             return utility;
         }
 
-        endDay(dayAvgPrice) {
-            if (dayAvgPrice > 0) {
-                this.expected = 0.7 * this.expected + 0.3 * dayAvgPrice;
-            }
+        // 心理錨更新：從自己今天買到的價（own）+ 鄰居告訴他們的價（gossip）
+        // 兩者可能任一為 null（沒買到 / 沒鄰居買到）
+        endDay(ownPrice, gossipPrice) {
+            const hasOwn = ownPrice !== null && Number.isFinite(ownPrice);
+            const hasGossip = gossipPrice !== null && Number.isFinite(gossipPrice);
+            // 慣性 0.6，own 0.2，gossip 0.2，當缺 own/gossip 時剩下的權重歸慣性
+            let wI = 0.6, wO = hasOwn ? 0.2 : 0, wG = hasGossip ? 0.2 : 0;
+            const total = wI + wO + wG;
+            let updated = (wI / total) * this.expected;
+            if (hasOwn) updated += (wO / total) * ownPrice;
+            if (hasGossip) updated += (wG / total) * gossipPrice;
+            this.expected = updated;
             this.energy = clamp(this.energy - randInt(25, 45), 0, 100);
-            // 薪水進帳但預算有上限（模擬「多的錢會被存起來/退出流動性」）
-            // 沒有這個上限，跑幾百天預算會暴走到數千元，budget 檢查變 dead code
             this.budget = Math.min(this.budget + rand(10, 25), 300);
             this.bought = 0;
         }
@@ -266,6 +272,20 @@
             this.lastTrace = null;
         }
 
+        // 網格鄰居：跟 CityScene._houseRow 的 perRow 一致，這樣「屋頂旗子相鄰的鄰居」跟畫面對得上
+        _neighborIds(cid) {
+            const n = this.consumers.length;
+            const perRow = Math.max(10, Math.min(20, n));
+            const row = Math.floor(cid / perRow);
+            const col = cid % perRow;
+            const out = [];
+            if (col > 0) out.push(cid - 1);
+            if (col < perRow - 1 && cid + 1 < n) out.push(cid + 1);
+            if (row > 0) out.push(cid - perRow);
+            if (cid + perRow < n) out.push(cid + perRow);
+            return out;
+        }
+
         stepOneDay() {
             this.day += 1;
             this.producers.forEach(p => p.bake());
@@ -334,7 +354,40 @@
             this.producers.forEach(p => {
                 p.endDay(this.day, p.id === tracedP ? producerTrace : null);
             });
-            this.consumers.forEach(c => c.endDay(avgPrice));
+
+            // 消費者更新心理錨：從自己今天買到的價 + 鄰居告訴他的價
+            // 沒買到就沒 own，只能靠鄰居；沒鄰居有買到就 anchor 不變
+            // 對比舊模型用 dayAvgPrice（全市場均價）——那是不切實際的上帝視角
+            const ownPer = new Map();
+            for (const t of trades) {
+                const x = ownPer.get(t.cid) || { total: 0, n: 0 };
+                x.total += t.price; x.n += 1;
+                ownPer.set(t.cid, x);
+            }
+            const ownAvgOf = cid => {
+                const x = ownPer.get(cid);
+                return x ? x.total / x.n : null;
+            };
+            const gossipOf = cid => {
+                if (!this.cfg.gossip) return null;
+                const nids = this._neighborIds(cid);
+                const vals = nids.map(ownAvgOf).filter(v => v !== null);
+                if (vals.length === 0) return null;
+                return vals.reduce((s, v) => s + v, 0) / vals.length;
+            };
+            this.consumers.forEach(c => c.endDay(ownAvgOf(c.id), gossipOf(c.id)));
+
+            // 給 scene 用：今天哪些鄰居 pair 都有買到（可以「聊天」）
+            const gossipPairs = [];
+            if (this.cfg.gossip) {
+                for (const c of this.consumers) {
+                    if (ownAvgOf(c.id) === null) continue;
+                    for (const nid of this._neighborIds(c.id)) {
+                        if (nid <= c.id) continue;   // 去重
+                        if (ownAvgOf(nid) !== null) gossipPairs.push([c.id, nid]);
+                    }
+                }
+            }
 
             // Newsvendor 過剩率：實際計劃產量 vs Newsvendor 解的差距
             // 產能可調後，這個 metric 反映的是「agent 學到多接近理論」，不再是硬編碼落差
@@ -356,6 +409,7 @@
                 nvOverProd,
                 sceneEvents,
                 producerOpen,
+                gossipPairs,
                 tracedConsumer: {
                     id: tracedC, snapshot: cSnap,
                     log: consumerTrace,
@@ -546,6 +600,7 @@
         playDay(rec, durMs) {
             this.events = rec.sceneEvents || [];
             this.producerOpen = rec.producerOpen || null;
+            this.gossipPairs = rec.gossipPairs || [];
             this.dayNum = rec.day;
             this.dayStart = performance.now();
             this.dayDur = Math.max(80, durMs);   // 快速時仍留 80ms 讓小人閃一下
@@ -676,6 +731,40 @@
             // 消費者小人畫最上層
             for (const { ev, local } of active) {
                 this._drawVisit(ev, local);
+            }
+
+            // 一天結束時（progress > 0.85）畫鄰居八卦的虛線 + 房頂 💬
+            // 慢慢淡入淡出，快速時只是一閃而過
+            if (this.gossipPairs && this.gossipPairs.length > 0 && dayProg > 0.85) {
+                const fade = clamp((dayProg - 0.85) / 0.10, 0, 1) * clamp((1.05 - dayProg) / 0.10, 0, 1);
+                ctx.save();
+                ctx.globalAlpha = 0.75 * fade;
+                ctx.strokeStyle = '#c86a20';
+                ctx.setLineDash([3, 3]);
+                ctx.lineWidth = 1;
+                for (const [a, b] of this.gossipPairs) {
+                    if (a >= this.market.consumers.length || b >= this.market.consumers.length) continue;
+                    const ha = this._houseRow(a);
+                    const hb = this._houseRow(b);
+                    ctx.beginPath();
+                    ctx.moveTo(ha.x, ha.y - 12);
+                    ctx.lineTo(hb.x, hb.y - 12);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+                // 💬 icon on chatterers
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#c86a20';
+                const chatSet = new Set();
+                for (const [a, b] of this.gossipPairs) { chatSet.add(a); chatSet.add(b); }
+                for (const cid of chatSet) {
+                    if (cid >= this.market.consumers.length) continue;
+                    const h = this._houseRow(cid);
+                    ctx.fillText('💬', h.x, h.y - 18);
+                }
+                ctx.restore();
             }
         }
 
@@ -970,7 +1059,8 @@
         const alphaRaw = parseFloat($('cfg-alpha').value);
         const alpha = clamp(Number.isFinite(alphaRaw) ? alphaRaw : 0.55, 0, 2);
         const speed = clamp(parseInt($('cfg-speed').value) || 900, 30, 60000);
-        return { consumers, producers, costMin, costMax, capMin, capMax, baseWtp, alpha, speed };
+        const gossip = ($('cfg-gossip')?.value || 'on') === 'on';
+        return { consumers, producers, costMin, costMax, capMin, capMax, baseWtp, alpha, gossip, speed };
     }
 
     function updateStatsUI(rec, market) {
