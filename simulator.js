@@ -60,6 +60,12 @@
             this.bought = 0;
             this.spent = 0;
             this.surplus = 0;
+            // 慢速錨：只用 3% 慣性慢慢更新，用來偵測「跟原始期待相比是不是太貴」
+            // fast expected 每天 20% 追市場、跟著漂；slow 抗漂移，能記得「本來麵包應該多少錢」
+            this.slowExpected = this.expected;
+            this.pricesSeenToday = [];
+            this.fatigue = 0;       // 連續 sticker shock 天數
+            this.strikingDays = 0;  // 剩餘罷買天數
         }
 
         // 第 (bought+1) 個麵包的邊際效用倍率，u(k) = exp(-α · k)
@@ -121,7 +127,7 @@
 
         // 心理錨更新：從自己今天買到的價（own）+ 鄰居告訴他們的價（gossip）
         // 兩者可能任一為 null（沒買到 / 沒鄰居買到）
-        endDay(ownPrice, gossipPrice) {
+        endDay(ownPrice, gossipPrice, patienceThreshold) {
             const hasOwn = ownPrice !== null && Number.isFinite(ownPrice);
             const hasGossip = gossipPrice !== null && Number.isFinite(gossipPrice);
             // 慣性 0.6，own 0.2，gossip 0.2，當缺 own/gossip 時剩下的權重歸慣性
@@ -131,10 +137,40 @@
             if (hasOwn) updated += (wO / total) * ownPrice;
             if (hasGossip) updated += (wG / total) * gossipPrice;
             this.expected = updated;
+
+            // 慢速錨：只用 1% 慣性更新，抗漂移；~200 天才會完全跟上市場
+            // 這就是「我還記得三年前一顆麵包才 $10」的心理機制
+            const observed = hasOwn ? ownPrice : (hasGossip ? gossipPrice : null);
+            if (observed !== null) {
+                this.slowExpected = 0.99 * this.slowExpected + 0.01 * observed;
+            }
+
+            // Sticker shock：今天看到的最低價超過慢速錨 1.25 倍就累積不爽
+            // 不管有沒有買到都算 —— 「我勉強買了但心裡記帳」
+            if (patienceThreshold > 0) {
+                const minSeen = this.pricesSeenToday.length > 0
+                    ? Math.min(...this.pricesSeenToday) : null;
+                if (minSeen !== null && minSeen > this.slowExpected * 1.25) {
+                    this.fatigue += 1;
+                } else {
+                    this.fatigue = Math.max(0, this.fatigue - 1);
+                }
+                // 忍耐值到頂 → 退出市場 3-5 天
+                if (this.fatigue >= patienceThreshold) {
+                    this.strikingDays = randInt(3, 5);
+                    this.fatigue = 0;
+                }
+            }
+            this.pricesSeenToday = [];
+
             this.energy = clamp(this.energy - randInt(25, 45), 0, 100);
             this.budget = Math.min(this.budget + rand(10, 25), 300);
             this.bought = 0;
         }
+
+        observePrice(price) { this.pricesSeenToday.push(price); }
+        isOnStrike() { return this.strikingDays > 0; }
+        tickStrike() { if (this.strikingDays > 0) this.strikingDays -= 1; }
     }
 
     class Producer {
@@ -386,6 +422,7 @@
             const totalAlive = this.producers.filter(p => !p.closed).length;
             for (let round = 0; round < maxVisits; round++) {
                 for (const c of shopOrder) {
+                    if (c.isOnStrike()) continue;                  // 罷買中，今天不出門
                     if (c.bought >= c.dailyNeed) continue;         // 買夠了就回家
                     if (c.rejectionsToday >= 3) continue;          // 被拒 3 次也放棄
                     const open = this.producers.filter(p => p.inventory > 0);
@@ -402,6 +439,7 @@
                     if (price === null) continue;
                     const trace = (c.id === tracedC) ? consumerTrace : null;
                     const decided = c.decide(price, p.id, trace, panicMult);
+                    c.observePrice(price);   // 有沒有買到都記錄這家報價，供 sticker shock 判斷
                     sceneEvents.push({ round, cid: c.id, pid: p.id, price, bought: decided });
                     if (decided) {
                         p.sell();
@@ -465,7 +503,10 @@
                 if (vals.length === 0) return null;
                 return vals.reduce((s, v) => s + v, 0) / vals.length;
             };
-            this.consumers.forEach(c => c.endDay(ownAvgOf(c.id), gossipOf(c.id)));
+            const patience = this.cfg.patience || 0;
+            this.consumers.forEach(c => c.endDay(ownAvgOf(c.id), gossipOf(c.id), patience));
+            this.consumers.forEach(c => c.tickStrike());
+            const strikingCount = this.consumers.filter(c => c.isOnStrike()).length;
 
             // 給 scene 用：今天哪些鄰居 pair 都有買到（可以「聊天」）
             const gossipPairs = [];
@@ -498,6 +539,7 @@
                 deviation: volume > 0 ? (avgPrice - this.eqPrice) / this.eqPrice : null,
                 nvOverProd,
                 peakPanic,
+                strikingCount,
                 sceneEvents,
                 producerOpen,
                 gossipPairs,
@@ -1319,9 +1361,11 @@
         const panicSensitivity = clamp(Number.isFinite(panicRaw) ? panicRaw : 0.8, 0, 3);
         const compRaw = parseFloat($('cfg-competition')?.value);
         const competition = clamp(Number.isFinite(compRaw) ? compRaw : 0.3, 0, 1);
+        const patRaw = parseInt($('cfg-patience')?.value);
+        const patience = clamp(Number.isFinite(patRaw) ? patRaw : 3, 0, 10);
         return {
             consumers, producers, costMin, costMax, capMin, capMax,
-            baseWtp, alpha, gossip, inflation, panicSensitivity, competition,
+            baseWtp, alpha, gossip, inflation, panicSensitivity, competition, patience,
             speed, preset,
         };
     }
@@ -1358,6 +1402,14 @@
         } else {
             panicEl.textContent = '平靜';
             panicEl.style.color = '';
+        }
+        const strikeEl = $('stat-strike');
+        if (rec.strikingCount > 0) {
+            strikeEl.textContent = rec.strikingCount + ' 人';
+            strikeEl.style.color = 'var(--max)';
+        } else {
+            strikeEl.textContent = '無';
+            strikeEl.style.color = '';
         }
     }
 
@@ -1604,7 +1656,7 @@
         $('log').innerHTML = '';
         $('stat-day').textContent = '0';
         ['stat-price', 'stat-volume', 'stat-waste', 'stat-cs',
-         'stat-ps', 'stat-welfare', 'stat-dev', 'stat-nv', 'stat-panic']
+         'stat-ps', 'stat-welfare', 'stat-dev', 'stat-nv', 'stat-panic', 'stat-strike']
             .forEach(id => { $(id).textContent = '—'; $(id).style.color = ''; });
         $('stat-eq').textContent = fmt(market.eqPrice);
         $('trace-c-title').textContent = '—';

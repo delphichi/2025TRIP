@@ -53,6 +53,9 @@
                 <label>競爭壓力
                     <input type="number" id="cfg-competition" min="0" max="1" value="0.3" step="0.05">
                 </label>
+                <label>消費者忍耐 (0=永不退場)
+                    <input type="number" id="cfg-patience" min="0" max="10" value="3" step="1">
+                </label>
                 <label>口耳相傳
                     <select id="cfg-gossip">
                         <option value="on" selected>開（鄰居會影響心理錨）</option>
@@ -92,6 +95,7 @@
                 <div class="stat"><span class="lbl">偏離均衡</span><span class="val" id="stat-dev">—</span></div>
                 <div class="stat"><span class="lbl">Newsvendor 過剩</span><span class="val" id="stat-nv">—</span></div>
                 <div class="stat"><span class="lbl">今日峰值恐慌</span><span class="val" id="stat-panic">—</span></div>
+                <div class="stat"><span class="lbl">罷買中</span><span class="val" id="stat-strike">—</span></div>
             </div>
             <p class="hint sm">
                 <b>教科書均衡價</b> = 階梯式供需曲線交叉點（完全資訊、完全理性、無記憶下的理論解）。
