@@ -212,6 +212,19 @@ body.sim-body {
 .log .down { color: var(--min); }
 .log .flat { color: var(--muted); }
 
+/* Scene panel */
+.scene-panel canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #83b8f2;
+    border-radius: 8px;
+    border: 1px solid #4a7fb8;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
 /* Trace panel */
 .hint.sm { font-size: .78em; margin-top: 8px; line-height: 1.5; }
 .hint.sm b { color: var(--primary-dark); }

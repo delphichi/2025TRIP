@@ -249,6 +249,11 @@
             this.producers.forEach(p => p.bake());
             this.consumers.forEach(c => { c.bought = 0; });
 
+            // 開盤 snapshot：招牌顯示的價 + 庫存以此為準，避免用到 endDay 之後的值
+            const producerOpen = this.producers.map(p => ({
+                id: p.id, cost: p.cost, price: p.price, capacity: p.capacity,
+            }));
+
             // 抽今日 trace 對象
             const tracedC = randInt(0, this.consumers.length - 1);
             const tracedP = randInt(0, this.producers.length - 1);
@@ -258,6 +263,7 @@
                 ({ energy, expected, confidence, maxWtp, budget, dailyNeed, alpha }))(this.consumers[tracedC]) };
 
             const trades = [];
+            const sceneEvents = [];   // { round, cid, pid, price, bought }
             const shopOrder = shuffle(this.consumers.slice());
             const maxVisits = Math.max(3, Math.min(this.cfg.producers, 6));
 
@@ -270,7 +276,9 @@
                     const price = p.offer();
                     if (price === null) continue;
                     const trace = (c.id === tracedC) ? consumerTrace : null;
-                    if (c.decide(price, p.id, trace)) {
+                    const decided = c.decide(price, p.id, trace);
+                    sceneEvents.push({ round, cid: c.id, pid: p.id, price, bought: decided });
+                    if (decided) {
                         p.sell();
                         const utility = c.buy(price);
                         trades.push({ price, cid: c.id, pid: p.id, utility });
@@ -314,6 +322,8 @@
                 maxPrice: Math.max(...prices),
                 deviation: volume > 0 ? (avgPrice - this.eqPrice) / this.eqPrice : null,
                 nvOverProd,
+                sceneEvents,
+                producerOpen,
                 tracedConsumer: {
                     id: tracedC, snapshot: cSnap,
                     log: consumerTrace,
@@ -450,10 +460,327 @@
         }
     }
 
+    // ---------- pixel-art city scene ----------
+    // 讀 dailyStats 的 sceneEvents，用 rAF 迴圈把「消費者從家 → 店 → 家」動畫化
+    // 純 Canvas draw，無外部圖檔；配色類 PICO-8 palette
+    const PAL = {
+        sky: '#83b8f2', ground: '#6bb04a', street: '#4a4d55', walk: '#8f8878',
+        bakeryBody: '#c4885a', bakeryRoof: '#7a3a24', bakeryDoor: '#3a1e10',
+        signBg: '#fff2cc', signInk: '#221a10',
+        bread: '#e2a45c', breadShadow: '#a0663a',
+        house: '#e8d5a0', houseRoof: '#8b4a2a', houseDoor: '#5a3020',
+        cloud: '#ffffffcc',
+        bubbleBuy: '#a8e090', bubbleSkip: '#f0b4b4', bubbleInk: '#221a10',
+    };
+
+    class CityScene {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            const w = 720, h = 280;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            this.ctx.scale(dpr, dpr);
+            this.ctx.imageSmoothingEnabled = false;
+            this.w = w; this.h = h;
+            this.market = null;
+            this.dayNum = 0;
+            this.events = [];
+            this.dayStart = 0;
+            this.dayDur = 450;
+            this.frame = 0;
+            this._running = true;
+            this._loop();
+        }
+
+        setMarket(m) {
+            this.market = m;
+            this.events = [];
+            this.dayNum = 0;
+        }
+
+        playDay(rec, durMs) {
+            this.events = rec.sceneEvents || [];
+            this.producerOpen = rec.producerOpen || null;
+            this.dayNum = rec.day;
+            this.dayStart = performance.now();
+            this.dayDur = Math.max(80, durMs);   // 快速時仍留 80ms 讓小人閃一下
+        }
+
+        _loop() {
+            if (!this._running) return;
+            this.frame++;
+            this._render();
+            requestAnimationFrame(() => this._loop());
+        }
+
+        _bakeryPos(pid) {
+            const n = this.market ? this.market.producers.length : 1;
+            const laneW = (this.w - 40) / n;
+            return { x: 20 + pid * laneW + laneW / 2, y: 128 };
+        }
+
+        _houseRow(cid) {
+            const n = this.market ? this.market.consumers.length : 1;
+            const perRow = Math.max(10, Math.min(20, n));
+            const rows = Math.ceil(n / perRow);
+            const row = Math.floor(cid / perRow);
+            const col = cid % perRow;
+            const rowH = 44;
+            const areaTop = this.h - rows * rowH - 8;
+            const laneW = (this.w - 20) / perRow;
+            return { x: 10 + col * laneW + laneW / 2, y: areaTop + row * rowH + rowH / 2 };
+        }
+
+        _render() {
+            const ctx = this.ctx;
+            const { w, h } = this;
+
+            // sky
+            ctx.fillStyle = PAL.sky;
+            ctx.fillRect(0, 0, w, h);
+
+            // clouds
+            ctx.fillStyle = PAL.cloud;
+            const t = this.frame * 0.3;
+            for (let i = 0; i < 4; i++) {
+                const cx = ((i * 200 + t) % (w + 80)) - 40;
+                const cy = 20 + i * 6;
+                ctx.fillRect(cx, cy, 40, 8);
+                ctx.fillRect(cx + 6, cy - 4, 28, 4);
+            }
+
+            // ground
+            ctx.fillStyle = PAL.ground;
+            ctx.fillRect(0, 160, w, h - 160);
+
+            // sidewalk (店家門口的走道)
+            ctx.fillStyle = PAL.walk;
+            ctx.fillRect(0, 155, w, 8);
+
+            // street (中央馬路，白色虛線)
+            ctx.fillStyle = PAL.street;
+            ctx.fillRect(0, 140, w, 15);
+            ctx.fillStyle = '#e0d090';
+            for (let x = 0; x < w; x += 24) {
+                ctx.fillRect(x, 146, 12, 3);
+            }
+
+            // 動態計算「當下每家還剩幾個」：計算此刻前已經走完的 buy events
+            const now = performance.now();
+            const dayProg = this.events.length > 0
+                ? clamp((now - this.dayStart) / this.dayDur, 0, 1.05)
+                : 1;
+            const N = this.events.length;
+            const eventSpan = N > 0 ? 1 / N : 1;
+            const eventWindow = Math.min(0.28, eventSpan * 4);
+            // 一個 buy event 在 local >= 0.7 時商品才真的「離店」
+            const soldByBakery = {};
+            for (let i = 0; i < N; i++) {
+                const ev = this.events[i];
+                if (!ev.bought) continue;
+                const start = i * eventSpan;
+                const buyMoment = start + eventWindow * 0.7;
+                if (dayProg >= buyMoment) {
+                    soldByBakery[ev.pid] = (soldByBakery[ev.pid] || 0) + 1;
+                }
+            }
+
+            // bakeries
+            if (this.market) {
+                this.market.producers.forEach((p, i) => {
+                    const pos = this._bakeryPos(i);
+                    const open = this.producerOpen ? this.producerOpen[i] : null;
+                    const displayPrice = open ? open.price : p.price;
+                    const displayInv = open
+                        ? Math.max(0, open.capacity - (soldByBakery[i] || 0))
+                        : p.inventory;
+                    this._drawBakery(pos.x, pos.y, displayPrice, displayInv, i + 1);
+                });
+                this.market.consumers.forEach((c, i) => {
+                    const pos = this._houseRow(i);
+                    this._drawHouse(pos.x, pos.y);
+                });
+            }
+
+            // day badge
+            ctx.fillStyle = '#22181088';
+            ctx.fillRect(w - 88, 4, 84, 20);
+            ctx.fillStyle = '#fff2cc';
+            ctx.font = 'bold 12px ui-monospace, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('DAY ' + this.dayNum, w - 46, 14);
+
+            // active events
+            if (this.market && N > 0) {
+                for (let i = 0; i < N; i++) {
+                    const start = i * eventSpan;
+                    const end = start + eventWindow;
+                    if (dayProg >= start && dayProg <= end) {
+                        const local = (dayProg - start) / (end - start);
+                        this._drawVisit(this.events[i], local);
+                    }
+                }
+            }
+        }
+
+        _drawBakery(cx, y, price, inventory, num) {
+            const ctx = this.ctx;
+            const bw = 56, bh = 44;
+            const x = cx - bw / 2;
+            // body
+            ctx.fillStyle = PAL.bakeryBody;
+            ctx.fillRect(x, y, bw, bh);
+            // roof
+            ctx.fillStyle = PAL.bakeryRoof;
+            ctx.beginPath();
+            ctx.moveTo(x - 6, y);
+            ctx.lineTo(x + 8, y - 12);
+            ctx.lineTo(x + bw - 8, y - 12);
+            ctx.lineTo(x + bw + 6, y);
+            ctx.closePath();
+            ctx.fill();
+            // door
+            ctx.fillStyle = PAL.bakeryDoor;
+            ctx.fillRect(cx - 6, y + bh - 18, 12, 18);
+            // window
+            ctx.fillStyle = '#a8d8ee';
+            ctx.fillRect(x + 4, y + 8, 10, 8);
+            ctx.fillRect(x + bw - 14, y + 8, 10, 8);
+            // sign
+            ctx.fillStyle = PAL.signBg;
+            ctx.fillRect(x - 4, y + 24, bw + 8, 12);
+            ctx.strokeStyle = PAL.signInk;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x - 4, y + 24, bw + 8, 12);
+            ctx.fillStyle = PAL.signInk;
+            ctx.font = 'bold 10px ui-monospace, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`#${num} $${price.toFixed(1)}·${inventory}`, cx, y + 30);
+            // 麵包 stack on top of bakery（賣光就沒了）
+            const stackY = y - 22;
+            for (let i = 0; i < Math.min(inventory, 10); i++) {
+                const bx = x + 4 + i * 5;
+                ctx.fillStyle = PAL.bread;
+                ctx.fillRect(bx, stackY, 4, 4);
+                ctx.fillStyle = PAL.breadShadow;
+                ctx.fillRect(bx, stackY + 3, 4, 1);
+            }
+            // 賣光了 → 招牌變灰
+            if (inventory === 0) {
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillRect(x - 4, y + 24, bw + 8, 12);
+            }
+        }
+
+        _drawHouse(cx, y) {
+            const ctx = this.ctx;
+            const hw = 20, hh = 18;
+            const x = cx - hw / 2;
+            ctx.fillStyle = PAL.house;
+            ctx.fillRect(x, y - hh / 2, hw, hh);
+            ctx.fillStyle = PAL.houseRoof;
+            ctx.beginPath();
+            ctx.moveTo(x - 2, y - hh / 2);
+            ctx.lineTo(x + hw / 2, y - hh / 2 - 8);
+            ctx.lineTo(x + hw + 2, y - hh / 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = PAL.houseDoor;
+            ctx.fillRect(cx - 2, y + 1, 4, hh / 2 - 1);
+        }
+
+        _drawVisit(ev, local) {
+            const ctx = this.ctx;
+            const home = this._houseRow(ev.cid);
+            const bake = this._bakeryPos(ev.pid);
+            const bakeStand = { x: bake.x, y: bake.y + 46 };  // 站在店門口
+
+            let px, py, atBakery = false;
+            if (local < 0.35) {
+                const p = local / 0.35;
+                px = home.x + (bakeStand.x - home.x) * p;
+                py = home.y + (bakeStand.y - home.y) * p;
+            } else if (local < 0.7) {
+                px = bakeStand.x;
+                py = bakeStand.y;
+                atBakery = true;
+            } else {
+                const p = (local - 0.7) / 0.3;
+                px = bakeStand.x + (home.x - bakeStand.x) * p;
+                py = bakeStand.y + (home.y - bakeStand.y) * p;
+            }
+
+            // 走路兩幀動畫
+            const walkFrame = Math.floor(this.frame / 6) % 2;
+            const hue = (ev.cid * 137) % 360;
+
+            // 影子
+            ctx.fillStyle = '#00000033';
+            ctx.fillRect(px - 5, py + 4, 10, 2);
+            // 身體
+            ctx.fillStyle = `hsl(${hue}, 68%, 52%)`;
+            ctx.fillRect(px - 3, py - 4, 6, 6);   // 頭
+            ctx.fillStyle = `hsl(${hue}, 65%, 40%)`;
+            ctx.fillRect(px - 4, py + 2, 8, 4);   // 身體
+            // 腳
+            ctx.fillStyle = '#3a2818';
+            if (atBakery || walkFrame === 0) {
+                ctx.fillRect(px - 4, py + 6, 3, 2);
+                ctx.fillRect(px + 1, py + 6, 3, 2);
+            } else {
+                ctx.fillRect(px - 3, py + 6, 3, 2);
+                ctx.fillRect(px, py + 6, 3, 2);
+            }
+            // 帶著麵包回家
+            if (!atBakery && local >= 0.7 && ev.bought) {
+                ctx.fillStyle = PAL.bread;
+                ctx.fillRect(px + 3, py - 1, 4, 3);
+            }
+
+            // 決策泡泡：站在店門口時顯示
+            if (atBakery) {
+                const bw = 62, bh = 24;
+                const bx = px - bw / 2;
+                const by = py - 36;
+                ctx.fillStyle = ev.bought ? PAL.bubbleBuy : PAL.bubbleSkip;
+                ctx.fillRect(bx, by, bw, bh);
+                ctx.strokeStyle = PAL.bubbleInk;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(bx, by, bw, bh);
+                // 泡泡尖角
+                ctx.beginPath();
+                ctx.moveTo(px - 3, by + bh);
+                ctx.lineTo(px, by + bh + 4);
+                ctx.lineTo(px + 3, by + bh);
+                ctx.closePath();
+                ctx.fillStyle = ev.bought ? PAL.bubbleBuy : PAL.bubbleSkip;
+                ctx.fill();
+                ctx.strokeStyle = PAL.bubbleInk;
+                ctx.beginPath();
+                ctx.moveTo(px - 3, by + bh);
+                ctx.lineTo(px, by + bh + 4);
+                ctx.lineTo(px + 3, by + bh);
+                ctx.stroke();
+                // 文字
+                ctx.fillStyle = PAL.bubbleInk;
+                ctx.font = 'bold 10px ui-monospace, monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`$${ev.price.toFixed(1)}`, px, by + 7);
+                ctx.fillText(ev.bought ? '買！' : '太貴', px, by + 17);
+            }
+        }
+    }
+
     // ---------- UI wiring ----------
     let market = null;
     let timer = null;
     let chart = null;
+    let scene = null;
 
     function readCfg() {
         const consumers = clamp(parseInt($('cfg-consumers').value) || 30, 1, 500);
@@ -599,6 +926,7 @@
         pushLog(rec, market);
         renderTrace(rec);
         chart.render(market.dailyStats, market.eqPrice);
+        if (scene) scene.playDay(rec, readCfg().speed);
     }
 
     function start() {
@@ -623,6 +951,8 @@
         market = new Market(cfg);
         chart = new Chart($('chart'));
         chart.render([], market.eqPrice);
+        if (!scene) scene = new CityScene($('scene'));
+        scene.setMarket(market);
         renderProducers(market);
         $('log').innerHTML = '';
         $('stat-day').textContent = '0';
