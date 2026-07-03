@@ -150,6 +150,7 @@
         bake() {
             this.inventory = this.plannedQuantity;
             this.soldToday = 0;
+            this.revenueToday = 0;
         }
 
         offer() { return this.inventory > 0 ? this.price : null; }
@@ -158,6 +159,7 @@
             if (this.inventory <= 0) return null;
             this.inventory -= 1;
             this.soldToday += 1;
+            this.revenueToday += this.price;
             this.totalSurplus += (this.price - this.cost);
             return this.price;
         }
@@ -181,9 +183,14 @@
             this.wastedToday = this.inventory;
             const soldRatio = this.soldToday / this.capacity;
 
+            // 帳本：今天實際烤了幾個、賣掉幾個、賣光後剩下幾個、收入、成本
+            // 沒賣掉的麵包成本也要算，因為錢已經花下去了
             this.history.push({
                 day, price: this.price,
+                baked: this.plannedQuantity,
                 sold: this.soldToday, wasted: this.wastedToday,
+                revenue: this.revenueToday,
+                productionCost: this.cost * this.plannedQuantity,
             });
             this.recentSales.push(this.soldToday);
             if (this.recentSales.length > 10) this.recentSales.shift();
@@ -283,10 +290,13 @@
             const sceneEvents = [];   // { round, cid, pid, price, bought }
             const shopOrder = shuffle(this.consumers.slice());
             const maxVisits = Math.max(3, Math.min(this.cfg.producers, 6));
+            // 每日拒絕計數：連續被拒 3 次就放棄回家，避免尾段所有人擠去唯一有貨的貴店互相「太貴」
+            this.consumers.forEach(c => { c.rejectionsToday = 0; });
 
             for (let round = 0; round < maxVisits; round++) {
                 for (const c of shopOrder) {
-                    if (c.energy > 85 && c.bought >= c.dailyNeed) continue;
+                    if (c.bought >= c.dailyNeed) continue;         // 買夠了就回家
+                    if (c.rejectionsToday >= 3) continue;          // 被拒 3 次也放棄
                     const open = this.producers.filter(p => p.inventory > 0);
                     if (open.length === 0) break;
                     const p = open[randInt(0, open.length - 1)];
@@ -299,6 +309,9 @@
                         p.sell();
                         const utility = c.buy(price);
                         trades.push({ price, cid: c.id, pid: p.id, utility });
+                        c.rejectionsToday = 0;   // 買到就重置耐心
+                    } else {
+                        c.rejectionsToday += 1;
                     }
                 }
             }
@@ -1009,6 +1022,51 @@
         });
     }
 
+    function renderLedger(market) {
+        const tbody = $('ledger-tbody');
+        const tfoot = $('ledger-tfoot');
+        tbody.innerHTML = '';
+        tfoot.innerHTML = '';
+        let sumBaked = 0, sumSold = 0, sumWaste = 0, sumRev = 0, sumCost = 0;
+        market.producers.forEach((p, i) => {
+            const last = p.history[p.history.length - 1];
+            if (!last) return;
+            const baked = last.baked ?? p.capacity;
+            const rev = last.revenue ?? 0;
+            const cost = last.productionCost ?? (p.cost * baked);
+            const profit = rev - cost;
+            sumBaked += baked; sumSold += last.sold; sumWaste += last.wasted;
+            sumRev += rev; sumCost += cost;
+            const profitCls = profit > 0.5 ? 'positive' : profit < -0.5 ? 'negative' : 'flat';
+            const wasteCls = last.wasted > 0 ? 'warn' : '';
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>🏪 #${i + 1}</td>
+                <td>${baked}</td>
+                <td>${last.sold}</td>
+                <td class="${wasteCls}">${last.wasted}</td>
+                <td>${fmt(rev, 1)}</td>
+                <td>${fmt(cost, 1)}</td>
+                <td class="${profitCls}">${profit >= 0 ? '+' : ''}${fmt(profit, 1)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+        const totalProfit = sumRev - sumCost;
+        const totalCls = totalProfit > 0.5 ? 'positive' : totalProfit < -0.5 ? 'negative' : 'flat';
+        const wasteCls = sumWaste > 0 ? 'warn' : '';
+        tfoot.innerHTML = `
+            <tr>
+                <td>合計</td>
+                <td>${sumBaked}</td>
+                <td>${sumSold}</td>
+                <td class="${wasteCls}">${sumWaste}</td>
+                <td>${fmt(sumRev, 1)}</td>
+                <td>${fmt(sumCost, 1)}</td>
+                <td class="${totalCls}">${totalProfit >= 0 ? '+' : ''}${fmt(totalProfit, 1)}</td>
+            </tr>
+        `;
+    }
+
     function pushLog(rec, market) {
         const log = $('log');
         const prev = market.dailyStats[market.dailyStats.length - 2];
@@ -1085,6 +1143,7 @@
         const rec = market.stepOneDay();
         updateStatsUI(rec, market);
         renderProducers(market);
+        renderLedger(market);
         pushLog(rec, market);
         renderTrace(rec);
         chart.render(downsampleStats(market.dailyStats), market.eqPrice);

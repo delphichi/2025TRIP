@@ -103,6 +103,31 @@
             <div class="producers-grid" id="producers-grid"></div>
         </section>
 
+        <section class="panel ledger-panel">
+            <h2>本日帳本</h2>
+            <p class="hint">
+                每家生產者當日損益：<b>收入</b>=今日成交總額；<b>成本</b>=單位成本×今天實際烤了幾個
+                （沒賣掉還是花了錢）；<b>淨利</b>=收入−成本。
+            </p>
+            <div class="ledger-scroll">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>店</th>
+                            <th>烤</th>
+                            <th>賣</th>
+                            <th>廢</th>
+                            <th>收入</th>
+                            <th>成本</th>
+                            <th>淨利</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-tbody"></tbody>
+                    <tfoot id="ledger-tfoot"></tfoot>
+                </table>
+            </div>
+        </section>
+
         <section class="panel trace-panel">
             <h2>今日決策 trace（隨機抽樣）</h2>
             <p class="hint">
