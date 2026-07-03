@@ -265,8 +265,10 @@
             this.consumers.forEach(c => { c.bought = 0; });
 
             // 開盤 snapshot：招牌顯示的價 + 庫存以此為準，避免用到 endDay 之後的值
+            // baked = 今天實際烤了幾個（可能 < capacity，因為 agent 現在會選擇烤多少）
             const producerOpen = this.producers.map(p => ({
-                id: p.id, cost: p.cost, price: p.price, capacity: p.capacity,
+                id: p.id, cost: p.cost, price: p.price,
+                capacity: p.capacity, baked: p.plannedQuantity,
             }));
 
             // 抽今日 trace 對象
@@ -595,7 +597,7 @@
                 ctx.fillRect(x, 146, 12, 3);
             }
 
-            // 動態計算「當下每家還剩幾個」：計算此刻前已經走完的 buy events
+            // 一次算完當下所有 active events：{ev, local}
             const now = performance.now();
             const dayProg = this.events.length > 0
                 ? clamp((now - this.dayStart) / this.dayDur, 0, 1.05)
@@ -603,7 +605,16 @@
             const N = this.events.length;
             const eventSpan = N > 0 ? 1 / N : 1;
             const eventWindow = Math.min(0.28, eventSpan * 4);
-            // 一個 buy event 在 local >= 0.7 時商品才真的「離店」
+            const active = [];
+            for (let i = 0; i < N; i++) {
+                const start = i * eventSpan;
+                const end = start + eventWindow;
+                if (dayProg >= start && dayProg <= end) {
+                    active.push({ ev: this.events[i], local: (dayProg - start) / (end - start) });
+                }
+            }
+
+            // 每個 buy event 在 local >= 0.7（離開店家）才真的把庫存扣掉
             const soldByBakery = {};
             for (let i = 0; i < N; i++) {
                 const ev = this.events[i];
@@ -615,20 +626,26 @@
                 }
             }
 
-            // bakeries
+            // 誰家的門正在打開（消費者剛出門 or 剛回家）
+            const openDoors = new Set();
+            for (const { ev, local } of active) {
+                if (local < 0.14 || local > 0.86) openDoors.add(ev.cid);
+            }
+
+            // bakeries + houses
             if (this.market) {
                 this.market.producers.forEach((p, i) => {
                     const pos = this._bakeryPos(i);
                     const open = this.producerOpen ? this.producerOpen[i] : null;
                     const displayPrice = open ? open.price : p.price;
                     const displayInv = open
-                        ? Math.max(0, open.capacity - (soldByBakery[i] || 0))
+                        ? Math.max(0, open.baked - (soldByBakery[i] || 0))
                         : p.inventory;
                     this._drawBakery(pos.x, pos.y, displayPrice, displayInv, i + 1);
                 });
                 this.market.consumers.forEach((c, i) => {
                     const pos = this._houseRow(i);
-                    this._drawHouse(pos.x, pos.y);
+                    this._drawHouse(pos.x, pos.y, i, openDoors.has(i));
                 });
             }
 
@@ -641,16 +658,9 @@
             ctx.textBaseline = 'middle';
             ctx.fillText('DAY ' + this.dayNum, w - 46, 14);
 
-            // active events
-            if (this.market && N > 0) {
-                for (let i = 0; i < N; i++) {
-                    const start = i * eventSpan;
-                    const end = start + eventWindow;
-                    if (dayProg >= start && dayProg <= end) {
-                        const local = (dayProg - start) / (end - start);
-                        this._drawVisit(this.events[i], local);
-                    }
-                }
+            // 消費者小人畫最上層
+            for (const { ev, local } of active) {
+                this._drawVisit(ev, local);
             }
         }
 
@@ -704,12 +714,14 @@
             }
         }
 
-        _drawHouse(cx, y) {
+        _drawHouse(cx, y, cid, doorOpen) {
             const ctx = this.ctx;
             const hw = 20, hh = 18;
             const x = cx - hw / 2;
+            // 主體
             ctx.fillStyle = PAL.house;
             ctx.fillRect(x, y - hh / 2, hw, hh);
+            // 屋頂
             ctx.fillStyle = PAL.houseRoof;
             ctx.beginPath();
             ctx.moveTo(x - 2, y - hh / 2);
@@ -717,17 +729,167 @@
             ctx.lineTo(x + hw + 2, y - hh / 2);
             ctx.closePath();
             ctx.fill();
-            ctx.fillStyle = PAL.houseDoor;
-            ctx.fillRect(cx - 2, y + 1, 4, hh / 2 - 1);
+            // 屋頂上的身分色小旗——每戶對應住戶的 hue
+            const hue = (cid * 137) % 360;
+            ctx.fillStyle = `hsl(${hue}, 68%, 55%)`;
+            ctx.fillRect(cx + hw / 2 - 2, y - hh / 2 - 6, 3, 3);
+            ctx.fillStyle = '#3a2818';
+            ctx.fillRect(cx + hw / 2 - 2, y - hh / 2 - 8, 1, 5);   // 旗杆
+            // 窗戶
+            ctx.fillStyle = '#a8d8ee';
+            ctx.fillRect(x + 3, y - hh / 2 + 4, 4, 4);
+            ctx.fillRect(x + hw - 7, y - hh / 2 + 4, 4, 4);
+            // 門：關 → 深色門片；開 → 內部一片黑 + 側邊露一條門片
+            if (doorOpen) {
+                ctx.fillStyle = '#1a0e08';                   // 屋內黑暗
+                ctx.fillRect(cx - 3, y + 1, 6, hh / 2 - 1);
+                ctx.fillStyle = PAL.houseDoor;               // 半開的門片
+                ctx.fillRect(cx - 4, y + 1, 1, hh / 2 - 1);
+            } else {
+                ctx.fillStyle = PAL.houseDoor;
+                ctx.fillRect(cx - 2, y + 1, 4, hh / 2 - 1);
+                ctx.fillStyle = '#c48b3a';                   // 門把
+                ctx.fillRect(cx + 1, y + 4, 1, 1);
+            }
+        }
+
+        // 16×20 像素小人：頭、頭髮、眼睛、身體、手、腿、鞋
+        // 顏色依 cid 分配 hue，多樣化；atBakery 時腿停格 + 微微上下呼吸
+        _drawPerson(px, py, cid, walking, walkFrame, hasBasket) {
+            const ctx = this.ctx;
+            const hue = (cid * 137) % 360;
+            const shirt = `hsl(${hue}, 68%, 52%)`;
+            const shirtDark = `hsl(${hue}, 65%, 38%)`;
+            const hairHue = ((cid * 73) + 30) % 360;
+            const hairColor = `hsl(${hairHue}, 55%, 25%)`;
+            const skin = ['#f4c896', '#e0a878', '#c78e5a', '#a06840'][cid % 4];
+            const pants = '#3a2818';
+
+            // 影子
+            ctx.fillStyle = '#00000040';
+            ctx.fillRect(px - 5, py + 11, 10, 2);
+            // 頭髮（頂 + 兩側）
+            ctx.fillStyle = hairColor;
+            ctx.fillRect(px - 3, py - 9, 6, 2);
+            ctx.fillRect(px - 3, py - 8, 1, 3);
+            ctx.fillRect(px + 2, py - 8, 1, 3);
+            // 頭（膚色）
+            ctx.fillStyle = skin;
+            ctx.fillRect(px - 2, py - 7, 4, 5);
+            // 眼睛
+            ctx.fillStyle = '#1a1010';
+            ctx.fillRect(px - 2, py - 5, 1, 1);
+            ctx.fillRect(px + 1, py - 5, 1, 1);
+            // 嘴
+            ctx.fillStyle = '#8b3a2a';
+            ctx.fillRect(px, py - 3, 1, 1);
+            // 脖子
+            ctx.fillStyle = skin;
+            ctx.fillRect(px - 1, py - 2, 2, 1);
+            // 身體（襯衫）
+            ctx.fillStyle = shirt;
+            ctx.fillRect(px - 4, py - 1, 8, 5);
+            // 腰帶
+            ctx.fillStyle = shirtDark;
+            ctx.fillRect(px - 4, py + 4, 8, 1);
+            // 手臂（膚色）
+            ctx.fillStyle = skin;
+            ctx.fillRect(px - 5, py, 1, 4);
+            ctx.fillRect(px + 4, py, 1, 4);
+            // 拿籃子（右手），籃內有一個麵包
+            if (hasBasket) {
+                ctx.fillStyle = '#8b5a2a';
+                ctx.fillRect(px + 4, py + 3, 5, 3);
+                ctx.fillStyle = '#5a3018';
+                ctx.fillRect(px + 4, py + 2, 5, 1);
+                ctx.fillStyle = PAL.bread;
+                ctx.fillRect(px + 5, py + 1, 3, 2);
+            }
+            // 褲子
+            ctx.fillStyle = pants;
+            ctx.fillRect(px - 3, py + 5, 6, 3);
+            // 腿（走路兩幀 or 站立）
+            const frame = walking ? walkFrame : 0;
+            ctx.fillStyle = pants;
+            if (frame === 0) {
+                ctx.fillRect(px - 3, py + 8, 2, 3);
+                ctx.fillRect(px + 1, py + 8, 2, 3);
+            } else {
+                ctx.fillRect(px - 2, py + 8, 2, 3);
+                ctx.fillRect(px, py + 8, 2, 3);
+            }
+            // 鞋
+            ctx.fillStyle = '#5a3018';
+            if (frame === 0) {
+                ctx.fillRect(px - 3, py + 10, 2, 1);
+                ctx.fillRect(px + 1, py + 10, 2, 1);
+            } else {
+                ctx.fillRect(px - 2, py + 10, 2, 1);
+                ctx.fillRect(px, py + 10, 2, 1);
+            }
+        }
+
+        _drawIdBadge(px, py, cid) {
+            const ctx = this.ctx;
+            const label = `#${cid + 1}`;
+            const bw = 18, bh = 10;
+            ctx.fillStyle = '#22181088';
+            ctx.fillRect(px - bw / 2, py - 18, bw, bh);
+            ctx.fillStyle = '#fff2cc';
+            ctx.font = 'bold 8px ui-monospace, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, px, py - 13);
+        }
+
+        _drawBubble(px, py, lines, kind) {
+            const ctx = this.ctx;
+            const oneLine = lines.length === 1;
+            const bw = oneLine ? 22 : 64;
+            const bh = oneLine ? 16 : 26;
+            const bx = px - bw / 2, by = py - bh - 6;
+            const bg = kind === 'buy' ? PAL.bubbleBuy
+                    : kind === 'skip' ? PAL.bubbleSkip
+                    : '#f5edd0';
+            ctx.fillStyle = bg;
+            ctx.fillRect(bx, by, bw, bh);
+            ctx.strokeStyle = PAL.bubbleInk;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(bx, by, bw, bh);
+            // 泡泡尖角
+            ctx.fillStyle = bg;
+            ctx.beginPath();
+            ctx.moveTo(px - 3, by + bh);
+            ctx.lineTo(px, by + bh + 4);
+            ctx.lineTo(px + 3, by + bh);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = PAL.bubbleInk;
+            ctx.beginPath();
+            ctx.moveTo(px - 3, by + bh);
+            ctx.lineTo(px, by + bh + 4);
+            ctx.lineTo(px + 3, by + bh);
+            ctx.stroke();
+            // 文字
+            ctx.fillStyle = PAL.bubbleInk;
+            ctx.font = 'bold 10px ui-monospace, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (oneLine) {
+                ctx.fillText(lines[0], px, by + bh / 2);
+            } else {
+                ctx.fillText(lines[0], px, by + 8);
+                ctx.fillText(lines[1], px, by + 19);
+            }
         }
 
         _drawVisit(ev, local) {
-            const ctx = this.ctx;
             const home = this._houseRow(ev.cid);
             const bake = this._bakeryPos(ev.pid);
-            const bakeStand = { x: bake.x, y: bake.y + 46 };  // 站在店門口
+            const bakeStand = { x: bake.x, y: bake.y + 44 };   // 站在店門口
 
             let px, py, atBakery = false;
+            let walking = true;
             if (local < 0.35) {
                 const p = local / 0.35;
                 px = home.x + (bakeStand.x - home.x) * p;
@@ -736,70 +898,40 @@
                 px = bakeStand.x;
                 py = bakeStand.y;
                 atBakery = true;
+                walking = false;
+                // 站在店門口時輕微上下呼吸感
+                py += Math.round(Math.sin(this.frame * 0.25) * 1);
             } else {
                 const p = (local - 0.7) / 0.3;
                 px = bakeStand.x + (home.x - bakeStand.x) * p;
                 py = bakeStand.y + (home.y - bakeStand.y) * p;
             }
 
-            // 走路兩幀動畫
             const walkFrame = Math.floor(this.frame / 6) % 2;
-            const hue = (ev.cid * 137) % 360;
+            // 買到後回家時右手拿麵包籃
+            const hasBasket = !atBakery && local >= 0.7 && ev.bought;
 
-            // 影子
-            ctx.fillStyle = '#00000033';
-            ctx.fillRect(px - 5, py + 4, 10, 2);
-            // 身體
-            ctx.fillStyle = `hsl(${hue}, 68%, 52%)`;
-            ctx.fillRect(px - 3, py - 4, 6, 6);   // 頭
-            ctx.fillStyle = `hsl(${hue}, 65%, 40%)`;
-            ctx.fillRect(px - 4, py + 2, 8, 4);   // 身體
-            // 腳
-            ctx.fillStyle = '#3a2818';
-            if (atBakery || walkFrame === 0) {
-                ctx.fillRect(px - 4, py + 6, 3, 2);
-                ctx.fillRect(px + 1, py + 6, 3, 2);
-            } else {
-                ctx.fillRect(px - 3, py + 6, 3, 2);
-                ctx.fillRect(px, py + 6, 3, 2);
-            }
-            // 帶著麵包回家
-            if (!atBakery && local >= 0.7 && ev.bought) {
-                ctx.fillStyle = PAL.bread;
-                ctx.fillRect(px + 3, py - 1, 4, 3);
-            }
+            this._drawPerson(px, py, ev.cid, walking, walkFrame, hasBasket);
 
-            // 決策泡泡：站在店門口時顯示
+            // 身分徽章：靠近店 or 離開店的一小段，方便追蹤特定消費者
+            const showBadge = (local >= 0.25 && local < 0.35)
+                          || atBakery
+                          || (local >= 0.7 && local < 0.8);
+            if (showBadge) this._drawIdBadge(px, py, ev.cid);
+
+            // 兩段泡泡：先「思考中 ...」，再揭曉決策
             if (atBakery) {
-                const bw = 62, bh = 24;
-                const bx = px - bw / 2;
-                const by = py - 36;
-                ctx.fillStyle = ev.bought ? PAL.bubbleBuy : PAL.bubbleSkip;
-                ctx.fillRect(bx, by, bw, bh);
-                ctx.strokeStyle = PAL.bubbleInk;
-                ctx.lineWidth = 1;
-                ctx.strokeRect(bx, by, bw, bh);
-                // 泡泡尖角
-                ctx.beginPath();
-                ctx.moveTo(px - 3, by + bh);
-                ctx.lineTo(px, by + bh + 4);
-                ctx.lineTo(px + 3, by + bh);
-                ctx.closePath();
-                ctx.fillStyle = ev.bought ? PAL.bubbleBuy : PAL.bubbleSkip;
-                ctx.fill();
-                ctx.strokeStyle = PAL.bubbleInk;
-                ctx.beginPath();
-                ctx.moveTo(px - 3, by + bh);
-                ctx.lineTo(px, by + bh + 4);
-                ctx.lineTo(px + 3, by + bh);
-                ctx.stroke();
-                // 文字
-                ctx.fillStyle = PAL.bubbleInk;
-                ctx.font = 'bold 10px ui-monospace, monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(`$${ev.price.toFixed(1)}`, px, by + 7);
-                ctx.fillText(ev.bought ? '買！' : '太貴', px, by + 17);
+                const localAtBakery = (local - 0.35) / 0.35;   // 0..1
+                if (localAtBakery < 0.35) {
+                    // 思考中 —— 一個 ? 或 ... 隨 frame 閃
+                    const dots = ['?', '...', '?', '...'][Math.floor(this.frame / 12) % 4];
+                    this._drawBubble(px, py - 4, [dots], 'think');
+                } else {
+                    // 決策揭曉
+                    this._drawBubble(px, py - 4,
+                        [`$${ev.price.toFixed(2)}`, ev.bought ? '買！✓' : '太貴 ✗'],
+                        ev.bought ? 'buy' : 'skip');
+                }
             }
         }
     }
