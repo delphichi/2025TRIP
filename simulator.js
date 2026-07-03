@@ -604,7 +604,9 @@
                 : 1;
             const N = this.events.length;
             const eventSpan = N > 0 ? 1 / N : 1;
-            const eventWindow = Math.min(0.28, eventSpan * 4);
+            // 每個事件至少佔天長度的 10%，讓走路/思考/決策每段都看得清楚
+            // 快速時大量重疊（螞蟻潮汐感），慢速時走路動畫就有 1-2 秒
+            const eventWindow = Math.max(0.10, Math.min(0.5, eventSpan * 4));
             const active = [];
             for (let i = 0; i < N; i++) {
                 const start = i * eventSpan;
@@ -954,7 +956,7 @@
         const baseWtp = parseFloat($('cfg-wtp').value) || 14;
         const alphaRaw = parseFloat($('cfg-alpha').value);
         const alpha = clamp(Number.isFinite(alphaRaw) ? alphaRaw : 0.55, 0, 2);
-        const speed = clamp(parseInt($('cfg-speed').value) || 900, 30, 3000);
+        const speed = clamp(parseInt($('cfg-speed').value) || 900, 30, 60000);
         return { consumers, producers, costMin, costMax, capMin, capMax, baseWtp, alpha, speed };
     }
 
