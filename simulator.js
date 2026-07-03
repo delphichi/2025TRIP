@@ -1490,7 +1490,7 @@
         const tfoot = $('ledger-tfoot');
         tbody.innerHTML = '';
         tfoot.innerHTML = '';
-        let sumBaked = 0, sumSold = 0, sumWaste = 0, sumRev = 0, sumCost = 0;
+        let sumBaked = 0, sumSold = 0, sumWaste = 0, sumRev = 0, sumCost = 0, sumCum = 0;
         market.producers.forEach((p, i) => {
             const last = p.history[p.history.length - 1];
             if (!last) return;
@@ -1498,7 +1498,7 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>💀 ${p.label || '#' + (i + 1)}</td>
-                    <td colspan="6" style="text-align:left;color:var(--muted)">
+                    <td colspan="7" style="text-align:left;color:var(--muted)">
                         已倒店（Day ${p.closedDay}）· 累計 ${fmt(p.cumulativeProfit, 1)}
                     </td>
                 `;
@@ -1510,9 +1510,11 @@
             const rev = last.revenue ?? 0;
             const cost = last.productionCost ?? (p.cost * baked);
             const profit = rev - cost;
+            const cum = p.cumulativeProfit;
             sumBaked += baked; sumSold += last.sold; sumWaste += last.wasted;
-            sumRev += rev; sumCost += cost;
+            sumRev += rev; sumCost += cost; sumCum += cum;
             const profitCls = profit > 0.5 ? 'positive' : profit < -0.5 ? 'negative' : 'flat';
+            const cumCls = cum > 0.5 ? 'positive' : cum < -0.5 ? 'negative' : 'flat';
             const wasteCls = last.wasted > 0 ? 'warn' : '';
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -1523,11 +1525,13 @@
                 <td>${fmt(rev, 1)}</td>
                 <td>${fmt(cost, 1)}</td>
                 <td class="${profitCls}">${profit >= 0 ? '+' : ''}${fmt(profit, 1)}</td>
+                <td class="${cumCls}">${cum >= 0 ? '+' : ''}${fmt(cum, 0)}</td>
             `;
             tbody.appendChild(row);
         });
         const totalProfit = sumRev - sumCost;
         const totalCls = totalProfit > 0.5 ? 'positive' : totalProfit < -0.5 ? 'negative' : 'flat';
+        const sumCumCls = sumCum > 0.5 ? 'positive' : sumCum < -0.5 ? 'negative' : 'flat';
         const wasteCls = sumWaste > 0 ? 'warn' : '';
         tfoot.innerHTML = `
             <tr>
@@ -1538,6 +1542,7 @@
                 <td>${fmt(sumRev, 1)}</td>
                 <td>${fmt(sumCost, 1)}</td>
                 <td class="${totalCls}">${totalProfit >= 0 ? '+' : ''}${fmt(totalProfit, 1)}</td>
+                <td class="${sumCumCls}">${sumCum >= 0 ? '+' : ''}${fmt(sumCum, 0)}</td>
             </tr>
         `;
     }
