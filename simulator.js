@@ -150,6 +150,7 @@
                 this.price = this.cost * rand(1.6, 2.2);
                 this.label = null;
             }
+            this.initialCost = this.cost;   // 通膨後 cost 會變，但顏色排序用 initialCost 才有意義
             this.inventory = 0;
             this.soldToday = 0;
             this.wastedToday = 0;
@@ -159,9 +160,22 @@
             // 計劃產量：agent 現在能自己決定今天烤幾個，不再是總是烤滿
             // 初始從產能上限起步，之後學著往 newsvendor 解收斂
             this.plannedQuantity = this.capacity;
+            // 破產機制：從 100 的種子資金開始，累計淨利跌破 0 就倒店
+            // 有 seed capital 避免 Day 1 過度生產就直接死亡，改成「慢慢被磨死」
+            this.cumulativeProfit = 100;
+            this.closed = false;
+            this.closedDay = null;
         }
 
         bake() {
+            // 已倒店：不烤、庫存 0，消費者到店會發現無貨自動略過
+            if (this.closed) {
+                this.inventory = 0;
+                this.plannedQuantity = 0;
+                this.soldToday = 0;
+                this.revenueToday = 0;
+                return;
+            }
             this.inventory = this.plannedQuantity;
             this.soldToday = 0;
             this.revenueToday = 0;
@@ -192,19 +206,30 @@
             return Math.max(0, mu + sigma * z);
         }
 
-        endDay(day, trace) {
+        endDay(day, trace, inflationPct) {
             const log = (tag, msg) => { if (trace) trace.push({ tag, msg }); };
+            // 已倒店：只 push 一筆零紀錄讓累計淨利圖平線繼續
+            if (this.closed) {
+                this.history.push({
+                    day, price: this.price, baked: 0,
+                    sold: 0, wasted: 0, revenue: 0, productionCost: 0,
+                });
+                return;
+            }
             this.wastedToday = this.inventory;
             const soldRatio = this.soldToday / this.capacity;
 
             // 帳本：今天實際烤了幾個、賣掉幾個、賣光後剩下幾個、收入、成本
             // 沒賣掉的麵包成本也要算，因為錢已經花下去了
+            const todayCost = this.cost * this.plannedQuantity;
+            const todayProfit = this.revenueToday - todayCost;
+            this.cumulativeProfit += todayProfit;
             this.history.push({
                 day, price: this.price,
                 baked: this.plannedQuantity,
                 sold: this.soldToday, wasted: this.wastedToday,
                 revenue: this.revenueToday,
-                productionCost: this.cost * this.plannedQuantity,
+                productionCost: todayCost,
             });
             this.recentSales.push(this.soldToday);
             if (this.recentSales.length > 10) this.recentSales.shift();
@@ -257,6 +282,23 @@
             this.plannedQuantity = newPlan;
             log(newPlan > oldPlan ? 'raise' : newPlan < oldPlan ? 'drop' : 'flat',
                 `計劃產量：${oldPlan} → ${newPlan}（${planReason}）`);
+
+            // 通膨：成本每天上漲一點（模擬匯率 / 租金 / 工資漲）
+            if (inflationPct > 0) {
+                const oldCost = this.cost;
+                this.cost *= (1 + inflationPct);
+                if (this.cost > oldPrice * 0.99) {
+                    // 成本追上/超過售價 → 提示，price 下一輪會被 floor 拉起
+                    log('floor', `⚠ 成本上漲 ${(inflationPct*100).toFixed(3)}%（${fmt(oldCost)} → ${fmt(this.cost)}），逼近售價`);
+                }
+            }
+
+            // 破產判定：本金（種子 100 + 累積淨利）花光就倒
+            if (this.cumulativeProfit < 0) {
+                this.closed = true;
+                this.closedDay = day;
+                log('drop', `💀 本金花光（${fmt(this.cumulativeProfit, 1)}），Day ${day} 倒店`);
+            }
 
             this.inventory = 0;
         }
@@ -363,7 +405,7 @@
                 wastedToday: this.producers[tracedP].inventory,
             };
             this.producers.forEach(p => {
-                p.endDay(this.day, p.id === tracedP ? producerTrace : null);
+                p.endDay(this.day, p.id === tracedP ? producerTrace : null, this.cfg.inflation || 0);
             });
 
             // 消費者更新心理錨：從自己今天買到的價 + 鄰居告訴他的價
@@ -722,7 +764,7 @@
                     const displayInv = open
                         ? Math.max(0, open.baked - (soldByBakery[i] || 0))
                         : p.inventory;
-                    this._drawBakery(pos.x, pos.y, displayPrice, displayInv, i + 1);
+                    this._drawBakery(pos.x, pos.y, displayPrice, displayInv, i + 1, p.closed);
                 });
                 this.market.consumers.forEach((c, i) => {
                     const pos = this._houseRow(i);
@@ -779,10 +821,40 @@
             }
         }
 
-        _drawBakery(cx, y, price, inventory, num) {
+        _drawBakery(cx, y, price, inventory, num, closed) {
             const ctx = this.ctx;
             const bw = 56, bh = 44;
             const x = cx - bw / 2;
+            // 倒店：整棟灰化 + 招牌貼 CLOSED
+            if (closed) {
+                ctx.fillStyle = '#7a7268';
+                ctx.fillRect(x, y, bw, bh);
+                ctx.fillStyle = '#4a4238';
+                ctx.beginPath();
+                ctx.moveTo(x - 6, y);
+                ctx.lineTo(x + 8, y - 12);
+                ctx.lineTo(x + bw - 8, y - 12);
+                ctx.lineTo(x + bw + 6, y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#2a2622';
+                ctx.fillRect(cx - 6, y + bh - 18, 12, 18);
+                // 木板釘在門上
+                ctx.fillStyle = '#6a4a2a';
+                ctx.fillRect(cx - 10, y + bh - 12, 20, 3);
+                ctx.fillRect(cx - 10, y + bh - 4, 20, 3);
+                // CLOSED sign
+                ctx.fillStyle = '#c0392b';
+                ctx.fillRect(x - 4, y + 20, bw + 8, 14);
+                ctx.strokeStyle = '#7a1a10';
+                ctx.strokeRect(x - 4, y + 20, bw + 8, 14);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 9px ui-monospace, monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`💀 CLOSED`, cx, y + 27);
+                return;
+            }
             // body
             ctx.fillStyle = PAL.bakeryBody;
             ctx.fillRect(x, y, bw, bh);
@@ -1193,6 +1265,8 @@
         const alpha = clamp(Number.isFinite(alphaRaw) ? alphaRaw : 0.55, 0, 2);
         const speed = clamp(parseInt($('cfg-speed').value) || 900, 30, 60000);
         const gossip = ($('cfg-gossip')?.value || 'on') === 'on';
+        const inflationRaw = parseFloat($('cfg-inflation')?.value);
+        const inflation = clamp(Number.isFinite(inflationRaw) ? inflationRaw : 0.1, 0, 2) / 100;
         const scenario = ($('cfg-scenario')?.value || 'random');
         // 5 象限實驗：把 5 家店固定成 (成本, 起始定價) 的極端組合
         // 產能都設 12 讓比較公平；市場開跑後定價會 dynamically 演變
@@ -1205,7 +1279,7 @@
         ] : null;
         return {
             consumers, producers, costMin, costMax, capMin, capMax,
-            baseWtp, alpha, gossip, speed, preset,
+            baseWtp, alpha, gossip, inflation, speed, preset,
         };
     }
 
@@ -1246,14 +1320,24 @@
             const nvQ = p.newsvendorQ();
             const div = document.createElement('div');
             div.className = 'producer-card' + (soldOut ? ' sold-out' : '') + (wasted ? ' waste' : '');
-            div.innerHTML = `
-                <div class="name">🏪 ${p.label || 'Bakery ' + (i + 1)}</div>
-                <div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>
-                <div class="row"><span>成本</span><span class="v">${fmt(p.cost)}</span></div>
-                <div class="row"><span>產能 / 計劃烤</span><span class="v">${p.capacity} / ${p.plannedQuantity}</span></div>
-                <div class="row"><span>昨賣 / 剩</span><span class="v">${last ? last.sold + ' / ' + last.wasted : '—'}</span></div>
-                <div class="row"><span>Newsvendor Q*</span><span class="v">${nvQ === null ? '—' : fmt(nvQ, 1)}</span></div>
-            `;
+            if (p.closed) {
+                div.classList.add('closed');
+                div.innerHTML = `
+                    <div class="name">💀 ${p.label || 'Bakery ' + (i + 1)}</div>
+                    <div class="closed-tag">已倒店（Day ${p.closedDay}）</div>
+                    <div class="row"><span>最後成本</span><span class="v">${fmt(p.cost)}</span></div>
+                    <div class="row"><span>累計淨利</span><span class="v">${fmt(p.cumulativeProfit, 1)}</span></div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="name">🏪 ${p.label || 'Bakery ' + (i + 1)}</div>
+                    <div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>
+                    <div class="row"><span>成本</span><span class="v">${fmt(p.cost)}</span></div>
+                    <div class="row"><span>產能 / 計劃烤</span><span class="v">${p.capacity} / ${p.plannedQuantity}</span></div>
+                    <div class="row"><span>昨賣 / 剩</span><span class="v">${last ? last.sold + ' / ' + last.wasted : '—'}</span></div>
+                    <div class="row"><span>Newsvendor Q*</span><span class="v">${nvQ === null ? '—' : fmt(nvQ, 1)}</span></div>
+                `;
+            }
             grid.appendChild(div);
         });
     }
@@ -1261,7 +1345,7 @@
     function renderBakeryChart(market) {
         // 從 producer.history 算每一天的累計淨利
         const producers = market.producers.map((p, i) => {
-            let cum = 0;
+            let cum = 100;   // 種子資金 100
             const cumulative = p.history.map(h => {
                 cum += (h.revenue - h.productionCost);
                 return cum;
@@ -1270,9 +1354,10 @@
             const label = p.label || `Bakery ${i + 1}`;
             return { id: p.id, cost: p.cost, price: p.price, marginPct, cumulative, label };
         });
-        // 排序 cost，用於配色（綠→紅）
-        const sortedByCost = [...producers]
-            .sort((a, b) => a.cost - b.cost)
+        // 用 initialCost 排序配色（綠→紅），避免通膨後 cost 亂跳讓顏色錯位
+        const sortedByCost = market.producers
+            .slice()
+            .sort((a, b) => a.initialCost - b.initialCost)
             .map(p => p.id);
         bakeryChart.render(producers, sortedByCost);
 
@@ -1284,11 +1369,15 @@
             const color = costTierColor(rank, sortedByCost.length);
             const finalCum = p.cumulative.length > 0 ? p.cumulative[p.cumulative.length - 1] : 0;
             const cumStr = finalCum >= 0 ? `+${fmt(finalCum, 0)}` : fmt(finalCum, 0);
+            const producer = market.producers[p.id];
+            const closedTag = producer.closed
+                ? ` <b style="color:var(--max)">💀 倒於 Day ${producer.closedDay}</b>`
+                : '';
             const div = document.createElement('span');
             div.className = 'lg';
             div.innerHTML = `<span class="swatch" style="background:${color}"></span>` +
                 `${p.label} · 成 ${fmt(p.cost, 2)} · 價 ${fmt(p.price, 2)} · ` +
-                `毛利 ${(p.marginPct * 100).toFixed(0)}% · 累計 ${cumStr}`;
+                `毛利 ${(p.marginPct * 100).toFixed(0)}% · 累計 ${cumStr}${closedTag}`;
             leg.appendChild(div);
         }
     }
@@ -1302,6 +1391,18 @@
         market.producers.forEach((p, i) => {
             const last = p.history[p.history.length - 1];
             if (!last) return;
+            if (p.closed) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>💀 ${p.label || '#' + (i + 1)}</td>
+                    <td colspan="6" style="text-align:left;color:var(--muted)">
+                        已倒店（Day ${p.closedDay}）· 累計 ${fmt(p.cumulativeProfit, 1)}
+                    </td>
+                `;
+                row.style.opacity = '0.5';
+                tbody.appendChild(row);
+                return;
+            }
             const baked = last.baked ?? p.capacity;
             const rev = last.revenue ?? 0;
             const cost = last.productionCost ?? (p.cost * baked);

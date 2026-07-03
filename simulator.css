@@ -193,6 +193,18 @@ body.sim-body {
 .producer-card .row .v { color: var(--ink); font-weight: 500; }
 .producer-card.sold-out { border-left-color: var(--max); }
 .producer-card.waste { border-left-color: var(--min); }
+.producer-card.closed {
+    border-left-color: #888;
+    background: #ebe8e2;
+    opacity: 0.72;
+}
+.producer-card.closed .name { color: #666; text-decoration: line-through; }
+.producer-card .closed-tag {
+    font-size: .78em;
+    color: var(--max);
+    font-weight: 700;
+    margin-bottom: 4px;
+}
 
 /* Log */
 .log {
