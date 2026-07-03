@@ -50,6 +50,12 @@
                         <option value="off">關（自閉，只看自己）</option>
                     </select>
                 </label>
+                <label>初始情境
+                    <select id="cfg-scenario">
+                        <option value="random" selected>隨機生產者</option>
+                        <option value="quadrant">5 象限實驗（成本×定價比較）</option>
+                    </select>
+                </label>
                 <label>每天多長 (ms，越大越慢)
                     <input type="number" id="cfg-speed" min="30" max="60000" value="900">
                 </label>
@@ -102,6 +108,16 @@
                 <span class="lg-eq">┈ 均衡帶</span>
             </div>
             <canvas id="chart" width="900" height="360"></canvas>
+        </section>
+
+        <section class="panel bakery-chart-panel">
+            <h2>各店累計淨利</h2>
+            <p class="hint">
+                每家 bakery 從 Day 1 到現在的累計淨利。<b>顏色</b>依成本階級（綠→黃→紅＝低→中→高成本），
+                <b>粗細</b>依當前毛利率（越粗越賺）。看誰長期贏、誰在苟活。
+            </p>
+            <div class="bakery-legend" id="bakery-legend"></div>
+            <canvas id="bakery-chart" width="900" height="260"></canvas>
         </section>
 
         <section class="panel agents-panel">

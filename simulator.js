@@ -137,11 +137,19 @@
     }
 
     class Producer {
-        constructor(id, costMin, costMax, capMin, capMax) {
+        constructor(id, costMin, costMax, capMin, capMax, preset) {
             this.id = id;
-            this.cost = rand(costMin, costMax);
-            this.capacity = randInt(capMin, capMax);
-            this.price = this.cost * rand(1.6, 2.2);
+            if (preset) {
+                this.cost = preset.cost;
+                this.capacity = preset.capacity;
+                this.price = preset.price;
+                this.label = preset.label;
+            } else {
+                this.cost = rand(costMin, costMax);
+                this.capacity = randInt(capMin, capMax);
+                this.price = this.cost * rand(1.6, 2.2);
+                this.label = null;
+            }
             this.inventory = 0;
             this.soldToday = 0;
             this.wastedToday = 0;
@@ -261,8 +269,11 @@
             this.day = 0;
             this.consumers = Array.from({ length: cfg.consumers },
                 (_, i) => new Consumer(i, cfg.baseWtp, cfg.alpha));
-            this.producers = Array.from({ length: cfg.producers },
-                (_, i) => new Producer(i, cfg.costMin, cfg.costMax, cfg.capMin, cfg.capMax));
+            // preset scenario 覆蓋隨機生成
+            this.producers = cfg.preset
+                ? cfg.preset.map((p, i) => new Producer(i, 0, 0, 0, 0, p))
+                : Array.from({ length: cfg.producers },
+                    (_, i) => new Producer(i, cfg.costMin, cfg.costMax, cfg.capMin, cfg.capMax));
             this.dailyStats = [];
             const eq = computeEquilibrium(this.consumers, this.producers);
             this.eqPrice = eq.price;
@@ -1040,10 +1051,132 @@
         }
     }
 
+    // 依 rank/total 從綠→黃→紅產生成本階級色（rank 0 = 最便宜、綠色）
+    function costTierColor(rank, total) {
+        if (total <= 1) return 'hsl(140, 60%, 45%)';
+        const t = rank / (total - 1);          // 0..1
+        // 綠 (140°) → 黃 (55°) → 紅 (10°)
+        const hue = 140 - t * 130;
+        return `hsl(${hue}, 68%, 42%)`;
+    }
+
+    // 各店累計淨利折線圖
+    class BakeryProfitChart {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.clientWidth || canvas.width;
+            const h = canvas.clientHeight || canvas.height;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            this.ctx.scale(dpr, dpr);
+            this.w = w;
+            this.h = h;
+        }
+
+        // producers: 排序過的 [{ id, cost, marginPct, cumulative: [n1,n2,...] }]
+        // 每個 bakery 的 cumulative 陣列長度應該相同（=天數）
+        render(producers, sortedByCost) {
+            const { ctx, w, h } = this;
+            ctx.clearRect(0, 0, w, h);
+            if (producers.length === 0 || producers[0].cumulative.length === 0) {
+                ctx.fillStyle = '#aaa';
+                ctx.font = '13px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('按「開始」跑起來，這裡會出現各店累計淨利', w / 2, h / 2);
+                return;
+            }
+
+            const padL = 52, padR = 12, padT = 12, padB = 26;
+            const chartW = w - padL - padR;
+            const chartH = h - padT - padB;
+            const nDays = producers[0].cumulative.length;
+
+            // 取樣，避免長跑時擠糊
+            const target = 200;
+            const stride = Math.max(1, Math.ceil(nDays / target));
+
+            // Y 範圍：跨所有 bakery 找 min/max
+            let ymin = 0, ymax = 0;
+            for (const p of producers) {
+                for (const v of p.cumulative) {
+                    if (v < ymin) ymin = v;
+                    if (v > ymax) ymax = v;
+                }
+            }
+            ymin = Math.min(ymin, 0);
+            ymax = Math.max(ymax, 10);
+            const yr = ymax - ymin || 1;
+
+            const xAt = i => padL + (nDays === 1 ? chartW / 2 : (i / (nDays - 1)) * chartW);
+            const yAt = v => padT + chartH - ((v - ymin) / yr) * chartH;
+
+            // 網格
+            ctx.strokeStyle = '#eee';
+            ctx.fillStyle = '#888';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            const yTicks = 5;
+            for (let i = 0; i <= yTicks; i++) {
+                const v = ymin + (yr * i) / yTicks;
+                const y = yAt(v);
+                ctx.beginPath();
+                ctx.moveTo(padL, y);
+                ctx.lineTo(padL + chartW, y);
+                ctx.stroke();
+                ctx.fillText(v.toFixed(0), padL - 4, y);
+            }
+
+            // 零線加粗
+            if (ymin < 0 && ymax > 0) {
+                ctx.strokeStyle = '#333';
+                ctx.beginPath();
+                ctx.moveTo(padL, yAt(0));
+                ctx.lineTo(padL + chartW, yAt(0));
+                ctx.stroke();
+            }
+
+            // 每家 bakery 一條線
+            for (const p of producers) {
+                const rank = sortedByCost.indexOf(p.id);
+                ctx.strokeStyle = costTierColor(rank, sortedByCost.length);
+                // 毛利率越高越粗（1-3px）
+                const wid = clamp(1 + p.marginPct * 8, 1, 3.5);
+                ctx.lineWidth = wid;
+                ctx.beginPath();
+                let started = false;
+                for (let i = 0; i < nDays; i += stride) {
+                    const v = p.cumulative[i];
+                    if (!Number.isFinite(v)) continue;
+                    const x = xAt(i), y = yAt(v);
+                    if (!started) { ctx.moveTo(x, y); started = true; }
+                    else ctx.lineTo(x, y);
+                }
+                // 最後一點必畫
+                const last = p.cumulative[nDays - 1];
+                if (Number.isFinite(last)) ctx.lineTo(xAt(nDays - 1), yAt(last));
+                ctx.stroke();
+            }
+
+            // X 軸標籤
+            ctx.fillStyle = '#888';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            const xTicks = Math.min(nDays, 8);
+            for (let i = 0; i < xTicks; i++) {
+                const idx = Math.round((nDays - 1) * i / (xTicks - 1 || 1));
+                ctx.fillText('Day ' + (idx + 1), xAt(idx), padT + chartH + 4);
+            }
+        }
+    }
+
     // ---------- UI wiring ----------
     let market = null;
     let timer = null;
     let chart = null;
+    let bakeryChart = null;
     let scene = null;
 
     function readCfg() {
@@ -1060,7 +1193,20 @@
         const alpha = clamp(Number.isFinite(alphaRaw) ? alphaRaw : 0.55, 0, 2);
         const speed = clamp(parseInt($('cfg-speed').value) || 900, 30, 60000);
         const gossip = ($('cfg-gossip')?.value || 'on') === 'on';
-        return { consumers, producers, costMin, costMax, capMin, capMax, baseWtp, alpha, gossip, speed };
+        const scenario = ($('cfg-scenario')?.value || 'random');
+        // 5 象限實驗：把 5 家店固定成 (成本, 起始定價) 的極端組合
+        // 產能都設 12 讓比較公平；市場開跑後定價會 dynamically 演變
+        const preset = scenario === 'quadrant' ? [
+            { cost: 4, price: 5,  capacity: 12, label: '低本低價' },
+            { cost: 4, price: 10, capacity: 12, label: '低本高價' },
+            { cost: 6, price: 9,  capacity: 12, label: '中本中價' },
+            { cost: 8, price: 9,  capacity: 12, label: '高本低價' },
+            { cost: 8, price: 14, capacity: 12, label: '高本高價' },
+        ] : null;
+        return {
+            consumers, producers, costMin, costMax, capMin, capMax,
+            baseWtp, alpha, gossip, speed, preset,
+        };
     }
 
     function updateStatsUI(rec, market) {
@@ -1101,7 +1247,7 @@
             const div = document.createElement('div');
             div.className = 'producer-card' + (soldOut ? ' sold-out' : '') + (wasted ? ' waste' : '');
             div.innerHTML = `
-                <div class="name">🏪 Bakery ${i + 1}</div>
+                <div class="name">🏪 ${p.label || 'Bakery ' + (i + 1)}</div>
                 <div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>
                 <div class="row"><span>成本</span><span class="v">${fmt(p.cost)}</span></div>
                 <div class="row"><span>產能 / 計劃烤</span><span class="v">${p.capacity} / ${p.plannedQuantity}</span></div>
@@ -1110,6 +1256,41 @@
             `;
             grid.appendChild(div);
         });
+    }
+
+    function renderBakeryChart(market) {
+        // 從 producer.history 算每一天的累計淨利
+        const producers = market.producers.map((p, i) => {
+            let cum = 0;
+            const cumulative = p.history.map(h => {
+                cum += (h.revenue - h.productionCost);
+                return cum;
+            });
+            const marginPct = p.price > 0 ? (p.price - p.cost) / p.price : 0;
+            const label = p.label || `Bakery ${i + 1}`;
+            return { id: p.id, cost: p.cost, price: p.price, marginPct, cumulative, label };
+        });
+        // 排序 cost，用於配色（綠→紅）
+        const sortedByCost = [...producers]
+            .sort((a, b) => a.cost - b.cost)
+            .map(p => p.id);
+        bakeryChart.render(producers, sortedByCost);
+
+        // Legend：顏色 + 標籤 + 成本 + 當前毛利率 + 累計淨利
+        const leg = $('bakery-legend');
+        leg.innerHTML = '';
+        for (const p of producers) {
+            const rank = sortedByCost.indexOf(p.id);
+            const color = costTierColor(rank, sortedByCost.length);
+            const finalCum = p.cumulative.length > 0 ? p.cumulative[p.cumulative.length - 1] : 0;
+            const cumStr = finalCum >= 0 ? `+${fmt(finalCum, 0)}` : fmt(finalCum, 0);
+            const div = document.createElement('span');
+            div.className = 'lg';
+            div.innerHTML = `<span class="swatch" style="background:${color}"></span>` +
+                `${p.label} · 成 ${fmt(p.cost, 2)} · 價 ${fmt(p.price, 2)} · ` +
+                `毛利 ${(p.marginPct * 100).toFixed(0)}% · 累計 ${cumStr}`;
+            leg.appendChild(div);
+        }
     }
 
     function renderLedger(market) {
@@ -1131,7 +1312,7 @@
             const wasteCls = last.wasted > 0 ? 'warn' : '';
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>🏪 #${i + 1}</td>
+                <td>🏪 ${p.label || '#' + (i + 1)}</td>
                 <td>${baked}</td>
                 <td>${last.sold}</td>
                 <td class="${wasteCls}">${last.wasted}</td>
@@ -1234,6 +1415,7 @@
         updateStatsUI(rec, market);
         renderProducers(market);
         renderLedger(market);
+        renderBakeryChart(market);
         pushLog(rec, market);
         renderTrace(rec);
         chart.render(downsampleStats(market.dailyStats), market.eqPrice);
@@ -1262,6 +1444,8 @@
         market = new Market(cfg);
         chart = new Chart($('chart'));
         chart.render([], market.eqPrice);
+        bakeryChart = new BakeryProfitChart($('bakery-chart'));
+        renderBakeryChart(market);   // 初始只有 legend，chart 顯示提示
         if (!scene) scene = new CityScene($('scene'));
         scene.setMarket(market);
         renderProducers(market);

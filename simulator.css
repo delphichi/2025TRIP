@@ -212,6 +212,36 @@ body.sim-body {
 .log .down { color: var(--min); }
 .log .flat { color: var(--muted); }
 
+/* Bakery profit chart */
+.bakery-chart-panel canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #fbfefa;
+    border-radius: 8px;
+    border: 1px solid #eaeae0;
+}
+.bakery-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin: 6px 0 10px;
+    font-size: .82em;
+}
+.bakery-legend .lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--ink);
+}
+.bakery-legend .swatch {
+    display: inline-block;
+    width: 14px;
+    height: 4px;
+    border-radius: 2px;
+}
+
 /* Ledger */
 .ledger-scroll { overflow-x: auto; }
 .ledger-table {
