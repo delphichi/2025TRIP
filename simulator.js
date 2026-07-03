@@ -67,25 +67,26 @@
             return Math.exp(-this.alpha * this.bought);
         }
 
-        // agent 決策 —— 資訊不完全，只看見自己內部狀態 + 這一家報價
-        // trace: 可選 array，會 push {tag, msg} 讓 UI 攤開
-        decide(price, producerId, trace) {
+        // agent 決策 —— 資訊不完全，只看見自己內部狀態 + 這一家報價 + 市場恐慌程度
+        // panicMult: 缺貨恐慌倍率，1 = 平靜，> 1 = 恐慌（放大 WTP 和心理閾值）
+        decide(price, producerId, trace, panicMult = 1) {
             const log = (tag, msg) => { if (trace) trace.push({ tag, msg }); };
             const mu = this.marginalUtility();
             const muPct = fmt(mu * 100, 0) + '%';
+            const panicNote = panicMult > 1.02 ? `·恐慌×${fmt(panicMult, 2)}` : '';
 
             if (price > this.budget) {
                 log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：預算 ${fmt(this.budget,1)} 不夠`);
                 return false;
             }
-            // 邊際上限：把 maxWtp 也乘上 MU（第 k 個麵包的效用是 maxWtp · exp(-αk)）
-            const marginalWtp = this.maxWtp * mu;
+            // 邊際上限：maxWtp × MU × 恐慌（缺貨時願付上限被推高）
+            const marginalWtp = this.maxWtp * mu * panicMult;
             if (price > marginalWtp) {
-                log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：> 第 ${this.bought+1} 個的邊際 WTP ${fmt(marginalWtp,1)}（MU ${muPct}）`);
+                log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：> 邊際 WTP ${fmt(marginalWtp,1)}（MU ${muPct}${panicNote}）`);
                 return false;
             }
 
-            let cap = this.expected * this.confidence * mu;
+            let cap = this.expected * this.confidence * mu * panicMult;
             let hungerLabel = '正常';
             if (this.energy < 25) {
                 cap = Math.min(marginalWtp, cap * 1.4);
@@ -97,7 +98,7 @@
 
             const noise = 1 + (Math.random() - 0.5) * 0.1;
             const threshold = cap * noise;
-            const detail = `錨 ${fmt(this.expected,1)}×信心 ${fmt(this.confidence,2)}×MU ${muPct}=${fmt(cap,2)}（${hungerLabel}）→ 閾值 ${fmt(threshold,2)}`;
+            const detail = `錨 ${fmt(this.expected,1)}×信心 ${fmt(this.confidence,2)}×MU ${muPct}${panicNote}=${fmt(cap,2)}（${hungerLabel}）→ 閾值 ${fmt(threshold,2)}`;
 
             if (price <= threshold) {
                 log('buy', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定買（第 ${this.bought+1} 個）`);
@@ -217,7 +218,10 @@
                 return;
             }
             this.wastedToday = this.inventory;
-            const soldRatio = this.soldToday / this.capacity;
+            // 用 plannedQuantity 而不是 capacity——因為 agent 決定烤多少
+            // 高本店烤 3 賣 3 應該視為「賣光」（該抬價），而不是「只賣了 25%」
+            const bakedToday = this.plannedQuantity || 1;
+            const soldRatio = this.soldToday / bakedToday;
 
             // 帳本：今天實際烤了幾個、賣掉幾個、賣光後剩下幾個、收入、成本
             // 沒賣掉的麵包成本也要算，因為錢已經花下去了
@@ -366,17 +370,26 @@
             // 每日拒絕計數：連續被拒 3 次就放棄回家，避免尾段所有人擠去唯一有貨的貴店互相「太貴」
             this.consumers.forEach(c => { c.rejectionsToday = 0; });
 
+            let peakPanic = 1;
+            const totalAlive = this.producers.filter(p => !p.closed).length;
             for (let round = 0; round < maxVisits; round++) {
                 for (const c of shopOrder) {
                     if (c.bought >= c.dailyNeed) continue;         // 買夠了就回家
                     if (c.rejectionsToday >= 3) continue;          // 被拒 3 次也放棄
                     const open = this.producers.filter(p => p.inventory > 0);
                     if (open.length === 0) break;
+                    // Howard Marks 缺貨恐慌：可買的店越少，消費者願付上限越高
+                    // openRatio > 0.5 → 平靜（panicMult = 1）
+                    // openRatio → 0 → 極端恐慌（1 + panicSensitivity × 1.0）
+                    const openRatio = totalAlive > 0 ? open.length / totalAlive : 1;
+                    const scarcity = Math.max(0, 0.5 - openRatio) * 2;
+                    const panicMult = 1 + scarcity * (this.cfg.panicSensitivity || 0);
+                    if (panicMult > peakPanic) peakPanic = panicMult;
                     const p = open[randInt(0, open.length - 1)];
                     const price = p.offer();
                     if (price === null) continue;
                     const trace = (c.id === tracedC) ? consumerTrace : null;
-                    const decided = c.decide(price, p.id, trace);
+                    const decided = c.decide(price, p.id, trace, panicMult);
                     sceneEvents.push({ round, cid: c.id, pid: p.id, price, bought: decided });
                     if (decided) {
                         p.sell();
@@ -460,6 +473,7 @@
                 maxPrice: Math.max(...prices),
                 deviation: volume > 0 ? (avgPrice - this.eqPrice) / this.eqPrice : null,
                 nvOverProd,
+                peakPanic,
                 sceneEvents,
                 producerOpen,
                 gossipPairs,
@@ -1277,9 +1291,11 @@
             { cost: 8, price: 9,  capacity: 12, label: '高本低價' },
             { cost: 8, price: 14, capacity: 12, label: '高本高價' },
         ] : null;
+        const panicRaw = parseFloat($('cfg-panic')?.value);
+        const panicSensitivity = clamp(Number.isFinite(panicRaw) ? panicRaw : 0.8, 0, 3);
         return {
             consumers, producers, costMin, costMax, capMin, capMax,
-            baseWtp, alpha, gossip, inflation, speed, preset,
+            baseWtp, alpha, gossip, inflation, panicSensitivity, speed, preset,
         };
     }
 
@@ -1307,6 +1323,14 @@
         } else {
             const sign = rec.nvOverProd >= 0 ? '+' : '';
             nv.textContent = sign + pct(rec.nvOverProd);
+        }
+        const panicEl = $('stat-panic');
+        if (rec.peakPanic > 1.02) {
+            panicEl.textContent = '×' + fmt(rec.peakPanic, 2);
+            panicEl.style.color = rec.peakPanic > 1.5 ? 'var(--max)' : 'var(--accent)';
+        } else {
+            panicEl.textContent = '平靜';
+            panicEl.style.color = '';
         }
     }
 
@@ -1553,7 +1577,7 @@
         $('log').innerHTML = '';
         $('stat-day').textContent = '0';
         ['stat-price', 'stat-volume', 'stat-waste', 'stat-cs',
-         'stat-ps', 'stat-welfare', 'stat-dev', 'stat-nv']
+         'stat-ps', 'stat-welfare', 'stat-dev', 'stat-nv', 'stat-panic']
             .forEach(id => { $(id).textContent = '—'; $(id).style.color = ''; });
         $('stat-eq').textContent = fmt(market.eqPrice);
         $('trace-c-title').textContent = '—';
