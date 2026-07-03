@@ -123,7 +123,9 @@
                 this.expected = 0.7 * this.expected + 0.3 * dayAvgPrice;
             }
             this.energy = clamp(this.energy - randInt(25, 45), 0, 100);
-            this.budget += rand(10, 25);
+            // 薪水進帳但預算有上限（模擬「多的錢會被存起來/退出流動性」）
+            // 沒有這個上限，跑幾百天預算會暴走到數千元，budget 檢查變 dead code
+            this.budget = Math.min(this.budget + rand(10, 25), 300);
             this.bought = 0;
         }
     }
@@ -348,6 +350,17 @@
             [a[i], a[j]] = [a[j], a[i]];
         }
         return a;
+    }
+
+    // 長跑時每 N 天取一點，避免 canvas 上塞幾百個重疊的點
+    function downsampleStats(stats, target = 200) {
+        if (stats.length <= target) return stats;
+        const step = Math.ceil(stats.length / target);
+        const out = [];
+        for (let i = 0; i < stats.length; i += step) out.push(stats[i]);
+        const last = stats[stats.length - 1];
+        if (out[out.length - 1] !== last) out.push(last);
+        return out;
     }
 
     // ---------- chart ----------
@@ -794,7 +807,7 @@
         const baseWtp = parseFloat($('cfg-wtp').value) || 14;
         const alphaRaw = parseFloat($('cfg-alpha').value);
         const alpha = clamp(Number.isFinite(alphaRaw) ? alphaRaw : 0.55, 0, 2);
-        const speed = clamp(parseInt($('cfg-speed').value) || 450, 30, 3000);
+        const speed = clamp(parseInt($('cfg-speed').value) || 900, 30, 3000);
         return { consumers, producers, costMin, costMax, capMin, capMax, baseWtp, alpha, speed };
     }
 
@@ -925,7 +938,7 @@
         renderProducers(market);
         pushLog(rec, market);
         renderTrace(rec);
-        chart.render(market.dailyStats, market.eqPrice);
+        chart.render(downsampleStats(market.dailyStats), market.eqPrice);
         if (scene) scene.playDay(rec, readCfg().speed);
     }
 
