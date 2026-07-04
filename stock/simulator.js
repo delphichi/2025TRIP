@@ -71,11 +71,11 @@
             cagr: 0.105,
             dailyVol: 1.05,
             shocks: [
-                { day: 480,  magnitude: -0.10, duration: 40 },   // 2007 次貸警訊
-                { day: 700,  magnitude: -0.40, duration: 120 },  // 2008 金融海嘯
-                { day: 3500, magnitude: -0.28, duration: 22 },   // 2020 COVID 崩盤
-                { day: 3530, magnitude: 0.18,  duration: 60 },   // COVID 反彈
-                { day: 4100, magnitude: -0.16, duration: 200 },  // 2022 升息修正
+                { day: 480,  magnitude: -0.10, duration: 40,  event: '2007 次貸警訊' },
+                { day: 700,  magnitude: -0.40, duration: 120, event: '2008 金融海嘯' },
+                { day: 3570, magnitude: -0.28, duration: 22,  event: '2020 COVID 崩盤' },
+                { day: 3600, magnitude: 0.18,  duration: 60,  event: '2020 COVID 反彈' },
+                { day: 4100, magnitude: -0.16, duration: 200, event: '2022 升息修正' },
             ],
         },
         QQQ: {
@@ -86,10 +86,10 @@
             dailyVol: 1.35,
             shocks: [
                 { day: 480,  magnitude: -0.08, duration: 40 },
-                { day: 700,  magnitude: -0.42, duration: 130 },  // 2008 科技股也重傷
-                { day: 3500, magnitude: -0.22, duration: 20 },   // 2020 COVID 較輕
-                { day: 3530, magnitude: 0.35,  duration: 80 },   // 科技股大牛市反彈
-                { day: 4100, magnitude: -0.32, duration: 220 },  // 2022 科技股崩盤
+                { day: 700,  magnitude: -0.42, duration: 130 },
+                { day: 3570, magnitude: -0.22, duration: 20 },
+                { day: 3600, magnitude: 0.35,  duration: 80 },
+                { day: 4100, magnitude: -0.32, duration: 220, event: '2022 科技股崩盤' },
             ],
         },
         JPM: {
@@ -100,11 +100,11 @@
             dailyVol: 1.75,
             shocks: [
                 { day: 480,  magnitude: -0.15, duration: 40 },
-                { day: 700,  magnitude: -0.60, duration: 180 },  // 2008 銀行差點爆
-                { day: 850,  magnitude: 0.25,  duration: 100 },  // 政府救援後反彈
-                { day: 3500, magnitude: -0.35, duration: 20 },   // 2020 銀行嚇壞
-                { day: 3530, magnitude: 0.22,  duration: 90 },   // 反彈
-                { day: 4100, magnitude: -0.05, duration: 100 },  // 2022 升息銀行受惠，跌得少
+                { day: 700,  magnitude: -0.60, duration: 180, event: '2008 銀行差點爆' },
+                { day: 850,  magnitude: 0.25,  duration: 100, event: '政府救援銀行' },
+                { day: 3570, magnitude: -0.35, duration: 20 },
+                { day: 3600, magnitude: 0.22,  duration: 90 },
+                { day: 4100, magnitude: -0.05, duration: 100 },
                 { day: 4400, magnitude: 0.15,  duration: 60 },
             ],
         },
@@ -141,7 +141,7 @@
                 const wantSell = Math.floor(t.holdings[ticker] * shed);
                 const shares = Math.min(canSell, wantSell);
                 if (shares <= 0) return { action: 'hold', dollars: 0 };
-                return { action: 'sell', dollars: shares * price };
+                return { action: 'sell', dollars: shares * price, reason: `MA 上方 ${pct(over, 0)}，減碼` };
             }
             // 買：20 天 cooldown + 折價 3% 才進場
             if (t.lastTradeDay[ticker] !== null && day - t.lastTradeDay[ticker] < 20) {
@@ -149,9 +149,9 @@
             }
             const under = (ma - price) / ma;
             if (under >= 0.03 && t.cash > price) {
-                const perStockBudget = t.initialCash / 3;
+                const perStockBudget = t.totalCashInflow() / 3;
                 const aggr = clamp(0.20 + under * 3, 0.20, 0.60);
-                return { action: 'buy', dollars: Math.min(t.cash * 0.5, perStockBudget * aggr) };
+                return { action: 'buy', dollars: Math.min(t.cash * 0.5, perStockBudget * aggr), reason: `MA 下方 ${pct(under, 0)}，逢低加碼` };
             }
             return { action: 'hold', dollars: 0 };
         },
@@ -162,8 +162,8 @@
                 return { action: 'hold', dollars: 0 };
             }
             // 每次投入平分到 3 支 → 每支 dcaPct/3 %
-            const amount = t.initialCash * (cfg.dcaPct || 5) / 100 / 3;
-            if (t.cash >= amount) return { action: 'buy', dollars: amount };
+            const amount = t.totalCashInflow() * (cfg.dcaPct || 5) / 100 / 3;
+            if (t.cash >= amount) return { action: 'buy', dollars: amount, reason: '定期定額，無腦買' };
             return { action: 'hold', dollars: 0 };
         },
 
@@ -182,12 +182,12 @@
             const volHigher = thisWeekVol > lastWeekVol;
             const priceLower = thisWeekChg < lastWeekChg && thisWeekChg < 0;
             const volLower = thisWeekVol < lastWeekVol;
-            const perStockBudget = t.initialCash / 3;
+            const perStockBudget = t.totalCashInflow() / 3;
             if (priceHigher && volHigher && t.cash > price) {
-                return { action: 'buy', dollars: Math.min(t.cash * 0.3, perStockBudget * 0.15) };
+                return { action: 'buy', dollars: Math.min(t.cash * 0.3, perStockBudget * 0.15), reason: `本週量價齊漲 (${pct(thisWeekChg, 0)})，追高` };
             }
             if (priceLower && volLower && t.holdings[ticker] > 0) {
-                return { action: 'sell', dollars: t.holdings[ticker] * price * 0.30 };
+                return { action: 'sell', dollars: t.holdings[ticker] * price * 0.30, reason: `本週量價齊跌 (${pct(thisWeekChg, 0)})，砍倉` };
             }
             return { action: 'hold', dollars: 0 };
         },
@@ -198,12 +198,12 @@
             const price = stock.priceAt(day);
             const ma3 = mean(stock.priceHistory.slice(day - 3, day));
             const spike = (price - ma3) / ma3;
-            const perStockBudget = t.initialCash / 3;
+            const perStockBudget = t.totalCashInflow() / 3;
             if (spike > 0.03 && t.holdings[ticker] > 0) {
-                return { action: 'sell', dollars: t.holdings[ticker] * price * clamp(spike * 5, 0.1, 0.4) };
+                return { action: 'sell', dollars: t.holdings[ticker] * price * clamp(spike * 5, 0.1, 0.4), reason: `3 日急漲 ${pct(spike, 0)}，反手賣` };
             }
             if (spike < -0.03 && t.cash > price) {
-                return { action: 'buy', dollars: Math.min(t.cash * 0.3, perStockBudget * clamp(-spike * 5, 0.1, 0.4)) };
+                return { action: 'buy', dollars: Math.min(t.cash * 0.3, perStockBudget * clamp(-spike * 5, 0.1, 0.4)), reason: `3 日急跌 ${pct(spike, 0)}，反手接` };
             }
             return { action: 'hold', dollars: 0 };
         },
@@ -213,10 +213,10 @@
             const price = stock.priceAt(day);
             const r = Math.random();
             if (r < 0.22 && t.cash > price) {
-                return { action: 'buy', dollars: Math.min(t.cash * 0.15, t.initialCash / 3 * rand(0.05, 0.15)) };
+                return { action: 'buy', dollars: Math.min(t.cash * 0.15, t.initialCash / 3 * rand(0.05, 0.15)), reason: '擲骰子，買' };
             }
             if (r > 0.78 && t.holdings[ticker] > 0) {
-                return { action: 'sell', dollars: t.holdings[ticker] * price * rand(0.05, 0.15) };
+                return { action: 'sell', dollars: t.holdings[ticker] * price * rand(0.05, 0.15), reason: '擲骰子，賣' };
             }
             return { action: 'hold', dollars: 0 };
         },
@@ -250,13 +250,17 @@
             this.tradesCount = 0;
             this.totalFees = 0;
             this.tradeHistory = [];
+            this.injectedCash = 0;   // 累計月薪注入
         }
+
+        // 「總投入」= 初始 + 累計月薪注入。所有 per-ticker 預算跟 returnPct 都以此為基準
+        totalCashInflow() { return this.initialCash + this.injectedCash; }
 
         decide(day, ticker, stock, cfg) {
             return STRATEGIES[this.strategy](this, day, ticker, stock, cfg);
         }
 
-        executeBuy(day, ticker, dollars, price, feePct = 0) {
+        executeBuy(day, ticker, dollars, price, feePct = 0, reason = '') {
             // 意向 dollars 內含手續費，實際可買股數 = dollars / (price × (1+fee))
             const shares = Math.floor(dollars / (price * (1 + feePct)));
             if (shares <= 0) return 0;
@@ -272,11 +276,11 @@
             this.tradesCount += 1;
             this.totalFees += fee;
             this.lastTradeDay[ticker] = day;
-            this.tradeHistory.push({ day, ticker, action: 'buy', shares, price, fee });
+            this.tradeHistory.push({ day, ticker, action: 'buy', shares, price, fee, reason });
             return shares;
         }
 
-        executeSell(day, ticker, dollars, price, feePct = 0) {
+        executeSell(day, ticker, dollars, price, feePct = 0, reason = '') {
             const shares = Math.min(this.holdings[ticker], Math.floor(dollars / price));
             if (shares <= 0) return 0;
             const base = shares * price;
@@ -286,7 +290,7 @@
             this.tradesCount += 1;
             this.totalFees += fee;
             this.lastTradeDay[ticker] = day;
-            this.tradeHistory.push({ day, ticker, action: 'sell', shares, price, fee });
+            this.tradeHistory.push({ day, ticker, action: 'sell', shares, price, fee, reason });
             return shares;
         }
 
@@ -296,8 +300,10 @@
             return v;
         }
         portfolioValue(prices) { return this.cash + this.totalShareValue(prices); }
+        // 報酬 = (現在資產 - 總投入) / 總投入。有薪水注入時分母跟著長，才是公平比較
         returnPct(prices) {
-            return (this.portfolioValue(prices) - this.initialCash) / this.initialCash;
+            const invested = this.totalCashInflow();
+            return (this.portfolioValue(prices) - invested) / invested;
         }
     }
 
@@ -338,25 +344,50 @@
     class Market {
         constructor(cfg) {
             this.cfg = cfg;
-            this.day = 0;
+            this.startDay = cfg.startDay || 0;
+            this.endDay = cfg.endDay;   // 由 readCfg 保證有值
+            this.day = this.startDay;
             this.stocks = {};
             for (const tk of STOCK_ORDER) this.stocks[tk] = new Stock(tk);
             this.maxDays = Math.min(...STOCK_ORDER.map(tk => this.stocks[tk].maxDays));
+            if (typeof this.endDay !== 'number') this.endDay = this.maxDays - 1;
+            this.endDay = Math.min(this.endDay, this.maxDays - 1);
             this.traders = [];
+            this.tradersByStrategy = {};
+            for (const s of STRATEGY_ORDER) this.tradersByStrategy[s] = [];
             let id = 0;
             for (const s of STRATEGY_ORDER) {
                 for (let i = 0; i < cfg.perStrategy; i++) {
-                    this.traders.push(new Trader(id++, s, cfg.initialCash));
+                    const t = new Trader(id++, s, cfg.initialCash);
+                    this.traders.push(t);
+                    this.tradersByStrategy[s].push(t);
                 }
             }
             this.dailyStats = [];
+            // 新聞排程：從 STOCK_PRESETS 掃出有 event 標籤的 shock，以 day → [{ticker, event, magnitude}] 排。
+            this.newsSchedule = {};
+            for (const tk of STOCK_ORDER) {
+                for (const sh of (STOCK_PRESETS[tk].shocks || [])) {
+                    if (!sh.event) continue;
+                    if (!this.newsSchedule[sh.day]) this.newsSchedule[sh.day] = [];
+                    this.newsSchedule[sh.day].push({ ticker: tk, event: sh.event, magnitude: sh.magnitude });
+                }
+            }
         }
 
         stepOneDay() {
             this.day += 1;
-            if (this.day >= this.maxDays) {
-                this.day = this.maxDays - 1;
+            if (this.day > this.endDay) {
+                this.day = this.endDay;
                 return null;
+            }
+            // 每 30 天發薪水（day 相對 startDay 對齊）
+            const income = this.cfg.monthlyIncome || 0;
+            if (income > 0 && (this.day - this.startDay) > 0 && (this.day - this.startDay) % 30 === 0) {
+                for (const t of this.traders) {
+                    t.cash += income;
+                    t.injectedCash += income;
+                }
             }
             const prices = {}, mas = {}, marketVolumes = {};
             for (const tk of STOCK_ORDER) {
@@ -367,6 +398,7 @@
 
             // 每個 trader 針對每支 stock 依策略下單；ticker 順序 shuffle 避免系統性偏好
             let tradesToday = 0;
+            const bubbles = [];   // 今日「買賣泡泡」，供決策面板顯示
             for (const t of this.traders) {
                 const order = STOCK_ORDER.slice();
                 shuffleInPlace(order);
@@ -374,9 +406,17 @@
                     const stock = this.stocks[tk];
                     const d = t.decide(this.day, tk, stock, this.cfg);
                     if (d.action === 'buy' && d.dollars > 0) {
-                        if (t.executeBuy(this.day, tk, d.dollars, prices[tk], this.cfg.feePct) > 0) tradesToday++;
+                        const shares = t.executeBuy(this.day, tk, d.dollars, prices[tk], this.cfg.feePct, d.reason);
+                        if (shares > 0) {
+                            tradesToday++;
+                            bubbles.push({ traderId: t.id, strategy: t.strategy, ticker: tk, action: 'buy', shares, price: prices[tk], reason: d.reason || '' });
+                        }
                     } else if (d.action === 'sell' && d.dollars > 0) {
-                        if (t.executeSell(this.day, tk, d.dollars, prices[tk], this.cfg.feePct) > 0) tradesToday++;
+                        const shares = t.executeSell(this.day, tk, d.dollars, prices[tk], this.cfg.feePct, d.reason);
+                        if (shares > 0) {
+                            tradesToday++;
+                            bubbles.push({ traderId: t.id, strategy: t.strategy, ticker: tk, action: 'sell', shares, price: prices[tk], reason: d.reason || '' });
+                        }
                     }
                 }
             }
@@ -384,7 +424,7 @@
             // 每個策略的統計
             const stratStats = {};
             for (const s of STRATEGY_ORDER) {
-                const list = this.traders.filter(t => t.strategy === s);
+                const list = this.tradersByStrategy[s];
                 const avgPortfolio = mean(list.map(t => t.portfolioValue(prices)));
                 const avgReturn = mean(list.map(t => t.returnPct(prices)));
                 const avgShareValue = mean(list.map(t => t.totalShareValue(prices)));
@@ -404,6 +444,7 @@
                 prices, mas, marketVolumes,
                 tradesCount: tradesToday,
                 stratStats,
+                bubbles,
             };
             this.dailyStats.push(rec);
             return rec;
@@ -419,9 +460,11 @@
     }
 
     // ---------- Charts ----------
-    class PriceChart {
-        constructor(canvas) {
+    // 單一 ticker 的 K 線圖：週線蠟燭 + 20 週 MA + 底部量能柱 + 買賣三角標記
+    class TickerChart {
+        constructor(canvas, ticker) {
             this.canvas = canvas;
+            this.ticker = ticker;
             this.ctx = canvas.getContext('2d');
             const dpr = window.devicePixelRatio || 1;
             const w = canvas.clientWidth || canvas.width;
@@ -433,89 +476,222 @@
             this.h = h;
         }
 
-        render(stats) {
-            const { ctx, w, h } = this;
+        // stats = market.dailyStats (每天一筆), market = 拿得到 stock.priceHistory / traders
+        render(stats, market) {
+            const { ctx, w, h, ticker } = this;
             ctx.clearRect(0, 0, w, h);
             if (stats.length === 0) {
                 ctx.fillStyle = '#94a3b8';
                 ctx.font = '14px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('按「開始」跑起來，這裡會出現股價 vs 內在價值', w / 2, h / 2);
+                ctx.fillText(`按「開始」跑起來，${ticker} K 線會在這裡`, w / 2, h / 2);
                 return;
             }
-            const target = 250;
-            const step = Math.max(1, Math.ceil(stats.length / target));
-            const sample = [];
-            for (let i = 0; i < stats.length; i += step) sample.push(stats[i]);
-            if (sample[sample.length - 1] !== stats[stats.length - 1]) sample.push(stats[stats.length - 1]);
+            const color = STOCK_COLORS[ticker];
+            const stock = market.stocks[ticker];
+            const firstDay = stats[0].day;
+            const lastDay = stats[stats.length - 1].day;
+            const totalDays = lastDay - firstDay + 1;
 
-            const padL = 48, padR = 12, padT = 12, padB = 26;
+            // 排版：主圖 70%，量能 20%，中間留 10% 空白
+            const padL = 48, padR = 12, padT = 10, padB = 22;
             const chartW = w - padL - padR;
-            const chartH = h - padT - padB;
+            const priceH = (h - padT - padB) * 0.70;
+            const volH = (h - padT - padB) * 0.22;
+            const gap = (h - padT - padB) * 0.08;
 
-            // 3 支正規化到 Day 0 = 100，同軸比較累積回報
-            const stockLines = STOCK_ORDER.map(tk => ({
-                ticker: tk,
-                values: sample.map(s => (s.prices[tk] / stats[0].prices[tk]) * 100),
-                color: STOCK_COLORS[tk],
-            }));
-            let ymin = Math.min(...stockLines.flatMap(l => l.values));
-            let ymax = Math.max(...stockLines.flatMap(l => l.values));
-            const pad = (ymax - ymin) * 0.08 || 1;
-            ymin -= pad; ymax += pad;
-            const yr = ymax - ymin || 1;
+            // 目標 K 線數：讓每根至少 4 px 寬，避免變成一條細線
+            const targetBars = Math.max(30, Math.min(200, Math.floor(chartW / 4.5)));
+            const daysPerBar = Math.max(1, Math.ceil(totalDays / targetBars));
 
-            const xAt = i => padL + (sample.length === 1 ? chartW / 2 : (i / (sample.length - 1)) * chartW);
-            const yAt = v => padT + chartH - ((v - ymin) / yr) * chartH;
+            // 聚合成 bar：open 用「上一根 close」讓實體反映當期真實變化
+            // （原本 open = 當期第一天的 close，遇到區間內震盪不大時 body 幾乎變 0）
+            const bars = [];
+            let prevClose = stock.priceAt(Math.max(0, firstDay - 1));
+            for (let start = firstDay; start <= lastDay; start += daysPerBar) {
+                const end = Math.min(start + daysPerBar - 1, lastDay);
+                let hi = -Infinity, lo = Infinity;
+                let volSum = 0;
+                for (let d = start; d <= end; d++) {
+                    const p = stock.priceAt(d);
+                    if (p > hi) hi = p;
+                    if (p < lo) lo = p;
+                    volSum += stock.volumeAt(d);
+                }
+                const closePx = stock.priceAt(end);
+                // wick 也要包含 open，避免 open 超出 hi/lo 造成視覺錯位
+                if (prevClose > hi) hi = prevClose;
+                if (prevClose < lo) lo = prevClose;
+                bars.push({
+                    startDay: start, endDay: end,
+                    open: prevClose,
+                    close: closePx,
+                    high: hi, low: lo,
+                    volume: volSum,
+                });
+                prevClose = closePx;
+            }
+            if (bars.length === 0) return;
 
-            // 網格
+            // Y 軸用對數尺度：讓 1% 漲跌不管在 $30 還是 $300 都是同樣像素高度
+            // 否則長區間 5x 價格範圍下、日常波動被壓成一條線
+            const allHi = Math.max(...bars.map(b => b.high));
+            const allLo = Math.min(...bars.map(b => b.low));
+            const logMin = Math.log(Math.max(0.01, allLo * 0.94));
+            const logMax = Math.log(allHi * 1.06);
+            const logRange = logMax - logMin || 1;
+
+            const xAt = i => padL + (i + 0.5) / bars.length * chartW;
+            const yAt = v => padT + priceH - (Math.log(Math.max(0.01, v)) - logMin) / logRange * priceH;
+            const barW = Math.max(1.5, (chartW / bars.length) * 0.7);
+
+            // 存下 transform 讓外部（overlay/pod）能從 (day, price) 換到像素
+            this.tx = { firstDay, daysPerBar, barCount: bars.length, padL, chartW, padT, priceH, logMin, logRange };
+
+            // 網格 + Y 軸標籤（label 顯示原始價格，位置照 log 排）
             ctx.strokeStyle = '#e5e7eb';
             ctx.fillStyle = '#94a3b8';
-            ctx.font = '11px sans-serif';
+            ctx.font = '10px sans-serif';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
-            for (let i = 0; i <= 5; i++) {
-                const v = ymin + (yr * i) / 5;
-                const y = yAt(v);
+            for (let i = 0; i <= 4; i++) {
+                const logV = logMin + (logRange * i) / 4;
+                const v = Math.exp(logV);
+                const y = padT + priceH - (i / 4) * priceH;
                 ctx.beginPath();
-                ctx.moveTo(padL, y);
-                ctx.lineTo(padL + chartW, y);
-                ctx.stroke();
-                ctx.fillText(v.toFixed(0), padL - 4, y);
+                ctx.moveTo(padL, y); ctx.lineTo(padL + chartW, y); ctx.stroke();
+                ctx.fillText(v.toFixed(v < 100 ? 1 : 0), padL - 3, y);
             }
 
-            // 100 基準線加粗
-            if (ymin < 100 && ymax > 100) {
-                ctx.strokeStyle = '#94a3b8';
-                ctx.setLineDash([3, 3]);
+            // 蠟燭：body 最小 2px 高，否則長區間下實體會壓成 0 看不見漲跌方向
+            for (let i = 0; i < bars.length; i++) {
+                const b = bars[i];
+                const x = xAt(i);
+                const isUp = b.close >= b.open;
+                const bodyColor = isUp ? '#16a34a' : '#dc2626';
+                ctx.strokeStyle = bodyColor;
+                ctx.lineWidth = 1;
+                // 高低影線
                 ctx.beginPath();
-                ctx.moveTo(padL, yAt(100));
-                ctx.lineTo(padL + chartW, yAt(100));
+                ctx.moveTo(x, yAt(b.high));
+                ctx.lineTo(x, yAt(b.low));
                 ctx.stroke();
-                ctx.setLineDash([]);
+                // 實體
+                const yOpen = yAt(b.open), yClose = yAt(b.close);
+                const bodyTop = Math.min(yOpen, yClose);
+                const bodyH = Math.max(2, Math.abs(yClose - yOpen));
+                ctx.fillStyle = bodyColor;
+                ctx.fillRect(x - barW / 2, bodyTop, barW, bodyH);
             }
 
-            // 三條股價線
-            for (const line of stockLines) {
-                ctx.strokeStyle = line.color;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                line.values.forEach((v, i) => {
-                    const x = xAt(i), y = yAt(v);
-                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                });
-                ctx.stroke();
+            // 20 週 MA overlay
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            let started = false;
+            for (let i = 0; i < bars.length; i++) {
+                const ma = stock.weeklyMA(bars[i].endDay, 20);
+                if (ma === null) continue;
+                const x = xAt(i), y = yAt(ma);
+                if (!started) { ctx.moveTo(x, y); started = true; }
+                else ctx.lineTo(x, y);
             }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 量能柱（下半部）
+            const volTop = padT + priceH + gap;
+            const maxVol = Math.max(...bars.map(b => b.volume)) || 1;
+            for (let i = 0; i < bars.length; i++) {
+                const b = bars[i];
+                const h2 = (b.volume / maxVol) * volH;
+                const x = xAt(i);
+                ctx.fillStyle = (b.close >= b.open) ? 'rgba(22,163,74,.35)' : 'rgba(220,38,38,.35)';
+                ctx.fillRect(x - barW / 2, volTop + volH - h2, barW, h2);
+            }
+
+            // 買賣三角標記（把整段 traders.tradeHistory 針對此 ticker 的日期投影到 bars）
+            // 為了效能：只掃最近 800 筆交易（跨所有 trader × 所有 ticker，篩此 ticker）
+            const markerCounts = {};   // barIdx → {buy: {stratColors}, sell: {stratColors}}
+            const traders = market.traders;
+            for (const t of traders) {
+                const hist = t.tradeHistory;
+                const start = Math.max(0, hist.length - 200);
+                for (let k = start; k < hist.length; k++) {
+                    const tr = hist[k];
+                    if (tr.ticker !== ticker) continue;
+                    const barIdx = Math.floor((tr.day - firstDay) / daysPerBar);
+                    if (barIdx < 0 || barIdx >= bars.length) continue;
+                    if (!markerCounts[barIdx]) markerCounts[barIdx] = { buy: {}, sell: {} };
+                    const bucket = markerCounts[barIdx][tr.action];
+                    bucket[t.strategy] = (bucket[t.strategy] || 0) + 1;
+                }
+            }
+            for (const barIdxStr of Object.keys(markerCounts)) {
+                const barIdx = +barIdxStr;
+                const x = xAt(barIdx);
+                const b = bars[barIdx];
+                const buyStrats = Object.keys(markerCounts[barIdx].buy);
+                const sellStrats = Object.keys(markerCounts[barIdx].sell);
+                // 買在 bar 下方畫上三角，賣在 bar 上方畫下三角
+                for (let j = 0; j < buyStrats.length; j++) {
+                    const s = buyStrats[j];
+                    const col = STRATEGY_INFO[s].color;
+                    const y = yAt(b.low) + 4 + j * 4;
+                    ctx.fillStyle = col;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x - 3, y + 4);
+                    ctx.lineTo(x + 3, y + 4);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                for (let j = 0; j < sellStrats.length; j++) {
+                    const s = sellStrats[j];
+                    const col = STRATEGY_INFO[s].color;
+                    const y = yAt(b.high) - 4 - j * 4;
+                    ctx.fillStyle = col;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x - 3, y - 4);
+                    ctx.lineTo(x + 3, y - 4);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            // ticker 標題浮貼於左上
+            ctx.fillStyle = color;
+            ctx.font = 'bold 12px ui-monospace, monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            const last = stats[stats.length - 1];
+            const chgFromStart = ((last.prices[ticker] / stats[0].prices[ticker]) - 1) * 100;
+            const sign = chgFromStart >= 0 ? '+' : '';
+            ctx.fillText(`${ticker}  $${last.prices[ticker].toFixed(1)}  ${sign}${chgFromStart.toFixed(0)}%`, padL + 4, padT + 2);
 
             // X 軸
             ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            const xTicks = Math.min(sample.length, 8);
+            const xTicks = Math.min(bars.length, 6);
             for (let i = 0; i < xTicks; i++) {
-                const idx = Math.round((sample.length - 1) * i / (xTicks - 1 || 1));
-                ctx.fillText('Day ' + sample[idx].day, xAt(idx), padT + chartH + 4);
+                const idx = Math.round((bars.length - 1) * i / (xTicks - 1 || 1));
+                ctx.fillText(dayToYm(bars[idx].endDay), xAt(idx), padT + priceH + gap + volH + 3);
             }
+        }
+
+        // 把 (day, price) 轉成 canvas CSS 像素座標
+        pixelForDayPrice(day, price) {
+            if (!this.tx) return null;
+            const { firstDay, daysPerBar, barCount, padL, chartW, padT, priceH, logMin, logRange } = this.tx;
+            const barIdx = Math.floor((day - firstDay) / daysPerBar);
+            if (barIdx < 0 || barIdx >= barCount) return null;
+            const x = padL + (barIdx + 0.5) / barCount * chartW;
+            const y = padT + priceH - (Math.log(Math.max(0.01, price)) - logMin) / logRange * priceH;
+            return { x, y };
         }
     }
 
@@ -616,7 +792,7 @@
             const xTicks = Math.min(sample.length, 8);
             for (let i = 0; i < xTicks; i++) {
                 const idx = Math.round((sample.length - 1) * i / (xTicks - 1 || 1));
-                ctx.fillText('Day ' + sample[idx].day, xAt(idx), padT + chartH + 4);
+                ctx.fillText(dayToYm(sample[idx].day), xAt(idx), padT + chartH + 4);
             }
         }
     }
@@ -624,22 +800,35 @@
     // ---------- UI wiring ----------
     let market = null;
     let timer = null;
-    let priceChart = null;
+    let tickerCharts = {};    // { SPY, QQQ, JPM }
     let strategyChart = null;
+    let bubbleQueue = [];      // 最新的 30 個泡泡；老的會滑出
 
     function readCfg() {
         const perStrategy = clamp(parseInt($('cfg-per-strategy').value) || 6, 1, 30);
         const initialCash = clamp(parseFloat($('cfg-cash').value) || 10000, 100, 1000000);
-        const ticker = ($('cfg-ticker')?.value) || 'SPY';
         const valueSellPct = clamp(parseFloat($('cfg-value-sell')?.value) || 5, 0.5, 50);
         const dcaPct = clamp(parseFloat($('cfg-dca-pct')?.value) || 5, 0.5, 50);
         const feePct = clamp(parseFloat($('cfg-fee-pct')?.value) || 0.1, 0, 5) / 100;
         const speed = clamp(parseInt($('cfg-speed').value) || 500, 30, 30000);
-        return { perStrategy, initialCash, ticker, valueSellPct, dcaPct, feePct, speed };
+        let startYear = clamp(parseInt($('cfg-start-year')?.value) || 2006, 2006, 2025);
+        let endYear = clamp(parseInt($('cfg-end-year')?.value) || 2025, 2006, 2025);
+        if (endYear < startYear) endYear = startYear;
+        const startDay = (startYear - 2006) * 252;
+        const endDay = Math.min((endYear - 2006 + 1) * 252 - 1, 20 * 252 - 1);
+        const monthlyIncome = clamp(parseFloat($('cfg-monthly-income')?.value) || 0, 0, 100000);
+        return { perStrategy, initialCash, valueSellPct, dcaPct, feePct, speed, startYear, endYear, startDay, endDay, monthlyIncome };
+    }
+
+    // Day → 年/月 顯示（以 2006-01-01 為 Day 0，252 交易日/年 ≈ 21 交易日/月）
+    function dayToYm(day) {
+        const y = 2006 + Math.floor(day / 252);
+        const m = Math.floor((day % 252) / 21) + 1;
+        return `${y}/${String(Math.min(12, m)).padStart(2, '0')}`;
     }
 
     function updateStatsUI(rec, market) {
-        $('stat-day').textContent = rec.day;
+        $('stat-day').textContent = `${dayToYm(rec.day)} (D${rec.day})`;
         // 3 支同時顯示（Day 0 = 100 的正規化累計報酬）
         const first = market.dailyStats[0] || rec;
         const parts = STOCK_ORDER.map(tk => {
@@ -698,11 +887,12 @@
         grid.innerHTML = '';
         for (const s of STRATEGY_ORDER) {
             const info = STRATEGY_INFO[s];
-            const list = market.traders.filter(t => t.strategy === s);
+            const list = market.tradersByStrategy[s];
             const stats = rec.stratStats[s];
             const avgCash = mean(list.map(t => t.cash));
             const avgTrades = mean(list.map(t => t.tradesCount));
             const avgFees = mean(list.map(t => t.totalFees));
+            const avgInjected = mean(list.map(t => t.injectedCash));
             const retClass = stats.avgReturn > 0.005 ? 'up' : stats.avgReturn < -0.005 ? 'down' : '';
             const tickerBreakdown = STOCK_ORDER.map(tk => {
                 const held = mean(list.map(t => t.holdings[tk]));
@@ -718,6 +908,7 @@
                 <div class="row"><span>持股比例</span><span class="v">${pct(stats.equityPct, 0)}</span></div>
                 <div class="row"><span>累計交易次數</span><span class="v">${fmt(avgTrades, 0)}</span></div>
                 <div class="row"><span>累計手續費</span><span class="v" style="color:var(--down)">${fmt(avgFees, 0)}</span></div>
+                ${avgInjected > 0 ? `<div class="row"><span>累計薪水注入</span><span class="v" style="color:var(--strat-dca)">+${fmt(avgInjected, 0)}</span></div>` : ''}
                 <div class="row ticker-breakdown"><span>3 支配置</span><span class="v" style="font-size:.78em;text-align:right;line-height:1.3">${tickerBreakdown}</span></div>
             `;
             grid.appendChild(div);
@@ -727,7 +918,7 @@
     function pushLog(rec, market) {
         const log = $('log');
         const entry = document.createElement('div');
-        entry.className = 'entry';
+        entry.className = 'entry entry-daily';
         // 找今日領先者
         let bestS = null, bestR = -Infinity;
         for (const s of STRATEGY_ORDER) {
@@ -741,17 +932,19 @@
             const norm = (rec.prices[tk] / base) * 100;
             return `<span style="color:${STOCK_COLORS[tk]}">${tk} ${fmt(norm, 0)}</span>`;
         }).join(' ');
-        entry.innerHTML = `<span class="day">Day ${rec.day}</span> · ${priceStr} · 領先 <b style="color:${STRATEGY_INFO[bestS].color}">${STRATEGY_INFO[bestS].label}</b> (${bestR >= 0 ? '+' : ''}${pct(bestR)})`;
+        entry.innerHTML = `<span class="day">${dayToYm(rec.day)}</span> · ${priceStr} · 領先 <b style="color:${STRATEGY_INFO[bestS].color}">${STRATEGY_INFO[bestS].label}</b> (${bestR >= 0 ? '+' : ''}${pct(bestR)})`;
         log.prepend(entry);
-        while (log.children.length > 60) log.removeChild(log.lastChild);
+        // 只 trim 每日 log entry，保留新聞事件（否則長時間跑會把 2008 新聞沖走）
+        const dailies = log.querySelectorAll('.entry-daily');
+        for (let i = dailies.length - 1; i >= 60; i--) dailies[i].remove();
     }
 
     function pushNewsLog(day, magnitude, label) {
         const log = $('log');
         const entry = document.createElement('div');
-        entry.className = 'entry';
+        entry.className = 'entry entry-news';
         const sign = magnitude >= 0 ? '+' : '';
-        entry.innerHTML = `<span class="day">Day ${day}</span> · <span class="news">📢 ${label} 內在價值 ${sign}${pct(magnitude, 0)}</span>`;
+        entry.innerHTML = `<span class="day">${dayToYm(day)}</span> · <span class="news">📢 ${label} 內在價值 ${sign}${pct(magnitude, 0)}</span>`;
         log.prepend(entry);
     }
 
@@ -763,9 +956,114 @@
         renderStrategyLegend(rec);
         renderStrategyCards(rec, market);
         renderTradeDetails(market);
+        pushBubbles(rec);
         pushLog(rec, market);
-        priceChart.render(market.dailyStats);
+        // 歷史事件標籤（2008 / 2020 / 2022 ...），命中 shock 起始日時貼一條到市場日誌
+        const news = market.newsSchedule[rec.day];
+        if (news) for (const n of news) pushNewsLog(rec.day, n.magnitude, `${n.ticker} · ${n.event}`);
+        for (const tk of STOCK_ORDER) tickerCharts[tk] && tickerCharts[tk].render(market.dailyStats, market);
+        updateStrategyPods(rec);
         strategyChart.render(market.dailyStats);
+    }
+
+    // 每張 K 線右邊 5 格 pod（一策略一格），新交易 → flash + 更新內容
+    // 換日就全部清空，避免看起來像「天天在買」——只有當天真的下單的格才亮
+    function updateStrategyPods(rec) {
+        // Step 1: 全部 15 格重置成 idle（保留 label，內容變「觀望中」）
+        for (const tk of STOCK_ORDER) {
+            const pod = $('pod-' + tk.toLowerCase());
+            if (!pod) continue;
+            for (const slot of pod.querySelectorAll('.pod-slot')) {
+                if (!slot.classList.contains('has-trade')) continue;   // 本來就 idle 的不用動
+                const s = slot.dataset.strat;
+                const info = STRATEGY_INFO[s];
+                slot.innerHTML = `<div class="pod-strat">${info.label}</div><div class="pod-idle">觀望中</div>`;
+                slot.classList.remove('has-trade');
+                slot.classList.remove('active');
+            }
+        }
+        // Step 2: 今天有動作的格填內容 + flash
+        const bubbles = rec.bubbles || [];
+        if (!bubbles.length) return;
+        // group by (ticker, strategy) → 取最後一筆代表
+        const latest = {};
+        for (const b of bubbles) {
+            latest[`${b.ticker}-${b.strategy}`] = b;
+        }
+        for (const key of Object.keys(latest)) {
+            const b = latest[key];
+            const slot = document.querySelector(`#pod-${b.ticker.toLowerCase()} .pod-slot[data-strat="${b.strategy}"]`);
+            if (!slot) continue;
+            const info = STRATEGY_INFO[b.strategy];
+            const actLabel = b.action === 'buy' ? '買' : '賣';
+            const actCls = b.action === 'buy' ? 'act-buy' : 'act-sell';
+            slot.innerHTML =
+                `<div class="pod-strat">${info.label}</div>` +
+                `<div class="pod-act"><span class="${actCls}">${actLabel}</span> ${b.shares}股 @$${b.price.toFixed(1)}</div>` +
+                (b.reason ? `<div class="pod-reason">${b.reason}</div>` : '');
+            slot.classList.add('has-trade');
+            // 重啟 flash 動畫
+            void slot.offsetWidth;
+            slot.classList.add('active');
+        }
+    }
+
+    // 初始化 pod：3 支 × 5 策略 = 15 格，全部灰色的 idle 狀態
+    function initStrategyPods() {
+        for (const tk of STOCK_ORDER) {
+            const pod = $('pod-' + tk.toLowerCase());
+            if (!pod) continue;
+            pod.innerHTML = '';
+            for (const s of STRATEGY_ORDER) {
+                const info = STRATEGY_INFO[s];
+                const slot = document.createElement('div');
+                slot.className = 'pod-slot';
+                slot.dataset.strat = s;
+                slot.style.setProperty('--strat-color', info.color);
+                slot.innerHTML = `<div class="pod-strat">${info.label}</div><div class="pod-idle">觀望中</div>`;
+                pod.appendChild(slot);
+            }
+        }
+    }
+
+    // 決策泡泡：對每天的 bubbles 抽樣（最多 3 條 / 天），塞進 stream；stream 只留 30 條
+    function pushBubbles(rec) {
+        const stream = $('bubble-stream');
+        if (!stream) return;
+        const b = rec.bubbles || [];
+        if (!b.length) return;
+        // 每策略最多 1 條 / 天，避免同策略 6 個 trader 洗版
+        const seenStrat = new Set();
+        const pick = [];
+        for (const bb of b) {
+            const key = `${bb.strategy}-${bb.ticker}-${bb.action}`;
+            if (seenStrat.has(key)) continue;
+            seenStrat.add(key);
+            pick.push(bb);
+            if (pick.length >= 3) break;
+        }
+        for (const bb of pick) {
+            const info = STRATEGY_INFO[bb.strategy];
+            const tickerColor = STOCK_COLORS[bb.ticker];
+            const actLabel = bb.action === 'buy' ? '買' : '賣';
+            const actClass = bb.action === 'buy' ? 'act-buy' : 'act-sell';
+            const div = document.createElement('div');
+            div.className = `bubble tag-${bb.strategy}`;
+            div.style.setProperty('--strat-color', info.color);
+            div.innerHTML =
+                `<div class="bubble-head">` +
+                    `<span class="bubble-strat">${info.label}</span>` +
+                    `<span class="bubble-day">${dayToYm(rec.day)}</span>` +
+                `</div>` +
+                `<div class="bubble-body">` +
+                    `<span class="${actClass}">${actLabel}</span> ` +
+                    `<b style="color:${tickerColor}">${bb.ticker}</b> ` +
+                    `${bb.shares}股 @$${bb.price.toFixed(1)}` +
+                `</div>` +
+                (bb.reason ? `<div class="bubble-reason">「${bb.reason}」</div>` : '');
+            stream.prepend(div);
+        }
+        while (stream.children.length > 30) stream.removeChild(stream.lastChild);
     }
 
     // 各策略近期交易明細（每個策略拉自己 cohort 所有 trader 的 tradeHistory，取最近 8 筆）
@@ -791,7 +1089,7 @@
                 ? `<tr><td colspan="5" class="muted">尚無交易</td></tr>`
                 : recent.map(tr => `
                     <tr class="${tr.action}">
-                        <td>Day ${tr.day}</td>
+                        <td>${dayToYm(tr.day)}</td>
                         <td style="color:${STOCK_COLORS[tr.ticker]}">${tr.ticker}</td>
                         <td>${tr.action === 'buy' ? '買' : '賣'}</td>
                         <td>${tr.shares}</td>
@@ -829,24 +1127,33 @@
     function initMarket() {
         const cfg = readCfg();
         market = new Market(cfg);
-        priceChart = new PriceChart($('price-chart'));
-        strategyChart = new StrategyChart($('strategy-chart'));
-        // 塞一筆 Day 0 進 dailyStats 讓正規化圖有起點
-        const prices0 = {}, mas0 = {};
+        tickerCharts = {};
         for (const tk of STOCK_ORDER) {
-            prices0[tk] = market.stocks[tk].priceAt(0);
-            mas0[tk] = prices0[tk];
+            const cvs = $('chart-' + tk.toLowerCase());
+            if (cvs) tickerCharts[tk] = new TickerChart(cvs, tk);
+        }
+        strategyChart = new StrategyChart($('strategy-chart'));
+        bubbleQueue = [];
+        $('bubble-stream').innerHTML = '';
+        initStrategyPods();
+        // 塞一筆「起始日」進 dailyStats 讓正規化圖有起點（startDay 可能不是 0）
+        const prices0 = {}, mas0 = {};
+        const startDay = market.startDay;
+        for (const tk of STOCK_ORDER) {
+            prices0[tk] = market.stocks[tk].priceAt(startDay);
+            mas0[tk] = market.stocks[tk].weeklyMA(startDay, 20) || prices0[tk];
         }
         const day0Rec = {
-            day: 0, prices: prices0, mas: mas0, marketVolumes: {},
+            day: startDay, prices: prices0, mas: mas0, marketVolumes: {},
             tradesCount: 0,
+            bubbles: [],
             stratStats: Object.fromEntries(STRATEGY_ORDER.map(s => [s, {
                 avgPortfolio: cfg.initialCash, avgReturn: 0, equityPct: 0,
                 perTicker: Object.fromEntries(STOCK_ORDER.map(t => [t, 0])),
             }])),
         };
         market.dailyStats.push(day0Rec);
-        priceChart.render([day0Rec]);
+        for (const tk of STOCK_ORDER) tickerCharts[tk] && tickerCharts[tk].render([day0Rec], market);
         strategyChart.render([day0Rec]);
         updateStatsUI(day0Rec, market);
         renderStrategyLegend(day0Rec);
@@ -858,12 +1165,23 @@
     function reset() { pause(); initMarket(); }
 
     // 跳到特定 day —— 只快速執行 stepOneDay 到那一天，不 render 中間
+    // 但沿路的新聞事件還是要進日誌（不然 jump-2008 時看不到「2008 金融海嘯」）
     function fastForwardTo(targetDay) {
         if (!market) initMarket();
-        while (market.day < targetDay && market.day < market.stock.maxDays - 1) {
+        while (market.day < targetDay && market.day < market.endDay) {
             market.stepOneDay();
+            const news = market.newsSchedule[market.day];
+            if (news) for (const n of news) pushNewsLog(market.day, n.magnitude, `${n.ticker} · ${n.event}`);
         }
         tickOnce();   // 最後渲染一次
+    }
+
+    // 套用年份區間 preset：改 input value → 重置模擬 → 開始
+    function applyYearPreset(startYear, endYear) {
+        pause();
+        $('cfg-start-year').value = String(startYear);
+        $('cfg-end-year').value = String(endYear);
+        initMarket();
     }
 
     function bootstrap() {
@@ -872,15 +1190,20 @@
         $('btn-pause').addEventListener('click', pause);
         $('btn-step').addEventListener('click', () => { if (!market) initMarket(); tickOnce(); });
         $('btn-reset').addEventListener('click', reset);
-        const jump08 = $('btn-jump-2008');
-        if (jump08) jump08.addEventListener('click', () => { pause(); fastForwardTo(500); });
-        const jump20 = $('btn-jump-2020');
-        if (jump20) jump20.addEventListener('click', () => { pause(); fastForwardTo(3480); });
-        const jump22 = $('btn-jump-2022');
-        if (jump22) jump22.addEventListener('click', () => { pause(); fastForwardTo(4080); });
+        const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+        bind('btn-preset-2008', () => applyYearPreset(2007, 2010));
+        bind('btn-preset-2020', () => applyYearPreset(2019, 2021));
+        bind('btn-preset-2022', () => applyYearPreset(2021, 2023));
+        bind('btn-preset-bull', () => applyYearPreset(2010, 2019));
+        bind('btn-preset-full', () => applyYearPreset(2006, 2025));
         $('cfg-speed').addEventListener('change', () => {
             if (timer) { pause(); start(); }
         });
+        // 改起始 / 結束年 → 自動重置（否則使用者要按重置才會生效）
+        for (const id of ['cfg-start-year', 'cfg-end-year']) {
+            const el = $(id);
+            if (el) el.addEventListener('change', reset);
+        }
     }
 
     // Script 在 body 末尾載入時 DOM 已就緒；DOMContentLoaded 可能已經 fire 過
