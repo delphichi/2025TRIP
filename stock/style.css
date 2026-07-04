@@ -198,6 +198,51 @@ body.sim-body {
 .strategy-card.tag-dca { border-left-color: var(--strat-dca); }
 .strategy-card.tag-noise { border-left-color: var(--strat-noise); }
 
+/* Trade details */
+.trade-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
+.trade-block {
+    background: #f1f5f9;
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+.trade-block-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+.trade-block-name { font-weight: 700; font-size: .95em; }
+.trade-block-total { font-size: .78em; color: var(--muted); }
+.trade-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .78em;
+}
+.trade-table th {
+    text-align: right;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 3px 6px;
+    border-bottom: 1px dotted #cbd5e1;
+}
+.trade-table th:first-child { text-align: left; }
+.trade-table td {
+    text-align: right;
+    padding: 3px 6px;
+    border-bottom: 1px dotted #e5e7eb;
+}
+.trade-table td:first-child { text-align: left; color: var(--primary-dark); }
+.trade-table tr.buy td:nth-child(2) { color: var(--up); font-weight: 700; }
+.trade-table tr.sell td:nth-child(2) { color: var(--down); font-weight: 700; }
+.trade-table .muted { color: var(--muted); text-align: center; padding: 8px; }
+
 /* Log */
 .log {
     max-height: 220px;
