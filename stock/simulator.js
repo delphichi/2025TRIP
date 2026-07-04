@@ -338,10 +338,14 @@
     class Market {
         constructor(cfg) {
             this.cfg = cfg;
-            this.day = 0;
+            this.startDay = cfg.startDay || 0;
+            this.endDay = cfg.endDay;   // 由 readCfg 保證有值
+            this.day = this.startDay;
             this.stocks = {};
             for (const tk of STOCK_ORDER) this.stocks[tk] = new Stock(tk);
             this.maxDays = Math.min(...STOCK_ORDER.map(tk => this.stocks[tk].maxDays));
+            if (typeof this.endDay !== 'number') this.endDay = this.maxDays - 1;
+            this.endDay = Math.min(this.endDay, this.maxDays - 1);
             this.traders = [];
             this.tradersByStrategy = {};
             for (const s of STRATEGY_ORDER) this.tradersByStrategy[s] = [];
@@ -367,8 +371,8 @@
 
         stepOneDay() {
             this.day += 1;
-            if (this.day >= this.maxDays) {
-                this.day = this.maxDays - 1;
+            if (this.day > this.endDay) {
+                this.day = this.endDay;
                 return null;
             }
             const prices = {}, mas = {}, marketVolumes = {};
@@ -471,13 +475,15 @@
             }
             const color = STOCK_COLORS[ticker];
             const stock = market.stocks[ticker];
+            const firstDay = stats[0].day;
             const lastDay = stats[stats.length - 1].day;
+            const totalDays = lastDay - firstDay + 1;
 
-            // 目標 ~120 根 K 線，每根等於 ceil(lastDay / 120) 天（自動變成週線 / 雙週線）
+            // 目標 ~120 根 K 線，區間長短自動決定 daysPerBar（自動變成週 / 雙週 / 月線）
             const targetBars = 120;
-            const daysPerBar = Math.max(1, Math.ceil((lastDay + 1) / targetBars));
+            const daysPerBar = Math.max(1, Math.ceil(totalDays / targetBars));
             const bars = [];
-            for (let start = 0; start <= lastDay; start += daysPerBar) {
+            for (let start = firstDay; start <= lastDay; start += daysPerBar) {
                 const end = Math.min(start + daysPerBar - 1, lastDay);
                 let hi = -Infinity, lo = Infinity;
                 let volSum = 0;
@@ -586,7 +592,7 @@
                 for (let k = start; k < hist.length; k++) {
                     const tr = hist[k];
                     if (tr.ticker !== ticker) continue;
-                    const barIdx = Math.floor(tr.day / daysPerBar);
+                    const barIdx = Math.floor((tr.day - firstDay) / daysPerBar);
                     if (barIdx < 0 || barIdx >= bars.length) continue;
                     if (!markerCounts[barIdx]) markerCounts[barIdx] = { buy: {}, sell: {} };
                     const bucket = markerCounts[barIdx][tr.action];
@@ -644,7 +650,7 @@
             const xTicks = Math.min(bars.length, 6);
             for (let i = 0; i < xTicks; i++) {
                 const idx = Math.round((bars.length - 1) * i / (xTicks - 1 || 1));
-                ctx.fillText('Day ' + bars[idx].endDay, xAt(idx), padT + priceH + gap + volH + 3);
+                ctx.fillText(dayToYm(bars[idx].endDay), xAt(idx), padT + priceH + gap + volH + 3);
             }
         }
     }
@@ -746,7 +752,7 @@
             const xTicks = Math.min(sample.length, 8);
             for (let i = 0; i < xTicks; i++) {
                 const idx = Math.round((sample.length - 1) * i / (xTicks - 1 || 1));
-                ctx.fillText('Day ' + sample[idx].day, xAt(idx), padT + chartH + 4);
+                ctx.fillText(dayToYm(sample[idx].day), xAt(idx), padT + chartH + 4);
             }
         }
     }
@@ -765,11 +771,23 @@
         const dcaPct = clamp(parseFloat($('cfg-dca-pct')?.value) || 5, 0.5, 50);
         const feePct = clamp(parseFloat($('cfg-fee-pct')?.value) || 0.1, 0, 5) / 100;
         const speed = clamp(parseInt($('cfg-speed').value) || 500, 30, 30000);
-        return { perStrategy, initialCash, valueSellPct, dcaPct, feePct, speed };
+        let startYear = clamp(parseInt($('cfg-start-year')?.value) || 2006, 2006, 2025);
+        let endYear = clamp(parseInt($('cfg-end-year')?.value) || 2025, 2006, 2025);
+        if (endYear < startYear) endYear = startYear;
+        const startDay = (startYear - 2006) * 252;
+        const endDay = Math.min((endYear - 2006 + 1) * 252 - 1, 20 * 252 - 1);
+        return { perStrategy, initialCash, valueSellPct, dcaPct, feePct, speed, startYear, endYear, startDay, endDay };
+    }
+
+    // Day → 年/月 顯示（以 2006-01-01 為 Day 0，252 交易日/年 ≈ 21 交易日/月）
+    function dayToYm(day) {
+        const y = 2006 + Math.floor(day / 252);
+        const m = Math.floor((day % 252) / 21) + 1;
+        return `${y}/${String(Math.min(12, m)).padStart(2, '0')}`;
     }
 
     function updateStatsUI(rec, market) {
-        $('stat-day').textContent = rec.day;
+        $('stat-day').textContent = `${dayToYm(rec.day)} (D${rec.day})`;
         // 3 支同時顯示（Day 0 = 100 的正規化累計報酬）
         const first = market.dailyStats[0] || rec;
         const parts = STOCK_ORDER.map(tk => {
@@ -871,7 +889,7 @@
             const norm = (rec.prices[tk] / base) * 100;
             return `<span style="color:${STOCK_COLORS[tk]}">${tk} ${fmt(norm, 0)}</span>`;
         }).join(' ');
-        entry.innerHTML = `<span class="day">Day ${rec.day}</span> · ${priceStr} · 領先 <b style="color:${STRATEGY_INFO[bestS].color}">${STRATEGY_INFO[bestS].label}</b> (${bestR >= 0 ? '+' : ''}${pct(bestR)})`;
+        entry.innerHTML = `<span class="day">${dayToYm(rec.day)}</span> · ${priceStr} · 領先 <b style="color:${STRATEGY_INFO[bestS].color}">${STRATEGY_INFO[bestS].label}</b> (${bestR >= 0 ? '+' : ''}${pct(bestR)})`;
         log.prepend(entry);
         // 只 trim 每日 log entry，保留新聞事件（否則長時間跑會把 2008 新聞沖走）
         const dailies = log.querySelectorAll('.entry-daily');
@@ -883,7 +901,7 @@
         const entry = document.createElement('div');
         entry.className = 'entry entry-news';
         const sign = magnitude >= 0 ? '+' : '';
-        entry.innerHTML = `<span class="day">Day ${day}</span> · <span class="news">📢 ${label} 內在價值 ${sign}${pct(magnitude, 0)}</span>`;
+        entry.innerHTML = `<span class="day">${dayToYm(day)}</span> · <span class="news">📢 ${label} 內在價值 ${sign}${pct(magnitude, 0)}</span>`;
         log.prepend(entry);
     }
 
@@ -931,7 +949,7 @@
             div.innerHTML =
                 `<div class="bubble-head">` +
                     `<span class="bubble-strat">${info.label}</span>` +
-                    `<span class="bubble-day">Day ${rec.day}</span>` +
+                    `<span class="bubble-day">${dayToYm(rec.day)}</span>` +
                 `</div>` +
                 `<div class="bubble-body">` +
                     `<span class="${actClass}">${actLabel}</span> ` +
@@ -967,7 +985,7 @@
                 ? `<tr><td colspan="5" class="muted">尚無交易</td></tr>`
                 : recent.map(tr => `
                     <tr class="${tr.action}">
-                        <td>Day ${tr.day}</td>
+                        <td>${dayToYm(tr.day)}</td>
                         <td style="color:${STOCK_COLORS[tr.ticker]}">${tr.ticker}</td>
                         <td>${tr.action === 'buy' ? '買' : '賣'}</td>
                         <td>${tr.shares}</td>
@@ -1013,15 +1031,17 @@
         strategyChart = new StrategyChart($('strategy-chart'));
         bubbleQueue = [];
         $('bubble-stream').innerHTML = '';
-        // 塞一筆 Day 0 進 dailyStats 讓正規化圖有起點
+        // 塞一筆「起始日」進 dailyStats 讓正規化圖有起點（startDay 可能不是 0）
         const prices0 = {}, mas0 = {};
+        const startDay = market.startDay;
         for (const tk of STOCK_ORDER) {
-            prices0[tk] = market.stocks[tk].priceAt(0);
-            mas0[tk] = prices0[tk];
+            prices0[tk] = market.stocks[tk].priceAt(startDay);
+            mas0[tk] = market.stocks[tk].weeklyMA(startDay, 20) || prices0[tk];
         }
         const day0Rec = {
-            day: 0, prices: prices0, mas: mas0, marketVolumes: {},
+            day: startDay, prices: prices0, mas: mas0, marketVolumes: {},
             tradesCount: 0,
+            bubbles: [],
             stratStats: Object.fromEntries(STRATEGY_ORDER.map(s => [s, {
                 avgPortfolio: cfg.initialCash, avgReturn: 0, equityPct: 0,
                 perTicker: Object.fromEntries(STOCK_ORDER.map(t => [t, 0])),
@@ -1043,12 +1063,20 @@
     // 但沿路的新聞事件還是要進日誌（不然 jump-2008 時看不到「2008 金融海嘯」）
     function fastForwardTo(targetDay) {
         if (!market) initMarket();
-        while (market.day < targetDay && market.day < market.maxDays - 1) {
+        while (market.day < targetDay && market.day < market.endDay) {
             market.stepOneDay();
             const news = market.newsSchedule[market.day];
             if (news) for (const n of news) pushNewsLog(market.day, n.magnitude, `${n.ticker} · ${n.event}`);
         }
         tickOnce();   // 最後渲染一次
+    }
+
+    // 套用年份區間 preset：改 input value → 重置模擬 → 開始
+    function applyYearPreset(startYear, endYear) {
+        pause();
+        $('cfg-start-year').value = String(startYear);
+        $('cfg-end-year').value = String(endYear);
+        initMarket();
     }
 
     function bootstrap() {
@@ -1057,15 +1085,20 @@
         $('btn-pause').addEventListener('click', pause);
         $('btn-step').addEventListener('click', () => { if (!market) initMarket(); tickOnce(); });
         $('btn-reset').addEventListener('click', reset);
-        const jump08 = $('btn-jump-2008');
-        if (jump08) jump08.addEventListener('click', () => { pause(); fastForwardTo(690); });
-        const jump20 = $('btn-jump-2020');
-        if (jump20) jump20.addEventListener('click', () => { pause(); fastForwardTo(3490); });
-        const jump22 = $('btn-jump-2022');
-        if (jump22) jump22.addEventListener('click', () => { pause(); fastForwardTo(4090); });
+        const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+        bind('btn-preset-2008', () => applyYearPreset(2007, 2010));
+        bind('btn-preset-2020', () => applyYearPreset(2019, 2021));
+        bind('btn-preset-2022', () => applyYearPreset(2021, 2023));
+        bind('btn-preset-bull', () => applyYearPreset(2010, 2019));
+        bind('btn-preset-full', () => applyYearPreset(2006, 2025));
         $('cfg-speed').addEventListener('change', () => {
             if (timer) { pause(); start(); }
         });
+        // 改起始 / 結束年 → 自動重置（否則使用者要按重置才會生效）
+        for (const id of ['cfg-start-year', 'cfg-end-year']) {
+            const el = $(id);
+            if (el) el.addEventListener('change', reset);
+        }
     }
 
     // Script 在 body 末尾載入時 DOM 已就緒；DOMContentLoaded 可能已經 fire 過

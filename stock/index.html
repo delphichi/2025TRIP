@@ -37,18 +37,28 @@
                 <label>每天多長 (ms)
                     <input type="number" id="cfg-speed" min="30" max="30000" value="500">
                 </label>
+                <label>回測起始年
+                    <input type="number" id="cfg-start-year" min="2006" max="2025" value="2006" step="1">
+                </label>
+                <label>回測結束年
+                    <input type="number" id="cfg-end-year" min="2006" max="2025" value="2025" step="1">
+                </label>
             </div>
             <div class="btn-row">
                 <button id="btn-run">▶ 開始</button>
                 <button id="btn-step">＋1 天</button>
                 <button id="btn-pause" disabled>⏸ 暫停</button>
                 <button id="btn-reset">↺ 重置</button>
-                <button id="btn-jump-2008">⏭ 跳到 2008 危機</button>
-                <button id="btn-jump-2020">⏭ 跳到 2020 COVID</button>
-                <button id="btn-jump-2022">⏭ 跳到 2022 修正</button>
+                <button id="btn-preset-2008">📉 2007-2010 (含 2008 海嘯)</button>
+                <button id="btn-preset-2020">📉 2019-2021 (含 COVID)</button>
+                <button id="btn-preset-2022">📉 2021-2023 (含升息)</button>
+                <button id="btn-preset-bull">📈 2010-2019 (10 年多頭)</button>
+                <button id="btn-preset-full">🌍 2006-2025 (全區間)</button>
             </div>
             <p class="hint">
                 回測 2006–2025 的 SPY/QQQ/JPM 風格歷史數據（20 年 × 252 交易日 = 5040 天）。
+                <b>改起始/結束年可以隔離某段區間</b>——例如「2007-2010 含 2008 海嘯」看誰扛得住崩盤，
+                「2010-2019」看誰吃得到 10 年大多頭。改完按<b>重置</b>套用。
                 <b>3 支同時交易</b>——每位交易者的現金共用池、但<b>每支上限 = 初始現金 ÷ 3</b>（避免單押 all-in）。
                 <b>價值型</b>：週線 &lt; 20 週 MA 折價 ≥ 3% 才買、&gt; MA×(1+X%) 才賣（永遠保留歷史峰值 20% 底倉）；
                 <b>定投</b>：每 30 天投入固定金額、永不賣（現金花完就停）；
@@ -60,8 +70,8 @@
         <section class="panel stats">
             <h2>今日市場</h2>
             <div class="stat-grid">
-                <div class="stat"><span class="lbl">天數</span><span class="val" id="stat-day">0</span></div>
-                <div class="stat wide"><span class="lbl">3 支正規化（Day 0 = 100）</span><span class="val" id="stat-price">—</span></div>
+                <div class="stat"><span class="lbl">日期</span><span class="val" id="stat-day">—</span></div>
+                <div class="stat wide"><span class="lbl">3 支正規化（區間起點 = 100）</span><span class="val" id="stat-price">—</span></div>
                 <div class="stat wide"><span class="lbl">20 週 MA</span><span class="val" id="stat-intrinsic">—</span></div>
                 <div class="stat wide"><span class="lbl">現價 vs MA</span><span class="val" id="stat-premium">—</span></div>
                 <div class="stat"><span class="lbl">今日策略交易</span><span class="val" id="stat-volume">—</span></div>
