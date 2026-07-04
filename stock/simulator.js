@@ -121,23 +121,30 @@
     // 每個策略 sig: (trader, day, ticker, stock, cfg) → {action, dollars}
     // 現金 t.cash 共用池；t.holdings[ticker] / t.lastTradeDay[ticker] 各 ticker 獨立
     const STRATEGIES = {
-        // 價值型：週線 < 20 週 MA 就買、> MA×(1+X%) 才賣
-        // 每次投入不超過總資本 1/9（3 支 × 3 分批），避免單一標的吃光現金
+        // 價值型：逢低「大量」買入、逢高賣出
+        // - 折價 ≥ 3% 才觸發買（不是「只要低於 MA」）
+        // - 買賣之間 10 天 cooldown（避免每日沾醬）
+        // - 每次交易金額大：20-60% 的單股預算，模擬「大量進場」
         value(t, day, ticker, stock, cfg) {
             const price = stock.priceAt(day);
             const ma = stock.weeklyMA(day, 20);
             if (ma === null) return { action: 'hold', dollars: 0 };
             const sellPct = (cfg.valueSellPct || 5) / 100;
-            const perStockBudget = t.initialCash / 3;
-            if (price < ma && t.cash > price) {
-                const under = (ma - price) / ma;
-                const aggr = clamp(0.05 + under * 2, 0.05, 0.35);
-                return { action: 'buy', dollars: Math.min(t.cash * 0.3, perStockBudget * aggr) };
-            }
+            // 賣：不受 cooldown 限制，重大反彈就出脫
             if (price > ma * (1 + sellPct) && t.holdings[ticker] > 0) {
                 const over = (price - ma * (1 + sellPct)) / (ma * (1 + sellPct));
-                const shed = clamp(0.15 + over * 2, 0.15, 0.5);
+                const shed = clamp(0.30 + over * 3, 0.30, 1.0);
                 return { action: 'sell', dollars: t.holdings[ticker] * price * shed };
+            }
+            // 買：10 天 cooldown + 折價 3% 才進場
+            if (t.lastTradeDay[ticker] !== null && day - t.lastTradeDay[ticker] < 10) {
+                return { action: 'hold', dollars: 0 };
+            }
+            const under = (ma - price) / ma;
+            if (under >= 0.03 && t.cash > price) {
+                const perStockBudget = t.initialCash / 3;
+                const aggr = clamp(0.20 + under * 3, 0.20, 0.60);
+                return { action: 'buy', dollars: Math.min(t.cash * 0.5, perStockBudget * aggr) };
             }
             return { action: 'hold', dollars: 0 };
         },
