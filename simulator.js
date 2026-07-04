@@ -218,14 +218,31 @@
             this.history = [];
             this.recentSales = [];   // 用來估 μ/σ 供 newsvendor 計算
             // 計劃產量：agent 現在能自己決定今天烤幾個，不再是總是烤滿
-            // 初始從產能上限起步，之後學著往 newsvendor 解收斂
-            this.plannedQuantity = this.capacity;
+            // 初始從產能一半起步，Day 1 不至於因為烤滿 + 賣不掉直接崩盤；
+            // 之後 newsvendor 學到「該烤幾個」再往上或往下收斂
+            this.plannedQuantity = Math.max(1, Math.ceil(this.capacity / 2));
             // 破產機制：從 100 的種子資金開始，累計淨利跌破 0 就倒店
             // 有 seed capital 避免 Day 1 過度生產就直接死亡，改成「慢慢被磨死」
             this.cumulativeProfit = 100;
             this.closed = false;
             this.closedDay = null;
+
+            // 「生存促銷」機制：本金 < 30 時觸發一次 5 天的 -25% 特價
+            // 目的是讓 Day 2 就倒的高成本店有機會用低價搶客回血
+            // 一店只能用一次（避免無限迴圈續命）
+            this.promoDaysLeft = 0;
+            this.promoMultiplier = 1.0;
+            this.hasUsedPromo = false;
         }
+
+        // 消費者實際看到的價 = 基準 price × 促銷折扣，但下限 = cost × 1.05
+        // （不允許促銷讓每筆交易變成虧本——真實世界的花車也不會低於成本）
+        effectivePrice() {
+            const raw = this.price * this.promoMultiplier;
+            const floor = this.cost * 1.05;
+            return Math.max(raw, floor);
+        }
+        inPromo() { return this.promoDaysLeft > 0; }
 
         bake() {
             // 已倒店：不烤、庫存 0，消費者到店會發現無貨自動略過
@@ -243,15 +260,16 @@
             this.visitsToday = 0;   // 訪客成交率的分母（不管有沒有買到都算）
         }
 
-        offer() { return this.inventory > 0 ? this.price : null; }
+        offer() { return this.inventory > 0 ? this.effectivePrice() : null; }
 
         sell() {
             if (this.inventory <= 0) return null;
+            const px = this.effectivePrice();   // 促銷期真的用打折後的價收錢
             this.inventory -= 1;
             this.soldToday += 1;
-            this.revenueToday += this.price;
-            this.totalSurplus += (this.price - this.cost);
-            return this.price;
+            this.revenueToday += px;
+            this.totalSurplus += (px - this.cost);
+            return px;
         }
 
         // Newsvendor 最優：Q* = μ + σ · Φ⁻¹((p-c)/p)，假設 s=0（隔夜作廢）
@@ -375,8 +393,30 @@
                 }
             }
 
+            // 生存促銷：本金 < 60 (提前觸發，不要等到快死才反應) 且沒用過
+            // → 5 天 -25% 特價 + 烤量降 40%（少廢品）
+            if (this.cumulativeProfit < 60 && this.promoDaysLeft === 0 && !this.hasUsedPromo) {
+                this.promoDaysLeft = 5;
+                this.promoMultiplier = 0.75;
+                this.hasUsedPromo = true;
+                // 促銷期烤量下修 40%，減少廢品風險（實際折扣後容量若低於 1 則 1）
+                this.plannedQuantity = Math.max(1, Math.floor(this.plannedQuantity * 0.6));
+                log('promo', `💥 生存特價啟動 −25%（本金剩 ${fmt(this.cumulativeProfit, 1)}），減烤 40% 節流`);
+            }
+            // 促銷 tick：每天扣一天，結束時恢復
+            if (this.promoDaysLeft > 0) {
+                this.promoDaysLeft -= 1;
+                if (this.promoDaysLeft === 0) {
+                    this.promoMultiplier = 1.0;
+                    log(this.cumulativeProfit > 0 ? 'flat' : 'drop',
+                        `⏰ 特價結束（本金 ${fmt(this.cumulativeProfit, 1)}），恢復正常價`);
+                }
+            }
+
             // 破產判定：本金（種子 100 + 累積淨利）花光就倒
-            if (this.cumulativeProfit < 0) {
+            // 促銷期給更大的深水區（-50，比原 -20 寬），讓促銷真的有機會翻身
+            const canPromoStayAlive = this.inPromo() && this.cumulativeProfit > -50;
+            if (this.cumulativeProfit < 0 && !canPromoStayAlive) {
                 this.closed = true;
                 this.closedDay = day;
                 log('drop', `💀 本金花光（${fmt(this.cumulativeProfit, 1)}），Day ${day} 倒店`);
@@ -1513,14 +1553,22 @@
                     <div class="row"><span>累計淨利</span><span class="v">${fmt(p.cumulativeProfit, 1)}</span></div>
                 `;
             } else {
+                const promoTag = p.inPromo()
+                    ? `<div class="promo-tag">💥 生存特價 −25%（剩 ${p.promoDaysLeft} 天）</div>`
+                    : '';
+                const priceRow = p.inPromo()
+                    ? `<div class="row"><span>報價</span><span class="v" style="color:var(--down)"><s style="color:#94a3b8">${fmt(p.price)}</s> → <b>${fmt(p.effectivePrice())}</b></span></div>`
+                    : `<div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>`;
                 div.innerHTML = `
-                    <div class="name">🏪 ${p.label || 'Bakery ' + (i + 1)}</div>
-                    <div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>
+                    <div class="name">🏪 ${p.label || 'Bakery ' + (i + 1)}${p.inPromo() ? ' 💥' : ''}</div>
+                    ${promoTag}
+                    ${priceRow}
                     <div class="row"><span>成本</span><span class="v">${fmt(p.cost)}</span></div>
                     <div class="row"><span>產能 / 計劃烤</span><span class="v">${p.capacity} / ${p.plannedQuantity}</span></div>
                     <div class="row"><span>昨賣 / 剩</span><span class="v">${last ? last.sold + ' / ' + last.wasted : '—'}</span></div>
                     <div class="row"><span>Newsvendor Q*</span><span class="v">${nvQ === null ? '—' : fmt(nvQ, 1)}</span></div>
                 `;
+                if (p.inPromo()) div.classList.add('promo');
             }
             grid.appendChild(div);
         });
