@@ -70,14 +70,26 @@
         </section>
 
         <section class="panel chart-panel">
-            <h2>3 支正規化走勢（Day 0 = 100）</h2>
-            <div class="legend">
-                <span style="color:#2563eb">— SPY 大盤</span>
-                <span style="color:#f59e0b">— QQQ 科技</span>
-                <span style="color:#dc2626">— JPM 金融</span>
-                <span style="color:#94a3b8">┈ 100 基準線</span>
+            <h2>3 支 K 線圖（週線蠟燭 + 20 週 MA + 策略買賣標記）</h2>
+            <p class="hint">
+                每支獨立一張 K 線，<b class="up-txt">綠</b>漲 <b class="down-txt">紅</b>跌，虛線是 20 週均線。
+                下方是每根 K 線的成交量。
+                K 線邊的三角形是<b>策略買（下三角在低點）/ 賣（上三角在高點）</b>，顏色對應策略。
+            </p>
+            <div class="ticker-charts">
+                <canvas id="chart-spy" class="ticker-chart" width="900" height="200"></canvas>
+                <canvas id="chart-qqq" class="ticker-chart" width="900" height="200"></canvas>
+                <canvas id="chart-jpm" class="ticker-chart" width="900" height="200"></canvas>
             </div>
-            <canvas id="price-chart" width="900" height="280"></canvas>
+        </section>
+
+        <section class="panel bubble-panel">
+            <h2>💭 今日決策泡泡</h2>
+            <p class="hint">
+                每筆交易發生時，該策略會冒出一個泡泡：買 / 賣、股數、成交價、判定原因。
+                跟隔壁麵包模擬器的思考泡泡同一個 vibe。
+            </p>
+            <div class="bubble-stream" id="bubble-stream"></div>
         </section>
 
         <section class="panel chart-panel">

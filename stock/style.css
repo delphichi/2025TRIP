@@ -141,6 +141,61 @@ body.sim-body {
     border-radius: 8px;
     border: 1px solid #e5e7eb;
 }
+.ticker-charts { display: grid; gap: 8px; }
+.ticker-chart { height: 200px !important; }
+.hint .up-txt { color: var(--up); }
+.hint .down-txt { color: var(--down); }
+
+/* Decision bubbles — 靈感來自麵包模擬器裡的思考泡泡 */
+.bubble-panel { border-left-color: var(--accent); }
+.bubble-stream {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px 8px;
+    max-height: 380px;
+    overflow-y: auto;
+    padding: 6px 4px 12px;
+}
+.bubble {
+    position: relative;
+    background: #fff;
+    border: 2px solid var(--strat-color, #6b7280);
+    border-radius: 14px;
+    padding: 8px 10px 8px 12px;
+    font-size: .82em;
+    box-shadow: 0 2px 4px rgba(0,0,0,.06);
+    animation: bubble-pop .35s ease-out;
+}
+.bubble::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    bottom: -8px;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-right: 2px solid var(--strat-color, #6b7280);
+    border-bottom: 2px solid var(--strat-color, #6b7280);
+    transform: rotate(45deg);
+    border-bottom-right-radius: 3px;
+}
+@keyframes bubble-pop {
+    from { transform: translateY(-6px) scale(.94); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.bubble-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: .82em;
+    color: var(--muted);
+    margin-bottom: 3px;
+}
+.bubble-strat { color: var(--strat-color, #6b7280); font-weight: 700; }
+.bubble-day { font-family: ui-monospace, monospace; }
+.bubble-body { font-family: ui-monospace, SFMono-Regular, monospace; color: var(--ink); }
+.bubble-body .act-buy { color: var(--up); font-weight: 700; }
+.bubble-body .act-sell { color: var(--down); font-weight: 700; }
+.bubble-reason { margin-top: 4px; color: var(--muted); font-style: italic; font-size: .92em; }
 .legend, .strategy-legend {
     display: flex;
     flex-wrap: wrap;
