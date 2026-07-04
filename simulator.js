@@ -9,6 +9,12 @@
     const pct = (n, d = 1) => (n === null || n === undefined || Number.isNaN(n)) ? '—' : (n * 100).toFixed(d) + '%';
     const $ = id => document.getElementById(id);
 
+    // 統一店名顯示：preset 情境剝掉「#N 」prefix 只留「高本低利」；
+    // 隨機情境用「店 N」（比 Bakery N 更本土化，一眼看得懂）
+    const shopName = (p, i) => p.label
+        ? p.label.replace(/^#\d+\s*/, '')
+        : `店 ${i + 1}`;
+
     // Beasley-Springer 標準常態反 CDF 逼近，用於 newsvendor 的 z-score
     function normalInvCdf(p) {
         if (p <= 0) return -Infinity;
@@ -1583,7 +1589,7 @@
             if (p.closed) {
                 div.classList.add('closed');
                 div.innerHTML = `
-                    <div class="name">💀 ${p.label || 'Bakery ' + (i + 1)}</div>
+                    <div class="name">💀 ${shopName(p, i)}</div>
                     <div class="closed-tag">已倒店（Day ${p.closedDay}）</div>
                     <div class="row"><span>最後成本</span><span class="v">${fmt(p.cost)}</span></div>
                     <div class="row"><span>累計淨利</span><span class="v">${fmt(p.cumulativeProfit, 1)}</span></div>
@@ -1596,7 +1602,7 @@
                     ? `<div class="row"><span>報價</span><span class="v" style="color:var(--down)"><s style="color:#94a3b8">${fmt(p.price)}</s> → <b>${fmt(p.effectivePrice())}</b></span></div>`
                     : `<div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>`;
                 div.innerHTML = `
-                    <div class="name">🏪 ${p.label || 'Bakery ' + (i + 1)}${p.inPromo() ? ' 💥' : ''}</div>
+                    <div class="name">🏪 ${shopName(p, i)}${p.inPromo() ? ' 💥' : ''}</div>
                     ${promoTag}
                     ${priceRow}
                     <div class="row"><span>成本</span><span class="v">${fmt(p.cost)}</span></div>
@@ -1619,7 +1625,7 @@
                 return cum;
             });
             const marginPct = p.price > 0 ? (p.price - p.cost) / p.price : 0;
-            const label = p.label || `Bakery ${i + 1}`;
+            const label = shopName(p, i);
             return { id: p.id, cost: p.cost, price: p.price, marginPct, cumulative, label };
         });
         // 用 initialCost 排序配色（綠→紅），避免通膨後 cost 亂跳讓顏色錯位
@@ -1663,7 +1669,7 @@
             if (p.closed) {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>💀 ${p.label || '#' + (i + 1)}</td>
+                    <td>💀 ${shopName(p, i)}</td>
                     <td colspan="7" style="text-align:left;color:var(--muted)">
                         已倒店（Day ${p.closedDay}）· 累計 ${fmt(p.cumulativeProfit, 1)}
                     </td>
@@ -1684,7 +1690,7 @@
             const wasteCls = last.wasted > 0 ? 'warn' : '';
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>🏪 ${p.label || '#' + (i + 1)}</td>
+                <td>🏪 ${shopName(p, i)}</td>
                 <td>${baked}</td>
                 <td>${last.sold}</td>
                 <td class="${wasteCls}">${last.wasted}</td>
