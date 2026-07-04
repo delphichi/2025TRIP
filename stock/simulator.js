@@ -493,10 +493,21 @@
             const lastDay = stats[stats.length - 1].day;
             const totalDays = lastDay - firstDay + 1;
 
-            // 目標 ~120 根 K 線，區間長短自動決定 daysPerBar（自動變成週 / 雙週 / 月線）
-            const targetBars = 120;
+            // 排版：主圖 70%，量能 20%，中間留 10% 空白
+            const padL = 48, padR = 12, padT = 10, padB = 22;
+            const chartW = w - padL - padR;
+            const priceH = (h - padT - padB) * 0.70;
+            const volH = (h - padT - padB) * 0.22;
+            const gap = (h - padT - padB) * 0.08;
+
+            // 目標 K 線數：讓每根至少 4 px 寬，避免變成一條細線
+            const targetBars = Math.max(30, Math.min(200, Math.floor(chartW / 4.5)));
             const daysPerBar = Math.max(1, Math.ceil(totalDays / targetBars));
+
+            // 聚合成 bar：open 用「上一根 close」讓實體反映當期真實變化
+            // （原本 open = 當期第一天的 close，遇到區間內震盪不大時 body 幾乎變 0）
             const bars = [];
+            let prevClose = stock.priceAt(Math.max(0, firstDay - 1));
             for (let start = firstDay; start <= lastDay; start += daysPerBar) {
                 const end = Math.min(start + daysPerBar - 1, lastDay);
                 let hi = -Infinity, lo = Infinity;
@@ -507,51 +518,52 @@
                     if (p < lo) lo = p;
                     volSum += stock.volumeAt(d);
                 }
+                const closePx = stock.priceAt(end);
+                // wick 也要包含 open，避免 open 超出 hi/lo 造成視覺錯位
+                if (prevClose > hi) hi = prevClose;
+                if (prevClose < lo) lo = prevClose;
                 bars.push({
                     startDay: start, endDay: end,
-                    open: stock.priceAt(start),
-                    close: stock.priceAt(end),
+                    open: prevClose,
+                    close: closePx,
                     high: hi, low: lo,
                     volume: volSum,
                 });
+                prevClose = closePx;
             }
             if (bars.length === 0) return;
 
-            // 排版：主圖 70%，量能 20%，中間留 10% 空白
-            const padL = 48, padR = 12, padT = 10, padB = 22;
-            const chartW = w - padL - padR;
-            const priceH = (h - padT - padB) * 0.70;
-            const volH = (h - padT - padB) * 0.22;
-            const gap = (h - padT - padB) * 0.08;
-
+            // Y 軸用對數尺度：讓 1% 漲跌不管在 $30 還是 $300 都是同樣像素高度
+            // 否則長區間 5x 價格範圍下、日常波動被壓成一條線
             const allHi = Math.max(...bars.map(b => b.high));
             const allLo = Math.min(...bars.map(b => b.low));
-            const pad = (allHi - allLo) * 0.06 || 1;
-            const ymin = allLo - pad, ymax = allHi + pad;
-            const yr = ymax - ymin || 1;
+            const logMin = Math.log(Math.max(0.01, allLo * 0.94));
+            const logMax = Math.log(allHi * 1.06);
+            const logRange = logMax - logMin || 1;
 
             const xAt = i => padL + (i + 0.5) / bars.length * chartW;
-            const yAt = v => padT + priceH - ((v - ymin) / yr) * priceH;
+            const yAt = v => padT + priceH - (Math.log(Math.max(0.01, v)) - logMin) / logRange * priceH;
             const barW = Math.max(1.5, (chartW / bars.length) * 0.7);
 
-            // 存下 transform 讓外部（overlay 泡泡）能從 (day, price) 換到 CSS 像素座標
-            this.tx = { firstDay, daysPerBar, barCount: bars.length, padL, chartW, padT, priceH, ymin, yr };
+            // 存下 transform 讓外部（overlay/pod）能從 (day, price) 換到像素
+            this.tx = { firstDay, daysPerBar, barCount: bars.length, padL, chartW, padT, priceH, logMin, logRange };
 
-            // 網格 + Y 軸標籤
+            // 網格 + Y 軸標籤（label 顯示原始價格，位置照 log 排）
             ctx.strokeStyle = '#e5e7eb';
             ctx.fillStyle = '#94a3b8';
             ctx.font = '10px sans-serif';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
             for (let i = 0; i <= 4; i++) {
-                const v = ymin + (yr * i) / 4;
-                const y = yAt(v);
+                const logV = logMin + (logRange * i) / 4;
+                const v = Math.exp(logV);
+                const y = padT + priceH - (i / 4) * priceH;
                 ctx.beginPath();
                 ctx.moveTo(padL, y); ctx.lineTo(padL + chartW, y); ctx.stroke();
-                ctx.fillText(v.toFixed(1), padL - 3, y);
+                ctx.fillText(v.toFixed(v < 100 ? 1 : 0), padL - 3, y);
             }
 
-            // 蠟燭
+            // 蠟燭：body 最小 2px 高，否則長區間下實體會壓成 0 看不見漲跌方向
             for (let i = 0; i < bars.length; i++) {
                 const b = bars[i];
                 const x = xAt(i);
@@ -567,7 +579,7 @@
                 // 實體
                 const yOpen = yAt(b.open), yClose = yAt(b.close);
                 const bodyTop = Math.min(yOpen, yClose);
-                const bodyH = Math.max(1, Math.abs(yClose - yOpen));
+                const bodyH = Math.max(2, Math.abs(yClose - yOpen));
                 ctx.fillStyle = bodyColor;
                 ctx.fillRect(x - barW / 2, bodyTop, barW, bodyH);
             }
@@ -671,14 +683,14 @@
             }
         }
 
-        // 把 (day, price) 轉成 canvas CSS 像素座標，overlay 泡泡定位用
+        // 把 (day, price) 轉成 canvas CSS 像素座標
         pixelForDayPrice(day, price) {
             if (!this.tx) return null;
-            const { firstDay, daysPerBar, barCount, padL, chartW, padT, priceH, ymin, yr } = this.tx;
+            const { firstDay, daysPerBar, barCount, padL, chartW, padT, priceH, logMin, logRange } = this.tx;
             const barIdx = Math.floor((day - firstDay) / daysPerBar);
             if (barIdx < 0 || barIdx >= barCount) return null;
             const x = padL + (barIdx + 0.5) / barCount * chartW;
-            const y = padT + priceH - ((price - ymin) / yr) * priceH;
+            const y = padT + priceH - (Math.log(Math.max(0.01, price)) - logMin) / logRange * priceH;
             return { x, y };
         }
     }
