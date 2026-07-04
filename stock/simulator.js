@@ -248,6 +248,7 @@
                 this.peakHoldings[tk] = 0;
             }
             this.tradesCount = 0;
+            this.totalFees = 0;
             this.tradeHistory = [];
         }
 
@@ -255,10 +256,13 @@
             return STRATEGIES[this.strategy](this, day, ticker, stock, cfg);
         }
 
-        executeBuy(day, ticker, dollars, price) {
-            const shares = Math.floor(dollars / price);
+        executeBuy(day, ticker, dollars, price, feePct = 0) {
+            // 意向 dollars 內含手續費，實際可買股數 = dollars / (price × (1+fee))
+            const shares = Math.floor(dollars / (price * (1 + feePct)));
             if (shares <= 0) return 0;
-            const cost = shares * price;
+            const base = shares * price;
+            const fee = base * feePct;
+            const cost = base + fee;
             if (cost > this.cash) return 0;
             this.cash -= cost;
             this.holdings[ticker] += shares;
@@ -266,19 +270,23 @@
                 this.peakHoldings[ticker] = this.holdings[ticker];
             }
             this.tradesCount += 1;
+            this.totalFees += fee;
             this.lastTradeDay[ticker] = day;
-            this.tradeHistory.push({ day, ticker, action: 'buy', shares, price });
+            this.tradeHistory.push({ day, ticker, action: 'buy', shares, price, fee });
             return shares;
         }
 
-        executeSell(day, ticker, dollars, price) {
+        executeSell(day, ticker, dollars, price, feePct = 0) {
             const shares = Math.min(this.holdings[ticker], Math.floor(dollars / price));
             if (shares <= 0) return 0;
-            this.cash += shares * price;
+            const base = shares * price;
+            const fee = base * feePct;
+            this.cash += base - fee;
             this.holdings[ticker] -= shares;
             this.tradesCount += 1;
+            this.totalFees += fee;
             this.lastTradeDay[ticker] = day;
-            this.tradeHistory.push({ day, ticker, action: 'sell', shares, price });
+            this.tradeHistory.push({ day, ticker, action: 'sell', shares, price, fee });
             return shares;
         }
 
@@ -366,9 +374,9 @@
                     const stock = this.stocks[tk];
                     const d = t.decide(this.day, tk, stock, this.cfg);
                     if (d.action === 'buy' && d.dollars > 0) {
-                        if (t.executeBuy(this.day, tk, d.dollars, prices[tk]) > 0) tradesToday++;
+                        if (t.executeBuy(this.day, tk, d.dollars, prices[tk], this.cfg.feePct) > 0) tradesToday++;
                     } else if (d.action === 'sell' && d.dollars > 0) {
-                        if (t.executeSell(this.day, tk, d.dollars, prices[tk]) > 0) tradesToday++;
+                        if (t.executeSell(this.day, tk, d.dollars, prices[tk], this.cfg.feePct) > 0) tradesToday++;
                     }
                 }
             }
@@ -625,8 +633,9 @@
         const ticker = ($('cfg-ticker')?.value) || 'SPY';
         const valueSellPct = clamp(parseFloat($('cfg-value-sell')?.value) || 5, 0.5, 50);
         const dcaPct = clamp(parseFloat($('cfg-dca-pct')?.value) || 5, 0.5, 50);
+        const feePct = clamp(parseFloat($('cfg-fee-pct')?.value) || 0.1, 0, 5) / 100;
         const speed = clamp(parseInt($('cfg-speed').value) || 500, 30, 30000);
-        return { perStrategy, initialCash, ticker, valueSellPct, dcaPct, speed };
+        return { perStrategy, initialCash, ticker, valueSellPct, dcaPct, feePct, speed };
     }
 
     function updateStatsUI(rec, market) {
@@ -693,6 +702,7 @@
             const stats = rec.stratStats[s];
             const avgCash = mean(list.map(t => t.cash));
             const avgTrades = mean(list.map(t => t.tradesCount));
+            const avgFees = mean(list.map(t => t.totalFees));
             const retClass = stats.avgReturn > 0.005 ? 'up' : stats.avgReturn < -0.005 ? 'down' : '';
             const tickerBreakdown = STOCK_ORDER.map(tk => {
                 const held = mean(list.map(t => t.holdings[tk]));
@@ -707,6 +717,7 @@
                 <div class="row"><span>平均資產</span><span class="v">${fmt(stats.avgPortfolio, 0)}</span></div>
                 <div class="row"><span>持股比例</span><span class="v">${pct(stats.equityPct, 0)}</span></div>
                 <div class="row"><span>累計交易次數</span><span class="v">${fmt(avgTrades, 0)}</span></div>
+                <div class="row"><span>累計手續費</span><span class="v" style="color:var(--down)">${fmt(avgFees, 0)}</span></div>
                 <div class="row ticker-breakdown"><span>3 支配置</span><span class="v" style="font-size:.78em;text-align:right;line-height:1.3">${tickerBreakdown}</span></div>
             `;
             grid.appendChild(div);
