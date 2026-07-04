@@ -211,11 +211,13 @@
                 this.plannedQuantity = 0;
                 this.soldToday = 0;
                 this.revenueToday = 0;
+                this.visitsToday = 0;
                 return;
             }
             this.inventory = this.plannedQuantity;
             this.soldToday = 0;
             this.revenueToday = 0;
+            this.visitsToday = 0;   // 訪客成交率的分母（不管有沒有買到都算）
         }
 
         offer() { return this.inventory > 0 ? this.price : null; }
@@ -254,10 +256,12 @@
                 return;
             }
             this.wastedToday = this.inventory;
-            // 用 plannedQuantity 而不是 capacity——因為 agent 決定烤多少
-            // 高本店烤 3 賣 3 應該視為「賣光」（該抬價），而不是「只賣了 25%」
-            const bakedToday = this.plannedQuantity || 1;
-            const soldRatio = this.soldToday / bakedToday;
+            // ★ 訪客成交率（sell-through）= sold / visits
+            // 這才是真正的「客戶對我的價格的接受率」——多少人上門，多少人真的掏錢
+            // 原本用 sold / baked 是個 bug：agent 把 baked 縮到很小，永遠賣光，
+            // 但看不見「另外 40 人來過卻沒買」的隱形需求缺口，永遠抬價停不下來
+            const visitsToday = this.visitsToday || 0;
+            const sellThrough = visitsToday >= 2 ? this.soldToday / visitsToday : null;
 
             // 帳本：今天實際烤了幾個、賣掉幾個、賣光後剩下幾個、收入、成本
             // 沒賣掉的麵包成本也要算，因為錢已經花下去了
@@ -275,21 +279,24 @@
             if (this.recentSales.length > 10) this.recentSales.shift();
 
             let adjust, tag, reason;
-            if (soldRatio >= 0.98) {
-                adjust = rand(1.06, 1.12); tag = 'raise';
-                reason = `賣光（${this.soldToday}/${this.capacity}），大幅抬 +${fmt((adjust - 1) * 100, 1)}%`;
-            } else if (soldRatio >= 0.85) {
-                adjust = rand(1.02, 1.06); tag = 'raise';
-                reason = `售罄率 ${fmt(soldRatio * 100, 0)}%，小幅抬 +${fmt((adjust - 1) * 100, 1)}%`;
-            } else if (soldRatio >= 0.55) {
-                adjust = rand(0.99, 1.02); tag = 'flat';
-                reason = `售罄率 ${fmt(soldRatio * 100, 0)}%，微調 ${fmt((adjust - 1) * 100, 1)}%`;
-            } else if (soldRatio >= 0.25) {
-                adjust = rand(0.93, 0.98); tag = 'drop';
-                reason = `剩不少（${fmt(soldRatio * 100, 0)}%），降 ${fmt((adjust - 1) * 100, 1)}%`;
+            if (sellThrough === null) {
+                adjust = 1.0; tag = 'flat';
+                reason = `訪客不足（${visitsToday}），無訊號、持平`;
+            } else if (sellThrough >= 0.85) {
+                adjust = rand(1.03, 1.08); tag = 'raise';
+                reason = `訪客成交率 ${fmt(sellThrough * 100, 0)}%（${this.soldToday}/${visitsToday}），大部分掏錢，抬 +${fmt((adjust - 1) * 100, 1)}%`;
+            } else if (sellThrough >= 0.60) {
+                adjust = rand(1.00, 1.03); tag = 'raise';
+                reason = `訪客成交率 ${fmt(sellThrough * 100, 0)}%，健康，微抬 +${fmt((adjust - 1) * 100, 1)}%`;
+            } else if (sellThrough >= 0.35) {
+                adjust = rand(0.98, 1.01); tag = 'flat';
+                reason = `訪客成交率 ${fmt(sellThrough * 100, 0)}%，觀望，持平 ${fmt((adjust - 1) * 100, 1)}%`;
+            } else if (sellThrough >= 0.15) {
+                adjust = rand(0.93, 0.97); tag = 'drop';
+                reason = `訪客成交率 ${fmt(sellThrough * 100, 0)}%，多數走人，降 ${fmt((adjust - 1) * 100, 1)}%`;
             } else {
                 adjust = rand(0.85, 0.92); tag = 'drop';
-                reason = `大量作廢（${fmt(soldRatio * 100, 0)}%），大幅降 ${fmt((adjust - 1) * 100, 1)}%`;
+                reason = `訪客成交率 ${fmt(sellThrough * 100, 0)}%，客人搖頭走光，大降 ${fmt((adjust - 1) * 100, 1)}%`;
             }
 
             const oldPrice = this.price;
@@ -440,6 +447,7 @@
                     const trace = (c.id === tracedC) ? consumerTrace : null;
                     const decided = c.decide(price, p.id, trace, panicMult);
                     c.observePrice(price);   // 有沒有買到都記錄這家報價，供 sticker shock 判斷
+                    p.visitsToday = (p.visitsToday || 0) + 1;   // 訪客成交率的分母
                     sceneEvents.push({ round, cid: c.id, pid: p.id, price, bought: decided });
                     if (decided) {
                         p.sell();
