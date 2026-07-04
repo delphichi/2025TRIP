@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股市策略模擬器</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#1f2937">
+</head>
+<body class="sim-body">
+
+    <header class="sim-header">
+        <h1>📈 股市策略模擬器</h1>
+        <p class="sim-subtitle">5 種策略上場，300 天後誰的資產最多？</p>
+    </header>
+
+    <main class="sim-main">
+
+        <section class="panel controls">
+            <h2>參數設定</h2>
+            <div class="ctrl-grid">
+                <label>每策略交易者
+                    <input type="number" id="cfg-per-strategy" min="1" max="30" value="6">
+                </label>
+                <label>初始現金 / 人
+                    <input type="number" id="cfg-cash" min="100" max="1000000" value="10000" step="1000">
+                </label>
+                <label>價值型賣出閾值 %
+                    <input type="number" id="cfg-value-sell" min="0.5" max="50" value="5" step="0.5">
+                </label>
+                <label>定投每次投入 %
+                    <input type="number" id="cfg-dca-pct" min="0.5" max="50" value="5" step="0.5">
+                </label>
+                <label>換股手續費 %
+                    <input type="number" id="cfg-fee-pct" min="0" max="2" value="0.1" step="0.05">
+                </label>
+                <label>每天多長 (ms)
+                    <input type="number" id="cfg-speed" min="30" max="30000" value="500">
+                </label>
+            </div>
+            <div class="btn-row">
+                <button id="btn-run">▶ 開始</button>
+                <button id="btn-step">＋1 天</button>
+                <button id="btn-pause" disabled>⏸ 暫停</button>
+                <button id="btn-reset">↺ 重置</button>
+                <button id="btn-jump-2008">⏭ 跳到 2008 危機</button>
+                <button id="btn-jump-2020">⏭ 跳到 2020 COVID</button>
+                <button id="btn-jump-2022">⏭ 跳到 2022 修正</button>
+            </div>
+            <p class="hint">
+                回測 2006–2025 的 SPY/QQQ/JPM 風格歷史數據（20 年 × 252 交易日 = 5040 天）。
+                <b>3 支同時交易</b>——每位交易者的現金共用池、可以分散配置在 3 支上。
+                <b>價值型</b>：週線 &lt; 20 週 MA 就買、&gt; MA×(1+X%) 才賣；
+                <b>定投</b>：每 30 天投入固定金額、永不賣；
+                <b>動能追隨</b>：每 5 天，本週量價齊漲加碼、齊跌減碼。
+                <b>反向 &amp; 雜訊</b>是對照組。
+            </p>
+        </section>
+
+        <section class="panel stats">
+            <h2>今日市場</h2>
+            <div class="stat-grid">
+                <div class="stat"><span class="lbl">天數</span><span class="val" id="stat-day">0</span></div>
+                <div class="stat wide"><span class="lbl">3 支正規化（Day 0 = 100）</span><span class="val" id="stat-price">—</span></div>
+                <div class="stat wide"><span class="lbl">20 週 MA</span><span class="val" id="stat-intrinsic">—</span></div>
+                <div class="stat wide"><span class="lbl">現價 vs MA</span><span class="val" id="stat-premium">—</span></div>
+                <div class="stat"><span class="lbl">今日策略交易</span><span class="val" id="stat-volume">—</span></div>
+                <div class="stat"><span class="lbl">領先策略</span><span class="val" id="stat-winner">—</span></div>
+            </div>
+        </section>
+
+        <section class="panel chart-panel">
+            <h2>3 支正規化走勢（Day 0 = 100）</h2>
+            <div class="legend">
+                <span style="color:#2563eb">— SPY 大盤</span>
+                <span style="color:#f59e0b">— QQQ 科技</span>
+                <span style="color:#dc2626">— JPM 金融</span>
+                <span style="color:#94a3b8">┈ 100 基準線</span>
+            </div>
+            <canvas id="price-chart" width="900" height="280"></canvas>
+        </section>
+
+        <section class="panel chart-panel">
+            <h2>5 策略累計報酬率</h2>
+            <p class="hint">
+                每條線 = 該策略所有交易者的<b>平均資產</b>相對於初始的變化。
+                線越粗代表當前該策略的持股比例越高。
+            </p>
+            <div class="strategy-legend" id="strategy-legend"></div>
+            <canvas id="strategy-chart" width="900" height="280"></canvas>
+        </section>
+
+        <section class="panel strategies-panel">
+            <h2>各策略當前狀態</h2>
+            <div class="strategies-grid" id="strategies-grid"></div>
+        </section>
+
+        <section class="panel trade-details-panel">
+            <h2>各策略交易明細</h2>
+            <p class="hint">
+                每個策略顯示近 8 筆交易（跨該策略所有 trader）。
+                <b>買/賣</b>顯示動作、股數、成交價。
+            </p>
+            <div class="trade-details" id="trade-details"></div>
+        </section>
+
+        <section class="panel log-panel">
+            <h2>市場日誌</h2>
+            <div class="log" id="log"></div>
+        </section>
+
+        <footer class="sim-footer">
+            <p>模型：多 agent × 隱藏策略 × 反饋迴路，跟隔壁的
+                <a href="../simulator.html">🍞 麵包經濟學模擬器</a> 同一個框架。</p>
+        </footer>
+
+    </main>
+
+    <script src="simulator.js"></script>
+</body>
+</html>

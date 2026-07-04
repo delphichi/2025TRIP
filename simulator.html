@@ -41,8 +41,35 @@
                 <label>消費者心理價位
                     <input type="number" id="cfg-wtp" min="1" max="200" value="14" step="0.5">
                 </label>
-                <label>模擬速度 (ms/天)
-                    <input type="number" id="cfg-speed" min="30" max="3000" value="450">
+                <label>邊際遞減 α
+                    <input type="number" id="cfg-alpha" min="0" max="2" value="0.55" step="0.05">
+                </label>
+                <label>每日成本通膨 %
+                    <input type="number" id="cfg-inflation" min="0" max="2" value="0.1" step="0.05">
+                </label>
+                <label>缺貨恐慌強度
+                    <input type="number" id="cfg-panic" min="0" max="3" value="0.8" step="0.1">
+                </label>
+                <label>競爭壓力
+                    <input type="number" id="cfg-competition" min="0" max="1" value="0.3" step="0.05">
+                </label>
+                <label>消費者忍耐 (0=永不退場)
+                    <input type="number" id="cfg-patience" min="0" max="10" value="3" step="1">
+                </label>
+                <label>口耳相傳
+                    <select id="cfg-gossip">
+                        <option value="on" selected>開（鄰居會影響心理錨）</option>
+                        <option value="off">關（自閉，只看自己）</option>
+                    </select>
+                </label>
+                <label>初始情境
+                    <select id="cfg-scenario">
+                        <option value="random" selected>隨機生產者</option>
+                        <option value="quadrant">5 象限實驗（成本×定價比較）</option>
+                    </select>
+                </label>
+                <label>每天多長 (ms，越大越慢)
+                    <input type="number" id="cfg-speed" min="30" max="60000" value="900">
                 </label>
             </div>
             <div class="btn-row">
@@ -64,8 +91,25 @@
                 <div class="stat"><span class="lbl">消費者剩餘</span><span class="val" id="stat-cs">—</span></div>
                 <div class="stat"><span class="lbl">生產者剩餘</span><span class="val" id="stat-ps">—</span></div>
                 <div class="stat"><span class="lbl">社會總福利</span><span class="val" id="stat-welfare">—</span></div>
-                <div class="stat"><span class="lbl">理論均衡價 ≈</span><span class="val" id="stat-eq">—</span></div>
+                <div class="stat"><span class="lbl">教科書均衡價</span><span class="val" id="stat-eq">—</span></div>
+                <div class="stat"><span class="lbl">偏離均衡</span><span class="val" id="stat-dev">—</span></div>
+                <div class="stat"><span class="lbl">Newsvendor 過剩</span><span class="val" id="stat-nv">—</span></div>
+                <div class="stat"><span class="lbl">今日峰值恐慌</span><span class="val" id="stat-panic">—</span></div>
+                <div class="stat"><span class="lbl">罷買中</span><span class="val" id="stat-strike">—</span></div>
             </div>
+            <p class="hint sm">
+                <b>教科書均衡價</b> = 階梯式供需曲線交叉點（完全資訊、完全理性、無記憶下的理論解）。
+                <b>Newsvendor 過剩</b> = 產能相對於 Q<sup>*</sup> = μ + σ · Φ<sup>-1</sup>((p−c)/p) 的差距，正值代表烤太多。
+            </p>
+        </section>
+
+        <section class="panel scene-panel">
+            <h2>今日城鎮</h2>
+            <p class="hint">
+                消費者從家出來、走到店、頭上冒泡泡（$價 + 判定）、決定買 / 拒絕、走回家。
+                加快模擬速度時像素小人會像螞蟻潮汐——那是市場一天的呼吸。
+            </p>
+            <canvas id="scene" width="720" height="280"></canvas>
         </section>
 
         <section class="panel chart-panel">
@@ -80,9 +124,65 @@
             <canvas id="chart" width="900" height="360"></canvas>
         </section>
 
+        <section class="panel bakery-chart-panel">
+            <h2>各店累計淨利</h2>
+            <p class="hint">
+                每家 bakery 從 Day 1 到現在的累計淨利。<b>顏色</b>依成本階級（綠→黃→紅＝低→中→高成本），
+                <b>粗細</b>依當前毛利率（越粗越賺）。看誰長期贏、誰在苟活。
+            </p>
+            <div class="bakery-legend" id="bakery-legend"></div>
+            <canvas id="bakery-chart" width="900" height="260"></canvas>
+        </section>
+
         <section class="panel agents-panel">
             <h2>生產者狀態</h2>
             <div class="producers-grid" id="producers-grid"></div>
+        </section>
+
+        <section class="panel ledger-panel">
+            <h2>本日帳本</h2>
+            <p class="hint">
+                每家生產者當日損益：<b>收入</b>=今日成交總額；<b>成本</b>=單位成本×今天實際烤了幾個
+                （沒賣掉還是花了錢）；<b>淨利</b>=收入−成本。
+            </p>
+            <div class="ledger-scroll">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>店</th>
+                            <th>烤</th>
+                            <th>賣</th>
+                            <th>廢</th>
+                            <th>收入</th>
+                            <th>成本</th>
+                            <th>淨利</th>
+                            <th>累計</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-tbody"></tbody>
+                    <tfoot id="ledger-tfoot"></tfoot>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel trace-panel">
+            <h2>今日決策 trace（隨機抽樣）</h2>
+            <p class="hint">
+                每天隨機抽一位消費者 + 一家生產者，把他們觸發的規則和數值路徑全部攤開。
+                Honest 講：這不是真的 reasoning，是把 if-else 印給你看——但看得懂 agent 為什麼今天不買、明天卻抬價。
+            </p>
+            <div class="trace-grid">
+                <div class="trace-col">
+                    <h3>🛒 消費者 <span id="trace-c-title">—</span></h3>
+                    <div class="trace-meta" id="trace-c-meta">尚未開始模擬</div>
+                    <div class="trace-log" id="trace-c-log"></div>
+                </div>
+                <div class="trace-col">
+                    <h3>🏪 生產者 <span id="trace-p-title">—</span></h3>
+                    <div class="trace-meta" id="trace-p-meta">尚未開始模擬</div>
+                    <div class="trace-log" id="trace-p-log"></div>
+                </div>
+            </div>
         </section>
 
         <section class="panel log-panel">
