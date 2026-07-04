@@ -512,6 +512,8 @@
                 return vals.reduce((s, v) => s + v, 0) / vals.length;
             };
             const patience = this.cfg.patience || 0;
+            // 在 endDay 之前先記下 traced consumer 的 bought，因為 endDay 會 reset 成 0
+            const tracedFinalBought = this.consumers[tracedC].bought;
             this.consumers.forEach(c => c.endDay(ownAvgOf(c.id), gossipOf(c.id), patience));
             this.consumers.forEach(c => c.tickStrike());
             const strikingCount = this.consumers.filter(c => c.isOnStrike()).length;
@@ -554,7 +556,7 @@
                 tracedConsumer: {
                     id: tracedC, snapshot: cSnap,
                     log: consumerTrace,
-                    finalBought: this.consumers[tracedC].bought,
+                    finalBought: tracedFinalBought,
                     finalDailyNeed: cSnap.dailyNeed,
                 },
                 tracedProducer: {
