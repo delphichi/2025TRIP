@@ -66,6 +66,10 @@
             this.pricesSeenToday = [];
             this.fatigue = 0;       // 連續 sticker shock 天數
             this.strikingDays = 0;  // 剩餘罷買天數
+            // 記憶：昨天各家報價（pid → price），跟「昨天最便宜的那家」的 pid
+            // 用來影響今天選店 —— 30% 機率先去回訪昨天最便宜的
+            this.priceMemoryToday = {};
+            this.cheapestPidYesterday = null;
         }
 
         // 第 (bought+1) 個麵包的邊際效用倍率，u(k) = exp(-α · k)
@@ -75,6 +79,8 @@
 
         // agent 決策 —— 資訊不完全，只看見自己內部狀態 + 這一家報價 + 市場恐慌程度
         // panicMult: 缺貨恐慌倍率，1 = 平靜，> 1 = 恐慌（放大 WTP 和心理閾值）
+        // 回傳 { ok: bool, reason: 'buy'|'budget'|'wtp_marginal'|'psych_price' }
+        // 供 event stream 用；ok 是行為結果，reason 是可讀原因（動畫/互動能顯示）
         decide(price, producerId, trace, panicMult = 1) {
             const log = (tag, msg) => { if (trace) trace.push({ tag, msg }); };
             const mu = this.marginalUtility();
@@ -83,13 +89,13 @@
 
             if (price > this.budget) {
                 log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：預算 ${fmt(this.budget,1)} 不夠`);
-                return false;
+                return { ok: false, reason: 'budget' };
             }
             // 邊際上限：maxWtp × MU × 恐慌（缺貨時願付上限被推高）
             const marginalWtp = this.maxWtp * mu * panicMult;
             if (price > marginalWtp) {
                 log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：> 邊際 WTP ${fmt(marginalWtp,1)}（MU ${muPct}${panicNote}）`);
-                return false;
+                return { ok: false, reason: 'wtp_marginal' };
             }
 
             let cap = this.expected * this.confidence * mu * panicMult;
@@ -108,10 +114,10 @@
 
             if (price <= threshold) {
                 log('buy', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定買（第 ${this.bought+1} 個）`);
-                return true;
+                return { ok: true, reason: 'buy' };
             }
             log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定過貴`);
-            return false;
+            return { ok: false, reason: 'psych_price' };
         }
 
         // 傳回這次購買帶來的效用（給 market 用來算真實 CS）
@@ -163,12 +169,29 @@
             }
             this.pricesSeenToday = [];
 
+            // 從今天各家看到的報價，記下最便宜的 pid → 明天有 30% 機率回訪
+            const pids = Object.keys(this.priceMemoryToday);
+            if (pids.length > 0) {
+                let minP = Infinity, minPid = null;
+                for (const pid of pids) {
+                    if (this.priceMemoryToday[pid] < minP) {
+                        minP = this.priceMemoryToday[pid];
+                        minPid = Number(pid);
+                    }
+                }
+                this.cheapestPidYesterday = minPid;
+            }
+            this.priceMemoryToday = {};
+
             this.energy = clamp(this.energy - randInt(25, 45), 0, 100);
             this.budget = Math.min(this.budget + rand(10, 25), 300);
             this.bought = 0;
         }
 
-        observePrice(price) { this.pricesSeenToday.push(price); }
+        observePrice(price, pid) {
+            this.pricesSeenToday.push(price);
+            if (pid !== undefined) this.priceMemoryToday[pid] = price;
+        }
         isOnStrike() { return this.strikingDays > 0; }
         tickStrike() { if (this.strikingDays > 0) this.strikingDays -= 1; }
     }
@@ -419,7 +442,12 @@
                 ({ energy, expected, confidence, maxWtp, budget, dailyNeed, alpha }))(this.consumers[tracedC]) };
 
             const trades = [];
-            const sceneEvents = [];   // { round, cid, pid, price, bought }
+            // Event stream 每筆 event 的 shape：一筆 = 一次消費者拜訪一家店 + 決策
+            //   { round, cid, pid, price, bought, type: 'buy'|'reject', reason, byMemory }
+            // reason ∈ 'buy' | 'budget' | 'wtp_marginal' | 'psych_price'
+            // byMemory = true 代表這輪選店是靠「記得昨天最便宜」的偏好，false = 隨機
+            // CityScene 只需要 old fields (round/cid/pid/price/bought)；未來動畫/互動可用 type/reason/byMemory。
+            const sceneEvents = [];
             const shopOrder = shuffle(this.consumers.slice());
             const maxVisits = Math.max(3, Math.min(this.cfg.producers, 6));
             // 每日拒絕計數：連續被拒 3 次就放棄回家，避免尾段所有人擠去唯一有貨的貴店互相「太貴」
@@ -435,25 +463,46 @@
                     const open = this.producers.filter(p => p.inventory > 0);
                     if (open.length === 0) break;
                     // Howard Marks 缺貨恐慌：可買的店越少，消費者願付上限越高
-                    // openRatio > 0.5 → 平靜（panicMult = 1）
-                    // openRatio → 0 → 極端恐慌（1 + panicSensitivity × 1.0）
                     const openRatio = totalAlive > 0 ? open.length / totalAlive : 1;
                     const scarcity = Math.max(0, 0.5 - openRatio) * 2;
                     const panicMult = 1 + scarcity * (this.cfg.panicSensitivity || 0);
                     if (panicMult > peakPanic) peakPanic = panicMult;
-                    const p = open[randInt(0, open.length - 1)];
+
+                    // 選店策略：第一輪 & 記得便宜店 & 店還開著 → 30% 機率先去回訪；否則隨機
+                    // 這個 30% bias 就是 emergent 「客源競爭」的來源
+                    let p;
+                    let selectedByMemory = false;
+                    if (round === 0 && c.cheapestPidYesterday !== null && Math.random() < 0.30) {
+                        const memP = open.find(x => x.id === c.cheapestPidYesterday);
+                        if (memP) { p = memP; selectedByMemory = true; }
+                    }
+                    if (!p) p = open[randInt(0, open.length - 1)];
                     const price = p.offer();
                     if (price === null) continue;
+
                     const trace = (c.id === tracedC) ? consumerTrace : null;
                     const decided = c.decide(price, p.id, trace, panicMult);
-                    c.observePrice(price);   // 有沒有買到都記錄這家報價，供 sticker shock 判斷
-                    p.visitsToday = (p.visitsToday || 0) + 1;   // 訪客成交率的分母
-                    sceneEvents.push({ round, cid: c.id, pid: p.id, price, bought: decided });
-                    if (decided) {
+                    c.observePrice(price, p.id);   // 記錄報價 + pid（給明天的記憶用）
+                    p.visitsToday = (p.visitsToday || 0) + 1;
+
+                    // 一次事件包含所有資訊：old fields (round/cid/pid/price/bought) 讓 CityScene 繼續跑，
+                    // 新 fields (type/reason/byMemory) 給未來動畫層 + 互動 UI 用
+                    sceneEvents.push({
+                        round,
+                        cid: c.id,
+                        pid: p.id,
+                        price,
+                        bought: decided.ok,
+                        type: decided.ok ? 'buy' : 'reject',
+                        reason: decided.reason,
+                        byMemory: selectedByMemory,
+                    });
+
+                    if (decided.ok) {
                         p.sell();
                         const utility = c.buy(price);
                         trades.push({ price, cid: c.id, pid: p.id, utility });
-                        c.rejectionsToday = 0;   // 買到就重置耐心
+                        c.rejectionsToday = 0;
                     } else {
                         c.rejectionsToday += 1;
                     }
@@ -546,6 +595,8 @@
                 welfare: cs + ps,
                 minPrice: Math.min(...prices),
                 maxPrice: Math.max(...prices),
+                producerPrices: prices.slice(),   // 每家「明天要報的價」，Chart 個別線用
+                producerClosed: this.producers.map(p => p.closed),   // 倒店的線斷掉
                 deviation: volume > 0 ? (avgPrice - this.eqPrice) / this.eqPrice : null,
                 nvOverProd,
                 peakPanic,
@@ -665,9 +716,10 @@
                 ctx.fillRect(x, padT + chartH - bh, barW, bh);
             });
 
-            const drawLine = (accessor, color, wid = 2) => {
+            const drawLine = (accessor, color, wid = 2, dash = null) => {
                 ctx.strokeStyle = color;
                 ctx.lineWidth = wid;
+                if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
                 ctx.beginPath();
                 let started = false;
                 stats.forEach((s, i) => {
@@ -678,10 +730,28 @@
                     else ctx.lineTo(x, y);
                 });
                 ctx.stroke();
+                ctx.setLineDash([]);
             };
-            drawLine(s => s.maxPrice, '#c0392b', 1.5);
-            drawLine(s => s.minPrice, '#2874a6', 1.5);
-            drawLine(s => s.avgPrice || null, '#38761D', 2.5);
+
+            // 每家個別 producer 的價格走勢：細色線，看得出 Bakery 3 從 20 降到 8 這種故事
+            // 倒店那天之後不畫（accessor 回傳 null）
+            const producerCount = stats[0].producerPrices?.length || 0;
+            for (let pi = 0; pi < producerCount; pi++) {
+                // HSL 均分色相，讓 5-6 家有明顯不同顏色
+                const hue = (pi * 360 / producerCount) % 360;
+                const color = `hsla(${hue}, 65%, 45%, 0.55)`;
+                drawLine(s => {
+                    if (!s.producerPrices) return null;
+                    if (s.producerClosed && s.producerClosed[pi]) return null;   // 倒了斷線
+                    return s.producerPrices[pi];
+                }, color, 1.2);
+            }
+
+            // 疊在最上：整體均價（粗線）+ 供 chart 讀出收斂軌跡
+            drawLine(s => s.avgPrice || null, '#38761D', 2.8);
+            // Min/Max 保留當包絡線（很淡的灰虛線），輔助讀「今天的 spread」
+            drawLine(s => s.maxPrice, 'rgba(192,57,43,.28)', 1, [3, 3]);
+            drawLine(s => s.minPrice, 'rgba(40,116,166,.28)', 1, [3, 3]);
 
             ctx.fillStyle = '#888';
             ctx.textAlign = 'center';
