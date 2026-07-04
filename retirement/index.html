@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>退休金 Sandbox</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#1f2937">
+</head>
+<body class="sim-body">
+
+    <header class="sim-header">
+        <h1>👴 退休金 Sandbox</h1>
+        <p class="sim-subtitle">你只活一次——但市場可以模擬 100 次不同運氣，看你會落在哪裡</p>
+    </header>
+
+    <main class="sim-main">
+
+        <section class="panel controls">
+            <h2>你的情境</h2>
+            <div class="ctrl-grid">
+                <label>目前年齡
+                    <input type="number" id="cfg-age" min="18" max="80" value="25">
+                </label>
+                <label>退休年齡
+                    <input type="number" id="cfg-retire-age" min="30" max="90" value="65">
+                </label>
+                <label>目前資產 (元)
+                    <input type="number" id="cfg-initial" min="0" max="99999999" value="500000" step="10000">
+                </label>
+                <label>每月存款 (元)
+                    <input type="number" id="cfg-monthly-save" min="0" max="1000000" value="30000" step="1000">
+                </label>
+                <label>存款年成長率 % (加薪)
+                    <input type="number" id="cfg-save-growth" min="0" max="20" value="2" step="0.5">
+                </label>
+                <label>退休後每月提領 (元)
+                    <input type="number" id="cfg-monthly-withdraw" min="0" max="1000000" value="60000" step="1000">
+                </label>
+                <label>投資策略
+                    <select id="cfg-strategy">
+                        <option value="dca" selected>DCA · 100% 股票（積極）</option>
+                        <option value="6040">60/40 · 股債配置（穩健）</option>
+                        <option value="4060">40/60 · 保守（退休前準備）</option>
+                    </select>
+                </label>
+                <label>退休後改保守？
+                    <select id="cfg-glide">
+                        <option value="off" selected>不改（維持同一策略）</option>
+                        <option value="on">退休後自動切到 40/60</option>
+                    </select>
+                </label>
+            </div>
+            <div class="btn-row">
+                <button id="btn-run-once">▶ 跑一條命</button>
+                <button id="btn-run-random">🎲 換一條命重跑</button>
+                <button id="btn-run-monte">📊 跑 100 條命</button>
+                <button id="btn-reset">↺ 重置</button>
+            </div>
+            <p class="hint">
+                <b>一條命</b> = 一次隨機生成的 65 年市場歷史（年報酬 ~10%、波動 ~15%、隨機夾雜修正/熊市/黑天鵝）。
+                <b>100 條命</b> = 跑 100 次不同隨機 seed，看你的退休金分布。
+                核心指標是<b>「破產機率」</b>——活到 90 歲時資產歸零的機率。
+                跟隔壁的<a href="../stock/index.html">📈 股市策略模擬器</a>共用歷史數據模型（PRNG + shocks），但只跑一個 trader（你）。
+            </p>
+        </section>
+
+        <section class="panel stats">
+            <h2>結果</h2>
+            <div class="stat-grid">
+                <div class="stat"><span class="lbl">單條命：退休時資產</span><span class="val" id="stat-retire-assets">—</span></div>
+                <div class="stat"><span class="lbl">單條命：90 歲時資產</span><span class="val" id="stat-end-assets">—</span></div>
+                <div class="stat"><span class="lbl">單條命：崩盤次數</span><span class="val" id="stat-crashes">—</span></div>
+                <div class="stat"><span class="lbl">100 條命：退休金中位數</span><span class="val" id="stat-median">—</span></div>
+                <div class="stat"><span class="lbl">100 條命：破產機率</span><span class="val" id="stat-ruin">—</span></div>
+                <div class="stat"><span class="lbl">100 條命：P20 (運氣差 20%)</span><span class="val" id="stat-p20">—</span></div>
+            </div>
+        </section>
+
+        <section class="panel chart-panel">
+            <h2>資產時間軸</h2>
+            <p class="hint">
+                <span style="color:#dc2626">━</span> = 「你這一條命」實際資產走勢。
+                <span style="color:#2563eb">╍</span> = 100 條命的中位數 (P50)。
+                <span style="background:rgba(37,99,235,.2);padding:0 4px">▓</span> = P20-P80 帶（運氣差到好的中間 60%）。
+                <span style="background:rgba(37,99,235,.08);padding:0 4px">▓</span> = P05-P95 帶（極端 5% 除外）。
+                黃色虛線 = 你的退休日。
+            </p>
+            <canvas id="chart-timeline" width="900" height="360"></canvas>
+        </section>
+
+        <section class="panel chart-panel" id="hist-panel" hidden>
+            <h2>90 歲時資產分布（100 條命）</h2>
+            <p class="hint">
+                左邊高峰 = 你的資產撐不到 90 歲的那些命；右邊 = 幸運兒。
+                <b>紅色 bar</b> = 資產低於初始資產一半（實質破產）。
+            </p>
+            <canvas id="chart-histogram" width="900" height="220"></canvas>
+        </section>
+
+        <section class="panel insight-panel" id="insight-panel" hidden>
+            <h2>洞見</h2>
+            <div id="insights"></div>
+        </section>
+
+        <section class="panel log-panel">
+            <h2>這條命遇到的崩盤</h2>
+            <p class="hint">
+                每一條命都會隨機遇到修正 (每年 ~8% 機率)、熊市 (每年 ~4%)、黑天鵝 (每年 ~1%)。
+                崩盤時機不同會造成你退休金差好幾倍——這叫 <b>sequence-of-returns risk</b>。
+            </p>
+            <div class="log" id="log"></div>
+        </section>
+
+        <footer class="sim-footer">
+            <p>模型：<strong>隨機月度回報 × 隨機崩盤時機 × Monte Carlo</strong>。跟<a href="../stock/index.html">📈 股市策略模擬器</a>是姊妹作，回答不同問題。</p>
+            <p><a href="../index.html">← 回家族旅遊 PWA</a></p>
+        </footer>
+
+    </main>
+
+    <script src="simulator.js"></script>
+</body>
+</html>
