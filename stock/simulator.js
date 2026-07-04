@@ -955,8 +955,22 @@
     }
 
     // 每張 K 線右邊 5 格 pod（一策略一格），新交易 → flash + 更新內容
-    // 同策略 6 個 trader 同一天可能都下單，用最後一筆蓋掉（實際上都一樣，反正只顯示一筆）
+    // 換日就全部清空，避免看起來像「天天在買」——只有當天真的下單的格才亮
     function updateStrategyPods(rec) {
+        // Step 1: 全部 15 格重置成 idle（保留 label，內容變「觀望中」）
+        for (const tk of STOCK_ORDER) {
+            const pod = $('pod-' + tk.toLowerCase());
+            if (!pod) continue;
+            for (const slot of pod.querySelectorAll('.pod-slot')) {
+                if (!slot.classList.contains('has-trade')) continue;   // 本來就 idle 的不用動
+                const s = slot.dataset.strat;
+                const info = STRATEGY_INFO[s];
+                slot.innerHTML = `<div class="pod-strat">${info.label}</div><div class="pod-idle">觀望中</div>`;
+                slot.classList.remove('has-trade');
+                slot.classList.remove('active');
+            }
+        }
+        // Step 2: 今天有動作的格填內容 + flash
         const bubbles = rec.bubbles || [];
         if (!bubbles.length) return;
         // group by (ticker, strategy) → 取最後一筆代表
@@ -977,7 +991,6 @@
                 (b.reason ? `<div class="pod-reason">${b.reason}</div>` : '');
             slot.classList.add('has-trade');
             // 重啟 flash 動畫
-            slot.classList.remove('active');
             void slot.offsetWidth;
             slot.classList.add('active');
         }
