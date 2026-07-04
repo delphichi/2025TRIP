@@ -1356,14 +1356,15 @@
         const inflationRaw = parseFloat($('cfg-inflation')?.value);
         const inflation = clamp(Number.isFinite(inflationRaw) ? inflationRaw : 0.1, 0, 2) / 100;
         const scenario = ($('cfg-scenario')?.value || 'random');
-        // 5 象限實驗：把 5 家店固定成 (成本, 起始定價) 的極端組合
+        // 5 象限實驗：把 5 家店固定成 (成本, 起始利潤率) 的極端組合
         // 產能都設 12 讓比較公平；市場開跑後定價會 dynamically 演變
+        // 順序：高本 → 低本 → 中本，讓最不利的條件排在最前面（最快看到誰先死）
         const preset = scenario === 'quadrant' ? [
-            { cost: 4, price: 5,  capacity: 12, label: '低本低價' },
-            { cost: 4, price: 10, capacity: 12, label: '低本高價' },
-            { cost: 6, price: 9,  capacity: 12, label: '中本中價' },
-            { cost: 8, price: 9,  capacity: 12, label: '高本低價' },
-            { cost: 8, price: 14, capacity: 12, label: '高本高價' },
+            { cost: 8, price: 9,  capacity: 12, label: '#1 高本低利' },  // 起始 margin 11%
+            { cost: 8, price: 14, capacity: 12, label: '#2 高本高利' },  // 起始 margin 43%
+            { cost: 4, price: 5,  capacity: 12, label: '#3 低本低利' },  // 起始 margin 20%
+            { cost: 4, price: 10, capacity: 12, label: '#4 低本高利' },  // 起始 margin 60%
+            { cost: 6, price: 9,  capacity: 12, label: '#5 中本中利' },  // 起始 margin 33%
         ] : null;
         const panicRaw = parseFloat($('cfg-panic')?.value);
         const panicSensitivity = clamp(Number.isFinite(panicRaw) ? panicRaw : 0.8, 0, 3);
