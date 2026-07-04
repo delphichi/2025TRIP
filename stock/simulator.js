@@ -71,11 +71,11 @@
             cagr: 0.105,
             dailyVol: 1.05,
             shocks: [
-                { day: 480,  magnitude: -0.10, duration: 40 },   // 2007 次貸警訊
-                { day: 700,  magnitude: -0.40, duration: 120 },  // 2008 金融海嘯
-                { day: 3500, magnitude: -0.28, duration: 22 },   // 2020 COVID 崩盤
-                { day: 3530, magnitude: 0.18,  duration: 60 },   // COVID 反彈
-                { day: 4100, magnitude: -0.16, duration: 200 },  // 2022 升息修正
+                { day: 480,  magnitude: -0.10, duration: 40,  event: '2007 次貸警訊' },
+                { day: 700,  magnitude: -0.40, duration: 120, event: '2008 金融海嘯' },
+                { day: 3500, magnitude: -0.28, duration: 22,  event: '2020 COVID 崩盤' },
+                { day: 3530, magnitude: 0.18,  duration: 60,  event: '2020 COVID 反彈' },
+                { day: 4100, magnitude: -0.16, duration: 200, event: '2022 升息修正' },
             ],
         },
         QQQ: {
@@ -86,10 +86,10 @@
             dailyVol: 1.35,
             shocks: [
                 { day: 480,  magnitude: -0.08, duration: 40 },
-                { day: 700,  magnitude: -0.42, duration: 130 },  // 2008 科技股也重傷
-                { day: 3500, magnitude: -0.22, duration: 20 },   // 2020 COVID 較輕
-                { day: 3530, magnitude: 0.35,  duration: 80 },   // 科技股大牛市反彈
-                { day: 4100, magnitude: -0.32, duration: 220 },  // 2022 科技股崩盤
+                { day: 700,  magnitude: -0.42, duration: 130 },
+                { day: 3500, magnitude: -0.22, duration: 20 },
+                { day: 3530, magnitude: 0.35,  duration: 80 },
+                { day: 4100, magnitude: -0.32, duration: 220, event: '2022 科技股崩盤' },
             ],
         },
         JPM: {
@@ -100,11 +100,11 @@
             dailyVol: 1.75,
             shocks: [
                 { day: 480,  magnitude: -0.15, duration: 40 },
-                { day: 700,  magnitude: -0.60, duration: 180 },  // 2008 銀行差點爆
-                { day: 850,  magnitude: 0.25,  duration: 100 },  // 政府救援後反彈
-                { day: 3500, magnitude: -0.35, duration: 20 },   // 2020 銀行嚇壞
-                { day: 3530, magnitude: 0.22,  duration: 90 },   // 反彈
-                { day: 4100, magnitude: -0.05, duration: 100 },  // 2022 升息銀行受惠，跌得少
+                { day: 700,  magnitude: -0.60, duration: 180, event: '2008 銀行差點爆' },
+                { day: 850,  magnitude: 0.25,  duration: 100, event: '政府救援銀行' },
+                { day: 3500, magnitude: -0.35, duration: 20 },
+                { day: 3530, magnitude: 0.22,  duration: 90 },
+                { day: 4100, magnitude: -0.05, duration: 100 },
                 { day: 4400, magnitude: 0.15,  duration: 60 },
             ],
         },
@@ -343,13 +343,26 @@
             for (const tk of STOCK_ORDER) this.stocks[tk] = new Stock(tk);
             this.maxDays = Math.min(...STOCK_ORDER.map(tk => this.stocks[tk].maxDays));
             this.traders = [];
+            this.tradersByStrategy = {};
+            for (const s of STRATEGY_ORDER) this.tradersByStrategy[s] = [];
             let id = 0;
             for (const s of STRATEGY_ORDER) {
                 for (let i = 0; i < cfg.perStrategy; i++) {
-                    this.traders.push(new Trader(id++, s, cfg.initialCash));
+                    const t = new Trader(id++, s, cfg.initialCash);
+                    this.traders.push(t);
+                    this.tradersByStrategy[s].push(t);
                 }
             }
             this.dailyStats = [];
+            // 新聞排程：從 STOCK_PRESETS 掃出有 event 標籤的 shock，以 day → [{ticker, event, magnitude}] 排。
+            this.newsSchedule = {};
+            for (const tk of STOCK_ORDER) {
+                for (const sh of (STOCK_PRESETS[tk].shocks || [])) {
+                    if (!sh.event) continue;
+                    if (!this.newsSchedule[sh.day]) this.newsSchedule[sh.day] = [];
+                    this.newsSchedule[sh.day].push({ ticker: tk, event: sh.event, magnitude: sh.magnitude });
+                }
+            }
         }
 
         stepOneDay() {
@@ -384,7 +397,7 @@
             // 每個策略的統計
             const stratStats = {};
             for (const s of STRATEGY_ORDER) {
-                const list = this.traders.filter(t => t.strategy === s);
+                const list = this.tradersByStrategy[s];
                 const avgPortfolio = mean(list.map(t => t.portfolioValue(prices)));
                 const avgReturn = mean(list.map(t => t.returnPct(prices)));
                 const avgShareValue = mean(list.map(t => t.totalShareValue(prices)));
@@ -630,12 +643,11 @@
     function readCfg() {
         const perStrategy = clamp(parseInt($('cfg-per-strategy').value) || 6, 1, 30);
         const initialCash = clamp(parseFloat($('cfg-cash').value) || 10000, 100, 1000000);
-        const ticker = ($('cfg-ticker')?.value) || 'SPY';
         const valueSellPct = clamp(parseFloat($('cfg-value-sell')?.value) || 5, 0.5, 50);
         const dcaPct = clamp(parseFloat($('cfg-dca-pct')?.value) || 5, 0.5, 50);
         const feePct = clamp(parseFloat($('cfg-fee-pct')?.value) || 0.1, 0, 5) / 100;
         const speed = clamp(parseInt($('cfg-speed').value) || 500, 30, 30000);
-        return { perStrategy, initialCash, ticker, valueSellPct, dcaPct, feePct, speed };
+        return { perStrategy, initialCash, valueSellPct, dcaPct, feePct, speed };
     }
 
     function updateStatsUI(rec, market) {
@@ -698,7 +710,7 @@
         grid.innerHTML = '';
         for (const s of STRATEGY_ORDER) {
             const info = STRATEGY_INFO[s];
-            const list = market.traders.filter(t => t.strategy === s);
+            const list = market.tradersByStrategy[s];
             const stats = rec.stratStats[s];
             const avgCash = mean(list.map(t => t.cash));
             const avgTrades = mean(list.map(t => t.tradesCount));
@@ -727,7 +739,7 @@
     function pushLog(rec, market) {
         const log = $('log');
         const entry = document.createElement('div');
-        entry.className = 'entry';
+        entry.className = 'entry entry-daily';
         // 找今日領先者
         let bestS = null, bestR = -Infinity;
         for (const s of STRATEGY_ORDER) {
@@ -743,13 +755,15 @@
         }).join(' ');
         entry.innerHTML = `<span class="day">Day ${rec.day}</span> · ${priceStr} · 領先 <b style="color:${STRATEGY_INFO[bestS].color}">${STRATEGY_INFO[bestS].label}</b> (${bestR >= 0 ? '+' : ''}${pct(bestR)})`;
         log.prepend(entry);
-        while (log.children.length > 60) log.removeChild(log.lastChild);
+        // 只 trim 每日 log entry，保留新聞事件（否則長時間跑會把 2008 新聞沖走）
+        const dailies = log.querySelectorAll('.entry-daily');
+        for (let i = dailies.length - 1; i >= 60; i--) dailies[i].remove();
     }
 
     function pushNewsLog(day, magnitude, label) {
         const log = $('log');
         const entry = document.createElement('div');
-        entry.className = 'entry';
+        entry.className = 'entry entry-news';
         const sign = magnitude >= 0 ? '+' : '';
         entry.innerHTML = `<span class="day">Day ${day}</span> · <span class="news">📢 ${label} 內在價值 ${sign}${pct(magnitude, 0)}</span>`;
         log.prepend(entry);
@@ -764,6 +778,9 @@
         renderStrategyCards(rec, market);
         renderTradeDetails(market);
         pushLog(rec, market);
+        // 歷史事件標籤（2008 / 2020 / 2022 ...），命中 shock 起始日時貼一條到市場日誌
+        const news = market.newsSchedule[rec.day];
+        if (news) for (const n of news) pushNewsLog(rec.day, n.magnitude, `${n.ticker} · ${n.event}`);
         priceChart.render(market.dailyStats);
         strategyChart.render(market.dailyStats);
     }
@@ -858,10 +875,13 @@
     function reset() { pause(); initMarket(); }
 
     // 跳到特定 day —— 只快速執行 stepOneDay 到那一天，不 render 中間
+    // 但沿路的新聞事件還是要進日誌（不然 jump-2008 時看不到「2008 金融海嘯」）
     function fastForwardTo(targetDay) {
         if (!market) initMarket();
-        while (market.day < targetDay && market.day < market.stock.maxDays - 1) {
+        while (market.day < targetDay && market.day < market.maxDays - 1) {
             market.stepOneDay();
+            const news = market.newsSchedule[market.day];
+            if (news) for (const n of news) pushNewsLog(market.day, n.magnitude, `${n.ticker} · ${n.event}`);
         }
         tickOnce();   // 最後渲染一次
     }
@@ -873,11 +893,11 @@
         $('btn-step').addEventListener('click', () => { if (!market) initMarket(); tickOnce(); });
         $('btn-reset').addEventListener('click', reset);
         const jump08 = $('btn-jump-2008');
-        if (jump08) jump08.addEventListener('click', () => { pause(); fastForwardTo(500); });
+        if (jump08) jump08.addEventListener('click', () => { pause(); fastForwardTo(690); });
         const jump20 = $('btn-jump-2020');
-        if (jump20) jump20.addEventListener('click', () => { pause(); fastForwardTo(3480); });
+        if (jump20) jump20.addEventListener('click', () => { pause(); fastForwardTo(3490); });
         const jump22 = $('btn-jump-2022');
-        if (jump22) jump22.addEventListener('click', () => { pause(); fastForwardTo(4080); });
+        if (jump22) jump22.addEventListener('click', () => { pause(); fastForwardTo(4090); });
         $('cfg-speed').addEventListener('change', () => {
             if (timer) { pause(); start(); }
         });
