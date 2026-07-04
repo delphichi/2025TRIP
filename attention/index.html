@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attention Sandbox · 讀懂 Transformer</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#1f2937">
+</head>
+<body class="sim-body">
+
+    <header class="sim-header">
+        <h1>🔍 Attention Sandbox</h1>
+        <p class="sim-subtitle">Attention is all you need — 用 agent 的視角讀懂 Transformer</p>
+    </header>
+
+    <main class="sim-main">
+
+        <section class="panel controls">
+            <h2>選擇一個句子</h2>
+            <div class="ctrl-grid">
+                <label>句子情境
+                    <select id="cfg-preset"></select>
+                </label>
+                <label>顯示 head
+                    <select id="cfg-head">
+                        <option value="0">Head 1 · 代詞解析</option>
+                        <option value="1">Head 2 · 主語追蹤</option>
+                        <option value="2">Head 3 · 動作對象</option>
+                        <option value="3">Head 4 · 時間關係</option>
+                        <option value="4">Head 5 · 相鄰依賴</option>
+                        <option value="5">Head 6 · 全局散播</option>
+                        <option value="6">Head 7 · 修飾關係</option>
+                        <option value="7">Head 8 · 反向照應</option>
+                    </select>
+                </label>
+                <label>視覺強度
+                    <input type="range" id="cfg-intensity" min="0.5" max="3" step="0.1" value="1.5">
+                </label>
+            </div>
+            <p class="hint">
+                句子裡每個詞都是一個 <b>agent</b>。點某個詞 → 看到它「投注意力給誰」（箭頭粗細 = 權重）。
+                切換 <b>Head</b> 看不同「視角」如何解讀同一個句子。
+                跟隔壁 <a href="../simulator.html">🍞 麵包經濟學</a>、<a href="../stock/index.html">📈 股市模擬器</a>、<a href="../retirement/index.html">👴 退休金 Sandbox</a> 是姊妹作。
+            </p>
+        </section>
+
+        <section class="panel scene-panel">
+            <h2>句子 · 詞的注意力</h2>
+            <p class="hint">
+                <b>點任一個詞</b>會看到它的注意力扇向其他詞。金色高亮 = 目前選中，箭頭粗細 = 這個詞投注多少注意力給對方。
+                Head 切換 = 換一個「思考角度」看同一個句子。
+            </p>
+            <canvas id="scene" width="920" height="240"></canvas>
+        </section>
+
+        <section class="panel qkv-panel">
+            <h2>被選中的詞：完整 Q/K/V 決策路徑</h2>
+            <p class="hint">
+                對照麵包版的「決策 trace」——把 Q/K 匹配打分、softmax 歸一化、V 加權求和的過程全部攤開給你看。
+            </p>
+            <div id="qkv-trace"><div class="empty">👆 點上面任一個詞看它的完整解析</div></div>
+        </section>
+
+        <section class="panel matrix-panel">
+            <h2>Attention 熱力矩陣（當前 head）</h2>
+            <p class="hint">
+                行 = <b>Query 詞（我在問什麼）</b>；列 = <b>Key 詞（我看到誰）</b>。
+                每一格顏色深淺 = 這一列的詞投注多少注意力給對應行的詞。
+                <b>每一列加起來 = 1</b>（softmax 保證）。
+            </p>
+            <canvas id="matrix" width="920" height="360"></canvas>
+        </section>
+
+        <section class="panel heads-panel">
+            <h2>8 個 head 同時看</h2>
+            <p class="hint">
+                每個 head 是一個獨立的「注意力視角」。有的看語法、有的追代詞、有的看情感。
+                在真實 Transformer 裡，模型<b>自己學會</b>要看什麼——這裡我們用手工設計的 head 讓你看得懂。
+            </p>
+            <div class="heads-grid" id="heads-grid"></div>
+        </section>
+
+        <section class="panel log-panel">
+            <h2>教學筆記</h2>
+            <div class="log" id="log"></div>
+        </section>
+
+        <footer class="sim-footer">
+            <p>模型：<strong>手工設計的多頭注意力</strong>（非真實 Transformer）。目的是讓你「看懂」不是「跑真的」。
+            要跑真的請用 <a href="https://huggingface.co/models" target="_blank">HuggingFace</a> 或 <a href="https://openai.com" target="_blank">OpenAI API</a>。</p>
+            <p><a href="../index.html">← 回家族旅遊 PWA</a></p>
+        </footer>
+
+    </main>
+
+    <script src="simulator.js"></script>
+</body>
+</html>
