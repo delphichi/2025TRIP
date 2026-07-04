@@ -95,20 +95,21 @@
             <div class="ticker-charts">
                 <div class="ticker-wrap">
                     <canvas id="chart-spy" class="ticker-chart" width="900" height="200"></canvas>
-                    <div class="ticker-overlay" id="overlay-spy"></div>
+                    <div class="strat-pod" id="pod-spy"></div>
                 </div>
                 <div class="ticker-wrap">
                     <canvas id="chart-qqq" class="ticker-chart" width="900" height="200"></canvas>
-                    <div class="ticker-overlay" id="overlay-qqq"></div>
+                    <div class="strat-pod" id="pod-qqq"></div>
                 </div>
                 <div class="ticker-wrap">
                     <canvas id="chart-jpm" class="ticker-chart" width="900" height="200"></canvas>
-                    <div class="ticker-overlay" id="overlay-jpm"></div>
+                    <div class="strat-pod" id="pod-jpm"></div>
                 </div>
             </div>
             <p class="hint">
-                💭 交易發生的當下，該策略的思考泡泡會從成交點浮起——上方是<b>賣</b>、下方是<b>買</b>，
-                3 秒後淡出。看得到「Value 在崩盤時冒出綠泡泡逢低加碼」、「Noise 每天到處亂噴」這種戲。
+                💭 每張 K 線右邊 5 格 = 5 策略對這支股票的最新決策。有新交易時該格會 <b>flash 黃</b> 一下、
+                下方顯示成交跟原因。沒動作時該策略是灰的（表示今天 hold）。看得到「崩盤時 Value 那格連續閃綠買、
+                Momentum 那格閃紅賣」的節奏對比。
             </p>
         </section>
 

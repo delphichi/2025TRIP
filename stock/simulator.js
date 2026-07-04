@@ -950,40 +950,54 @@
         const news = market.newsSchedule[rec.day];
         if (news) for (const n of news) pushNewsLog(rec.day, n.magnitude, `${n.ticker} · ${n.event}`);
         for (const tk of STOCK_ORDER) tickerCharts[tk] && tickerCharts[tk].render(market.dailyStats, market);
-        spawnOverlayBubbles(rec);
+        updateStrategyPods(rec);
         strategyChart.render(market.dailyStats);
     }
 
-    // 在 K 線圖上浮出今日交易泡泡：買在成交價下方冒上來，賣在上方冒
-    // 每策略×每 ticker×每動作只出 1 顆（避免同策略 6 個 trader 洗版）
-    function spawnOverlayBubbles(rec) {
+    // 每張 K 線右邊 5 格 pod（一策略一格），新交易 → flash + 更新內容
+    // 同策略 6 個 trader 同一天可能都下單，用最後一筆蓋掉（實際上都一樣，反正只顯示一筆）
+    function updateStrategyPods(rec) {
         const bubbles = rec.bubbles || [];
         if (!bubbles.length) return;
-        const seen = new Set();
+        // group by (ticker, strategy) → 取最後一筆代表
+        const latest = {};
         for (const b of bubbles) {
-            const key = `${b.strategy}-${b.ticker}-${b.action}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            const chart = tickerCharts[b.ticker];
-            if (!chart) continue;
-            const overlay = $('overlay-' + b.ticker.toLowerCase());
-            if (!overlay) continue;
-            const pt = chart.pixelForDayPrice(rec.day, b.price);
-            if (!pt) continue;
+            latest[`${b.ticker}-${b.strategy}`] = b;
+        }
+        for (const key of Object.keys(latest)) {
+            const b = latest[key];
+            const slot = document.querySelector(`#pod-${b.ticker.toLowerCase()} .pod-slot[data-strat="${b.strategy}"]`);
+            if (!slot) continue;
             const info = STRATEGY_INFO[b.strategy];
-            const el = document.createElement('div');
-            el.className = 'mini-bubble' + (b.action === 'buy' ? ' below' : '');
-            el.style.setProperty('--strat-color', info.color);
-            el.style.left = pt.x + 'px';
-            // 買泡泡放在低點下方（成交價 + 一點偏移），賣泡泡放在高點上方
-            el.style.top = (pt.y + (b.action === 'buy' ? 10 : -10)) + 'px';
             const actLabel = b.action === 'buy' ? '買' : '賣';
             const actCls = b.action === 'buy' ? 'act-buy' : 'act-sell';
-            el.innerHTML = `<span class="strat-tag">${info.label}</span><span class="${actCls}">${actLabel}</span> ${b.shares}股` +
-                (b.reason ? `<br><span style="color:var(--muted);font-size:.92em">${b.reason}</span>` : '');
-            overlay.appendChild(el);
-            // 3.2s 後（動畫結束）自動移除，避免 DOM 累積
-            setTimeout(() => el.remove(), 3200);
+            slot.innerHTML =
+                `<div class="pod-strat">${info.label}</div>` +
+                `<div class="pod-act"><span class="${actCls}">${actLabel}</span> ${b.shares}股 @$${b.price.toFixed(1)}</div>` +
+                (b.reason ? `<div class="pod-reason">${b.reason}</div>` : '');
+            slot.classList.add('has-trade');
+            // 重啟 flash 動畫
+            slot.classList.remove('active');
+            void slot.offsetWidth;
+            slot.classList.add('active');
+        }
+    }
+
+    // 初始化 pod：3 支 × 5 策略 = 15 格，全部灰色的 idle 狀態
+    function initStrategyPods() {
+        for (const tk of STOCK_ORDER) {
+            const pod = $('pod-' + tk.toLowerCase());
+            if (!pod) continue;
+            pod.innerHTML = '';
+            for (const s of STRATEGY_ORDER) {
+                const info = STRATEGY_INFO[s];
+                const slot = document.createElement('div');
+                slot.className = 'pod-slot';
+                slot.dataset.strat = s;
+                slot.style.setProperty('--strat-color', info.color);
+                slot.innerHTML = `<div class="pod-strat">${info.label}</div><div class="pod-idle">觀望中</div>`;
+                pod.appendChild(slot);
+            }
         }
     }
 
@@ -1096,10 +1110,7 @@
         strategyChart = new StrategyChart($('strategy-chart'));
         bubbleQueue = [];
         $('bubble-stream').innerHTML = '';
-        for (const tk of STOCK_ORDER) {
-            const ov = $('overlay-' + tk.toLowerCase());
-            if (ov) ov.innerHTML = '';
-        }
+        initStrategyPods();
         // 塞一筆「起始日」進 dailyStats 讓正規化圖有起點（startDay 可能不是 0）
         const prices0 = {}, mas0 = {};
         const startDay = market.startDay;
