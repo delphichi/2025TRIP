@@ -121,23 +121,30 @@
     // 每個策略 sig: (trader, day, ticker, stock, cfg) → {action, dollars}
     // 現金 t.cash 共用池；t.holdings[ticker] / t.lastTradeDay[ticker] 各 ticker 獨立
     const STRATEGIES = {
-        // 價值型：逢低「大量」買入、逢高賣出
-        // - 折價 ≥ 3% 才觸發買（不是「只要低於 MA」）
-        // - 買賣之間 10 天 cooldown（避免每日沾醬）
-        // - 每次交易金額大：20-60% 的單股預算，模擬「大量進場」
+        // 價值型：逢低「大量」買入、逢高賣出、永遠保留 peak 的 20%（好公司值得長抱）
+        // - 折價 ≥ 3% 才觸發買
+        // - 買賣之間 20 天 cooldown（模擬「季度性重評估」節奏）
+        // - 每次交易金額大：20-60% 的單股預算
+        // - 賣出永遠保留該支歷史峰值持股的 20%，即使觸發賣出訊號也不清倉
         value(t, day, ticker, stock, cfg) {
             const price = stock.priceAt(day);
             const ma = stock.weeklyMA(day, 20);
             if (ma === null) return { action: 'hold', dollars: 0 };
             const sellPct = (cfg.valueSellPct || 5) / 100;
-            // 賣：不受 cooldown 限制，重大反彈就出脫
+            // 賣：不受 cooldown 限制，但保留 peak × 20% 底倉
             if (price > ma * (1 + sellPct) && t.holdings[ticker] > 0) {
+                const minKeep = Math.ceil(t.peakHoldings[ticker] * 0.20);
+                const canSell = Math.max(0, t.holdings[ticker] - minKeep);
+                if (canSell <= 0) return { action: 'hold', dollars: 0 };
                 const over = (price - ma * (1 + sellPct)) / (ma * (1 + sellPct));
                 const shed = clamp(0.30 + over * 3, 0.30, 1.0);
-                return { action: 'sell', dollars: t.holdings[ticker] * price * shed };
+                const wantSell = Math.floor(t.holdings[ticker] * shed);
+                const shares = Math.min(canSell, wantSell);
+                if (shares <= 0) return { action: 'hold', dollars: 0 };
+                return { action: 'sell', dollars: shares * price };
             }
-            // 買：10 天 cooldown + 折價 3% 才進場
-            if (t.lastTradeDay[ticker] !== null && day - t.lastTradeDay[ticker] < 10) {
+            // 買：20 天 cooldown + 折價 3% 才進場
+            if (t.lastTradeDay[ticker] !== null && day - t.lastTradeDay[ticker] < 20) {
                 return { action: 'hold', dollars: 0 };
             }
             const under = (ma - price) / ma;
@@ -234,9 +241,11 @@
             this.cash = initialCash;
             this.holdings = {};        // { SPY: 0, QQQ: 0, JPM: 0 }
             this.lastTradeDay = {};    // { SPY: null, QQQ: null, JPM: null }
+            this.peakHoldings = {};   // 每支持股歷史高點，價值型「留 20%」用得到
             for (const tk of STOCK_ORDER) {
                 this.holdings[tk] = 0;
                 this.lastTradeDay[tk] = null;
+                this.peakHoldings[tk] = 0;
             }
             this.tradesCount = 0;
             this.tradeHistory = [];
@@ -253,6 +262,9 @@
             if (cost > this.cash) return 0;
             this.cash -= cost;
             this.holdings[ticker] += shares;
+            if (this.holdings[ticker] > this.peakHoldings[ticker]) {
+                this.peakHoldings[ticker] = this.holdings[ticker];
+            }
             this.tradesCount += 1;
             this.lastTradeDay[ticker] = day;
             this.tradeHistory.push({ day, ticker, action: 'buy', shares, price });
