@@ -66,8 +66,8 @@
             <h2>Attention 熱力矩陣（當前 head）</h2>
             <p class="hint">
                 行 = <b>Query 詞（我在問什麼）</b>；列 = <b>Key 詞（我看到誰）</b>。
-                每一格顏色深淺 = 這一列的詞投注多少注意力給對應行的詞。
-                <b>每一列加起來 = 1</b>（softmax 保證）。
+                每一格顏色深淺 = 這一行的 Query 詞投注多少注意力給對應列的 Key 詞。
+                <b>每一行加起來 = 1</b>（row-softmax 保證：一個詞的注意力預算總量固定，分配給誰是選擇）。
             </p>
             <canvas id="matrix" width="920" height="360"></canvas>
         </section>

@@ -16,11 +16,12 @@
             label: '🇹🇼「它」到底指誰？（中文代詞解析）',
             tokens: ['我', '今天', '買了', '一本', '書', '晚上', '開始', '讀', '它'],
             noteLines: [
-                '這是原論文示範的經典句型：<b>「我今天買了一本書，晚上開始讀它」</b>',
+                '典型的中文代詞指代例句：<b>「我今天買了一本書，晚上開始讀它」</b>（原論文用的是英文 "The animal didn\'t cross the street because it was too tired"，見 en-transformer-original preset）。',
                 '中間隔了 4 個詞才出現的「它」，人類一看就知道指「書」。',
                 '<b>RNN</b>：訊息一步一步傳，遠距離的「書 → 它」很容易忘掉。',
                 '<b>Attention</b>：「它」直接一步關注到「書」，距離不再是問題。',
                 '👆 點「它」看 Head 1「代詞解析」的箭頭精準指向「書」。',
+                '⚠️ 為了視覺清爽，token 陣列省略了逗號跟句號（真實 tokenizer 會保留）。',
             ],
             signals: {
                 0: [   // Head 1 代詞解析: pronoun → antecedent noun
@@ -82,9 +83,10 @@
             noteLines: [
                 '評論句：<b>「這家餐廳服務很差，但是菜真的好吃」</b>',
                 '模型要抓的是<b>「但是」</b>這個轉折——它切開情感兩半，讓「差」跟「好吃」不會混。',
-                '<b>Head 4</b>「時間/邏輯」抓「但是→差」跟「但是→好吃」都很強，這樣模型知道兩邊是對比的。',
+                '<b>Head 4</b>「邏輯關係」抓「但是→差」跟「但是→好吃」都很強，這樣模型知道兩邊是對比的。',
                 '<b>Head 8</b>「反向照應」讓「好吃」回頭看「菜」，「差」回頭看「服務」，情感歸屬正確。',
                 '👆 點「但是」看它同時關注兩個對立情感詞。',
+                '⚠️ token 陣列省略了原句的逗號（真實 tokenizer 保留）。',
             ],
             signals: {
                 0: [],
@@ -98,26 +100,42 @@
             },
         },
         {
-            id: 'analogy',
-            label: '➕ 向量運算：北京 - 中國 + 法國 = ?',
-            tokens: ['北京', '減', '中國', '加', '法國', '=', '?'],
+            id: 'en-transformer-original',
+            label: '📄 原論文示範例句：animal / street / it 的歧義',
+            tokens: ['The', 'animal', "didn't", 'cross', 'the', 'street', 'because', 'it', 'was', 'too', 'tired'],
             noteLines: [
-                '這不是純 attention 例子，是<b>詞嵌入 (Embedding)</b> 的示範。',
-                '每個詞被映射到 512 維向量空間。相似的詞在空間裡挨得近。',
-                '<b>北京 - 中國</b> = 一個向量，代表「首都」的概念差。',
-                '把這個向量<b>+ 法國</b>，就得到「法國的首都 = 巴黎」的位置。',
-                '這是 Transformer 底層的<b>Input Embedding</b> 在做的事——把文字變成能運算的向量。',
-                '「?」在這裡的 attention 會強烈指向「北京」跟「法國」——它在拼一個新向量。',
+                '<b>「Attention Is All You Need」原論文</b>展示 Transformer 注意力視覺化時用的經典句：<b>"The animal didn\'t cross the street because it was too tired."</b>',
+                '"it" 語法上可以指 <b>animal</b> 或 <b>street</b>——只有語意能區分（動物會累、街道不會）。',
+                'BERT / GPT 等真實模型都能學到 "it → animal"，但這個是<b>語意推理</b>不是純語法。',
+                '👆 點 "it" 看 Head 1「代詞解析」正確指向 animal 而非 street。',
+                '換 "tired" → "wide" 變成 "The animal didn\'t cross the street because it was too wide"，這時 it 應該指 street（街太寬）——這正是原論文 Figure 4 展示的多頭差異。',
             ],
             signals: {
-                0: [],
-                1: [],
-                2: [ { from: 6, to: 0, weight: 4.5 }, { from: 6, to: 4, weight: 4.5 }, { from: 6, to: 2, weight: 3.5 } ],
-                3: [],
+                0: [   // Head 1 代詞解析
+                    { from: 7, to: 1, weight: 6.0 },  // it → animal (semantic winner)
+                    { from: 7, to: 5, weight: 1.5 },  // it → street (weaker, semantic loser)
+                ],
+                1: [   // Head 2 主語追蹤
+                    { from: 8, to: 1, weight: 5.0 },  // was → animal
+                    { from: 3, to: 1, weight: 4.5 },  // cross → animal
+                ],
+                2: [   // Head 3 動作對象
+                    { from: 3, to: 5, weight: 5.0 },  // cross → street
+                ],
+                3: [   // Head 4 邏輯關係
+                    { from: 6, to: 3, weight: 4.0 },  // because → cross
+                    { from: 6, to: 9, weight: 3.5 },  // because → too
+                ],
                 4: [],
                 5: [],
-                6: [],
-                7: [ { from: 6, to: 0, weight: 4.0 } ],
+                6: [   // Head 7 修飾關係
+                    { from: 0, to: 1, weight: 4.5 },  // The → animal
+                    { from: 4, to: 5, weight: 4.5 },  // the → street
+                    { from: 9, to: 10, weight: 4.0 }, // too → tired
+                ],
+                7: [   // Head 8 (待改 hint)
+                    { from: 10, to: 1, weight: 3.5 },  // tired → animal (adj → noun it describes)
+                ],
             },
         },
         {
@@ -130,6 +148,7 @@
                 '<b>Head 1</b> 抓「但是→雖然」的邏輯配對，展現 Transformer 對長距離的優勢。',
                 '同時「短袖」跟「冷」是矛盾對比，「穿→短袖」是動作對象——多個 head 同時解讀。',
                 '👆 點「但是」看 Head 1 精準跨越 4 個詞指向「雖然」。',
+                '⚠️ 原句「雖然天氣很冷，但是我還是穿短袖出門」有一個逗號、一個句號，token 陣列為視覺清爽省略。真實 tokenizer 會保留標點作為獨立 token。',
             ],
             signals: {
                 0: [ { from: 4, to: 0, weight: 5.5 } ],   // 但是→雖然（遠距離！）
@@ -152,7 +171,7 @@
         { name: 'Head 5 · 相鄰依賴', hint: '看隔壁的詞（bigram）', style: 'bigram' },
         { name: 'Head 6 · 全局散播', hint: '注意力均勻分散全句', style: 'global' },
         { name: 'Head 7 · 修飾關係', hint: '形容詞/量詞跳到被修飾的詞', style: 'modifier' },
-        { name: 'Head 8 · 反向照應', hint: '被指涉的詞回頭看指涉者', style: 'backref' },
+        { name: 'Head 8 · 反向照應', hint: '罕見但真實：先行詞 / 主體回頭看指涉它的詞。BERT 雙向自注意力才有這種對稱', style: 'backref' },
     ];
 
     // ---------- Matrix builder ----------
