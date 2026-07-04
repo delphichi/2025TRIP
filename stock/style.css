@@ -128,6 +128,9 @@ body.sim-body {
     color: var(--primary-dark);
     margin-top: 2px;
 }
+.stat.wide { grid-column: span 2; }
+.stat.wide .val { font-size: 1em; font-family: ui-monospace, monospace; }
+.strategy-card .ticker-breakdown { align-items: flex-start; }
 
 /* Chart */
 .chart-panel canvas {

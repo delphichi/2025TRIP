@@ -19,13 +19,6 @@
         <section class="panel controls">
             <h2>參數設定</h2>
             <div class="ctrl-grid">
-                <label>股票類型
-                    <select id="cfg-ticker">
-                        <option value="SPY" selected>SPY（大盤 ETF）</option>
-                        <option value="QQQ">QQQ（科技股 ETF）</option>
-                        <option value="JPM">JPM（金融股）</option>
-                    </select>
-                </label>
                 <label>每策略交易者
                     <input type="number" id="cfg-per-strategy" min="1" max="30" value="6">
                 </label>
@@ -53,6 +46,7 @@
             </div>
             <p class="hint">
                 回測 2006–2025 的 SPY/QQQ/JPM 風格歷史數據（20 年 × 252 交易日 = 5040 天）。
+                <b>3 支同時交易</b>——每位交易者的現金共用池、可以分散配置在 3 支上。
                 <b>價值型</b>：週線 &lt; 20 週 MA 就買、&gt; MA×(1+X%) 才賣；
                 <b>定投</b>：每 30 天投入固定金額、永不賣；
                 <b>動能追隨</b>：每 5 天，本週量價齊漲加碼、齊跌減碼。
@@ -64,20 +58,21 @@
             <h2>今日市場</h2>
             <div class="stat-grid">
                 <div class="stat"><span class="lbl">天數</span><span class="val" id="stat-day">0</span></div>
-                <div class="stat"><span class="lbl">股價</span><span class="val" id="stat-price">—</span></div>
-                <div class="stat"><span class="lbl">20 週 MA</span><span class="val" id="stat-intrinsic">—</span></div>
-                <div class="stat"><span class="lbl">現價 vs MA</span><span class="val" id="stat-premium">—</span></div>
+                <div class="stat wide"><span class="lbl">3 支正規化（Day 0 = 100）</span><span class="val" id="stat-price">—</span></div>
+                <div class="stat wide"><span class="lbl">20 週 MA</span><span class="val" id="stat-intrinsic">—</span></div>
+                <div class="stat wide"><span class="lbl">現價 vs MA</span><span class="val" id="stat-premium">—</span></div>
                 <div class="stat"><span class="lbl">今日策略交易</span><span class="val" id="stat-volume">—</span></div>
                 <div class="stat"><span class="lbl">領先策略</span><span class="val" id="stat-winner">—</span></div>
             </div>
         </section>
 
         <section class="panel chart-panel">
-            <h2>股價 vs 20 週 MA</h2>
+            <h2>3 支正規化走勢（Day 0 = 100）</h2>
             <div class="legend">
-                <span class="lg-price">— 股價（歷史）</span>
-                <span class="lg-intrinsic">— 20 週 MA</span>
-                <span class="lg-vol">▓ 歷史成交量</span>
+                <span style="color:#2563eb">— SPY 大盤</span>
+                <span style="color:#f59e0b">— QQQ 科技</span>
+                <span style="color:#dc2626">— JPM 金融</span>
+                <span style="color:#94a3b8">┈ 100 基準線</span>
             </div>
             <canvas id="price-chart" width="900" height="280"></canvas>
         </section>
