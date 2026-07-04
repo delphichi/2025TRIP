@@ -149,7 +149,7 @@
             }
             const under = (ma - price) / ma;
             if (under >= 0.03 && t.cash > price) {
-                const perStockBudget = t.initialCash / 3;
+                const perStockBudget = t.totalCashInflow() / 3;
                 const aggr = clamp(0.20 + under * 3, 0.20, 0.60);
                 return { action: 'buy', dollars: Math.min(t.cash * 0.5, perStockBudget * aggr), reason: `MA 下方 ${pct(under, 0)}，逢低加碼` };
             }
@@ -162,7 +162,7 @@
                 return { action: 'hold', dollars: 0 };
             }
             // 每次投入平分到 3 支 → 每支 dcaPct/3 %
-            const amount = t.initialCash * (cfg.dcaPct || 5) / 100 / 3;
+            const amount = t.totalCashInflow() * (cfg.dcaPct || 5) / 100 / 3;
             if (t.cash >= amount) return { action: 'buy', dollars: amount, reason: '定期定額，無腦買' };
             return { action: 'hold', dollars: 0 };
         },
@@ -182,7 +182,7 @@
             const volHigher = thisWeekVol > lastWeekVol;
             const priceLower = thisWeekChg < lastWeekChg && thisWeekChg < 0;
             const volLower = thisWeekVol < lastWeekVol;
-            const perStockBudget = t.initialCash / 3;
+            const perStockBudget = t.totalCashInflow() / 3;
             if (priceHigher && volHigher && t.cash > price) {
                 return { action: 'buy', dollars: Math.min(t.cash * 0.3, perStockBudget * 0.15), reason: `本週量價齊漲 (${pct(thisWeekChg, 0)})，追高` };
             }
@@ -198,7 +198,7 @@
             const price = stock.priceAt(day);
             const ma3 = mean(stock.priceHistory.slice(day - 3, day));
             const spike = (price - ma3) / ma3;
-            const perStockBudget = t.initialCash / 3;
+            const perStockBudget = t.totalCashInflow() / 3;
             if (spike > 0.03 && t.holdings[ticker] > 0) {
                 return { action: 'sell', dollars: t.holdings[ticker] * price * clamp(spike * 5, 0.1, 0.4), reason: `3 日急漲 ${pct(spike, 0)}，反手賣` };
             }
@@ -250,7 +250,11 @@
             this.tradesCount = 0;
             this.totalFees = 0;
             this.tradeHistory = [];
+            this.injectedCash = 0;   // 累計月薪注入
         }
+
+        // 「總投入」= 初始 + 累計月薪注入。所有 per-ticker 預算跟 returnPct 都以此為基準
+        totalCashInflow() { return this.initialCash + this.injectedCash; }
 
         decide(day, ticker, stock, cfg) {
             return STRATEGIES[this.strategy](this, day, ticker, stock, cfg);
@@ -296,8 +300,10 @@
             return v;
         }
         portfolioValue(prices) { return this.cash + this.totalShareValue(prices); }
+        // 報酬 = (現在資產 - 總投入) / 總投入。有薪水注入時分母跟著長，才是公平比較
         returnPct(prices) {
-            return (this.portfolioValue(prices) - this.initialCash) / this.initialCash;
+            const invested = this.totalCashInflow();
+            return (this.portfolioValue(prices) - invested) / invested;
         }
     }
 
@@ -374,6 +380,14 @@
             if (this.day > this.endDay) {
                 this.day = this.endDay;
                 return null;
+            }
+            // 每 30 天發薪水（day 相對 startDay 對齊）
+            const income = this.cfg.monthlyIncome || 0;
+            if (income > 0 && (this.day - this.startDay) > 0 && (this.day - this.startDay) % 30 === 0) {
+                for (const t of this.traders) {
+                    t.cash += income;
+                    t.injectedCash += income;
+                }
             }
             const prices = {}, mas = {}, marketVolumes = {};
             for (const tk of STOCK_ORDER) {
@@ -790,7 +804,8 @@
         if (endYear < startYear) endYear = startYear;
         const startDay = (startYear - 2006) * 252;
         const endDay = Math.min((endYear - 2006 + 1) * 252 - 1, 20 * 252 - 1);
-        return { perStrategy, initialCash, valueSellPct, dcaPct, feePct, speed, startYear, endYear, startDay, endDay };
+        const monthlyIncome = clamp(parseFloat($('cfg-monthly-income')?.value) || 0, 0, 100000);
+        return { perStrategy, initialCash, valueSellPct, dcaPct, feePct, speed, startYear, endYear, startDay, endDay, monthlyIncome };
     }
 
     // Day → 年/月 顯示（以 2006-01-01 為 Day 0，252 交易日/年 ≈ 21 交易日/月）
@@ -865,6 +880,7 @@
             const avgCash = mean(list.map(t => t.cash));
             const avgTrades = mean(list.map(t => t.tradesCount));
             const avgFees = mean(list.map(t => t.totalFees));
+            const avgInjected = mean(list.map(t => t.injectedCash));
             const retClass = stats.avgReturn > 0.005 ? 'up' : stats.avgReturn < -0.005 ? 'down' : '';
             const tickerBreakdown = STOCK_ORDER.map(tk => {
                 const held = mean(list.map(t => t.holdings[tk]));
@@ -880,6 +896,7 @@
                 <div class="row"><span>持股比例</span><span class="v">${pct(stats.equityPct, 0)}</span></div>
                 <div class="row"><span>累計交易次數</span><span class="v">${fmt(avgTrades, 0)}</span></div>
                 <div class="row"><span>累計手續費</span><span class="v" style="color:var(--down)">${fmt(avgFees, 0)}</span></div>
+                ${avgInjected > 0 ? `<div class="row"><span>累計薪水注入</span><span class="v" style="color:var(--strat-dca)">+${fmt(avgInjected, 0)}</span></div>` : ''}
                 <div class="row ticker-breakdown"><span>3 支配置</span><span class="v" style="font-size:.78em;text-align:right;line-height:1.3">${tickerBreakdown}</span></div>
             `;
             grid.appendChild(div);
