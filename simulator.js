@@ -964,7 +964,9 @@
                     const displayInv = open
                         ? Math.max(0, open.baked - (soldByBakery[i] || 0))
                         : p.inventory;
-                    this._drawBakery(pos.x, pos.y, displayPrice, displayInv, i + 1, p.closed);
+                    // 從 label 「#1 高本低利」抽出 4 字招牌名（沒 label 就 undefined）
+                    const shopName = p.label ? p.label.replace(/^#\d+\s*/, '').slice(0, 4) : null;
+                    this._drawBakery(pos.x, pos.y, displayPrice, displayInv, i + 1, p.closed, shopName, p.inPromo && p.inPromo());
                 });
                 this.market.consumers.forEach((c, i) => {
                     const pos = this._houseRow(i);
@@ -1021,7 +1023,7 @@
             }
         }
 
-        _drawBakery(cx, y, price, inventory, num, closed) {
+        _drawBakery(cx, y, price, inventory, num, closed, shopName, inPromo) {
             const ctx = this.ctx;
             const bw = 56, bh = 44;
             const x = cx - bw / 2;
@@ -1084,7 +1086,41 @@
             ctx.font = 'bold 10px ui-monospace, monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`#${num} $${price.toFixed(1)}·${inventory}`, cx, y + 30);
+            const signText = shopName
+                ? `${shopName} $${price.toFixed(1)}`
+                : `#${num} $${price.toFixed(1)}·${inventory}`;
+            ctx.fillText(signText, cx, y + 30);
+
+            // 掛在牆上的小店名匾 —— 只有 preset 情境 (shopName) 才畫，讓「高本低利」這種店有辨識度
+            if (shopName) {
+                const plaqueY = y - 6;   // 屋頂下方一點
+                const plaqueW = 42, plaqueH = 11;
+                ctx.fillStyle = '#3d2817';
+                ctx.fillRect(cx - plaqueW / 2, plaqueY, plaqueW, plaqueH);
+                ctx.strokeStyle = '#f0c060';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(cx - plaqueW / 2, plaqueY, plaqueW, plaqueH);
+                ctx.fillStyle = '#f0c060';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(shopName, cx, plaqueY + plaqueH / 2 + 1);
+            }
+
+            // 生存特價中 → 招牌上方掛紅色 特價 布條
+            if (inPromo) {
+                const badgeW = 32, badgeH = 10;
+                const badgeY = y + 24 - badgeH - 1;
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(cx - badgeW / 2, badgeY, badgeW, badgeH);
+                ctx.strokeStyle = '#7c1d1d';
+                ctx.strokeRect(cx - badgeW / 2, badgeY, badgeW, badgeH);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('💥特價', cx, badgeY + badgeH / 2 + 0.5);
+            }
             // 麵包 stack on top of bakery（賣光就沒了）
             const stackY = y - 22;
             for (let i = 0; i < Math.min(inventory, 10); i++) {
