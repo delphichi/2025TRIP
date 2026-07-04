@@ -1478,9 +1478,10 @@
         for (const p of producers) {
             const rank = sortedByCost.indexOf(p.id);
             const color = costTierColor(rank, sortedByCost.length);
-            const finalCum = p.cumulative.length > 0 ? p.cumulative[p.cumulative.length - 1] : 0;
-            const cumStr = finalCum >= 0 ? `+${fmt(finalCum, 0)}` : fmt(finalCum, 0);
             const producer = market.producers[p.id];
+            // 用 Producer.cumulativeProfit 直接讀，Day 0 才會正確顯示種子資金 100
+            const finalCum = producer.cumulativeProfit;
+            const cumStr = finalCum >= 0 ? `+${fmt(finalCum, 0)}` : fmt(finalCum, 0);
             const closedTag = producer.closed
                 ? ` <b style="color:var(--max)">💀 倒於 Day ${producer.closedDay}</b>`
                 : '';
