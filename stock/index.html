@@ -87,17 +87,29 @@
                 K 線邊的三角形是<b>策略買（下三角在低點）/ 賣（上三角在高點）</b>，顏色對應策略。
             </p>
             <div class="ticker-charts">
-                <canvas id="chart-spy" class="ticker-chart" width="900" height="200"></canvas>
-                <canvas id="chart-qqq" class="ticker-chart" width="900" height="200"></canvas>
-                <canvas id="chart-jpm" class="ticker-chart" width="900" height="200"></canvas>
+                <div class="ticker-wrap">
+                    <canvas id="chart-spy" class="ticker-chart" width="900" height="200"></canvas>
+                    <div class="ticker-overlay" id="overlay-spy"></div>
+                </div>
+                <div class="ticker-wrap">
+                    <canvas id="chart-qqq" class="ticker-chart" width="900" height="200"></canvas>
+                    <div class="ticker-overlay" id="overlay-qqq"></div>
+                </div>
+                <div class="ticker-wrap">
+                    <canvas id="chart-jpm" class="ticker-chart" width="900" height="200"></canvas>
+                    <div class="ticker-overlay" id="overlay-jpm"></div>
+                </div>
             </div>
+            <p class="hint">
+                💭 交易發生的當下，該策略的思考泡泡會從成交點浮起——上方是<b>賣</b>、下方是<b>買</b>，
+                3 秒後淡出。看得到「Value 在崩盤時冒出綠泡泡逢低加碼」、「Noise 每天到處亂噴」這種戲。
+            </p>
         </section>
 
         <section class="panel bubble-panel">
-            <h2>💭 今日決策泡泡</h2>
+            <h2>📜 決策泡泡歷史（近 30 筆）</h2>
             <p class="hint">
-                每筆交易發生時，該策略會冒出一個泡泡：買 / 賣、股數、成交價、判定原因。
-                跟隔壁麵包模擬器的思考泡泡同一個 vibe。
+                圖上的泡泡會淡出，這裡是靜態歷史，方便對照。跟隔壁麵包模擬器的思考泡泡同一個 vibe。
             </p>
             <div class="bubble-stream" id="bubble-stream"></div>
         </section>

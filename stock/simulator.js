@@ -520,6 +520,9 @@
             const yAt = v => padT + priceH - ((v - ymin) / yr) * priceH;
             const barW = Math.max(1.5, (chartW / bars.length) * 0.7);
 
+            // 存下 transform 讓外部（overlay 泡泡）能從 (day, price) 換到 CSS 像素座標
+            this.tx = { firstDay, daysPerBar, barCount: bars.length, padL, chartW, padT, priceH, ymin, yr };
+
             // 網格 + Y 軸標籤
             ctx.strokeStyle = '#e5e7eb';
             ctx.fillStyle = '#94a3b8';
@@ -652,6 +655,17 @@
                 const idx = Math.round((bars.length - 1) * i / (xTicks - 1 || 1));
                 ctx.fillText(dayToYm(bars[idx].endDay), xAt(idx), padT + priceH + gap + volH + 3);
             }
+        }
+
+        // 把 (day, price) 轉成 canvas CSS 像素座標，overlay 泡泡定位用
+        pixelForDayPrice(day, price) {
+            if (!this.tx) return null;
+            const { firstDay, daysPerBar, barCount, padL, chartW, padT, priceH, ymin, yr } = this.tx;
+            const barIdx = Math.floor((day - firstDay) / daysPerBar);
+            if (barIdx < 0 || barIdx >= barCount) return null;
+            const x = padL + (barIdx + 0.5) / barCount * chartW;
+            const y = padT + priceH - ((price - ymin) / yr) * priceH;
+            return { x, y };
         }
     }
 
@@ -919,7 +933,41 @@
         const news = market.newsSchedule[rec.day];
         if (news) for (const n of news) pushNewsLog(rec.day, n.magnitude, `${n.ticker} · ${n.event}`);
         for (const tk of STOCK_ORDER) tickerCharts[tk] && tickerCharts[tk].render(market.dailyStats, market);
+        spawnOverlayBubbles(rec);
         strategyChart.render(market.dailyStats);
+    }
+
+    // 在 K 線圖上浮出今日交易泡泡：買在成交價下方冒上來，賣在上方冒
+    // 每策略×每 ticker×每動作只出 1 顆（避免同策略 6 個 trader 洗版）
+    function spawnOverlayBubbles(rec) {
+        const bubbles = rec.bubbles || [];
+        if (!bubbles.length) return;
+        const seen = new Set();
+        for (const b of bubbles) {
+            const key = `${b.strategy}-${b.ticker}-${b.action}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const chart = tickerCharts[b.ticker];
+            if (!chart) continue;
+            const overlay = $('overlay-' + b.ticker.toLowerCase());
+            if (!overlay) continue;
+            const pt = chart.pixelForDayPrice(rec.day, b.price);
+            if (!pt) continue;
+            const info = STRATEGY_INFO[b.strategy];
+            const el = document.createElement('div');
+            el.className = 'mini-bubble' + (b.action === 'buy' ? ' below' : '');
+            el.style.setProperty('--strat-color', info.color);
+            el.style.left = pt.x + 'px';
+            // 買泡泡放在低點下方（成交價 + 一點偏移），賣泡泡放在高點上方
+            el.style.top = (pt.y + (b.action === 'buy' ? 10 : -10)) + 'px';
+            const actLabel = b.action === 'buy' ? '買' : '賣';
+            const actCls = b.action === 'buy' ? 'act-buy' : 'act-sell';
+            el.innerHTML = `<span class="strat-tag">${info.label}</span><span class="${actCls}">${actLabel}</span> ${b.shares}股` +
+                (b.reason ? `<br><span style="color:var(--muted);font-size:.92em">${b.reason}</span>` : '');
+            overlay.appendChild(el);
+            // 3.2s 後（動畫結束）自動移除，避免 DOM 累積
+            setTimeout(() => el.remove(), 3200);
+        }
     }
 
     // 決策泡泡：對每天的 bubbles 抽樣（最多 3 條 / 天），塞進 stream；stream 只留 30 條
@@ -1031,6 +1079,10 @@
         strategyChart = new StrategyChart($('strategy-chart'));
         bubbleQueue = [];
         $('bubble-stream').innerHTML = '';
+        for (const tk of STOCK_ORDER) {
+            const ov = $('overlay-' + tk.toLowerCase());
+            if (ov) ov.innerHTML = '';
+        }
         // 塞一筆「起始日」進 dailyStats 讓正規化圖有起點（startDay 可能不是 0）
         const prices0 = {}, mas0 = {};
         const startDay = market.startDay;
