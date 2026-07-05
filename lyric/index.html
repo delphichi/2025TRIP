@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyric Generation Playback · AI 寫歌詞時 Attention 在做什麼</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#1f2937">
+</head>
+<body class="sim-body">
+
+    <header class="sim-header">
+        <h1>🎵 Lyric Playback</h1>
+        <p class="sim-subtitle">AI 寫下一個字時，Attention 到底看哪裡？——手工設計 playback，讓你看清 prompt 錨定的機制</p>
+    </header>
+
+    <main class="sim-main">
+
+        <section class="panel controls">
+            <h2>選擇生成情境</h2>
+            <div class="ctrl-grid">
+                <label>生成 preset
+                    <select id="cfg-preset"></select>
+                </label>
+                <label>速度
+                    <select id="cfg-speed">
+                        <option value="0.5">0.5×（慢，講解用）</option>
+                        <option value="1" selected>1×</option>
+                        <option value="2">2×（快）</option>
+                    </select>
+                </label>
+            </div>
+            <div class="btn-row">
+                <button id="btn-play">▶ 開始生成</button>
+                <button id="btn-pause" hidden>⏸ 暫停</button>
+                <button id="btn-resume" hidden>▶ 繼續</button>
+                <button id="btn-replay" hidden>↺ 重播</button>
+                <button id="btn-reset">↺ 清空</button>
+            </div>
+            <p class="hint">
+                跟隔壁的 <a href="../attention/index.html">🔍 Attention Sandbox</a> 是姊妹作。
+                Attention Sandbox 展示「AI 讀懂一句話」（分析模式）；這個展示「AI 寫下一個字」（生成模式）。
+                兩個模式共用「Q·K 匹配 + softmax」的底層機制，只是 Q 換成「下一個要生成的位置」。
+            </p>
+        </section>
+
+        <section class="panel scene-panel">
+            <h2>生成過程</h2>
+            <p class="hint">
+                <b class="prompt-tag">🔒 PROMPT</b> 永遠掛在上排——所有生成字都能 attention 回望它。
+                <b class="gen-tag">✨ GENERATED</b> 逐字長出來——當前字用金色高亮，箭頭代表它「往回看誰」。
+                粗線 = 注意力大、細線 = 小。
+            </p>
+            <div class="scene-wrap">
+                <canvas id="scene" width="920" height="360"></canvas>
+                <canvas id="scene-overlay" width="920" height="360"></canvas>
+            </div>
+            <div class="reason-box" id="reason-box">
+                <div class="reason-label">💡 為什麼是這個字？</div>
+                <div class="reason-text" id="reason-text">按「▶ 開始生成」看 AI 逐字寫作</div>
+            </div>
+        </section>
+
+        <section class="panel log-panel">
+            <h2>教學筆記</h2>
+            <div class="log" id="log"></div>
+        </section>
+
+        <footer class="sim-footer">
+            <p>模型：<strong>手工設計的 attention playback</strong>（非真實 LLM）。
+            目的是讓你「看懂」AI 寫作時的機制，不是「跑真的」。</p>
+            <p><a href="../index.html">← 回家族旅遊 PWA</a> · <a href="../attention/index.html">🔍 Attention Sandbox（分析模式）</a></p>
+        </footer>
+
+    </main>
+
+    <script src="simulator.js"></script>
+</body>
+</html>
