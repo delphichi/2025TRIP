@@ -235,6 +235,33 @@ body.sim-body {
 .log-empty { color: var(--muted); font-style: italic; }
 .log .tag-good { color: var(--success); font-weight: 600; }
 .log .tag-bad { color: var(--danger); font-weight: 600; }
+.log .log-delta {
+    color: var(--muted);
+    font-size: .82em;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    border-left: 2px solid #d1d5db;
+    padding-left: 8px;
+    margin: 3px 0 5px !important;
+}
+.log .log-delta b { color: var(--primary-dark); }
+
+.gameover-body h3 {
+    color: var(--primary-dark);
+    font-size: 1em;
+    margin: 12px 0 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed #d1d5db;
+}
+.gameover-body .analysis-sub {
+    color: var(--muted);
+    font-size: .88em;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    display: block;
+    padding-left: 4px;
+    margin-top: 2px;
+}
+.gameover-body .tag-good { color: var(--success); font-weight: 700; }
+.gameover-body .tag-bad { color: var(--danger); font-weight: 700; }
 
 /* charts */
 .chart-block {

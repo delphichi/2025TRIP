@@ -24,7 +24,16 @@
                 消費者根據自己的錢包、飢餓、心理錨、鄰居八卦來挑店買。
                 <br>
                 <b>贏的條件</b>：撐 <b>30 天</b>不倒（本金 &lt; 0 就 game over）。
-                你能看到隔壁的<b>招牌價</b>但看不到他們的<b>成本 / 庫存</b>——就跟真實開店一樣。
+            </p>
+            <p class="hint">
+                <b>你看得到什麼：</b>對手的<b>招牌價</b>、他們的<b>粗略檔次</b>（「中高本 / 中低本」是產業直覺——
+                你能感覺出對方是連鎖店還是家庭作坊，但<b>精確成本、庫存、本金看不到</b>）。
+                對手<b>降價你只看到價格</b>，看不到他們是策略降價還是清倉求生——就跟真實開店一樣，只能自己推理。
+            </p>
+            <p class="hint">
+                <b>消費者有分層：</b>不是所有人都只挑最便宜的。40 個消費者每個都有自己的<b>期望價</b>（$31~$50），
+                他們會偏好「離期望價最近」的店——高期望消費者會固定光顧貴一點的店，budget 消費者去便宜的。
+                所以<b>精品店有生存空間</b>，前提是你的價格對得上高期望客群、而且能讓他們找到你（訪客成交率）。
             </p>
         </section>
 
@@ -66,7 +75,8 @@
                         <div class="shop-name">🥐 我的麵包店</div>
                         <div class="shop-stat">成本 <b id="mine-cost">$25</b> · 產能 <b id="mine-cap">25</b></div>
                         <div class="shop-stat">本金 <b id="mine-cash">$100</b></div>
-                        <div class="shop-stat">昨日：烤 <b id="mine-baked">—</b>，賣 <b id="mine-sold">—</b>，剩 <b id="mine-wasted">—</b></div>
+                        <div class="shop-stat">昨日：訪客 <b id="mine-visits">—</b>、烤 <b id="mine-baked">—</b>，賣 <b id="mine-sold">—</b>，剩 <b id="mine-wasted">—</b></div>
+                        <div class="shop-stat">訪客成交率 <b id="mine-conv">—</b>（進門的人買了多少）</div>
                         <div class="shop-stat">昨日淨利 <b id="mine-profit">—</b></div>
                     </div>
                 </div>
