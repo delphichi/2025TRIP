@@ -656,13 +656,14 @@
             const isPlayer = producer.id === 0;
 
             // Cost tier: <22 = 陋店、22-30 = 中檔、>=30 = 精品
+            // 精品店身色改成深奶油（原本 #fef3c7 跟天空背景撞色，變隱形）
             let bodyColor, roofColor, awningColor, ornate;
             if (cost < 22) {
                 bodyColor = '#a8825a'; roofColor = '#7c5c3b'; awningColor = null; ornate = false;
             } else if (cost < 30) {
                 bodyColor = '#e0c9a6'; roofColor = '#8b5e3c'; awningColor = '#c53030'; ornate = false;
             } else {
-                bodyColor = '#fef3c7'; roofColor = '#b45309'; awningColor = '#7c2d12'; ornate = true;
+                bodyColor = '#f4a460'; roofColor = '#7c2d12'; awningColor = '#78350f'; ornate = true;
             }
 
             // 屋頂三角
@@ -677,9 +678,17 @@
             // 主體
             ctx.fillStyle = bodyColor;
             ctx.fillRect(b.x, b.y + 8, b.w, b.h - 8);
-            ctx.strokeStyle = '#78350f';
-            ctx.lineWidth = isPlayer ? 3 : 1;
+            ctx.strokeStyle = isPlayer ? '#f97316' : '#4b2e10';
+            ctx.lineWidth = isPlayer ? 4 : 2;
             ctx.strokeRect(b.x, b.y + 8, b.w, b.h - 8);
+            // 玩家店額外「你在這」箭頭
+            if (isPlayer) {
+                ctx.font = '18px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = '#f97316';
+                ctx.fillText('▼', b.x + b.w / 2, b.y + 4);
+            }
 
             // 遮陽篷（中/高檔才有）
             if (awningColor) {
@@ -774,11 +783,26 @@
 
         _drawStaticBackground() {
             const { ctx, w, h } = this;
-            // 天空 & 地面
-            ctx.fillStyle = 'transparent';
             ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = '#c4b598';
+            // 明確畫天空（藍白漸層），不再靠 CSS 背景色——canvas 自己主導
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.94);
+            skyGrad.addColorStop(0, '#bae6fd');
+            skyGrad.addColorStop(0.6, '#e0f2fe');
+            skyGrad.addColorStop(1, '#fef3c7');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, h * 0.94);
+            // 地面
+            ctx.fillStyle = '#a8825a';
             ctx.fillRect(0, h * 0.94, w, h * 0.06);
+            // 街道虛線
+            ctx.strokeStyle = '#fef3c7';
+            ctx.setLineDash([8, 6]);
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, h * 0.97);
+            ctx.lineTo(w, h * 0.97);
+            ctx.stroke();
+            ctx.setLineDash([]);
             // 5 shops
             if (this.market) {
                 for (const p of this.market.producers) this._drawShop(p);
@@ -1468,13 +1492,16 @@
         $('decision-panel').hidden = true;
         $('scene-summary').hidden = true;
         $('scene-day-label').textContent = `Day ${rec.day}`;
-        // 捲到 scene panel：原本它排在頁面最上方，玩家往下捲到 game panel /
-        // charts 之後按 confirm，動畫在螢幕上方跑，玩家的視窗完全看不到
         $('scene-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         scene.setMarket(market);
-        // ms 已於 startGame 時鎖定，這裡不再讀 input
-        scene.animateDay(rec.day, rec.sceneEvents, showDaySummary);
+        // 延遲 2 幀讓 scene panel 完成 layout（canvas.clientWidth 讀對）+ scroll 動畫穩定
+        // 直接呼叫 animateDay 可能讓 _resize() 讀到 hidden 狀態下的 0，導致畫布 0×0
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                scene.animateDay(rec.day, rec.sceneEvents, showDaySummary);
+            });
+        });
     }
 
     function showDaySummary() {

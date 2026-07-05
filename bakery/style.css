@@ -205,6 +205,9 @@ body.sim-body {
     display: block;
     width: 100%;
     height: auto;
+    aspect-ratio: 920 / 360;
+    min-height: 300px;   /* 防止 aspect-ratio 在窄螢幕下算出過小的高度 */
+    background: #e0f2fe;  /* 若 JS 還沒繪製，至少看得到藍色天空區塊，知道畫布在 */
 }
 .scene-summary {
     display: flex;
