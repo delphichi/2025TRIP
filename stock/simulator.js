@@ -131,7 +131,8 @@
             const ma = stock.weeklyMA(day, 20);
             if (ma === null) return { action: 'hold', dollars: 0 };
             const sellPct = (cfg.valueSellPct || 5) / 100;
-            // 賣：不受 cooldown 限制，但保留 peak × 20% 底倉
+            // 賣：訊號一到就執行（不受 cooldown 限制），但保留 peak × 20% 底倉。
+            // 執行後仍會寫 lastTradeDay → 接下來 20 天不能買回，避免當沖行為。
             if (price > ma * (1 + sellPct) && t.holdings[ticker] > 0) {
                 const minKeep = Math.ceil(t.peakHoldings[ticker] * 0.20);
                 const canSell = Math.max(0, t.holdings[ticker] - minKeep);
@@ -213,7 +214,7 @@
             const price = stock.priceAt(day);
             const r = Math.random();
             if (r < 0.22 && t.cash > price) {
-                return { action: 'buy', dollars: Math.min(t.cash * 0.15, t.initialCash / 3 * rand(0.05, 0.15)), reason: '擲骰子，買' };
+                return { action: 'buy', dollars: Math.min(t.cash * 0.15, t.totalCashInflow() / 3 * rand(0.05, 0.15)), reason: '擲骰子，買' };
             }
             if (r > 0.78 && t.holdings[ticker] > 0) {
                 return { action: 'sell', dollars: t.holdings[ticker] * price * rand(0.05, 0.15), reason: '擲骰子，賣' };
@@ -277,6 +278,7 @@
             this.totalFees += fee;
             this.lastTradeDay[ticker] = day;
             this.tradeHistory.push({ day, ticker, action: 'buy', shares, price, fee, reason });
+            if (this.tradeHistory.length > 300) this.tradeHistory.splice(0, this.tradeHistory.length - 300);
             return shares;
         }
 
@@ -291,6 +293,7 @@
             this.totalFees += fee;
             this.lastTradeDay[ticker] = day;
             this.tradeHistory.push({ day, ticker, action: 'sell', shares, price, fee, reason });
+            if (this.tradeHistory.length > 300) this.tradeHistory.splice(0, this.tradeHistory.length - 300);
             return shares;
         }
 
@@ -968,13 +971,15 @@
 
     // 每張 K 線右邊 5 格 pod（一策略一格），新交易 → flash + 更新內容
     // 換日就全部清空，避免看起來像「天天在買」——只有當天真的下單的格才亮
+    // 6 個 trader 同策略同一天同一動作會聚合成一格：「N 人 共 X 股 均 $Y」
+    // （對得上 K 線圖上疊起來的 N 個三角形）
     function updateStrategyPods(rec) {
         // Step 1: 全部 15 格重置成 idle（保留 label，內容變「觀望中」）
         for (const tk of STOCK_ORDER) {
             const pod = $('pod-' + tk.toLowerCase());
             if (!pod) continue;
             for (const slot of pod.querySelectorAll('.pod-slot')) {
-                if (!slot.classList.contains('has-trade')) continue;   // 本來就 idle 的不用動
+                if (!slot.classList.contains('has-trade')) continue;
                 const s = slot.dataset.strat;
                 const info = STRATEGY_INFO[s];
                 slot.innerHTML = `<div class="pod-strat">${info.label}</div><div class="pod-idle">觀望中</div>`;
@@ -982,27 +987,46 @@
                 slot.classList.remove('active');
             }
         }
-        // Step 2: 今天有動作的格填內容 + flash
+        // Step 2: 聚合 by (ticker, strategy)：count uniq traders + sum shares + avg price
         const bubbles = rec.bubbles || [];
         if (!bubbles.length) return;
-        // group by (ticker, strategy) → 取最後一筆代表
-        const latest = {};
+        const agg = {};   // key: `${ticker}-${strategy}` → {traderIds:Set, buyShares, sellShares, priceSum, priceCount, sampleReason, dominantAction}
         for (const b of bubbles) {
-            latest[`${b.ticker}-${b.strategy}`] = b;
+            const key = `${b.ticker}-${b.strategy}`;
+            if (!agg[key]) agg[key] = {
+                ticker: b.ticker, strategy: b.strategy,
+                traderIds: new Set(),
+                buyShares: 0, sellShares: 0,
+                priceSum: 0, priceCount: 0,
+                reasons: {},
+            };
+            const g = agg[key];
+            g.traderIds.add(b.traderId);
+            if (b.action === 'buy') g.buyShares += b.shares; else g.sellShares += b.shares;
+            g.priceSum += b.price;
+            g.priceCount += 1;
+            if (b.reason) g.reasons[b.reason] = (g.reasons[b.reason] || 0) + 1;
         }
-        for (const key of Object.keys(latest)) {
-            const b = latest[key];
-            const slot = document.querySelector(`#pod-${b.ticker.toLowerCase()} .pod-slot[data-strat="${b.strategy}"]`);
+        for (const key of Object.keys(agg)) {
+            const g = agg[key];
+            const slot = document.querySelector(`#pod-${g.ticker.toLowerCase()} .pod-slot[data-strat="${g.strategy}"]`);
             if (!slot) continue;
-            const info = STRATEGY_INFO[b.strategy];
-            const actLabel = b.action === 'buy' ? '買' : '賣';
-            const actCls = b.action === 'buy' ? 'act-buy' : 'act-sell';
+            const info = STRATEGY_INFO[g.strategy];
+            const nTraders = g.traderIds.size;
+            const avgPrice = g.priceSum / g.priceCount;
+            // 決定動作方向：以股數多的為主
+            const isBuy = g.buyShares >= g.sellShares;
+            const shares = isBuy ? g.buyShares : g.sellShares;
+            const actLabel = isBuy ? '買' : '賣';
+            const actCls = isBuy ? 'act-buy' : 'act-sell';
+            const nPart = nTraders > 1 ? `${nTraders}人 ` : '';
+            // reason 取最常見的那個
+            const topReason = Object.keys(g.reasons).sort((a, b) => g.reasons[b] - g.reasons[a])[0] || '';
             slot.innerHTML =
                 `<div class="pod-strat">${info.label}</div>` +
-                `<div class="pod-act"><span class="${actCls}">${actLabel}</span> ${b.shares}股 @$${b.price.toFixed(1)}</div>` +
-                (b.reason ? `<div class="pod-reason">${b.reason}</div>` : '');
+                `<div class="pod-act"><span class="${actCls}">${actLabel}</span> ${nPart}共 ${shares}股 均 $${avgPrice.toFixed(1)}</div>` +
+                (topReason ? `<div class="pod-reason">${topReason}</div>` : '');
             slot.classList.add('has-trade');
-            // 重啟 flash 動畫
             void slot.offsetWidth;
             slot.classList.add('active');
         }
@@ -1032,7 +1056,8 @@
         if (!stream) return;
         const b = rec.bubbles || [];
         if (!b.length) return;
-        // 每策略最多 1 條 / 天，避免同策略 6 個 trader 洗版
+        // 每（策略×股票×動作）最多 1 條 / 天，取前 3 條進 stream
+        // 這樣 Value 同一天在 SPY 買、JPM 賣 會同時出現，比純「每策略 1 條」資訊多
         const seenStrat = new Set();
         const pick = [];
         for (const bb of b) {

@@ -9,6 +9,12 @@
     const pct = (n, d = 1) => (n === null || n === undefined || Number.isNaN(n)) ? '—' : (n * 100).toFixed(d) + '%';
     const $ = id => document.getElementById(id);
 
+    // 統一店名顯示：preset 情境剝掉「#N 」prefix 只留「高本低利」；
+    // 隨機情境用「店 N」（比 Bakery N 更本土化，一眼看得懂）
+    const shopName = (p, i) => p.label
+        ? p.label.replace(/^#\d+\s*/, '')
+        : `店 ${i + 1}`;
+
     // Beasley-Springer 標準常態反 CDF 逼近，用於 newsvendor 的 z-score
     function normalInvCdf(p) {
         if (p <= 0) return -Infinity;
@@ -66,6 +72,10 @@
             this.pricesSeenToday = [];
             this.fatigue = 0;       // 連續 sticker shock 天數
             this.strikingDays = 0;  // 剩餘罷買天數
+            // 記憶：昨天各家報價（pid → price），跟「昨天最便宜的那家」的 pid
+            // 用來影響今天選店 —— 30% 機率先去回訪昨天最便宜的
+            this.priceMemoryToday = {};
+            this.cheapestPidYesterday = null;
         }
 
         // 第 (bought+1) 個麵包的邊際效用倍率，u(k) = exp(-α · k)
@@ -75,6 +85,8 @@
 
         // agent 決策 —— 資訊不完全，只看見自己內部狀態 + 這一家報價 + 市場恐慌程度
         // panicMult: 缺貨恐慌倍率，1 = 平靜，> 1 = 恐慌（放大 WTP 和心理閾值）
+        // 回傳 { ok: bool, reason: 'buy'|'budget'|'wtp_marginal'|'psych_price' }
+        // 供 event stream 用；ok 是行為結果，reason 是可讀原因（動畫/互動能顯示）
         decide(price, producerId, trace, panicMult = 1) {
             const log = (tag, msg) => { if (trace) trace.push({ tag, msg }); };
             const mu = this.marginalUtility();
@@ -83,13 +95,13 @@
 
             if (price > this.budget) {
                 log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：預算 ${fmt(this.budget,1)} 不夠`);
-                return false;
+                return { ok: false, reason: 'budget' };
             }
             // 邊際上限：maxWtp × MU × 恐慌（缺貨時願付上限被推高）
             const marginalWtp = this.maxWtp * mu * panicMult;
             if (price > marginalWtp) {
                 log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：> 邊際 WTP ${fmt(marginalWtp,1)}（MU ${muPct}${panicNote}）`);
-                return false;
+                return { ok: false, reason: 'wtp_marginal' };
             }
 
             let cap = this.expected * this.confidence * mu * panicMult;
@@ -108,10 +120,10 @@
 
             if (price <= threshold) {
                 log('buy', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定買（第 ${this.bought+1} 個）`);
-                return true;
+                return { ok: true, reason: 'buy' };
             }
             log('skip', `Bakery ${producerId+1} @ ${fmt(price)}：${detail}，判定過貴`);
-            return false;
+            return { ok: false, reason: 'psych_price' };
         }
 
         // 傳回這次購買帶來的效用（給 market 用來算真實 CS）
@@ -163,12 +175,29 @@
             }
             this.pricesSeenToday = [];
 
+            // 從今天各家看到的報價，記下最便宜的 pid → 明天有 30% 機率回訪
+            const pids = Object.keys(this.priceMemoryToday);
+            if (pids.length > 0) {
+                let minP = Infinity, minPid = null;
+                for (const pid of pids) {
+                    if (this.priceMemoryToday[pid] < minP) {
+                        minP = this.priceMemoryToday[pid];
+                        minPid = Number(pid);
+                    }
+                }
+                this.cheapestPidYesterday = minPid;
+            }
+            this.priceMemoryToday = {};
+
             this.energy = clamp(this.energy - randInt(25, 45), 0, 100);
             this.budget = Math.min(this.budget + rand(10, 25), 300);
             this.bought = 0;
         }
 
-        observePrice(price) { this.pricesSeenToday.push(price); }
+        observePrice(price, pid) {
+            this.pricesSeenToday.push(price);
+            if (pid !== undefined) this.priceMemoryToday[pid] = price;
+        }
         isOnStrike() { return this.strikingDays > 0; }
         tickStrike() { if (this.strikingDays > 0) this.strikingDays -= 1; }
     }
@@ -195,14 +224,31 @@
             this.history = [];
             this.recentSales = [];   // 用來估 μ/σ 供 newsvendor 計算
             // 計劃產量：agent 現在能自己決定今天烤幾個，不再是總是烤滿
-            // 初始從產能上限起步，之後學著往 newsvendor 解收斂
-            this.plannedQuantity = this.capacity;
+            // 初始從產能一半起步，Day 1 不至於因為烤滿 + 賣不掉直接崩盤；
+            // 之後 newsvendor 學到「該烤幾個」再往上或往下收斂
+            this.plannedQuantity = Math.max(1, Math.ceil(this.capacity / 2));
             // 破產機制：從 100 的種子資金開始，累計淨利跌破 0 就倒店
             // 有 seed capital 避免 Day 1 過度生產就直接死亡，改成「慢慢被磨死」
             this.cumulativeProfit = 100;
             this.closed = false;
             this.closedDay = null;
+
+            // 「生存促銷」機制：本金 < 30 時觸發一次 5 天的 -25% 特價
+            // 目的是讓 Day 2 就倒的高成本店有機會用低價搶客回血
+            // 一店只能用一次（避免無限迴圈續命）
+            this.promoDaysLeft = 0;
+            this.promoMultiplier = 1.0;
+            this.hasUsedPromo = false;
         }
+
+        // 消費者實際看到的價 = 基準 price × 促銷折扣，但下限 = cost × 1.05
+        // （不允許促銷讓每筆交易變成虧本——真實世界的花車也不會低於成本）
+        effectivePrice() {
+            const raw = this.price * this.promoMultiplier;
+            const floor = this.cost * 1.05;
+            return Math.max(raw, floor);
+        }
+        inPromo() { return this.promoDaysLeft > 0; }
 
         bake() {
             // 已倒店：不烤、庫存 0，消費者到店會發現無貨自動略過
@@ -220,15 +266,16 @@
             this.visitsToday = 0;   // 訪客成交率的分母（不管有沒有買到都算）
         }
 
-        offer() { return this.inventory > 0 ? this.price : null; }
+        offer() { return this.inventory > 0 ? this.effectivePrice() : null; }
 
         sell() {
             if (this.inventory <= 0) return null;
+            const px = this.effectivePrice();   // 促銷期真的用打折後的價收錢
             this.inventory -= 1;
             this.soldToday += 1;
-            this.revenueToday += this.price;
-            this.totalSurplus += (this.price - this.cost);
-            return this.price;
+            this.revenueToday += px;
+            this.totalSurplus += (px - this.cost);
+            return px;
         }
 
         // Newsvendor 最優：Q* = μ + σ · Φ⁻¹((p-c)/p)，假設 s=0（隔夜作廢）
@@ -352,8 +399,30 @@
                 }
             }
 
+            // 生存促銷：本金 < 60 (提前觸發，不要等到快死才反應) 且沒用過
+            // → 5 天 -25% 特價 + 烤量降 40%（少廢品）
+            if (this.cumulativeProfit < 60 && this.promoDaysLeft === 0 && !this.hasUsedPromo) {
+                this.promoDaysLeft = 5;
+                this.promoMultiplier = 0.75;
+                this.hasUsedPromo = true;
+                // 促銷期烤量下修 40%，減少廢品風險（實際折扣後容量若低於 1 則 1）
+                this.plannedQuantity = Math.max(1, Math.floor(this.plannedQuantity * 0.6));
+                log('promo', `💥 生存特價啟動 −25%（本金剩 ${fmt(this.cumulativeProfit, 1)}），減烤 40% 節流`);
+            }
+            // 促銷 tick：每天扣一天，結束時恢復
+            if (this.promoDaysLeft > 0) {
+                this.promoDaysLeft -= 1;
+                if (this.promoDaysLeft === 0) {
+                    this.promoMultiplier = 1.0;
+                    log(this.cumulativeProfit > 0 ? 'flat' : 'drop',
+                        `⏰ 特價結束（本金 ${fmt(this.cumulativeProfit, 1)}），恢復正常價`);
+                }
+            }
+
             // 破產判定：本金（種子 100 + 累積淨利）花光就倒
-            if (this.cumulativeProfit < 0) {
+            // 促銷期給更大的深水區（-50，比原 -20 寬），讓促銷真的有機會翻身
+            const canPromoStayAlive = this.inPromo() && this.cumulativeProfit > -50;
+            if (this.cumulativeProfit < 0 && !canPromoStayAlive) {
                 this.closed = true;
                 this.closedDay = day;
                 log('drop', `💀 本金花光（${fmt(this.cumulativeProfit, 1)}），Day ${day} 倒店`);
@@ -419,7 +488,12 @@
                 ({ energy, expected, confidence, maxWtp, budget, dailyNeed, alpha }))(this.consumers[tracedC]) };
 
             const trades = [];
-            const sceneEvents = [];   // { round, cid, pid, price, bought }
+            // Event stream 每筆 event 的 shape：一筆 = 一次消費者拜訪一家店 + 決策
+            //   { round, cid, pid, price, bought, type: 'buy'|'reject', reason, byMemory }
+            // reason ∈ 'buy' | 'budget' | 'wtp_marginal' | 'psych_price'
+            // byMemory = true 代表這輪選店是靠「記得昨天最便宜」的偏好，false = 隨機
+            // CityScene 只需要 old fields (round/cid/pid/price/bought)；未來動畫/互動可用 type/reason/byMemory。
+            const sceneEvents = [];
             const shopOrder = shuffle(this.consumers.slice());
             const maxVisits = Math.max(3, Math.min(this.cfg.producers, 6));
             // 每日拒絕計數：連續被拒 3 次就放棄回家，避免尾段所有人擠去唯一有貨的貴店互相「太貴」
@@ -435,25 +509,46 @@
                     const open = this.producers.filter(p => p.inventory > 0);
                     if (open.length === 0) break;
                     // Howard Marks 缺貨恐慌：可買的店越少，消費者願付上限越高
-                    // openRatio > 0.5 → 平靜（panicMult = 1）
-                    // openRatio → 0 → 極端恐慌（1 + panicSensitivity × 1.0）
                     const openRatio = totalAlive > 0 ? open.length / totalAlive : 1;
                     const scarcity = Math.max(0, 0.5 - openRatio) * 2;
                     const panicMult = 1 + scarcity * (this.cfg.panicSensitivity || 0);
                     if (panicMult > peakPanic) peakPanic = panicMult;
-                    const p = open[randInt(0, open.length - 1)];
+
+                    // 選店策略：第一輪 & 記得便宜店 & 店還開著 → 30% 機率先去回訪；否則隨機
+                    // 這個 30% bias 就是 emergent 「客源競爭」的來源
+                    let p;
+                    let selectedByMemory = false;
+                    if (round === 0 && c.cheapestPidYesterday !== null && Math.random() < 0.30) {
+                        const memP = open.find(x => x.id === c.cheapestPidYesterday);
+                        if (memP) { p = memP; selectedByMemory = true; }
+                    }
+                    if (!p) p = open[randInt(0, open.length - 1)];
                     const price = p.offer();
                     if (price === null) continue;
+
                     const trace = (c.id === tracedC) ? consumerTrace : null;
                     const decided = c.decide(price, p.id, trace, panicMult);
-                    c.observePrice(price);   // 有沒有買到都記錄這家報價，供 sticker shock 判斷
-                    p.visitsToday = (p.visitsToday || 0) + 1;   // 訪客成交率的分母
-                    sceneEvents.push({ round, cid: c.id, pid: p.id, price, bought: decided });
-                    if (decided) {
+                    c.observePrice(price, p.id);   // 記錄報價 + pid（給明天的記憶用）
+                    p.visitsToday = (p.visitsToday || 0) + 1;
+
+                    // 一次事件包含所有資訊：old fields (round/cid/pid/price/bought) 讓 CityScene 繼續跑，
+                    // 新 fields (type/reason/byMemory) 給未來動畫層 + 互動 UI 用
+                    sceneEvents.push({
+                        round,
+                        cid: c.id,
+                        pid: p.id,
+                        price,
+                        bought: decided.ok,
+                        type: decided.ok ? 'buy' : 'reject',
+                        reason: decided.reason,
+                        byMemory: selectedByMemory,
+                    });
+
+                    if (decided.ok) {
                         p.sell();
                         const utility = c.buy(price);
                         trades.push({ price, cid: c.id, pid: p.id, utility });
-                        c.rejectionsToday = 0;   // 買到就重置耐心
+                        c.rejectionsToday = 0;
                     } else {
                         c.rejectionsToday += 1;
                     }
@@ -546,6 +641,8 @@
                 welfare: cs + ps,
                 minPrice: Math.min(...prices),
                 maxPrice: Math.max(...prices),
+                producerPrices: prices.slice(),   // 每家「明天要報的價」，Chart 個別線用
+                producerClosed: this.producers.map(p => p.closed),   // 倒店的線斷掉
                 deviation: volume > 0 ? (avgPrice - this.eqPrice) / this.eqPrice : null,
                 nvOverProd,
                 peakPanic,
@@ -665,9 +762,10 @@
                 ctx.fillRect(x, padT + chartH - bh, barW, bh);
             });
 
-            const drawLine = (accessor, color, wid = 2) => {
+            const drawLine = (accessor, color, wid = 2, dash = null) => {
                 ctx.strokeStyle = color;
                 ctx.lineWidth = wid;
+                if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
                 ctx.beginPath();
                 let started = false;
                 stats.forEach((s, i) => {
@@ -678,10 +776,28 @@
                     else ctx.lineTo(x, y);
                 });
                 ctx.stroke();
+                ctx.setLineDash([]);
             };
-            drawLine(s => s.maxPrice, '#c0392b', 1.5);
-            drawLine(s => s.minPrice, '#2874a6', 1.5);
-            drawLine(s => s.avgPrice || null, '#38761D', 2.5);
+
+            // 每家個別 producer 的價格走勢：細色線，看得出 Bakery 3 從 20 降到 8 這種故事
+            // 倒店那天之後不畫（accessor 回傳 null）
+            const producerCount = stats[0].producerPrices?.length || 0;
+            for (let pi = 0; pi < producerCount; pi++) {
+                // HSL 均分色相，讓 5-6 家有明顯不同顏色
+                const hue = (pi * 360 / producerCount) % 360;
+                const color = `hsla(${hue}, 65%, 45%, 0.55)`;
+                drawLine(s => {
+                    if (!s.producerPrices) return null;
+                    if (s.producerClosed && s.producerClosed[pi]) return null;   // 倒了斷線
+                    return s.producerPrices[pi];
+                }, color, 1.2);
+            }
+
+            // 疊在最上：整體均價（粗線）+ 供 chart 讀出收斂軌跡
+            drawLine(s => s.avgPrice || null, '#38761D', 2.8);
+            // Min/Max 保留當包絡線（很淡的灰虛線），輔助讀「今天的 spread」
+            drawLine(s => s.maxPrice, 'rgba(192,57,43,.28)', 1, [3, 3]);
+            drawLine(s => s.minPrice, 'rgba(40,116,166,.28)', 1, [3, 3]);
 
             ctx.fillStyle = '#888';
             ctx.textAlign = 'center';
@@ -854,7 +970,9 @@
                     const displayInv = open
                         ? Math.max(0, open.baked - (soldByBakery[i] || 0))
                         : p.inventory;
-                    this._drawBakery(pos.x, pos.y, displayPrice, displayInv, i + 1, p.closed);
+                    // 從 label 「#1 高本低利」抽出 4 字招牌名（沒 label 就 undefined）
+                    const shopName = p.label ? p.label.replace(/^#\d+\s*/, '').slice(0, 4) : null;
+                    this._drawBakery(pos.x, pos.y, displayPrice, displayInv, i + 1, p.closed, shopName, p.inPromo && p.inPromo());
                 });
                 this.market.consumers.forEach((c, i) => {
                     const pos = this._houseRow(i);
@@ -911,7 +1029,7 @@
             }
         }
 
-        _drawBakery(cx, y, price, inventory, num, closed) {
+        _drawBakery(cx, y, price, inventory, num, closed, shopName, inPromo) {
             const ctx = this.ctx;
             const bw = 56, bh = 44;
             const x = cx - bw / 2;
@@ -974,7 +1092,41 @@
             ctx.font = 'bold 10px ui-monospace, monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`#${num} $${price.toFixed(1)}·${inventory}`, cx, y + 30);
+            const signText = shopName
+                ? `${shopName} $${price.toFixed(1)}`
+                : `#${num} $${price.toFixed(1)}·${inventory}`;
+            ctx.fillText(signText, cx, y + 30);
+
+            // 掛在牆上的小店名匾 —— 只有 preset 情境 (shopName) 才畫，讓「高本低利」這種店有辨識度
+            if (shopName) {
+                const plaqueY = y - 6;   // 屋頂下方一點
+                const plaqueW = 42, plaqueH = 11;
+                ctx.fillStyle = '#3d2817';
+                ctx.fillRect(cx - plaqueW / 2, plaqueY, plaqueW, plaqueH);
+                ctx.strokeStyle = '#f0c060';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(cx - plaqueW / 2, plaqueY, plaqueW, plaqueH);
+                ctx.fillStyle = '#f0c060';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(shopName, cx, plaqueY + plaqueH / 2 + 1);
+            }
+
+            // 生存特價中 → 招牌上方掛紅色 特價 布條
+            if (inPromo) {
+                const badgeW = 32, badgeH = 10;
+                const badgeY = y + 24 - badgeH - 1;
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(cx - badgeW / 2, badgeY, badgeW, badgeH);
+                ctx.strokeStyle = '#7c1d1d';
+                ctx.strokeRect(cx - badgeW / 2, badgeY, badgeW, badgeH);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('💥特價', cx, badgeY + badgeH / 2 + 0.5);
+            }
             // 麵包 stack on top of bakery（賣光就沒了）
             const stackY = y - 22;
             for (let i = 0; i < Math.min(inventory, 10); i++) {
@@ -1437,20 +1589,28 @@
             if (p.closed) {
                 div.classList.add('closed');
                 div.innerHTML = `
-                    <div class="name">💀 ${p.label || 'Bakery ' + (i + 1)}</div>
+                    <div class="name">💀 ${shopName(p, i)}</div>
                     <div class="closed-tag">已倒店（Day ${p.closedDay}）</div>
                     <div class="row"><span>最後成本</span><span class="v">${fmt(p.cost)}</span></div>
                     <div class="row"><span>累計淨利</span><span class="v">${fmt(p.cumulativeProfit, 1)}</span></div>
                 `;
             } else {
+                const promoTag = p.inPromo()
+                    ? `<div class="promo-tag">💥 生存特價 −25%（剩 ${p.promoDaysLeft} 天）</div>`
+                    : '';
+                const priceRow = p.inPromo()
+                    ? `<div class="row"><span>報價</span><span class="v" style="color:var(--down)"><s style="color:#94a3b8">${fmt(p.price)}</s> → <b>${fmt(p.effectivePrice())}</b></span></div>`
+                    : `<div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>`;
                 div.innerHTML = `
-                    <div class="name">🏪 ${p.label || 'Bakery ' + (i + 1)}</div>
-                    <div class="row"><span>報價</span><span class="v">${fmt(p.price)}</span></div>
+                    <div class="name">🏪 ${shopName(p, i)}${p.inPromo() ? ' 💥' : ''}</div>
+                    ${promoTag}
+                    ${priceRow}
                     <div class="row"><span>成本</span><span class="v">${fmt(p.cost)}</span></div>
                     <div class="row"><span>產能 / 計劃烤</span><span class="v">${p.capacity} / ${p.plannedQuantity}</span></div>
                     <div class="row"><span>昨賣 / 剩</span><span class="v">${last ? last.sold + ' / ' + last.wasted : '—'}</span></div>
                     <div class="row"><span>Newsvendor Q*</span><span class="v">${nvQ === null ? '—' : fmt(nvQ, 1)}</span></div>
                 `;
+                if (p.inPromo()) div.classList.add('promo');
             }
             grid.appendChild(div);
         });
@@ -1465,7 +1625,7 @@
                 return cum;
             });
             const marginPct = p.price > 0 ? (p.price - p.cost) / p.price : 0;
-            const label = p.label || `Bakery ${i + 1}`;
+            const label = shopName(p, i);
             return { id: p.id, cost: p.cost, price: p.price, marginPct, cumulative, label };
         });
         // 用 initialCost 排序配色（綠→紅），避免通膨後 cost 亂跳讓顏色錯位
@@ -1509,7 +1669,7 @@
             if (p.closed) {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>💀 ${p.label || '#' + (i + 1)}</td>
+                    <td>💀 ${shopName(p, i)}</td>
                     <td colspan="7" style="text-align:left;color:var(--muted)">
                         已倒店（Day ${p.closedDay}）· 累計 ${fmt(p.cumulativeProfit, 1)}
                     </td>
@@ -1530,7 +1690,7 @@
             const wasteCls = last.wasted > 0 ? 'warn' : '';
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>🏪 ${p.label || '#' + (i + 1)}</td>
+                <td>🏪 ${shopName(p, i)}</td>
                 <td>${baked}</td>
                 <td>${last.sold}</td>
                 <td class="${wasteCls}">${last.wasted}</td>

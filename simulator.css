@@ -205,6 +205,25 @@ body.sim-body {
     font-weight: 700;
     margin-bottom: 4px;
 }
+.producer-card.promo {
+    border-left-color: #f59e0b;
+    background: linear-gradient(90deg, #fff7ed 0%, #ffffff 40%);
+    animation: promo-pulse 1.6s ease-in-out infinite;
+}
+.producer-card .promo-tag {
+    font-size: .78em;
+    color: #b45309;
+    font-weight: 700;
+    background: #fef3c7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    display: inline-block;
+}
+@keyframes promo-pulse {
+    0%, 100% { box-shadow: inset 4px 0 0 #f59e0b, 0 0 0 rgba(245,158,11,0); }
+    50%      { box-shadow: inset 4px 0 0 #f59e0b, 0 0 8px rgba(245,158,11,.35); }
+}
 
 /* Log */
 .log {
