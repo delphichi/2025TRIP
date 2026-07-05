@@ -866,9 +866,18 @@
             this.playing = true;
             this.paused = false;
             this._dayNumber = dayNumber;
-            // Fix C：用真實全部事件，不再抽樣（原本混池抽 7 個玩家店期望值只 0.5-1 個代表）
-            // 事件已在 stepOneDay 依 round + shopOrder 排好，直接播放就是真實一天流程
-            this.events = events.slice();
+            // Fix D：events 依 cid 分組（同一位客人的所有訪店連續播放）
+            // 這樣可以視覺化「這位客人被 A 拒絕 → 走去 B → 也不買 → 走去 C 買了」的
+            // 完整購物旅程。cid 順序打亂，避免總是從 consumer 0 開始
+            const byCid = new Map();
+            for (const e of events) {
+                if (!byCid.has(e.cid)) byCid.set(e.cid, []);
+                byCid.get(e.cid).push(e);
+            }
+            for (const [cid, list] of byCid) list.sort((a, b) => a.round - b.round);
+            const cids = shuffle(Array.from(byCid.keys()));
+            this.events = [];
+            for (const cid of cids) this.events.push(...byCid.get(cid));
             this.eventIdx = 0;
             this.phase = 0;
             this.phaseStartAt = 0;
@@ -1014,18 +1023,41 @@
             const isPremium = ev.consumerType === 'premium';
             let cx, cy, alpha = 1;
 
+            // 判斷前後 event 是否同一位客人（cid-grouped 排序後很常見）
+            const prevEv = this.events[this.eventIdx - 1];
+            const nextEv = this.events[this.eventIdx + 1];
+            const cameFromPrevShop = prevEv && prevEv.cid === ev.cid;
+            const goingToNextShop = nextEv && nextEv.cid === ev.cid;
+
             if (phase === 0) {
-                // 進門：從街道走向店門
-                cx = startX + (doorX - startX) * phaseT;
-                cy = startY + (doorY - startY) * phaseT - Math.sin(phaseT * Math.PI) * 10;
+                if (cameFromPrevShop) {
+                    // 從上一家店直接走過來（不從街道），沿店家高度走
+                    const prevSlot = this._slotOf(prevEv.pid);
+                    const prevBox = this._shopBox(prevSlot);
+                    const prevDoorX = prevBox.x + prevBox.w / 2;
+                    cx = prevDoorX + (doorX - prevDoorX) * phaseT;
+                    cy = doorY;
+                } else {
+                    // 全新客人：從街道走向店門，帶弧形跳躍
+                    cx = startX + (doorX - startX) * phaseT;
+                    cy = startY + (doorY - startY) * phaseT - Math.sin(phaseT * Math.PI) * 10;
+                }
             } else if (phase === 5) {
-                // 離開：反方向走，淡出
-                const exitX = doorX + (startX - doorX) * phaseT;
-                const exitY = doorY + (startY - doorY) * phaseT;
-                cx = exitX; cy = exitY;
-                alpha = 1 - phaseT;
+                if (goingToNextShop) {
+                    // 準備去下一家：沿店家高度水平走，不淡出
+                    const nextSlot = this._slotOf(nextEv.pid);
+                    const nextBox = this._shopBox(nextSlot);
+                    const nextDoorX = nextBox.x + nextBox.w / 2;
+                    cx = doorX + (nextDoorX - doorX) * phaseT;
+                    cy = doorY;
+                } else {
+                    // 真的離開：走向街道 + 淡出
+                    const exitX = doorX + (startX - doorX) * phaseT;
+                    const exitY = doorY + (startY - doorY) * phaseT;
+                    cx = exitX; cy = exitY;
+                    alpha = 1 - phaseT;
+                }
             } else {
-                // 詢價 / 答覆 / 評估 / 決策：站在店門口
                 cx = doorX;
                 cy = doorY;
             }
@@ -1048,8 +1080,15 @@
                 const expected = isPremium ? '嗯…我期望 $50 左右' : '嗯…$30 我心裡有數';
                 this._drawThoughtBubble(cx, cy - 24, expected, phaseT);
             } else if (phase === 4) {
-                // 決策：綠買 or 紅拒
-                const text = ev.bought ? `$${ev.price.toFixed(0)} ✓ 買！` : `$${ev.price.toFixed(0)} ✗ 太貴`;
+                // 決策：綠買 or 紅拒；若拒絕且下一家還會去，泡泡加「→ 去別家」
+                let text;
+                if (ev.bought) {
+                    text = `$${ev.price.toFixed(0)} ✓ 買！`;
+                } else if (goingToNextShop) {
+                    text = `$${ev.price.toFixed(0)} ✗ 太貴，去別家`;
+                } else {
+                    text = `$${ev.price.toFixed(0)} ✗ 太貴，回家`;
+                }
                 this._drawSpeechBubble(cx, cy - 24, text, ev.bought ? 'good' : 'bad', phaseT);
                 // 買了 → 手上多一個麵包 emoji
                 if (ev.bought && phaseT > 0.5) {
