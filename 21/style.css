@@ -368,6 +368,129 @@ body.sim-body {
 .stat-cell.reveal.hidden .stat-val { color: transparent; text-shadow: 0 0 8px rgba(180, 83, 9, 0.5); }
 .stat-cell.reveal.hidden .stat-val::before { content: '?'; color: #b45309; }
 
+/* 氣氛標籤（獨立可切換） */
+.stat-cell.reveal-edge { background: #ede9fe; border-color: #a78bfa; }
+.stat-cell.reveal-edge .stat-val { font-size: 1em; }
+.edge-mood.mood-good { color: #059669; font-weight: 800; }
+.edge-mood.mood-ok { color: #b45309; font-weight: 700; }
+.edge-mood.mood-neutral { color: #6b7280; font-weight: 600; }
+.edge-mood.mood-bad { color: #dc2626; font-weight: 800; }
+
+/* Phase 2：下注按鈕 */
+.bet-section {
+    background: #fef3c7;
+    border: 2px solid #fbbf24;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 14px 0;
+    animation: bet-in .4s ease-out;
+}
+@keyframes bet-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.bet-section h3 { color: var(--gold-dark); margin: 0 0 8px; font-size: 1.15em; }
+.hint-mini { font-family: ui-monospace, SFMono-Regular, monospace; font-size: .82em; color: var(--muted); }
+.bet-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+.bet-btn {
+    padding: 14px 8px;
+    border: 2px solid var(--felt-dark);
+    border-radius: 8px;
+    background: white;
+    color: var(--felt-dark);
+    font-size: 1.15em;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    transition: all .12s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+.bet-btn:hover {
+    background: var(--felt-dark);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,.15);
+}
+.bet-btn .bet-label {
+    font-size: .55em;
+    font-weight: 500;
+    font-family: sans-serif;
+    color: #9ca3af;
+}
+.bet-btn:hover .bet-label { color: rgba(255,255,255,.7); }
+
+/* Bet analysis (after clicking) */
+#bet-analysis {
+    background: #f0fdf4;
+    border: 2px solid #86efac;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    animation: bet-in .3s ease-out;
+}
+#bet-analysis.bet-perfect { background: #dcfce7; border-color: #22c55e; }
+#bet-analysis.bet-over { background: #fef3c7; border-color: #fbbf24; }
+#bet-analysis.bet-under { background: #dbeafe; border-color: #60a5fa; }
+#bet-analysis h4 {
+    margin: 0 0 8px;
+    font-size: 1.05em;
+    color: var(--felt-dark);
+}
+#bet-analysis .bet-details {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    background: white;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 6px 0;
+    line-height: 1.7;
+}
+#bet-analysis .bet-details .row { display: flex; justify-content: space-between; margin: 2px 0; }
+#bet-analysis .bet-msg {
+    font-size: .95em;
+    line-height: 1.5;
+    margin: 8px 0 0;
+}
+
+/* Session summary betting analysis — 突出「知道 vs 做到」核心指標 */
+.knowing-vs-doing {
+    background: linear-gradient(135deg, #fef3c7, #fef9c3);
+    border: 3px solid var(--gold-dark);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    box-shadow: 0 3px 10px rgba(180, 83, 9, .15);
+}
+.knowing-vs-doing h3 {
+    color: var(--gold-dark);
+    margin: 0 0 6px;
+    font-size: 1.15em;
+    border: none;
+    padding: 0;
+}
+.knowing-vs-doing .big-number {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 2em;
+    font-weight: 900;
+    color: var(--gold-dark);
+    text-align: center;
+    margin: 10px 0;
+}
+.knowing-vs-doing .big-number.high { color: var(--danger); }
+.knowing-vs-doing .big-number.low { color: var(--success); }
+.knowing-vs-doing .msg {
+    font-size: .95em;
+    line-height: 1.55;
+    color: var(--ink);
+}
+
 .sim-footer {
     text-align: center;
     color: var(--muted);
