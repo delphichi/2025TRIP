@@ -599,22 +599,31 @@
         constructor(canvas) {
             this.canvas = canvas;
             this.ctx = canvas.getContext('2d');
-            const dpr = window.devicePixelRatio || 1;
-            const w = canvas.clientWidth || canvas.width;
-            const h = canvas.clientHeight || canvas.height;
-            canvas.width = w * dpr;
-            canvas.height = h * dpr;
-            this.ctx.scale(dpr, dpr);
-            this.w = w;
-            this.h = h;
+            this._resize();
             this.speed = 1;
             this.rafId = null;
             this.market = null;
-            this.customers = [];   // 動畫中的客人
-            this.bubbles = [];     // 對話泡泡
+            this.events = [];       // 依序播放的事件佇列
+            this.eventIdx = 0;
+            this.phaseStartAt = 0;  // 目前這個客人的當前 phase 開始時間
+            this.phase = 0;         // 0=進門 1=詢價 2=答覆 3=評估 4=決策 5=離開
             this.playing = false;
             this.onFinish = null;
             this._t0 = 0;
+        }
+
+        // 每次 animateDay 前重新量 canvas（panel 從 hidden 變 visible 尺寸才對）
+        _resize() {
+            const canvas = this.canvas;
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.clientWidth || canvas.getAttribute('width') || 920;
+            const h = canvas.clientHeight || canvas.getAttribute('height') || 360;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+            this.ctx.scale(dpr, dpr);
+            this.w = +w;
+            this.h = +h;
         }
 
         setSpeed(s) { this.speed = s; }
@@ -775,50 +784,44 @@
             }
         }
 
-        // 從 sceneEvents 抽樣：每天可能 100+ 事件，取 12-20 個代表性的
-        // 保留：所有 buy（比 reject 精彩）+ 部分 reject
-        _sampleEvents(events, maxCount = 16) {
+        // 從 sceneEvents 抽 6-8 個代表性的（sequential mode 要慢慢演，不能太多）
+        // 混合 3 買 + 3 拒 + 2 熟客/premium 的例子
+        _sampleEvents(events, maxCount = 7) {
             const buys = events.filter(e => e.bought);
             const rejects = events.filter(e => !e.bought);
-            const nBuy = Math.min(buys.length, Math.ceil(maxCount * 0.6));
+            const nBuy = Math.min(buys.length, Math.ceil(maxCount * 0.55));
             const nRej = Math.min(rejects.length, maxCount - nBuy);
             const shuffleTake = (arr, n) => shuffle(arr.slice()).slice(0, n);
             const picked = [...shuffleTake(buys, nBuy), ...shuffleTake(rejects, nRej)];
-            // 依 round 排序，讓早出現的先跑
-            picked.sort((a, b) => (a.round - b.round) + Math.random() * 0.5);
+            // 交錯排列讓節奏有起伏，不會連 3 個買、連 3 個拒
+            picked.sort(() => Math.random() - 0.5);
             return picked;
         }
 
+        // 每個客人 5 個 phase，每個 phase 有明確視覺
+        // 0=進門走路 (0.9s)、1=詢價 (0.7s)、2=店員答覆 (0.7s)、3=評估 (0.7s)、4=決策 (1.0s)、5=離開淡出 (0.5s)
+        // 一個客人約 4.5 秒（1× 速度）、7 個客人 = 一天 ~32 秒
+        // 4× 快進 = 一天 ~8 秒（新手要看細節時用 1×、熟悉後用 4×）
+        _phaseDurations() {
+            return [900, 700, 700, 700, 1000, 500];
+        }
+
         animateDay(dayNumber, events, onFinish) {
+            this._resize();   // 重新量 canvas（panel 剛從 hidden 變 visible）
             this.onFinish = onFinish;
             this.playing = true;
-            this.customers = [];
-            this.bubbles = [];
-            this._t0 = performance.now();
             this._dayNumber = dayNumber;
-            const sampled = this._sampleEvents(events);
-            const durationMs = 3500;   // 一日約 3.5 秒
-            const step = durationMs / Math.max(1, sampled.length);
-            // 依序排入客人：每 step 毫秒生一個
-            sampled.forEach((ev, i) => {
-                this.customers.push({
-                    ev,
-                    spawnAt: i * step,
-                    startX: rand(30, this.w - 30),
-                    startY: this.h * 0.94,
-                    targetSlot: this._slotOf(ev.pid),
-                    state: 'pending',   // pending → walking → arrived → gone
-                });
-            });
-            this._endAt = durationMs + 1200;   // 動畫結束後留 1.2 秒欣賞
+            this.events = this._sampleEvents(events);
+            this.eventIdx = 0;
+            this.phase = 0;
+            this.phaseStartAt = 0;
+            this._t0 = performance.now();
             this._loop();
         }
 
         skip() {
             this.playing = false;
             if (this.rafId) cancelAnimationFrame(this.rafId);
-            this.customers = [];
-            this.bubbles = [];
             this._drawStaticBackground();
             if (this.onFinish) this.onFinish();
         }
@@ -827,112 +830,165 @@
             if (!this.playing) return;
             const now = performance.now();
             const t = (now - this._t0) * this.speed;
+
+            // 沒事件 → 結束
+            if (this.events.length === 0) {
+                this.playing = false;
+                if (this.onFinish) this.onFinish();
+                return;
+            }
+
             this._drawStaticBackground();
 
-            // 更新客人
-            for (const c of this.customers) {
-                if (c.state === 'gone') continue;
-                if (c.state === 'pending' && t >= c.spawnAt) {
-                    c.state = 'walking';
-                    c.walkStart = t;
-                }
-                if (c.state === 'walking') {
-                    const box = this._shopBox(c.targetSlot);
-                    const targetX = box.x + box.w / 2;
-                    const targetY = box.y + box.h - 20;
-                    const dt = (t - c.walkStart) / 900;   // walk 900ms scaled
-                    if (dt >= 1) {
-                        c.state = 'arrived';
-                        c.arriveAt = t;
-                        // 生成泡泡
-                        this.bubbles.push({
-                            x: targetX,
-                            y: box.y - 8,
-                            text: `$${c.ev.price.toFixed(0)} ${c.ev.bought ? '✓ 買！' : '✗ 太貴'}`,
-                            good: c.ev.bought,
-                            spawnAt: t,
-                            duration: 900,
-                            consumerType: c.ev.consumerType,
-                        });
-                        c.x = targetX;
-                        c.y = targetY;
-                    } else {
-                        c.x = c.startX + (targetX - c.startX) * dt;
-                        c.y = c.startY + (targetY - c.startY) * dt - Math.sin(dt * Math.PI) * 8;
-                    }
-                    this._drawConsumer(c);
-                } else if (c.state === 'arrived') {
-                    this._drawConsumer(c);
-                    if (t - c.arriveAt > 700) c.state = 'gone';
-                }
-            }
+            const ev = this.events[this.eventIdx];
+            const phaseDur = this._phaseDurations();
+            const phaseElapsed = t - this.phaseStartAt;
+            const phaseT = Math.min(1, phaseElapsed / phaseDur[this.phase]);
 
-            // 泡泡
-            this.bubbles = this.bubbles.filter(b => (t - b.spawnAt) < b.duration);
-            for (const b of this.bubbles) {
-                const age = (t - b.spawnAt) / b.duration;
-                this._drawBubble(b, age);
-            }
+            const slot = this._slotOf(ev.pid);
+            const box = this._shopBox(slot);
+            const doorX = box.x + box.w / 2;
+            const doorY = box.y + box.h - 15;
+            const startX = doorX < this.w / 2 ? 20 : this.w - 20;
+            const startY = this.h * 0.94;
 
-            // Day label
+            // 依 phase 畫客人 + 泡泡
+            this._renderCustomer(ev, this.phase, phaseT, startX, startY, doorX, doorY, box);
+
+            // Day label + 客人計數
             const ctx = this.ctx;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
             ctx.font = '700 14px sans-serif';
             ctx.fillStyle = '#78350f';
             ctx.fillText(`Day ${this._dayNumber}`, 12, 10);
+            ctx.font = '600 12px sans-serif';
+            ctx.fillStyle = '#6b7280';
+            ctx.fillText(`客人 ${this.eventIdx + 1} / ${this.events.length}`, 12, 30);
+            ctx.textAlign = 'right';
+            const phaseNames = ['進門', '詢價', '店員答覆', '評估', '決策', '離開'];
+            ctx.fillText(phaseNames[this.phase], this.w - 12, 30);
 
-            // 結束判定
-            if (t >= this._endAt) {
-                this.playing = false;
-                if (this.onFinish) this.onFinish();
-                return;
+            // Phase 結束 → 下一個 phase 或下一個客人
+            if (phaseElapsed >= phaseDur[this.phase]) {
+                this.phase += 1;
+                this.phaseStartAt = t;
+                if (this.phase >= phaseDur.length) {
+                    this.eventIdx += 1;
+                    this.phase = 0;
+                    if (this.eventIdx >= this.events.length) {
+                        this.playing = false;
+                        if (this.onFinish) this.onFinish();
+                        return;
+                    }
+                }
             }
+
             this.rafId = requestAnimationFrame(() => this._loop());
         }
 
-        _drawConsumer(c) {
+        _renderCustomer(ev, phase, phaseT, startX, startY, doorX, doorY, box) {
             const ctx = this.ctx;
-            const isPremium = c.ev.consumerType === 'premium';
-            // 身體 = 圓，顏色分型
+            const isPremium = ev.consumerType === 'premium';
+            let cx, cy, alpha = 1;
+
+            if (phase === 0) {
+                // 進門：從街道走向店門
+                cx = startX + (doorX - startX) * phaseT;
+                cy = startY + (doorY - startY) * phaseT - Math.sin(phaseT * Math.PI) * 10;
+            } else if (phase === 5) {
+                // 離開：反方向走，淡出
+                const exitX = doorX + (startX - doorX) * phaseT;
+                const exitY = doorY + (startY - doorY) * phaseT;
+                cx = exitX; cy = exitY;
+                alpha = 1 - phaseT;
+            } else {
+                // 詢價 / 答覆 / 評估 / 決策：站在店門口
+                cx = doorX;
+                cy = doorY;
+            }
+
+            // 畫客人
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            this._drawConsumerBody(cx, cy, isPremium);
+            ctx.restore();
+
+            // Phase-specific 泡泡
+            if (phase === 1) {
+                // 詢價：客人上方彈出「多少錢？」
+                this._drawSpeechBubble(cx, cy - 24, '多少錢？', 'ask', phaseT);
+            } else if (phase === 2) {
+                // 店員答覆：店的窗子上方彈出價格
+                this._drawSpeechBubble(box.x + box.w / 2, box.y - 10, `$${ev.price.toFixed(0)} / 個`, 'shop', phaseT);
+            } else if (phase === 3) {
+                // 評估：客人上方思考氣泡
+                const expected = isPremium ? '嗯…我期望 $50 左右' : '嗯…$30 我心裡有數';
+                this._drawThoughtBubble(cx, cy - 24, expected, phaseT);
+            } else if (phase === 4) {
+                // 決策：綠買 or 紅拒
+                const text = ev.bought ? `$${ev.price.toFixed(0)} ✓ 買！` : `$${ev.price.toFixed(0)} ✗ 太貴`;
+                this._drawSpeechBubble(cx, cy - 24, text, ev.bought ? 'good' : 'bad', phaseT);
+                // 買了 → 手上多一個麵包 emoji
+                if (ev.bought && phaseT > 0.5) {
+                    ctx.save();
+                    ctx.globalAlpha = (phaseT - 0.5) * 2;
+                    ctx.font = '16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🥐', cx + 12, cy);
+                    ctx.restore();
+                }
+            }
+        }
+
+        _drawConsumerBody(x, y, isPremium) {
+            const ctx = this.ctx;
+            // 身體：premium 金色 + 光暈、budget 藍色
+            if (isPremium) {
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
             ctx.fillStyle = isPremium ? '#f59e0b' : '#60a5fa';
             ctx.beginPath();
-            ctx.arc(c.x, c.y, 6, 0, Math.PI * 2);
+            ctx.arc(x, y, 7, 0, Math.PI * 2);
             ctx.fill();
-            if (isPremium) {
-                ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
+            ctx.strokeStyle = isPremium ? '#d97706' : '#2563eb';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
             // 頭
             ctx.fillStyle = '#78350f';
             ctx.beginPath();
-            ctx.arc(c.x, c.y - 9, 4, 0, Math.PI * 2);
+            ctx.arc(x, y - 11, 5, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        _drawBubble(b, age) {
+        _drawSpeechBubble(x, y, text, kind, phaseT) {
             const ctx = this.ctx;
-            // Pop-in animation
-            const scale = age < 0.15 ? age / 0.15 : (age > 0.85 ? (1 - age) / 0.15 : 1);
-            const alpha = age > 0.85 ? Math.max(0, (1 - age) / 0.15) : 1;
+            const scale = phaseT < 0.15 ? phaseT / 0.15 : 1;
+            const alpha = phaseT > 0.85 ? Math.max(0, (1 - phaseT) / 0.15) : 1;
+            const colors = {
+                ask:  { bg: 'rgba(255,255,255,0.98)', border: '#94a3b8', text: '#334155' },
+                shop: { bg: 'rgba(254, 243, 199, 0.98)', border: '#d97706', text: '#78350f' },
+                good: { bg: 'rgba(220, 252, 231, 0.98)', border: '#22c55e', text: '#166534' },
+                bad:  { bg: 'rgba(254, 226, 226, 0.98)', border: '#ef4444', text: '#991b1b' },
+            }[kind] || { bg: '#fff', border: '#666', text: '#111' };
             ctx.save();
             ctx.globalAlpha = alpha;
-            ctx.translate(b.x, b.y - 20 * age);
+            ctx.translate(x, y);
             ctx.scale(scale, scale);
-            // Box
             ctx.font = '700 13px sans-serif';
-            const padding = 6;
-            const textW = ctx.measureText(b.text).width;
+            const padding = 8;
+            const textW = ctx.measureText(text).width;
             const boxW = textW + padding * 2;
-            const boxH = 20;
-            ctx.fillStyle = b.good ? 'rgba(220, 252, 231, 0.95)' : 'rgba(254, 226, 226, 0.95)';
-            ctx.strokeStyle = b.good ? '#22c55e' : '#ef4444';
+            const boxH = 22;
+            const bx = -boxW / 2, by = -boxH - 6;
+            const r = 8;
+            ctx.fillStyle = colors.bg;
+            ctx.strokeStyle = colors.border;
             ctx.lineWidth = 2;
-            const bx = -boxW / 2;
-            const by = -boxH - 8;
-            // Rounded box
-            const r = 6;
             ctx.beginPath();
             ctx.moveTo(bx + r, by);
             ctx.lineTo(bx + boxW - r, by);
@@ -944,24 +1000,77 @@
             ctx.lineTo(bx, by + r);
             ctx.quadraticCurveTo(bx, by, bx + r, by);
             ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            // Tail
+            ctx.fill(); ctx.stroke();
+            // 尾巴
             ctx.beginPath();
-            ctx.moveTo(-4, by + boxH);
-            ctx.lineTo(0, by + boxH + 5);
-            ctx.lineTo(4, by + boxH);
+            ctx.moveTo(-5, by + boxH);
+            ctx.lineTo(0, by + boxH + 6);
+            ctx.lineTo(5, by + boxH);
             ctx.closePath();
-            ctx.fillStyle = b.good ? 'rgba(220, 252, 231, 0.95)' : 'rgba(254, 226, 226, 0.95)';
-            ctx.fill();
-            ctx.stroke();
-            // Text
-            ctx.fillStyle = b.good ? '#166534' : '#991b1b';
+            ctx.fillStyle = colors.bg;
+            ctx.fill(); ctx.stroke();
+            // 文字
+            ctx.fillStyle = colors.text;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(b.text, 0, by + boxH / 2);
+            ctx.fillText(text, 0, by + boxH / 2);
             ctx.restore();
         }
+
+        _drawThoughtBubble(x, y, text, phaseT) {
+            const ctx = this.ctx;
+            const scale = phaseT < 0.15 ? phaseT / 0.15 : 1;
+            const alpha = phaseT > 0.85 ? Math.max(0, (1 - phaseT) / 0.15) : 1;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            ctx.font = 'italic 12px sans-serif';
+            const padding = 8;
+            const textW = ctx.measureText(text).width;
+            const boxW = textW + padding * 2;
+            const boxH = 22;
+            const bx = -boxW / 2, by = -boxH - 6;
+            // 雲朵造型（多個圓）
+            ctx.fillStyle = 'rgba(224, 242, 254, 0.98)';
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 1.5;
+            const drawCloudBubble = () => {
+                ctx.beginPath();
+                ctx.arc(bx + 10, by + boxH / 2, 12, 0, Math.PI * 2);
+                ctx.arc(bx + boxW - 10, by + boxH / 2, 12, 0, Math.PI * 2);
+                ctx.rect(bx + 10, by, boxW - 20, boxH);
+                ctx.fill();
+                // stroke top-only 圓弧
+                ctx.beginPath();
+                ctx.arc(bx + 10, by + boxH / 2, 12, Math.PI, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(bx + boxW - 10, by + boxH / 2, 12, Math.PI, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(bx + 10, by);
+                ctx.lineTo(bx + boxW - 10, by);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(bx + 10, by + boxH);
+                ctx.lineTo(bx + boxW - 10, by + boxH);
+                ctx.stroke();
+            };
+            drawCloudBubble();
+            // 小泡泡（思考）
+            ctx.fillStyle = 'rgba(224, 242, 254, 0.98)';
+            ctx.beginPath(); ctx.arc(0, by + boxH + 8, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(-3, by + boxH + 14, 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            // 文字
+            ctx.fillStyle = '#075985';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'italic 11px sans-serif';
+            ctx.fillText(text, 0, by + boxH / 2);
+            ctx.restore();
+        }
+
     }
 
     // ---------- UI ----------

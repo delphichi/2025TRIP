@@ -86,16 +86,20 @@
                 </div>
             </div>
             <p class="hint">
-                <span class="dot dot-premium"></span> 精品客
-                <span class="dot dot-budget"></span> 基礎客
-                &nbsp;·&nbsp; 綠色泡泡 = 成交、紅色泡泡 = 拒買
+                <span class="dot dot-premium"></span> 精品客（金球 + 光暈）
+                <span class="dot dot-budget"></span> 基礎客（藍球）
+                <br>
+                每個客人跑 5 個階段：<b>進門</b> → <b>詢價</b>（白泡「多少錢？」）
+                → <b>店員答覆</b>（黃泡「$40 / 個」）→ <b>評估</b>（藍雲思考「我期望…」）
+                → <b>決策</b>（綠買 / 紅拒）→ <b>離開</b>
                 <br>
                 <label>動畫速度
                     <select id="cfg-anim-speed">
-                        <option value="0.5">0.5×</option>
-                        <option value="1" selected>1×</option>
-                        <option value="2">2×</option>
-                        <option value="4">4× 快進</option>
+                        <option value="0.5">0.5× 極慢（每個客人 8s、教學專用）</option>
+                        <option value="1" selected>1× 慢（每個客人 4.5s、看清楚流程）</option>
+                        <option value="2">2× 中（每個客人 2s）</option>
+                        <option value="4">4× 快（一天 ~8s）</option>
+                        <option value="8">8× 快進（一天 ~4s）</option>
                     </select>
                 </label>
                 <button id="btn-skip-anim" class="btn-secondary">⏭ 跳過動畫</button>
