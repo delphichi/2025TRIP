@@ -86,15 +86,67 @@
                 },
                 5: {   // 「心間」
                     focus: { 7: 0.55, 2: 0.30, 8: 0.10, 9: 0.05 },
-                    reason: '🎯 這是這個 preset 的教學核心：<b>「間」必須押 an 韻</b>。attention <b>強烈回望「窗前」的「前」</b>（55%！）確認韻腳位置和韻母。這正是 AI 押韻不是「懂韻律」——是 <b>attention 讓「這個位置的字」能對照「上一句同位置的字」</b>。',
+                    reason: '🎯 這是這個 preset 的教學核心：<b>「心間」必須押「an」韻</b>。attention <b>強烈回望「窗前」這個位置</b>（55%！）確認韻腳對照。這正是 AI 押韻不是「懂韻律」——是 <b>attention 讓「這個位置的字」能對照「上一句同位置的字」</b>。',
                 },
             },
             noteLines: [
                 '<b>押韻的教學核心</b>：AI 押韻不是「懂韻律」，是 attention 讓「這個位置的字」能回望「上一句同位置的字」對照韻母。',
                 '第 1 句「月光灑落<b>窗前</b>」以「前」（an 韻）結尾。',
                 '第 2 句「光影搖曳<b>心間</b>」以「間」（an 韻）結尾——押韻。',
-                '看「心間」產生時的 attention 分布——<b>「前」被關注 55%</b>！這是押韻位置的鐵證。',
+                '看「心間」產生時的 attention 分布——<b>「窗前」位置被關注 55%</b>！這是押韻位置的鐵證。',
                 '這是最反直覺、觀眾看完最震撼的教學橋段。',
+            ],
+        },
+        {
+            // 中文詩詞對仗——位置對照 attention 的極致展現
+            // Reviewer round 5 建議：這在中文 YouTube/B 站上沒人做，是頻道差異化旗艦
+            id: 'zh-antithesis',
+            label: '🎋 對仗：黃河對白日、山對海（中文詩詞位置對照）',
+            prompt: ['寫', '五言', '對仗詩'],
+            generated: ['白日', '依', '山', '盡', '黃河', '入', '海', '流'],
+            // combined idx: 0=寫, 1=五言, 2=對仗詩, 3-6=白日/依/山/盡, 7-10=黃河/入/海/流
+            attentions: {
+                0: {   // 白日
+                    focus: { 1: 0.40, 2: 0.35, 0: 0.20, 3: 0.05 },
+                    reason: '從「寫五言對仗詩」開場，選一個自然景象作為第一句起頭——「白日」是傳統詩詞常用意象。',
+                },
+                1: {   // 依
+                    focus: { 3: 0.65, 1: 0.20, 2: 0.15 },
+                    reason: '「白日」需要一個動詞連接。「依」表示倚靠、附著——AI 在建構「白日依 X」的動態結構。',
+                },
+                2: {   // 山
+                    focus: { 4: 0.45, 3: 0.30, 1: 0.15, 2: 0.10 },
+                    reason: '「依」需要一個地形名詞被依附。attention 主看剛產生的「依」＋「白日」共同推導出「山」——構成「白日依山」的完整意象。',
+                },
+                3: {   // 盡
+                    focus: { 5: 0.50, 4: 0.25, 3: 0.15, 2: 0.10 },
+                    reason: '「白日依山」需要收尾動作。「盡」表示消失——完成第一句「白日依山盡」（夕陽落到山後）。',
+                },
+                4: {   // 黃河 ← 對仗的第一個 aha！
+                    focus: { 3: 0.65, 2: 0.20, 5: 0.10, 6: 0.05 },
+                    reason: '🎯 <b>第二句起頭，attention 強烈回望第一句的同位置</b>——「白日」是「自然景象名詞」，AI 決定「黃河」對仗（都是天地自然、都是雙字詞）。這不是巧合，是位置對照的 attention 機制。',
+                },
+                5: {   // 入
+                    focus: { 4: 0.60, 7: 0.20, 3: 0.15, 5: 0.05 },
+                    reason: '對照第一句同位置的「依」——都是<b>動詞</b>、都是「進入某地形」語意。「入」對「依」——動詞對動詞。',
+                },
+                6: {   // 海
+                    focus: { 5: 0.65, 8: 0.20, 4: 0.10, 3: 0.05 },
+                    reason: '對照第一句同位置的「山」——都是<b>地形名詞</b>。「海」對「山」——山地對水域，中國詩詞經典對仗。',
+                },
+                7: {   // 流
+                    focus: { 6: 0.70, 9: 0.15, 5: 0.10, 4: 0.05 },
+                    reason: '對照第一句同位置的「盡」——都是<b>結尾動詞</b>。「流」對「盡」——流動 vs 消失。<b>全句完成：白日依山盡，黃河入海流</b>。這就是 attention 讓 AI 寫對仗的機制。',
+                },
+            },
+            noteLines: [
+                '<b>對仗的教學核心</b>：AI 寫對仗詩不是「懂平仄」，是 attention 讓<b>第二句每個位置的字，強烈回望第一句同位置的字</b>。',
+                '<b>白日 對 黃河</b>：自然景象雙字詞 ✓',
+                '<b>依 對 入</b>：動詞（進入地形）✓',
+                '<b>山 對 海</b>：地形名詞 ✓',
+                '<b>盡 對 流</b>：結尾動詞 ✓',
+                '每一個對照都是 60% 以上的 attention 回望——這是位置對照 attention 的最強視覺教學。',
+                '<b>這個 preset 是 AI 讀懂中文詩詞的鑰匙</b>——中文 YouTube / B 站上還沒人做出來。',
             ],
         },
     ];
@@ -334,6 +386,7 @@
             this.phase = 0;
             this.stageStart = performance.now();
             this.playing = true;
+            this._reasonShownForIdx = -1;
             this.scene.setPreset(preset);
             this.scene.setGenerationState(0, -1, false);
             this._clear();
@@ -368,8 +421,24 @@
             this.elapsedInStage = elapsed;
             const dur = this._phaseDurationMs();
             const t = dur === Infinity ? 1 : Math.min(1, elapsed / dur);
+            // Reviewer round 5: 把「placeholder ? → 實際字」跟「reason 切換」
+            // 從 _draw 拿出來放這裡（_draw 該是純函式）。同時 reason 延到
+            // sub-b 才切換，避免 sub-a 期間畫面是 ? 但 reason 已經爆雷字。
+            if (this.phase === 1) {
+                if (t >= 0.4 && this.scene.currentGenPlaceholder) {
+                    this.scene.setGenerationState(this.tokenIdx, this.tokenIdx, false);
+                    // 同時觸發 reason 更新（延到字定型後才講「這個字是 X」）
+                    if (!this._reasonShownForIdx || this._reasonShownForIdx !== this.tokenIdx) {
+                        const att = this.preset.attentions[this.tokenIdx];
+                        if (att && this.onReasonChange) {
+                            this.onReasonChange(att.reason || '', this.tokenIdx);
+                        }
+                        this._reasonShownForIdx = this.tokenIdx;
+                    }
+                }
+            }
             this._draw(t);
-            this.scene.render();   // scene 需要重繪讓 pulsing token 動起來
+            this.scene.render();
             if (t >= 1) {
                 this._advance(now);
             }
@@ -405,9 +474,8 @@
             }
         }
         _enterToken(idx) {
-            this.scene.setGenerationState(idx, idx, true);   // 顯示 ? 佔位符
-            const reason = (this.preset.attentions[idx] || {}).reason || '';
-            if (this.onReasonChange) this.onReasonChange(reason, idx);
+            // 只設 scene 狀態，reason 延到 sub-b (t>=0.4) 才切換
+            this.scene.setGenerationState(idx, idx, true);
         }
 
         _draw(t) {
@@ -439,10 +507,7 @@
             const i = this.tokenIdx;
             const att = this.preset.attentions[i];
             if (!att) return;
-            // Manage placeholder → real switch at t=0.4
-            if (t >= 0.4 && this.scene.currentGenPlaceholder) {
-                this.scene.setGenerationState(i, i, false);
-            }
+            // Placeholder ? → 實際字 的切換移到 _loop（純 draw，不做狀態變更）
             // Arrow alpha: fade in sub-a, hold sub-b, fade out sub-c
             let arrowAlpha;
             if (t < 0.4) arrowAlpha = easeOutCubic(t / 0.4);
@@ -510,41 +575,11 @@
             }
             ctx.restore();
         }
-        // Phase 3: summary 浮出
+        // Phase 3: Reviewer round 5 建議——不畫任何 overlay，讓 generated tokens
+        // 完整呈現在 scene 上。reason box 的「✅ 全句完成」文字就足夠了。
+        // 收尾比彈出卡片更有詩意——畫面回歸乾淨、整句可讀。
         _drawPhase3(t) {
-            const ctx = this.ctx;
-            const scale = 0.7 + 0.3 * easeOutBack(t);
-            const alpha = clamp(t * 2, 0, 1);
-            ctx.save();
-            ctx.globalAlpha = alpha;
-            const cx = this.w / 2;
-            const cy = this.h * 0.45;
-            const bw = 500 * scale, bh = 50 * scale;
-            ctx.fillStyle = '#f0fdf4';
-            ctx.strokeStyle = '#22c55e';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            const r = 10;
-            ctx.moveTo(cx - bw / 2 + r, cy - bh / 2);
-            ctx.arcTo(cx + bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2, r);
-            ctx.arcTo(cx + bw / 2, cy + bh / 2, cx - bw / 2, cy + bh / 2, r);
-            ctx.arcTo(cx - bw / 2, cy + bh / 2, cx - bw / 2, cy - bh / 2, r);
-            ctx.arcTo(cx - bw / 2, cy - bh / 2, cx + bw / 2, cy - bh / 2, r);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            ctx.fillStyle = '#166534';
-            ctx.font = `bold ${16 * scale}px -apple-system, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(
-                `✅ 完成：Prompt ${this.preset.prompt.length} 字 + AI 生成 ${this.preset.generated.length} 字`,
-                cx, cy - 10 * scale,
-            );
-            ctx.fillStyle = '#059669';
-            ctx.font = `${12 * scale}px -apple-system, sans-serif`;
-            ctx.fillText('這就是 attention 讓 AI 寫作的方式', cx, cy + 10 * scale);
-            ctx.restore();
+            // 意圖留空
         }
     }
 
