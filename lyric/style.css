@@ -1,0 +1,170 @@
+:root {
+    --primary: #6d28d9;
+    --primary-dark: #1f2937;
+    --accent: #f59e0b;
+    --bg: #f7f8fa;
+    --card: #ffffff;
+    --ink: #1a1f2c;
+    --muted: #6b7280;
+    --shadow: 0 4px 10px rgba(0,0,0,.08);
+    --prompt: #eab308;
+    --generated: #a78bfa;
+    --current: #f59e0b;
+}
+* { box-sizing: border-box; }
+body.sim-body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+}
+.sim-header {
+    background: linear-gradient(120deg, #4c1d95, #db2777);
+    color: #fff;
+    padding: 22px 15px;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+.sim-header h1 { margin: 0; font-size: 1.7em; }
+.sim-subtitle { margin: 6px 0 0; color: #fce7f3; font-weight: 500; }
+.sim-main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 15px;
+    display: grid;
+    gap: 15px;
+}
+.panel {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 15px 18px;
+    box-shadow: var(--shadow);
+    border-left: 6px solid var(--primary);
+}
+.panel h2 {
+    color: var(--primary-dark);
+    margin: 0 0 12px;
+    font-size: 1.15em;
+    border-bottom: 1px dashed #ddd;
+    padding-bottom: 8px;
+}
+.ctrl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px 14px;
+}
+.ctrl-grid label {
+    display: flex;
+    flex-direction: column;
+    font-size: .85em;
+    color: var(--muted);
+    gap: 4px;
+}
+.ctrl-grid select {
+    padding: 7px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 1em;
+    background: #f9fafb;
+    color: var(--ink);
+}
+.btn-row { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-row button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: .95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .12s;
+}
+.btn-row button:hover:not(:disabled) { background: #5b21b6; }
+#btn-reset { background: #6b7280; }
+#btn-reset:hover { background: #4b5563; }
+#btn-replay { background: var(--accent); }
+#btn-replay:hover { background: #d97706; }
+
+.hint { color: var(--muted); font-size: .85em; margin: 10px 0 0; line-height: 1.5; }
+.hint b { color: var(--ink); }
+.hint .prompt-tag { color: #b45309; background: #fef3c7; padding: 1px 6px; border-radius: 4px; }
+.hint .gen-tag { color: #5b21b6; background: #ede9fe; padding: 1px 6px; border-radius: 4px; }
+
+.scene-wrap { position: relative; width: 100%; }
+.scene-panel #scene {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: linear-gradient(180deg, #fef9ea 0%, #fafcff 40%, #f5f3ff 100%);
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+.scene-panel #scene-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    background: transparent;
+    border: none;
+}
+
+.reason-box {
+    margin-top: 12px;
+    background: #fef3c7;
+    border: 2px solid #eab308;
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: opacity .3s;
+}
+.reason-label {
+    font-size: .78em;
+    font-weight: 700;
+    color: #b45309;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.reason-text {
+    font-size: 1.02em;
+    color: #78350f;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+.log-panel { border-left-color: var(--accent); }
+.log {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: .9em;
+    line-height: 1.7;
+    color: var(--ink);
+}
+.log h3 { color: var(--primary); margin: 8px 0 4px; font-size: 1em; }
+.log p { margin: 4px 0; }
+.log code {
+    background: #ede9fe;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    color: #6d28d9;
+}
+
+.sim-footer {
+    text-align: center;
+    color: var(--muted);
+    padding: 10px 5px 30px;
+    font-size: .85em;
+}
+.sim-footer a { color: var(--primary); }
+
+@media (min-width: 700px) {
+    .sim-main { padding: 20px; gap: 18px; }
+}
