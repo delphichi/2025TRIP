@@ -27,17 +27,30 @@
         return a;
     }
 
-    // ---------- Consumer (adapted from parent) ----------
+    // ---------- Consumer (Phase 2：客群分型 + 熟客累積) ----------
+    // 消費者兩種類型：'budget' 基礎型 / 'premium' 精品型
+    // - budget（60%）：期望價低、比較容易被市場價拉走（追低價）、消耗快、對價格敏感
+    // - premium（40%）：期望價高、心理錨很穩不追低價、消耗慢、對品牌信任敏感
+    // 每個消費者對「每一家店」都有獨立的 loyalty 計數，每次成功購買 +1，每天衰減 3%
+    // loyalty 影響兩件事：(a) 抬高該店的價格容忍上限（品牌溢價）、(b) 提高該店訪問權重（熟客回訪）
     class Consumer {
-        constructor(id, baseWtp, baseAlpha) {
+        constructor(id, baseWtp, baseAlpha, type = 'budget') {
             this.id = id;
+            this.type = type;
             this.energy = randInt(40, 90);
-            this.expected = baseWtp * rand(0.75, 1.2);
-            this.confidence = rand(0.85, 1.15);
+            // Type-specific 分佈：精品型 baseline 高、變異大；基礎型 baseline 低
+            if (type === 'premium') {
+                this.expected = baseWtp * rand(1.10, 1.45);   // baseWtp=42 → $46-61
+                this.confidence = rand(0.95, 1.20);
+                this.alpha = baseAlpha * rand(0.5, 0.9);      // 消耗慢 = 一頓可以吃 2-3 個精品
+            } else {
+                this.expected = baseWtp * rand(0.65, 1.00);   // baseWtp=42 → $27-42
+                this.confidence = rand(0.80, 1.10);
+                this.alpha = baseAlpha * rand(0.9, 1.3);      // 消耗快 = 吃 1 個就飽
+            }
             this.maxWtp = this.expected * rand(1.2, 1.9);
             this.dailyNeed = randInt(1, 3);
             this.budget = rand(60, 180);
-            this.alpha = baseAlpha * rand(0.7, 1.3);
             this.bought = 0;
             this.slowExpected = this.expected;
             this.pricesSeenToday = [];
@@ -45,31 +58,51 @@
             this.strikingDays = 0;
             this.priceMemoryToday = {};
             this.preferredPidYesterday = null;
+            // 熟客記憶：每家店的累計成交次數（每次購買 +1，每天衰減 3%）
+            // 影響：(a) 決策時對該店價格容忍度 +0.5%/次、(b) 選店時該店權重 ×(1 + 0.02×loyalty)
+            this.loyalty = {};
         }
 
         marginalUtility() { return Math.exp(-this.alpha * this.bought); }
 
-        decide(price, panicMult = 1) {
+        // decide 現在需要 pid：熟客加成是「對這家店」的價格容忍
+        decide(price, pid, panicMult = 1) {
             const mu = this.marginalUtility();
             if (price > this.budget) return false;
             if (price > this.maxWtp * mu * panicMult) return false;
-            let cap = this.expected * this.confidence * mu * panicMult;
+            // 熟客加成：每次熟客 +0.5% 容忍度，20 次熟客 = 抬 10%
+            // 意義：品牌信任讓消費者接受該店慢慢漲價，但漲太快還是會流失
+            const loyaltyBonus = 1 + 0.005 * (this.loyalty[pid] || 0);
+            let cap = this.expected * this.confidence * mu * panicMult * loyaltyBonus;
             if (this.energy < 25) cap *= 1.4;
             else if (this.energy < 45) cap *= 1.15;
             const noise = 1 + (Math.random() - 0.5) * 0.1;
             return price <= cap * noise;
         }
 
-        buy(price) {
+        buy(price, pid) {
             this.budget -= price;
             this.energy = clamp(this.energy + 25, 0, 100);
             this.bought += 1;
+            this.loyalty[pid] = (this.loyalty[pid] || 0) + 1;
         }
 
         endDay(ownPrice, gossipPrice, patienceThreshold) {
             const hasOwn = ownPrice !== null && Number.isFinite(ownPrice);
             const hasGossip = gossipPrice !== null && Number.isFinite(gossipPrice);
-            let wI = 0.6, wO = hasOwn ? 0.2 : 0, wG = hasGossip ? 0.2 : 0;
+            // Type-specific 錨定漂移權重：
+            //   budget：慣性 0.6，跟市場走（原本行為）
+            //   premium：慣性 0.88，只微微跟市場——「我知道好東西該多少錢」
+            let wI, wO, wG;
+            if (this.type === 'premium') {
+                wI = 0.88;
+                wO = hasOwn ? 0.08 : 0;
+                wG = hasGossip ? 0.04 : 0;
+            } else {
+                wI = 0.60;
+                wO = hasOwn ? 0.20 : 0;
+                wG = hasGossip ? 0.20 : 0;
+            }
             const total = wI + wO + wG;
             let updated = (wI / total) * this.expected;
             if (hasOwn) updated += (wO / total) * ownPrice;
@@ -89,10 +122,6 @@
                 }
             }
             this.pricesSeenToday = [];
-            // 記憶偏好：不再是「最便宜」而是「最適合我的」
-            // 高期望的消費者記得「離我 expected 最近的那家」= 匹配偏好
-            // 這樣高端消費者會固定回去 $50 的店、budget 消費者固定回去 $30 的
-            // 產生「熟客」的忠誠度效應——這是精品店能存活的機制
             const pids = Object.keys(this.priceMemoryToday);
             if (pids.length > 0) {
                 let bestGap = Infinity, bestPid = null;
@@ -106,6 +135,11 @@
                 this.preferredPidYesterday = bestPid;
             }
             this.priceMemoryToday = {};
+            // 熟客衰減：3%/天，久沒回訪的店會淡出記憶（<0.5 直接刪掉）
+            for (const pid in this.loyalty) {
+                this.loyalty[pid] *= 0.97;
+                if (this.loyalty[pid] < 0.5) delete this.loyalty[pid];
+            }
             this.energy = clamp(this.energy - randInt(25, 45), 0, 100);
             this.budget = Math.min(this.budget + rand(10, 25), 300);
             this.bought = 0;
@@ -144,6 +178,10 @@
             this.promoMultiplier = 1.0;
             this.hasUsedPromo = false;
             this.lastProfit = 0;
+            // 稀缺信號：昨天是否搶爆？（sold = baked 且 baked >= 3）
+            // 訊號公開——每個店主早上一看隔壁昨天完售就知道
+            // 隔天訪客用 segmentation 加權時 wasHot 店 ×1.35，等於「大家慕名而來」
+            this.wasHot = false;
         }
 
         effectivePrice() {
@@ -191,6 +229,14 @@
             return Math.max(0, mu + sigma * z);
         }
 
+        // 判定：昨天是否搶爆 = 完售 + 烤量夠有意義（>=3）
+        // player 跟 AI 共用；player 得到熱門加成也是合理的（真實開店也一樣）
+        _updateHotStatus() {
+            this.wasHot = !this.closed
+                && this.plannedQuantity >= 3
+                && this.soldToday >= this.plannedQuantity;
+        }
+
         // 收帳、通膨、促銷、破產判定 —— player 跟 AI 共用；價格/產量調整是 AI 專屬
         _bookkeep(day, inflationPct) {
             this.wastedToday = this.inventory;
@@ -235,6 +281,7 @@
 
         endDay(day, inflationPct, competitorAvgPrice, competitionWeight) {
             if (this.closed) {
+                this.wasHot = false;
                 this.history.push({
                     day, price: this.price, baked: 0,
                     sold: 0, wasted: 0, revenue: 0, productionCost: 0,
@@ -242,6 +289,7 @@
                 });
                 return;
             }
+            this._updateHotStatus();   // 用 today 的 soldToday/planned 決定「今日搶爆」
             this._bookkeep(day, inflationPct);
 
             const visits = this.visitsToday || 0;
@@ -286,6 +334,7 @@
         // 玩家版 endDay：只結帳、通膨、促銷、破產；價格 / 產量不動——由 UI 設定
         endDay(day, inflationPct) {
             if (this.closed) {
+                this.wasHot = false;
                 this.history.push({
                     day, price: this.price, baked: 0,
                     sold: 0, wasted: 0, revenue: 0, productionCost: 0,
@@ -293,6 +342,7 @@
                 });
                 return;
             }
+            this._updateHotStatus();
             this._bookkeep(day, inflationPct);
             // ⚠ 生存促銷會強制改烤量。既然玩家自己決定烤量，就不自動觸發促銷了。
             // （簡化：玩家自己控成本 / 定價，不需要系統跳出來搶方向盤）
@@ -322,7 +372,10 @@
             this.cfg = cfg;
             this.day = 0;
             this.consumers = Array.from({ length: cfg.consumers },
-                (_, i) => new Consumer(i, cfg.baseWtp, cfg.alpha));
+                (_, i) => new Consumer(
+                    i, cfg.baseWtp, cfg.alpha,
+                    Math.random() < (cfg.premiumRatio || 0.40) ? 'premium' : 'budget'
+                ));
             this.player = new PlayerProducer(
                 0, cfg.playerCost, cfg.playerCapacity,
                 cfg.playerInitPrice, '🥐 我的麵包店'
@@ -337,15 +390,19 @@
             this.decisionLog = [];
         }
 
-        // 選店偏好加權：不再是均勻隨機，而是按「消費者期望價 vs 店家價」的距離
-        // exp(-gap / scale)：期望 $50 的消費者偏好 $50 附近的店；期望 $30 偏好 $30 附近
-        // scale=15：gap=15 時權重降到 37%，gap=30 降到 14%——軟性偏好、不絕對
-        // 這是市場分層（segmentation）的機制：精品店也能存活，因為有高期望消費者找它
+        // 選店偏好加權（Phase 2 三合一）：
+        //   (a) 期望價匹配：exp(-|expected - shop_price| / 10)
+        //   (b) 熟客回訪：權重 × (1 + 0.02 × loyalty[shop.id])，20 次熟客 = 訪問權重 ×1.4
+        //   (c) 稀缺信號：wasHot 店 × 1.35，昨天搶爆的店今天吸引額外注意
         _pickShopWeighted(consumer, openShops) {
             if (openShops.length === 1) return openShops[0];
             const weights = openShops.map(shop => {
                 const gap = Math.abs(consumer.expected - shop.effectivePrice());
-                return Math.exp(-gap / 10);
+                let w = Math.exp(-gap / 10);
+                const loyalty = consumer.loyalty[shop.id] || 0;
+                w *= (1 + 0.02 * loyalty);
+                if (shop.wasHot) w *= 1.35;
+                return w;
             });
             const sum = weights.reduce((s, w) => s + w, 0);
             if (sum <= 0) return openShops[randInt(0, openShops.length - 1)];
@@ -400,13 +457,13 @@
                     const price = p.offer();
                     if (price === null) continue;
 
-                    const bought = c.decide(price, panicMult);
+                    const bought = c.decide(price, p.id, panicMult);
                     c.observePrice(price, p.id);
                     p.visitsToday = (p.visitsToday || 0) + 1;
 
                     if (bought) {
                         p.sell();
-                        c.buy(price);
+                        c.buy(price, p.id);
                         trades.push({ price, cid: c.id, pid: p.id });
                         c.rejectionsToday = 0;
                     } else {
@@ -534,13 +591,16 @@
             card.appendChild(el('div', 'shop-name', op.label));
             const priceRow = el('div', 'shop-price-big', '$' + fmt(op.effectivePrice(), 1));
             // 不再顯示「特價」badge —— 生存促銷是對手內部狀態，玩家只看得到價格
-            // 價格暴跌本身是唯一線索：讓玩家自己推理「這家為什麼降這麼多？」
+            // 但「🔥 熱門」是公開訊號：真實開店你看得到隔壁昨天大排長龍
+            if (op.wasHot && !op.closed) {
+                const h = el('span', 'shop-badge hot', '🔥 熱門');
+                priceRow.appendChild(h);
+            }
             if (op.closed) {
                 const b = el('span', 'shop-badge closed', `倒店 D${op.closedDay}`);
                 priceRow.appendChild(b);
             }
             card.appendChild(priceRow);
-            // 只顯示招牌價 —— 不透露成本、庫存、本金、促銷狀態
             card.appendChild(el('div', 'shop-stat', '成本 / 庫存 → 🔒 看不到'));
             wrap.appendChild(card);
         });
@@ -557,6 +617,8 @@
             $('mine-sold').textContent = '—';
             $('mine-wasted').textContent = '—';
             $('mine-conv').textContent = '—';
+            $('mine-loyalty').textContent = '—';
+            $('mine-hot').hidden = true;
             $('mine-profit').textContent = '—';
         } else {
             const last = p.history[p.history.length - 1];
@@ -569,6 +631,11 @@
             $('mine-conv').innerHTML = convRate !== null
                 ? `<span class="${convRate >= 0.6 ? 'tag-good' : convRate >= 0.3 ? '' : 'tag-bad'}">${(convRate * 100).toFixed(0)}%</span>（${last.sold}/${visits}）`
                 : '—（訪客太少）';
+            // 熟客總數 = 所有 consumer 對 player 累計 loyalty 的加總（>=1 才算「一個熟客」）
+            const loyalCount = market.consumers.reduce((s, c) => s + ((c.loyalty[p.id] || 0) >= 1 ? 1 : 0), 0);
+            const loyalPoints = market.consumers.reduce((s, c) => s + (c.loyalty[p.id] || 0), 0);
+            $('mine-loyalty').innerHTML = `<span class="${loyalCount >= 8 ? 'tag-good' : ''}">${loyalCount} 位</span>（累計 ${loyalPoints.toFixed(1)} 次光顧）`;
+            $('mine-hot').hidden = !p.wasHot;
             const prof = last.profit;
             $('mine-profit').innerHTML = `<span class="${prof >= 0 ? 'tag-good' : 'tag-bad'}">$${fmt(prof, 1)}</span>`;
         }
@@ -611,6 +678,7 @@
         suggestedPrice = Math.max(floor, suggestedPrice);
 
         // 建議產量：newsvendor（有樣本用），沒有就 heuristic
+        // Day 1 特殊處理：沒有需求訊號時保守探路（產能的 1/5），不叫玩家一次砸滿
         const nvQ = p.newsvendorQ();
         const oldPlan = p.plannedQuantity;
         let suggestedQty;
@@ -619,8 +687,11 @@
             const target = clamp(nvQ, 1, p.capacity);
             suggestedQty = Math.max(1, Math.round(0.7 * oldPlan + 0.3 * target));
             qtyReason = `Newsvendor Q*≈${fmt(nvQ, 1)}（近 ${p.recentSales.length} 天銷量的樣本），慣性平滑`;
+        } else if (p.history.length === 0) {
+            suggestedQty = Math.max(2, Math.round(p.capacity / 5));
+            qtyReason = `Day 1 保守探路：先烤產能的 1/5 試水溫（無需求訊號時不冒險）`;
         } else {
-            const lastSold = p.history.length > 0 ? p.history[p.history.length - 1].sold : Math.ceil(p.capacity / 2);
+            const lastSold = p.history[p.history.length - 1].sold;
             suggestedQty = clamp(lastSold + 2, 1, p.capacity);
             qtyReason = `熱身期：昨日賣 ${lastSold} + 2 緩衝（樣本不足）`;
         }

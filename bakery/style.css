@@ -173,6 +173,22 @@ body.sim-body {
 }
 .shop-badge.promo { background: #fef3c7; color: #b45309; }
 .shop-badge.closed { background: #fecaca; color: #991b1b; }
+.shop-badge.hot { background: #fee2e2; color: #b91c1c; animation: hot-pulse 1.5s ease-in-out infinite; }
+@keyframes hot-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+#mine-hot {
+    display: inline-block;
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: .78em;
+    font-weight: 700;
+    margin-left: 4px;
+    animation: hot-pulse 1.5s ease-in-out infinite;
+}
 
 /* decision panel */
 .decision-panel {
