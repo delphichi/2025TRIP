@@ -345,7 +345,7 @@
             if (openShops.length === 1) return openShops[0];
             const weights = openShops.map(shop => {
                 const gap = Math.abs(consumer.expected - shop.effectivePrice());
-                return Math.exp(-gap / 15);
+                return Math.exp(-gap / 10);
             });
             const sum = weights.reduce((s, w) => s + w, 0);
             if (sum <= 0) return openShops[randInt(0, openShops.length - 1)];
@@ -552,15 +552,23 @@
         $('mine-cap').textContent = p.capacity;
         $('mine-cash').textContent = '$' + fmt(p.cumulativeProfit, 1);
         if (p.history.length === 0) {
+            $('mine-visits').textContent = '—';
             $('mine-baked').textContent = '—';
             $('mine-sold').textContent = '—';
             $('mine-wasted').textContent = '—';
+            $('mine-conv').textContent = '—';
             $('mine-profit').textContent = '—';
         } else {
             const last = p.history[p.history.length - 1];
+            const visits = p.visitsToday !== undefined ? p.visitsToday : 0;
+            $('mine-visits').textContent = visits;
             $('mine-baked').textContent = last.baked;
             $('mine-sold').textContent = last.sold;
             $('mine-wasted').textContent = last.wasted;
+            const convRate = visits > 0 ? (last.sold / visits) : null;
+            $('mine-conv').innerHTML = convRate !== null
+                ? `<span class="${convRate >= 0.6 ? 'tag-good' : convRate >= 0.3 ? '' : 'tag-bad'}">${(convRate * 100).toFixed(0)}%</span>（${last.sold}/${visits}）`
+                : '—（訪客太少）';
             const prof = last.profit;
             $('mine-profit').innerHTML = `<span class="${prof >= 0 ? 'tag-good' : 'tag-bad'}">$${fmt(prof, 1)}</span>`;
         }
