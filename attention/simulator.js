@@ -697,16 +697,31 @@
     // Stage 2-5 return early。舊版有 Stage 0 淡出 + Stage 1 Q 泡泡分開，
     // reviewer 建議合併成一個 stage，中間 200ms 淡出 → 之後 Q 泡泡出來，
     // 節奏更緊湊、也少一個過場。
+    // Stage 0: Query 亮起（含背景淡化）
+    // Stage 1: K 逐一打分（clean state machine：pendingKs / currentK / doneKs）
+    // Stage 2: Softmax 尖銳化（三個 sub-phase：收攏 → 公式 → 變形）
+    // 進入 stage 3 就 stop()——MVP 收尾。
     const STAGE_NAMES = [
-        '1/6 Query 亮起（背景淡化 + Q 泡泡）',
-        '2/6 K 逐一打分',
-        '3/6 Raw score bar',
-        '4/6 Softmax 變形',
-        '5/6 化為箭頭',
-        '6/6 V 加權求和',
+        '1/3 Query 亮起',
+        '2/3 K 逐一打分（Q·K raw scores）',
+        '3/3 Softmax 尖銳化（→ 機率分布）',
     ];
-    const STAGE_DURATIONS_MS = [1500, null /* per-substep */, 500, 1500, 1000, Infinity];
-    const DIM_INTRO_RATIO = 0.13;   // Stage 0 前 13% 時間用來淡出背景，之後才彈 Q 泡泡
+    const STAGE_DURATIONS_MS = [1500, null /* per-substep */, 2500];
+    const DIM_INTRO_RATIO = 0.13;
+
+    // Easing helpers
+    const easeOutBack = (t) => {
+        const c1 = 1.70158, c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+    const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    // Lerp RGB colors: `rgb(r,g,b)` 字串
+    const lerpColor = (a, b, t) => {
+        const r = Math.round(a[0] + (b[0] - a[0]) * t);
+        const g = Math.round(a[1] + (b[1] - a[1]) * t);
+        const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+        return `rgb(${r},${g},${bl})`;
+    };
 
     class AttentionAnimator {
         constructor(overlayCanvas, sceneChart) {
@@ -746,8 +761,12 @@
             if (this.playing) {
                 const now = performance.now();
                 const elapsed = now - this.stageStart;
-                // t_before = elapsed * oldSpeed / dur; t_after 要一樣 → 新 stageStart 位移
                 this.stageStart = now - elapsed * (oldSpeed / newSpeed);
+            } else {
+                // Paused：不動 stageStart，改調整 elapsedInStage 讓 resume 時 t 值連續
+                // t_before = elapsedInStage / (base/oldSpeed) = elapsed * oldSpeed / base
+                // t_after 要一樣 → elapsedInStage_new = elapsedInStage * (oldSpeed/newSpeed)
+                this.elapsedInStage = this.elapsedInStage * (oldSpeed / newSpeed);
             }
             this._speed = newSpeed;
         }
@@ -761,6 +780,19 @@
             }
             return mx || 1;
         }
+        // Stage 2 layout：按位置順序（不按分數）排 K 的 idx；算 maxSoft 給
+        // softmax 長條做視覺放大（讓「尖銳化」的視覺表現最戲劇）
+        _computeSoftmaxLayout() {
+            this.stage2Ks = [];
+            for (let j = 0; j < this.tokens.length; j++) {
+                if (j !== this.query) this.stage2Ks.push(j);
+            }
+            let mx = 0;
+            for (const j of this.stage2Ks) {
+                if (this.softmaxed[j] > mx) mx = this.softmaxed[j];
+            }
+            this.maxSoft = mx || 1;
+        }
         start(preset, headIdx, queryIdx, raw, softmaxed) {
             this.preset = preset;
             this.head = headIdx;
@@ -769,6 +801,7 @@
             this.softmaxed = softmaxed[queryIdx];
             this.tokens = preset.tokens;
             this.maxRaw = this._computeMaxRaw();
+            this._computeSoftmaxLayout();
             this.stage = 0;
             this.stageStart = performance.now();
             this.pendingKs = [];
@@ -811,14 +844,24 @@
             }
             this.stageStart = performance.now();
             this.elapsedInStage = 0;
-            this._draw(0);
+            // Reviewer 建議：手動 step 顯示「到達狀態」而不是「剛進入」，
+            // 讓 Stage 0→1 第一個 K 不會瞬間閃過看不清
+            this._draw(1);
             if (this.onStageChange) this.onStageChange(this.stage);
         }
         _advanceStage() {
-            this.stage = Math.min(5, this.stage + 1);
+            this.stage = this.stage + 1;
             // 進入 Stage 1 時初始化第一個 currentK
             if (this.stage === 1 && this.currentK === null && this.pendingKs.length > 0) {
                 this.currentK = this.pendingKs.shift();
+            }
+            // 超過最後 stage 就直接結束（不停在佔位訊息）
+            if (this.stage >= STAGE_NAMES.length) {
+                setTimeout(() => {
+                    this.playing = false;
+                    if (this.rafId) cancelAnimationFrame(this.rafId);
+                    if (this.onEnd) this.onEnd();   // 通知 UI 重置
+                }, 0);
             }
         }
         _loop() {
@@ -829,7 +872,7 @@
             const dur = this._currentStageDurationMs();
             const t = dur === Infinity ? 1 : Math.min(1, elapsed / dur);
             this._draw(t);
-            if (t >= 1 && this.stage < 5) {
+            if (t >= 1 && this.stage < STAGE_NAMES.length) {
                 if (this.stage === 1) {
                     // 當前 K 打分完 → 塞 doneKs、抽下一個
                     if (this.currentK !== null) this.doneKs.push(this.currentK);
@@ -862,7 +905,8 @@
             this.ctx.clearRect(0, 0, this.w, this.h);
             if (this.stage === 0) return this._drawStage0(t);
             if (this.stage === 1) return this._drawStage1(t);
-            if (this.stage >= 2) return this._drawStage2plus(t);
+            if (this.stage === 2) return this._drawStage2(t);
+            // stage >= 3 → 動畫已結束（stop() 會被觸發），不畫東西
         }
 
         // Stage 0（合併版）：淡出背景 + Q 泡泡出現
@@ -970,16 +1014,190 @@
             ctx.fillStyle = live ? '#7c3aed' : '#94a3b8';
             ctx.fillRect(bx, by, barW * (normalized / 10), barH);
         }
-        // Stage 2+: MVP 只實作到 Stage 1；後續階段先給個提示
-        _drawStage2plus(t) {
-            const { ctx } = this;
-            ctx.fillStyle = 'rgba(255,255,255,0.55)';
-            ctx.fillRect(0, 0, this.w, this.h);
-            ctx.fillStyle = '#6d28d9';
-            ctx.font = 'bold 14px -apple-system, sans-serif';
+        // Stage 2: Softmax 尖銳化
+        // 三個 sub-phase：A 收攏 → B 公式浮出 → C 尖銳化變形
+        _drawStage2(t) {
+            this._drawDimMask(0.55);
+            const tA = Math.min(1, t / 0.15);
+            const tB = Math.min(1, Math.max(0, (t - 0.15) / 0.20));
+            const tC = Math.min(1, Math.max(0, (t - 0.35) / 0.65));
+            // Stage 1 UI 淡出（Q + K 泡泡 + 線）——只在 A 期間
+            if (tA < 1) {
+                const s1Alpha = 1 - tA;
+                this.ctx.save();
+                this.ctx.globalAlpha = s1Alpha;
+                this._drawStage1Content();
+                this.ctx.restore();
+            }
+            // Raw 長條淡入 + 保持
+            if (tA > 0.02) this._drawRawBars(tA);
+            // Formula box 浮出（B 期間 scale/alpha 動畫；之後保持）
+            if (tB > 0.02) this._drawFormulaBox(tB);
+            // Softmax 長條 B 期間淡入（跟 raw 一樣長），C 期間尖銳化變形
+            if (tB > 0.02) this._drawSoftmaxBars(tB, tC);
+            // Σ = 100% 標記在 C 後半段浮出
+            if (tC > 0.7) this._drawSumBadge((tC - 0.7) / 0.3);
+        }
+        _drawStage1Content() {
+            // Stage 1 靜態畫面（不含 dim mask），Stage 2 A phase 用來淡出
+            const qb = this.scene.tokenBounds[this.query];
+            if (qb) {
+                const qText = (this.preset.qLabels || {})[this.query] || '我這個詞想關注誰？';
+                this._drawBubble(qb.x, qb.y - 44, qText, {
+                    fill: '#fef3c7', stroke: '#eab308', ink: '#78350f',
+                    scale: 1, alpha: 1, prefix: 'Q：',
+                    fontSize: 14, padX: 10, padY: 6,
+                });
+            }
+            for (const j of this.doneKs) this._drawKAndLine(j, 1, false);
+        }
+        _stage2Layout() {
+            // 三層佈局的 Y 座標（canvas h=340；token y ≈ h/2）
+            const rawTop = this.h * 0.52;
+            const rawMaxH = 30;
+            const rawBase = rawTop + rawMaxH;
+            const formulaY = rawBase + 20;
+            const softTop = formulaY + 45;
+            const softMaxH = 55;   // 比 raw 高，讓尖銳化的視覺表現更誇張
+            const softBase = softTop + softMaxH;
+            const padX = 50;
+            const N = this.stage2Ks.length;
+            const gap = 6;
+            const barW = (this.w - padX * 2 - gap * (N - 1)) / N;
+            return { rawTop, rawMaxH, rawBase, formulaY, softTop, softMaxH, softBase, padX, gap, barW, N };
+        }
+        _drawRawBars(alpha) {
+            const ctx = this.ctx;
+            const L = this._stage2Layout();
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            // 標題
+            ctx.fillStyle = '#6b7280';
+            ctx.font = 'bold 11px -apple-system, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('Raw Q·K 分數（灰色，normalize 到 0-10）', L.padX, L.rawTop - 4);
+            for (let i = 0; i < L.N; i++) {
+                const j = this.stage2Ks[i];
+                const val = this.raw[j] / this.maxRaw;   // 0-1
+                const barH = val * L.rawMaxH;
+                const bx = L.padX + i * (L.barW + L.gap);
+                const by = L.rawBase - barH;
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(bx, by, L.barW, barH);
+                // 分數
+                ctx.fillStyle = '#4b5563';
+                ctx.font = 'bold 10px ui-monospace, monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText((val * 10).toFixed(1), bx + L.barW / 2, by - 1);
+                // token 標籤
+                ctx.fillStyle = '#4b5563';
+                ctx.font = '10px -apple-system, sans-serif';
+                ctx.textBaseline = 'top';
+                ctx.fillText(this.tokens[j], bx + L.barW / 2, L.rawBase + 3);
+            }
+            ctx.restore();
+        }
+        _drawFormulaBox(tB) {
+            const ctx = this.ctx;
+            const L = this._stage2Layout();
+            const easedT = easeOutBack(tB);
+            const scale = 0.8 + 0.2 * easedT;
+            const alpha = Math.min(1, tB * 1.5);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            const cx = this.w / 2;
+            const cy = L.formulaY + 20;
+            const bw = 420 * scale;
+            const bh = 42 * scale;
+            ctx.fillStyle = '#f5f3ff';
+            ctx.strokeStyle = '#a78bfa';
+            ctx.lineWidth = 2;
+            this._roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 8);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#5b21b6';
+            ctx.font = `bold ${13 * scale}px ui-monospace, monospace`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('Stage 3-6（Softmax 變形 → 箭頭 → V 加權公式）—— 下一輪實作', this.w / 2, this.h / 2);
+            ctx.fillText('softmax(x_i) = exp(x_i) / Σ exp(x_j)', cx, cy - 5 * scale);
+            ctx.fillStyle = '#7c3aed';
+            ctx.font = `${10 * scale}px -apple-system, sans-serif`;
+            ctx.fillText('把分數變成加總為 1 的機率分佈，強者更強、弱者更弱', cx, cy + 10 * scale);
+            ctx.restore();
+        }
+        _drawSoftmaxBars(tB, tC) {
+            const ctx = this.ctx;
+            const L = this._stage2Layout();
+            const globalAlpha = Math.min(1, tB * 2);
+            ctx.save();
+            ctx.globalAlpha = globalAlpha;
+            // 標題
+            ctx.fillStyle = '#6d28d9';
+            ctx.font = 'bold 11px -apple-system, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('Softmax 後的權重（紫色，機率分布，加總 = 1）', L.padX, L.softTop - 4);
+            const morphT = easeInOutCubic(tC);
+            for (let i = 0; i < L.N; i++) {
+                const j = this.stage2Ks[i];
+                const rawNorm = this.raw[j] / this.maxRaw;                 // 0-1
+                const softNorm = this.softmaxed[j] / this.maxSoft;         // 0-1，視覺放大到 max
+                // 初始 = raw 長度、目標 = softmax 長度，用 easeInOutCubic tween
+                const currentNorm = rawNorm + (softNorm - rawNorm) * morphT;
+                const barH = currentNorm * L.softMaxH;
+                const bx = L.padX + i * (L.barW + L.gap);
+                const by = L.softBase - barH;
+                // 顏色：弱長條淡（紫淺）、強長條深（紫深）
+                const softVal = this.softmaxed[j];
+                const rawColor = [196, 181, 253];   // #c4b5fd
+                const strongColor = [109, 40, 217]; // #6d28d9
+                const strength = Math.min(1, softVal / 0.4);   // 40% 以上算強
+                const barAlpha = softVal < 0.05 ? Math.max(0.3, 1 - tC * 0.7) : 1;
+                ctx.save();
+                ctx.globalAlpha = globalAlpha * barAlpha;
+                ctx.fillStyle = lerpColor(rawColor, strongColor, strength);
+                ctx.fillRect(bx, by, L.barW, barH);
+                ctx.restore();
+                // 分數：從 raw normalize 值 tween 到 softmax 百分比
+                const rawScoreStr = (rawNorm * 10).toFixed(1);
+                const softPctStr = (softVal * 100).toFixed(0) + '%';
+                // 混合顯示：C 期間漸進切換
+                let label;
+                if (tC < 0.3) label = rawScoreStr;
+                else if (tC < 0.7) label = (softVal * 100).toFixed(0) + '%';
+                else label = softPctStr;
+                ctx.fillStyle = softVal >= 0.30 ? '#5b21b6' : '#7c3aed';
+                ctx.font = 'bold 10px ui-monospace, monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(label, bx + L.barW / 2, by - 1);
+            }
+            ctx.restore();
+        }
+        _drawSumBadge(alpha) {
+            const ctx = this.ctx;
+            const L = this._stage2Layout();
+            const scale = 0.5 + 0.5 * easeOutBack(alpha);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            const cx = this.w - L.padX - 40;
+            const cy = L.softTop - 20;
+            const bw = 100 * scale;
+            const bh = 22 * scale;
+            ctx.fillStyle = '#dcfce7';
+            ctx.strokeStyle = '#16a34a';
+            ctx.lineWidth = 2;
+            this._roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 5);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#166534';
+            ctx.font = `bold ${11 * scale}px ui-monospace, monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Σ = 100% ✓', cx, cy);
+            ctx.restore();
         }
         _drawBubble(cx, cy, text, opts) {
             const {
@@ -1065,7 +1283,7 @@
     function _syncAnimControls(state) {
         // state: idle | playing | paused | done
         const show = (id, on) => { const el = $(id); if (el) el.hidden = !on; };
-        show('btn-play', state === 'idle');
+        show('btn-play', state === 'idle' || state === 'done');
         show('btn-pause', state === 'playing');
         show('btn-resume', state === 'paused');
         show('btn-step', state === 'playing' || state === 'paused');
@@ -1078,7 +1296,12 @@
         if (scene.selectedIdx === null) return;
         animator.speed = parseFloat($('cfg-speed').value) || 1;
         animator.onStageChange = (stage) => {
-            $('anim-stage').textContent = '階段：' + STAGE_NAMES[stage];
+            const label = STAGE_NAMES[stage] || '完成';
+            $('anim-stage').textContent = '階段：' + label;
+        };
+        animator.onEnd = () => {
+            $('anim-stage').textContent = '階段：✅ 完成（按 ↺ 重播）';
+            _syncAnimControls('done');
         };
         animator.start(preset, currentHead, scene.selectedIdx, raw, mat);
         _syncAnimControls('playing');
