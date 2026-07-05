@@ -70,9 +70,9 @@
             const mu = this.marginalUtility();
             if (price > this.budget) return false;
             if (price > this.maxWtp * mu * panicMult) return false;
-            // 熟客加成：每次熟客 +0.5% 容忍度，20 次熟客 = 抬 10%
+            // 熟客加成：每次熟客 +1.0% 容忍度，10 次熟客 = 抬 10%（原本 0.5% 效果太弱）
             // 意義：品牌信任讓消費者接受該店慢慢漲價，但漲太快還是會流失
-            const loyaltyBonus = 1 + 0.005 * (this.loyalty[pid] || 0);
+            const loyaltyBonus = 1 + 0.010 * (this.loyalty[pid] || 0);
             let cap = this.expected * this.confidence * mu * panicMult * loyaltyBonus;
             if (this.energy < 25) cap *= 1.4;
             else if (this.energy < 45) cap *= 1.15;
@@ -92,12 +92,21 @@
             const hasGossip = gossipPrice !== null && Number.isFinite(gossipPrice);
             // Type-specific 錨定漂移權重：
             //   budget：慣性 0.6，跟市場走（原本行為）
-            //   premium：慣性 0.88，只微微跟市場——「我知道好東西該多少錢」
+            //   premium：慣性 0.96 + 資訊過濾——低於 expected × 0.55 的價格「不是我心目中的
+            //     麵包」，不採納。這樣 9 天的複利漂移從 50→38 變成 50→46。
             let wI, wO, wG;
+            let effectiveHasOwn = hasOwn, effectiveHasGossip = hasGossip;
+            let effectiveOwn = ownPrice, effectiveGossip = gossipPrice;
             if (this.type === 'premium') {
-                wI = 0.88;
-                wO = hasOwn ? 0.08 : 0;
-                wG = hasGossip ? 0.04 : 0;
+                // 精品客過濾：< expected × 0.55 的觀察視為「非相關品類」拒絕採納
+                // 意義：精品客在夜市看到 $20 攤位不會覺得「原來麵包這麼便宜」，
+                //       他會覺得「那不是我要的東西」——心理錨完全隔離
+                const threshold = this.expected * 0.55;
+                if (hasOwn && ownPrice < threshold) { effectiveHasOwn = false; effectiveOwn = null; }
+                if (hasGossip && gossipPrice < threshold) { effectiveHasGossip = false; effectiveGossip = null; }
+                wI = 0.96;
+                wO = effectiveHasOwn ? 0.03 : 0;
+                wG = effectiveHasGossip ? 0.01 : 0;
             } else {
                 wI = 0.60;
                 wO = hasOwn ? 0.20 : 0;
@@ -105,8 +114,8 @@
             }
             const total = wI + wO + wG;
             let updated = (wI / total) * this.expected;
-            if (hasOwn) updated += (wO / total) * ownPrice;
-            if (hasGossip) updated += (wG / total) * gossipPrice;
+            if (effectiveHasOwn) updated += (wO / total) * effectiveOwn;
+            if (effectiveHasGossip) updated += (wG / total) * effectiveGossip;
             this.expected = updated;
             const observed = hasOwn ? ownPrice : (hasGossip ? gossipPrice : null);
             if (observed !== null) this.slowExpected = 0.99 * this.slowExpected + 0.01 * observed;
