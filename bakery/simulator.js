@@ -604,8 +604,9 @@
             this.ctx = canvas.getContext('2d');
             this._resize();
             // 每個客人的總時長（ms）；5 個 phase 依比例分配
-            // 500ms = 極快、4500ms = 預設慢、10000ms = 教學超慢
-            this.perCustomerMs = 4500;
+            // 現在跑真實全數事件（一天 50-150 個），預設調快到 500ms 讓一天 25-75 秒
+            // 100ms = 極快 flash by、500ms = 預設、2000ms = 慢慢看每個決策
+            this.perCustomerMs = 500;
             this.rafId = null;
             this.market = null;
             this.events = [];       // 依序播放的事件佇列
@@ -632,7 +633,7 @@
             this.h = +h;
         }
 
-        setPerCustomerMs(ms) { this.perCustomerMs = Math.max(300, Math.min(60000, +ms || 4500)); }
+        setPerCustomerMs(ms) { this.perCustomerMs = Math.max(80, Math.min(15000, +ms || 500)); }
         setMarket(m) { this.market = m; }
 
         // 動畫中暫停：凍結 t、cancelAnimationFrame，狀態全保留
@@ -851,20 +852,6 @@
             }
         }
 
-        // 從 sceneEvents 抽 6-8 個代表性的（sequential mode 要慢慢演，不能太多）
-        // 混合 3 買 + 3 拒 + 2 熟客/premium 的例子
-        _sampleEvents(events, maxCount = 7) {
-            const buys = events.filter(e => e.bought);
-            const rejects = events.filter(e => !e.bought);
-            const nBuy = Math.min(buys.length, Math.ceil(maxCount * 0.55));
-            const nRej = Math.min(rejects.length, maxCount - nBuy);
-            const shuffleTake = (arr, n) => shuffle(arr.slice()).slice(0, n);
-            const picked = [...shuffleTake(buys, nBuy), ...shuffleTake(rejects, nRej)];
-            // 交錯排列讓節奏有起伏，不會連 3 個買、連 3 個拒
-            picked.sort(() => Math.random() - 0.5);
-            return picked;
-        }
-
         // 每個客人 5 個 phase，按 perCustomerMs 依比例分配
         // 比例：進門 20% / 詢價 15.6% / 答覆 15.6% / 評估 15.6% / 決策 22.2% / 離開 11.1%
         _phaseDurations() {
@@ -879,7 +866,9 @@
             this.playing = true;
             this.paused = false;
             this._dayNumber = dayNumber;
-            this.events = this._sampleEvents(events);
+            // Fix C：用真實全部事件，不再抽樣（原本混池抽 7 個玩家店期望值只 0.5-1 個代表）
+            // 事件已在 stepOneDay 依 round + shopOrder 排好，直接播放就是真實一天流程
+            this.events = events.slice();
             this.eventIdx = 0;
             this.phase = 0;
             this.phaseStartAt = 0;
@@ -944,15 +933,9 @@
             const phaseElapsed = t - this.phaseStartAt;
             const phaseT = Math.min(1, phaseElapsed / phaseDur[this.phase]);
 
-            // Fix B：比例插值。放棄「事件觸發累加」——採樣 7 個混池抽事件，
-            // 玩家店期望值只有 0.5-1 個代表，用累加會嚴重失真。
-            // 改用「動畫整體進度 × 該店真實日總」：每家店的數字都平滑收斂到真實
-            // 值，不管有沒有被抽樣代表到。敘事層（7 個代表事件）跟數據層（每家
-            // 店的真實統計）徹底分開。
-            const customerProgress = (this.phase + phaseT) / phaseDur.length;
-            const overallProgress = Math.min(1, (this.eventIdx + customerProgress) / this.events.length);
-            this._updateStatsFromProgress(overallProgress);
-
+            // Fix C：事件是真實全數，counter 直接跟事件同步累加
+            // 動畫演完 = counter 自然等於 finalXxx，數字跟結算完全一致
+            // 累加時機在 phase 結束判斷處（進門完 → visits+1、決策完+bought → sold+1）
             this._drawStaticBackground();
 
             const slot = this._slotOf(ev.pid);
@@ -979,8 +962,9 @@
             const phaseNames = ['進門', '詢價', '店員答覆', '評估', '決策', '離開'];
             ctx.fillText(phaseNames[this.phase], this.w - 12, 30);
 
-            // Phase 結束 → 下一個 phase 或下一個客人
+            // Phase 結束 → 累加 shop stats + 下一個 phase 或下一個客人
             if (phaseElapsed >= phaseDur[this.phase]) {
+                this._updateStatsOnPhaseComplete(ev, this.phase);
                 this.phase += 1;
                 this.phaseStartAt = t;
                 if (this.phase >= phaseDur.length) {
@@ -1000,10 +984,23 @@
             this.rafId = requestAnimationFrame(() => this._loop());
         }
 
-        // Fix B 核心：整體進度 × 各店真實日總 = 現在應該顯示的數字
-        // progress=0 → visits=0、sold=0、remaining=baked
-        // progress=1 → visits=finalVisits、sold=finalSold、remaining=finalWasted
-        _updateStatsFromProgress(progress) {
+        // Fix C：事件觸發累加（events 現在是真實全數，累加終值 = finalXxx）
+        // phase 0 進門完 → visits+1
+        // phase 4 決策完 + bought → sold+1、remaining-1
+        _updateStatsOnPhaseComplete(ev, phase) {
+            if (!this._shopStats) return;
+            const s = this._shopStats.get(ev.pid);
+            if (!s) return;
+            if (phase === 0) {
+                s.visits += 1;
+            } else if (phase === 4 && ev.bought) {
+                s.sold += 1;
+                s.remaining = Math.max(0, s.remaining - 1);
+            }
+        }
+
+        // Legacy 保留（skip 邏輯萬一 shopStats 累加沒完成時用來對齊）
+        _updateStatsFromProgress_UNUSED(progress) {
             if (!this._shopStats) return;
             for (const [pid, s] of this._shopStats) {
                 s.visits = Math.round(progress * s.finalVisits);
@@ -1543,7 +1540,7 @@
         const costTier = $('cfg-cost-tier').value;
         const difficulty = $('cfg-difficulty').value;
         const mood = $('cfg-market').value;
-        const animMs = parseInt($('cfg-anim-ms').value) || 4500;
+        const animMs = parseInt($('cfg-anim-ms').value) || 500;
         const cfg = makeMarketCfg(costTier, difficulty, mood);
         market = new Market(cfg);
         gameOver = false;
@@ -1854,7 +1851,7 @@
         });
         // 動畫中即時改速度：input 每次變動立刻套用到 scene，下一 frame 生效
         $('cfg-anim-ms-live').addEventListener('input', e => {
-            if (scene) scene.setPerCustomerMs(parseInt(e.target.value) || 4500);
+            if (scene) scene.setPerCustomerMs(parseInt(e.target.value) || 500);
         });
         $('dec-price').addEventListener('input', e => {
             $('dec-price-val').textContent = '$' + fmt(parseFloat(e.target.value), 1);
