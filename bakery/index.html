@@ -70,12 +70,15 @@
                     </select>
                 </label>
                 <label>動畫節奏：每個客人 (ms)
-                    <input type="number" id="cfg-anim-ms" min="500" max="30000" value="4500" step="500">
+                    <input type="number" id="cfg-anim-ms" min="80" max="15000" value="500" step="50">
                 </label>
             </div>
             <p class="hint">
-                <b>動畫節奏</b>：500 = 極快看不清、4500 = 預設慢、10000 = 教學超慢
-                （每個客人跑進門→詢價→答覆→評估→決策→離開 5 個階段，時間依比例分配）
+                <b>動畫節奏</b>：動畫跑真實一天所有客戶（通常 50-150 人），
+                每人 5 階段依比例分配時間。<br>
+                <b>100ms</b> = 極快閃過（一天 5-15 秒）、
+                <b>500ms</b> = 預設（一天 25-75 秒，看得到每個客人流程）、
+                <b>2000ms</b> = 慢慢看每個決策（一天 100-300 秒、教學專用）
             </p>
             <div class="btn-row">
                 <button id="btn-start">▶ 開店</button>
@@ -145,7 +148,7 @@
                 <button id="btn-pause-anim" class="btn-scene">⏸ 暫停</button>
                 <button id="btn-resume-anim" class="btn-scene" hidden>▶ 繼續</button>
                 <label class="scene-speed-live">節奏 (ms/客人)
-                    <input type="number" id="cfg-anim-ms-live" min="500" max="30000" value="4500" step="500">
+                    <input type="number" id="cfg-anim-ms-live" min="80" max="15000" value="500" step="50">
                 </label>
                 <button id="btn-skip-anim" class="btn-scene btn-secondary">⏭ 快轉到今日結算</button>
             </div>
