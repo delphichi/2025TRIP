@@ -326,6 +326,10 @@
                 i + 1, op.cost, op.capacity, op.price, op.label, false
             ));
             this.producers = [this.player, ...this.opponents];
+            // 每天的決策記錄：玩家選的 vs AI 建議的
+            // { day, playerPrice, aiPrice, playerQty, aiQty }
+            // 用於：(a) daily log 顯示差、(b) game over 學習曲線、(c) 拐點回顧
+            this.decisionLog = [];
         }
 
         _neighborIds(cid) {
@@ -504,16 +508,14 @@
             const card = el('div', 'shop-card' + (op.closed ? ' closed' : ''));
             card.appendChild(el('div', 'shop-name', op.label));
             const priceRow = el('div', 'shop-price-big', '$' + fmt(op.effectivePrice(), 1));
-            if (op.inPromo()) {
-                const b = el('span', 'shop-badge promo', '特價');
-                priceRow.appendChild(b);
-            }
+            // 不再顯示「特價」badge —— 生存促銷是對手內部狀態，玩家只看得到價格
+            // 價格暴跌本身是唯一線索：讓玩家自己推理「這家為什麼降這麼多？」
             if (op.closed) {
                 const b = el('span', 'shop-badge closed', `倒店 D${op.closedDay}`);
                 priceRow.appendChild(b);
             }
             card.appendChild(priceRow);
-            // 只顯示招牌價 —— 不透露成本、庫存、本金
+            // 只顯示招牌價 —— 不透露成本、庫存、本金、促銷狀態
             card.appendChild(el('div', 'shop-stat', '成本 / 庫存 → 🔒 看不到'));
             wrap.appendChild(card);
         });
@@ -629,6 +631,16 @@
         const p = market.player;
         const prof = rec.playerProfit;
         const profTag = prof >= 0 ? 'tag-good' : 'tag-bad';
+        // 決策差：你 vs AI 建議（每天都算，跟按不按建議按鈕無關）
+        const dec = market.decisionLog[market.decisionLog.length - 1];
+        if (dec) {
+            const dP = dec.playerPrice - dec.aiPrice;
+            const dQ = dec.playerQty - dec.aiQty;
+            const sign = v => v > 0 ? '+' : '';
+            const decP = el('p', 'log-delta');
+            decP.innerHTML = `你 $${fmt(dec.playerPrice, 1)} / ${dec.playerQty} 個；AI 建議 $${fmt(dec.aiPrice, 1)} / ${dec.aiQty} 個（差 <b>${sign(dP)}$${fmt(dP, 1)}</b> / <b>${sign(dQ)}${dQ}</b> 個）`;
+            box.appendChild(decP);
+        }
         box.appendChild(el('p', null,
             `你賣 ${rec.playerSold}，剩 ${rec.playerWasted}（烤了 ${p.history[p.history.length - 1].baked} 個）。`));
         const profP = el('p');
@@ -826,6 +838,16 @@
         if (!market || gameOver) return;
         const price = parseFloat($('dec-price').value);
         const qty = parseInt($('dec-qty').value, 10);
+        // 每天靜默算一份 AI 建議（不管玩家有沒有按按鈕），記下差值
+        // 用來畫學習曲線：前 10 天平均差 vs 後 10 天平均差 = 直覺是否收斂到 AI
+        const aiSug = computeAISuggestion();
+        market.decisionLog.push({
+            day: market.day + 1,   // 這天決策要跑的那一天
+            playerPrice: price,
+            aiPrice: aiSug.price,
+            playerQty: qty,
+            aiQty: aiSug.qty,
+        });
         market.player.setPrice(price);
         market.player.setPlannedQuantity(qty);
 
@@ -851,6 +873,87 @@
         }
     }
 
+    // 分析整場：找本金峰值日 + 最慘單日 + 學習曲線（前後半段 vs AI 建議的差距）
+    function analyzeRun() {
+        const history = market.player.history;
+        const decLog = market.decisionLog;
+        if (history.length === 0) return null;
+
+        // 峰值日：cumulativeProfit 最高的那天（拐點候選——之後如果一路下滑，這就是「由升轉降」的點）
+        let peakIdx = 0, peak = history[0].cumulativeProfit;
+        for (let i = 1; i < history.length; i++) {
+            if (history[i].cumulativeProfit > peak) {
+                peak = history[i].cumulativeProfit;
+                peakIdx = i;
+            }
+        }
+        // 最慘單日：profit 最低的那天（單日決策失誤最痛的一次）
+        let worstIdx = 0, worst = history[0].profit;
+        for (let i = 1; i < history.length; i++) {
+            if (history[i].profit < worst) {
+                worst = history[i].profit;
+                worstIdx = i;
+            }
+        }
+        const peakDay = history[peakIdx].day;
+        const worstDay = history[worstIdx].day;
+        const findDec = d => decLog.find(x => x.day === d) || null;
+
+        // 學習曲線：前半段 vs 後半段的平均 |價差|、|量差|
+        // 收斂 = 越玩越靠近 AI；發散 = 越玩越信自己（不一定壞）
+        const N = decLog.length;
+        const half = Math.max(1, Math.floor(N / 2));
+        const avgAbsDelta = (from, to, key1, key2) => {
+            const slice = decLog.slice(from, to);
+            if (slice.length === 0) return 0;
+            return slice.reduce((s, d) => s + Math.abs(d[key1] - d[key2]), 0) / slice.length;
+        };
+        const early = {
+            price: avgAbsDelta(0, half, 'playerPrice', 'aiPrice'),
+            qty:   avgAbsDelta(0, half, 'playerQty',   'aiQty'),
+            n: half,
+        };
+        const late = {
+            price: avgAbsDelta(half, N, 'playerPrice', 'aiPrice'),
+            qty:   avgAbsDelta(half, N, 'playerQty',   'aiQty'),
+            n: N - half,
+        };
+
+        return {
+            peakDay, peakCash: peak, peakDec: findDec(peakDay), peakProfit: history[peakIdx].profit,
+            worstDay, worstProfit: worst, worstDec: findDec(worstDay),
+            endCash: history[history.length - 1].cumulativeProfit,
+            early, late,
+            fellFromPeak: history[history.length - 1].cumulativeProfit < peak,
+        };
+    }
+
+    function renderAnalysisHTML(a) {
+        if (!a) return '';
+        const decStr = d => d
+            ? `你定 $${fmt(d.playerPrice, 1)} / 烤 ${d.playerQty} 個（AI 當時建議 $${fmt(d.aiPrice, 1)} / ${d.aiQty} 個）`
+            : '（無決策紀錄）';
+        // 學習曲線判讀
+        let curveVerdict = '';
+        if (a.late.n >= 2 && a.early.n >= 2) {
+            const priceConv = a.late.price < a.early.price - 0.5;
+            const priceDiv = a.late.price > a.early.price + 0.5;
+            if (priceConv) curveVerdict = `<b class="tag-good">收斂 ↘</b>：你越玩越靠近 AI 的建議價（前半平均差 $${fmt(a.early.price, 1)} → 後半 $${fmt(a.late.price, 1)}）——直覺在向 newsvendor 內化。`;
+            else if (priceDiv) curveVerdict = `<b>發散 ↗</b>：你越玩越偏離 AI（$${fmt(a.early.price, 1)} → $${fmt(a.late.price, 1)}）。可能是你發現「AI 只是啟發式、不是聖旨」，也可能是走偏了——看本金圖判定。`;
+            else curveVerdict = `<b>穩定</b>：整場跟 AI 的差距差不多（$${fmt(a.early.price, 1)} → $${fmt(a.late.price, 1)}）。`;
+        }
+        return `
+            <h3>📊 這一場的回顧</h3>
+            <ul>
+                <li><b>本金峰值：Day ${a.peakDay}，本金 $${fmt(a.peakCash, 1)}</b>${a.fellFromPeak ? '（之後開始下滑）' : '（一路走高到最後）'}<br>
+                    <span class="analysis-sub">那天決策：${decStr(a.peakDec)}</span></li>
+                <li><b>最慘單日：Day ${a.worstDay}，那天淨利 <span class="tag-bad">$${fmt(a.worstProfit, 1)}</span></b><br>
+                    <span class="analysis-sub">那天決策：${decStr(a.worstDec)}</span></li>
+                <li><b>學習曲線</b>（vs AI 建議價）：${curveVerdict}</li>
+            </ul>
+        `;
+    }
+
     function endGame(outcome) {
         gameOver = true;
         $('decision-panel').hidden = true;
@@ -860,6 +963,7 @@
         const p = market.player;
         const aliveOpp = market.opponents.filter(o => !o.closed).length;
         const closedOpp = market.opponents.length - aliveOpp;
+        const analysis = renderAnalysisHTML(analyzeRun());
 
         let title, body;
         if (outcome === 'lose_bankrupt') {
@@ -867,6 +971,7 @@
             body = `
                 <p>你的本金花光了。<b>$${fmt(p.cumulativeProfit, 1)}</b>。</p>
                 <p>還有 <b>${aliveOpp}</b> 家對手撐著。</p>
+                ${analysis}
                 <p><b>教訓：</b>「賺最多」不是遊戲目標，「撐下去」才是。價格訂太低會被成本壓死；訂太高會被對手搶客；烤太多會廢；烤太少會流失客源。真實的經營者面對的就是這種<b>資訊不完全的多目標平衡</b>。</p>
             `;
         } else if (outcome === 'win_last_standing') {
@@ -875,6 +980,7 @@
             body = `
                 <p>所有 <b>${market.opponents.length}</b> 家對手都倒了。你活到 Day ${market.day}，本金 <b>$${fmt(p.cumulativeProfit, 1)}</b>。</p>
                 <p><b>你贏了。</b></p>
+                ${analysis}
                 <p><b>心得：</b>你不需要每天都是最便宜的、也不需要每天都賺最多。你只需要「不倒」。這叫 <i>survivorship</i>。</p>
             `;
         } else {
@@ -883,7 +989,8 @@
             body = `
                 <p>你活到 Day 30，本金 <b>$${fmt(p.cumulativeProfit, 1)}</b>，還有 <b>${aliveOpp}</b> 家對手活著（<b>${closedOpp}</b> 家倒了）。</p>
                 <p><b>你贏了。</b></p>
-                <p><b>反思：</b>你這 30 天的定價 / 產量策略如果都套到明天，還能繼續嗎？看下面的線圖——你的本金是穩定上升，還是靠一波高潮撐著？後者在 Day 31 可能就崩了。</p>
+                ${analysis}
+                <p><b>反思：</b>你這 30 天的定價 / 產量策略如果都套到明天，還能繼續嗎？看上面的峰值日跟最慘日——你的高峰是哪來的、你的低谷又踩到什麼陷阱？</p>
             `;
         }
         $('gameover-title').textContent = title;
