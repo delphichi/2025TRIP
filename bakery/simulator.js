@@ -925,6 +925,7 @@
             endCash: history[history.length - 1].cumulativeProfit,
             early, late,
             fellFromPeak: history[history.length - 1].cumulativeProfit < peak,
+            daysPlayed: history.length,
         };
     }
 
@@ -946,10 +947,16 @@
             else if (priceDiv) curveVerdict = `<b>發散 ↗</b>：跟 AI 建議價的差距在拉大（$${fmt(a.early.price, 1)} → $${fmt(a.late.price, 1)}）。可能是你發現「AI 只是啟發式、不是聖旨」，也可能是走偏了——看本金圖判定。`;
             else curveVerdict = `<b>穩定</b>：整場跟 AI 的差距差不多（$${fmt(a.early.price, 1)} → $${fmt(a.late.price, 1)}）。`;
         }
-        // 峰值日語意：Day 1 是特殊 case——峰值 = 種子 + Day 1 淨利，之後一路陰乾
+        // 峰值日語意：三種 case
+        //  (a) Day 1 峰值 + Day 1 死：第一天決策就爆炸，沒進 Day 2
+        //  (b) Day 1 峰值 + 活到後面：從 Day 2 起陰乾
+        //  (c) Day X 峰值 + 後續下滑：真正的拐點
+        //  (d) 峰值就在最後一天：一路走高沒拐點
         let peakLine;
-        if (a.peakDay === 1) {
-            peakLine = `<b>本金峰值：Day 1，本金 $${fmt(a.peakCash, 1)}</b>（= 種子 $100 + Day 1 淨利 $${fmt(a.peakProfit, 1)}）——<b class="tag-bad">你從 Day 2 起就沒再賺過錢</b>，這一場「一開始就走錯」，不是後來崩掉。`;
+        if (a.peakDay === 1 && a.daysPlayed === 1) {
+            peakLine = `<b class="tag-bad">Day 1 直接破產</b>：本金 $${fmt(a.peakCash, 1)}（種子 $100 + Day 1 淨利 $${fmt(a.peakProfit, 1)}）——第一天決策就爆炸，這一場沒進 Day 2。<span class="analysis-sub">常見原因：烤太多 or 售價離市場太遠，Day 1 沒有需求訊號可依靠。</span>`;
+        } else if (a.peakDay === 1) {
+            peakLine = `<b>本金峰值：Day 1，本金 $${fmt(a.peakCash, 1)}</b>（= 種子 $100 + Day 1 淨利 $${fmt(a.peakProfit, 1)}）——<b class="tag-bad">Day 1 就是最高點，之後沒再突破</b>。中間可能有起有伏，但淨值再也沒回到開場的水位。`;
         } else if (a.fellFromPeak) {
             peakLine = `<b>本金峰值：Day ${a.peakDay}，本金 $${fmt(a.peakCash, 1)}</b>（之後開始下滑——這就是拐點）`;
         } else {
