@@ -93,15 +93,12 @@
                 → <b>店員答覆</b>（黃泡「$40 / 個」）→ <b>評估</b>（藍雲思考「我期望…」）
                 → <b>決策</b>（綠買 / 紅拒）→ <b>離開</b>
                 <br>
-                <label>動畫速度
-                    <select id="cfg-anim-speed">
-                        <option value="0.5">0.5× 極慢（每個客人 8s、教學專用）</option>
-                        <option value="1" selected>1× 慢（每個客人 4.5s、看清楚流程）</option>
-                        <option value="2">2× 中（每個客人 2s）</option>
-                        <option value="4">4× 快（一天 ~8s）</option>
-                        <option value="8">8× 快進（一天 ~4s）</option>
-                    </select>
+                <label>每個客人 (ms)
+                    <input type="number" id="cfg-anim-ms" min="500" max="30000" value="4500" step="500">
                 </label>
+                <span class="hint" style="margin: 0 8px;">
+                    500 = 極快、4500 = 預設慢、10000 = 教學超慢
+                </span>
                 <button id="btn-skip-anim" class="btn-secondary">⏭ 跳過動畫</button>
             </p>
         </section>
