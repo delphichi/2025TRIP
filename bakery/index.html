@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bakery Tycoon · 撐得下去的才是贏家</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#78350f">
+</head>
+<body class="sim-body">
+
+    <header class="sim-header">
+        <h1>🥐 Bakery Tycoon</h1>
+        <p class="sim-subtitle">你開店，AI 開店，看誰先倒。目標不是「賺最多」，是「撐到最後」。</p>
+    </header>
+
+    <main class="sim-main">
+
+        <section class="panel intro-panel">
+            <h2>🎯 玩法</h2>
+            <p class="hint">
+                你是 <b class="mine-tag">🥐 我的麵包店</b>，隔壁四家是 AI 對手。
+                每天你決定<b>明天的售價</b>和<b>要烤幾個</b>，AI 對手同時各自決定。
+                消費者根據自己的錢包、飢餓、心理錨、鄰居八卦來挑店買。
+                <br>
+                <b>贏的條件</b>：撐 <b>30 天</b>不倒（本金 &lt; 0 就 game over）。
+                你能看到隔壁的<b>招牌價</b>但看不到他們的<b>成本 / 庫存</b>——就跟真實開店一樣。
+            </p>
+        </section>
+
+        <section class="panel setup-panel" id="setup-panel">
+            <h2>🏗️ 開店設定（僅第一天）</h2>
+            <div class="ctrl-grid">
+                <label>你的成本結構
+                    <select id="cfg-cost-tier">
+                        <option value="low">🍞 低成本（每個 $18，產能 30）— 走量薄利</option>
+                        <option value="mid" selected>🥐 中成本（每個 $25，產能 25）— 平衡</option>
+                        <option value="high">🥖 高成本（每個 $34，產能 20）— 高單價精品</option>
+                    </select>
+                </label>
+                <label>對手強度
+                    <select id="cfg-difficulty">
+                        <option value="easy">😌 輕鬆（對手成本高）</option>
+                        <option value="normal" selected>🎯 一般</option>
+                        <option value="hard">🔥 困難（對手成本低）</option>
+                    </select>
+                </label>
+                <label>市場氣氛
+                    <select id="cfg-market">
+                        <option value="calm">☀️ 平靜</option>
+                        <option value="normal" selected>🌤️ 一般（有八卦 + 微通膨）</option>
+                        <option value="harsh">⛈️ 嚴苛（通膨 + 高不耐煩）</option>
+                    </select>
+                </label>
+            </div>
+            <div class="btn-row">
+                <button id="btn-start">▶ 開店</button>
+            </div>
+        </section>
+
+        <section class="panel game-panel" id="game-panel" hidden>
+            <h2>📅 <span id="day-label">Day 0</span> · 我的本金 <span id="cash-label">$100</span></h2>
+            <div class="board">
+                <div class="board-col me-col">
+                    <div class="shop-card mine" id="mine-card">
+                        <div class="shop-name">🥐 我的麵包店</div>
+                        <div class="shop-stat">成本 <b id="mine-cost">$25</b> · 產能 <b id="mine-cap">25</b></div>
+                        <div class="shop-stat">本金 <b id="mine-cash">$100</b></div>
+                        <div class="shop-stat">昨日：烤 <b id="mine-baked">—</b>，賣 <b id="mine-sold">—</b>，剩 <b id="mine-wasted">—</b></div>
+                        <div class="shop-stat">昨日淨利 <b id="mine-profit">—</b></div>
+                    </div>
+                </div>
+                <div class="board-col opp-col" id="opponents">
+                    <!-- opponent cards injected here -->
+                </div>
+            </div>
+
+            <div class="decision-panel" id="decision-panel">
+                <h3>🎲 明天的決策</h3>
+                <p class="hint">你只能看到對手的<b>招牌價</b>（明天要標的價）。他們的成本、庫存、本金——看不到。</p>
+                <div class="ctrl-grid">
+                    <label>明天的售價
+                        <input type="range" id="dec-price" min="20" max="120" step="0.5" value="45">
+                        <span class="range-val" id="dec-price-val">$45.0</span>
+                    </label>
+                    <label>明天烤幾個
+                        <input type="range" id="dec-qty" min="0" max="30" step="1" value="12">
+                        <span class="range-val" id="dec-qty-val">12 個</span>
+                    </label>
+                </div>
+                <div class="ai-suggest" id="ai-suggest">
+                    <div class="suggest-label">🤖 AI 顧問建議</div>
+                    <div class="suggest-body" id="suggest-body">按下「AI 建議」看它會怎麼決定</div>
+                </div>
+                <div class="btn-row">
+                    <button id="btn-ai-suggest" class="btn-secondary">🤖 AI 建議</button>
+                    <button id="btn-apply-suggest" class="btn-secondary" hidden>採用 AI 建議</button>
+                    <button id="btn-confirm">✅ 確認決策 → 開店</button>
+                </div>
+            </div>
+
+            <div class="log" id="day-log">
+                <p class="log-empty">按「開店」開始 Day 1。</p>
+            </div>
+        </section>
+
+        <section class="panel chart-panel" id="chart-panel" hidden>
+            <h2>📈 全市場走勢（上帝視角）</h2>
+            <p class="hint">
+                <b class="mine-tag">🥐 你</b>的線是實心亮橘色；對手灰色細線。
+                看你的線相對於他們——是走高（贏得溢價）？走低（被競爭壓）？還是斷掉（倒店）？
+            </p>
+            <div class="chart-block">
+                <div class="chart-title">每日售價</div>
+                <canvas id="chart-price" width="900" height="220"></canvas>
+            </div>
+            <div class="chart-block">
+                <div class="chart-title">累計本金（跌破 0 = 倒店）</div>
+                <canvas id="chart-cash" width="900" height="220"></canvas>
+            </div>
+        </section>
+
+        <section class="panel gameover-panel" id="gameover-panel" hidden>
+            <h2 id="gameover-title">💀 遊戲結束</h2>
+            <div class="gameover-body" id="gameover-body"></div>
+            <div class="btn-row">
+                <button id="btn-restart">↺ 重新開始</button>
+            </div>
+        </section>
+
+        <footer class="sim-footer">
+            <p>模型：<strong>麵包經濟學的玩家版</strong>。跟隔壁 <a href="../simulator.html">🍞 全 agent 版</a>、
+            <a href="../attention/index.html">🔍 Attention Sandbox</a>、
+            <a href="../lyric/index.html">🎵 Lyric Playback</a>、
+            <a href="../stock/index.html">📈 股市</a>、
+            <a href="../retirement/index.html">👴 退休金</a> 是姊妹作。</p>
+            <p><a href="../index.html">← 回家族旅遊 PWA</a></p>
+        </footer>
+
+    </main>
+
+    <script src="simulator.js"></script>
+</body>
+</html>
