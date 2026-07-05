@@ -82,26 +82,6 @@
             </div>
         </section>
 
-        <section class="panel scene-panel" id="scene-panel" hidden>
-            <h2>🎬 <span id="scene-day-label">Day 0</span> 營業實況（店員視角）</h2>
-            <div class="scene-wrap">
-                <canvas id="scene-canvas" width="920" height="360"></canvas>
-                <div class="scene-summary" id="scene-summary" hidden>
-                    <h3 id="summary-title">📊 今日結算</h3>
-                    <div id="summary-body"></div>
-                    <button id="btn-next-day">📅 明天見 → 設定明天的價格 & 數量</button>
-                </div>
-            </div>
-            <p class="hint">
-                <span class="dot dot-premium"></span> 精品客（金球 + 光暈）
-                <span class="dot dot-budget"></span> 基礎客（藍球）
-                &nbsp;·&nbsp; 5 階段：<b>進門</b> → <b>詢價</b>（白泡）→ <b>店員答覆</b>（黃泡）
-                → <b>評估</b>（藍雲思考）→ <b>決策</b>（綠買 / 紅拒）→ <b>離開</b>
-                <br>
-                動畫節奏在<b>開店設定</b>裡定，中途只能<button id="btn-skip-anim" class="btn-secondary" style="margin-left:6px;">⏭ 跳過動畫</button>
-            </p>
-        </section>
-
         <section class="panel game-panel" id="game-panel" hidden>
             <h2>📅 <span id="day-label">Day 0</span> · 我的本金 <span id="cash-label">$100</span></h2>
             <div class="board">
@@ -148,6 +128,26 @@
             <div class="log" id="day-log">
                 <p class="log-empty">按「開店」開始 Day 1。</p>
             </div>
+        </section>
+
+        <section class="panel scene-panel" id="scene-panel" hidden>
+            <h2>🎬 <span id="scene-day-label">Day 0</span> 營業實況（店員視角）</h2>
+            <div class="scene-wrap">
+                <canvas id="scene-canvas" width="920" height="360"></canvas>
+                <div class="scene-summary" id="scene-summary" hidden>
+                    <h3 id="summary-title">📊 今日結算</h3>
+                    <div id="summary-body"></div>
+                    <button id="btn-next-day">📅 明天見 → 設定明天的價格 & 數量</button>
+                </div>
+            </div>
+            <p class="hint">
+                <span class="dot dot-premium"></span> 精品客（金球 + 光暈）
+                <span class="dot dot-budget"></span> 基礎客（藍球）
+                &nbsp;·&nbsp; 5 階段：<b>進門</b> → <b>詢價</b>（白泡）→ <b>店員答覆</b>（黃泡）
+                → <b>評估</b>（藍雲思考）→ <b>決策</b>（綠買 / 紅拒）→ <b>離開</b>
+                <br>
+                動畫節奏在<b>開店設定</b>裡定，中途只能<button id="btn-skip-anim" class="btn-secondary" style="margin-left:6px;">⏭ 跳過動畫</button>
+            </p>
         </section>
 
         <section class="panel chart-panel" id="chart-panel" hidden>
