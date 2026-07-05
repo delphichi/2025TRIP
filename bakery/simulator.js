@@ -444,6 +444,7 @@
             const shopOrder = shuffle(this.consumers.slice());
             const maxVisits = Math.max(3, Math.min(this.producers.length, 6));
             const trades = [];
+            const sceneEvents = [];   // 給 BakeryScene 動畫用
             const totalAlive = this.producers.filter(p => !p.closed).length;
 
             for (let round = 0; round < maxVisits; round++) {
@@ -469,6 +470,12 @@
                     const bought = c.decide(price, p.id, panicMult);
                     c.observePrice(price, p.id);
                     p.visitsToday = (p.visitsToday || 0) + 1;
+
+                    sceneEvents.push({
+                        round, cid: c.id, pid: p.id,
+                        consumerType: c.type,
+                        price, bought,
+                    });
 
                     if (bought) {
                         p.sell();
@@ -520,10 +527,13 @@
                 day: this.day,
                 playerSold: this.player.soldToday,
                 playerWasted: this.player.wastedToday,
+                playerVisits: this.player.visitsToday || 0,
+                playerBaked: this.player.plannedQuantity,
                 playerProfit: this.player.lastProfit,
                 playerCumulative: this.player.cumulativeProfit,
                 playerClosed: this.player.closed,
                 trades: trades.length,
+                sceneEvents,
             };
         }
     }
@@ -581,9 +591,384 @@
         };
     }
 
+    // ---------- BakeryScene（Phase 3：店員視角動畫） ----------
+    // 5 間店橫排、玩家永遠在中間、店面精緻度依 cost tier、
+    // 客人分色（premium 金 / budget 藍）、對話泡泡「$40 買！」or「$40 太貴」
+    // 動畫結束後 fire onFinish callback，讓 UI 顯示結算並等玩家按下一天
+    class BakeryScene {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.clientWidth || canvas.width;
+            const h = canvas.clientHeight || canvas.height;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            this.ctx.scale(dpr, dpr);
+            this.w = w;
+            this.h = h;
+            this.speed = 1;
+            this.rafId = null;
+            this.market = null;
+            this.customers = [];   // 動畫中的客人
+            this.bubbles = [];     // 對話泡泡
+            this.playing = false;
+            this.onFinish = null;
+            this._t0 = 0;
+        }
+
+        setSpeed(s) { this.speed = s; }
+        setMarket(m) { this.market = m; }
+
+        // Producer id → 螢幕 position（左到右 0..4），玩家（id=0）永遠在中間 index=2
+        _slotOf(pid) {
+            if (pid === 0) return 2;
+            return pid <= 2 ? pid - 1 : pid;   // opp 1→0, 2→1, 3→3, 4→4
+        }
+
+        _shopBox(slot) {
+            const marginX = 20;
+            const totalW = this.w - 2 * marginX;
+            const gap = 10;
+            const shopW = (totalW - 4 * gap) / 5;
+            const x = marginX + slot * (shopW + gap);
+            const y = this.h * 0.36;
+            const shopH = this.h * 0.58;
+            return { x, y, w: shopW, h: shopH };
+        }
+
+        // 依 cost tier 畫不同精緻度的店面
+        _drawShop(producer) {
+            const { ctx } = this;
+            const slot = this._slotOf(producer.id);
+            const b = this._shopBox(slot);
+            const cost = producer.initialCost;
+            const isPlayer = producer.id === 0;
+
+            // Cost tier: <22 = 陋店、22-30 = 中檔、>=30 = 精品
+            let bodyColor, roofColor, awningColor, ornate;
+            if (cost < 22) {
+                bodyColor = '#a8825a'; roofColor = '#7c5c3b'; awningColor = null; ornate = false;
+            } else if (cost < 30) {
+                bodyColor = '#e0c9a6'; roofColor = '#8b5e3c'; awningColor = '#c53030'; ornate = false;
+            } else {
+                bodyColor = '#fef3c7'; roofColor = '#b45309'; awningColor = '#7c2d12'; ornate = true;
+            }
+
+            // 屋頂三角
+            ctx.fillStyle = roofColor;
+            ctx.beginPath();
+            ctx.moveTo(b.x - 4, b.y + 10);
+            ctx.lineTo(b.x + b.w / 2, b.y - 4);
+            ctx.lineTo(b.x + b.w + 4, b.y + 10);
+            ctx.closePath();
+            ctx.fill();
+
+            // 主體
+            ctx.fillStyle = bodyColor;
+            ctx.fillRect(b.x, b.y + 8, b.w, b.h - 8);
+            ctx.strokeStyle = '#78350f';
+            ctx.lineWidth = isPlayer ? 3 : 1;
+            ctx.strokeRect(b.x, b.y + 8, b.w, b.h - 8);
+
+            // 遮陽篷（中/高檔才有）
+            if (awningColor) {
+                ctx.fillStyle = awningColor;
+                const aw = b.w * 0.85;
+                const ax = b.x + (b.w - aw) / 2;
+                const ay = b.y + 14;
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(ax + aw, ay);
+                ctx.lineTo(ax + aw - 8, ay + 12);
+                ctx.lineTo(ax + 8, ay + 12);
+                ctx.closePath();
+                ctx.fill();
+                // 條紋
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                for (let i = 1; i < 5; i++) {
+                    const sx = ax + (aw * i / 5);
+                    ctx.beginPath();
+                    ctx.moveTo(sx, ay);
+                    ctx.lineTo(sx - 4, ay + 12);
+                    ctx.stroke();
+                }
+            }
+
+            // 窗（精品店窗較大 + 金框）
+            const winY = b.y + 32;
+            const winH = b.h * 0.35;
+            const winW = b.w * 0.55;
+            const winX = b.x + (b.w - winW) / 2;
+            ctx.fillStyle = '#fef9c3';
+            ctx.fillRect(winX, winY, winW, winH);
+            if (ornate) {
+                ctx.strokeStyle = '#d97706';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(winX, winY, winW, winH);
+                // 十字窗櫺
+                ctx.beginPath();
+                ctx.moveTo(winX + winW / 2, winY);
+                ctx.lineTo(winX + winW / 2, winY + winH);
+                ctx.moveTo(winX, winY + winH / 2);
+                ctx.lineTo(winX + winW, winY + winH / 2);
+                ctx.stroke();
+            } else {
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(winX, winY, winW, winH);
+            }
+
+            // 麵包 emoji 在窗內（顯示庫存）
+            ctx.font = `${Math.floor(winH * 0.4)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const breadCount = Math.min(3, Math.max(0, producer.inventory));
+            const bread = producer.closed ? '💀' : (producer.wasHot ? '🔥' : '🥐');
+            const label = producer.closed ? '💀' : (breadCount === 0 ? '（售完）' : '🥐'.repeat(breadCount));
+            ctx.fillStyle = producer.closed ? '#991b1b' : '#78350f';
+            ctx.fillText(producer.closed ? '💀' : label, winX + winW / 2, winY + winH / 2);
+
+            // 門
+            const doorW = b.w * 0.22;
+            const doorH = b.h * 0.35;
+            const doorX = b.x + (b.w - doorW) / 2;
+            const doorY = b.y + b.h - doorH;
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(doorX, doorY, doorW, doorH);
+            if (ornate) {
+                ctx.fillStyle = '#d97706';
+                ctx.beginPath();
+                ctx.arc(doorX + doorW - 4, doorY + doorH / 2, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 招牌 & 價格
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.font = `700 ${isPlayer ? 12 : 11}px sans-serif`;
+            ctx.fillStyle = isPlayer ? '#f97316' : '#78350f';
+            const name = isPlayer ? '🥐 我的店' : producer.label.replace(/^對手 /, '').replace(/\s·.*$/, '');
+            ctx.fillText(name, b.x + b.w / 2, b.y + b.h + 4);
+            ctx.font = `800 14px ui-monospace, SFMono-Regular, monospace`;
+            ctx.fillStyle = producer.closed ? '#991b1b' : '#b45309';
+            ctx.fillText(producer.closed ? `倒 D${producer.closedDay}` : `$${producer.effectivePrice().toFixed(0)}`, b.x + b.w / 2, b.y + b.h + 18);
+
+            // 🔥 badge 精品店 signaling
+            if (producer.wasHot && !producer.closed) {
+                ctx.font = '18px sans-serif';
+                ctx.fillText('🔥', b.x + b.w - 14, b.y + 4);
+            }
+        }
+
+        _drawStaticBackground() {
+            const { ctx, w, h } = this;
+            // 天空 & 地面
+            ctx.fillStyle = 'transparent';
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#c4b598';
+            ctx.fillRect(0, h * 0.94, w, h * 0.06);
+            // 5 shops
+            if (this.market) {
+                for (const p of this.market.producers) this._drawShop(p);
+            }
+        }
+
+        // 從 sceneEvents 抽樣：每天可能 100+ 事件，取 12-20 個代表性的
+        // 保留：所有 buy（比 reject 精彩）+ 部分 reject
+        _sampleEvents(events, maxCount = 16) {
+            const buys = events.filter(e => e.bought);
+            const rejects = events.filter(e => !e.bought);
+            const nBuy = Math.min(buys.length, Math.ceil(maxCount * 0.6));
+            const nRej = Math.min(rejects.length, maxCount - nBuy);
+            const shuffleTake = (arr, n) => shuffle(arr.slice()).slice(0, n);
+            const picked = [...shuffleTake(buys, nBuy), ...shuffleTake(rejects, nRej)];
+            // 依 round 排序，讓早出現的先跑
+            picked.sort((a, b) => (a.round - b.round) + Math.random() * 0.5);
+            return picked;
+        }
+
+        animateDay(dayNumber, events, onFinish) {
+            this.onFinish = onFinish;
+            this.playing = true;
+            this.customers = [];
+            this.bubbles = [];
+            this._t0 = performance.now();
+            this._dayNumber = dayNumber;
+            const sampled = this._sampleEvents(events);
+            const durationMs = 3500;   // 一日約 3.5 秒
+            const step = durationMs / Math.max(1, sampled.length);
+            // 依序排入客人：每 step 毫秒生一個
+            sampled.forEach((ev, i) => {
+                this.customers.push({
+                    ev,
+                    spawnAt: i * step,
+                    startX: rand(30, this.w - 30),
+                    startY: this.h * 0.94,
+                    targetSlot: this._slotOf(ev.pid),
+                    state: 'pending',   // pending → walking → arrived → gone
+                });
+            });
+            this._endAt = durationMs + 1200;   // 動畫結束後留 1.2 秒欣賞
+            this._loop();
+        }
+
+        skip() {
+            this.playing = false;
+            if (this.rafId) cancelAnimationFrame(this.rafId);
+            this.customers = [];
+            this.bubbles = [];
+            this._drawStaticBackground();
+            if (this.onFinish) this.onFinish();
+        }
+
+        _loop() {
+            if (!this.playing) return;
+            const now = performance.now();
+            const t = (now - this._t0) * this.speed;
+            this._drawStaticBackground();
+
+            // 更新客人
+            for (const c of this.customers) {
+                if (c.state === 'gone') continue;
+                if (c.state === 'pending' && t >= c.spawnAt) {
+                    c.state = 'walking';
+                    c.walkStart = t;
+                }
+                if (c.state === 'walking') {
+                    const box = this._shopBox(c.targetSlot);
+                    const targetX = box.x + box.w / 2;
+                    const targetY = box.y + box.h - 20;
+                    const dt = (t - c.walkStart) / 900;   // walk 900ms scaled
+                    if (dt >= 1) {
+                        c.state = 'arrived';
+                        c.arriveAt = t;
+                        // 生成泡泡
+                        this.bubbles.push({
+                            x: targetX,
+                            y: box.y - 8,
+                            text: `$${c.ev.price.toFixed(0)} ${c.ev.bought ? '✓ 買！' : '✗ 太貴'}`,
+                            good: c.ev.bought,
+                            spawnAt: t,
+                            duration: 900,
+                            consumerType: c.ev.consumerType,
+                        });
+                        c.x = targetX;
+                        c.y = targetY;
+                    } else {
+                        c.x = c.startX + (targetX - c.startX) * dt;
+                        c.y = c.startY + (targetY - c.startY) * dt - Math.sin(dt * Math.PI) * 8;
+                    }
+                    this._drawConsumer(c);
+                } else if (c.state === 'arrived') {
+                    this._drawConsumer(c);
+                    if (t - c.arriveAt > 700) c.state = 'gone';
+                }
+            }
+
+            // 泡泡
+            this.bubbles = this.bubbles.filter(b => (t - b.spawnAt) < b.duration);
+            for (const b of this.bubbles) {
+                const age = (t - b.spawnAt) / b.duration;
+                this._drawBubble(b, age);
+            }
+
+            // Day label
+            const ctx = this.ctx;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.font = '700 14px sans-serif';
+            ctx.fillStyle = '#78350f';
+            ctx.fillText(`Day ${this._dayNumber}`, 12, 10);
+
+            // 結束判定
+            if (t >= this._endAt) {
+                this.playing = false;
+                if (this.onFinish) this.onFinish();
+                return;
+            }
+            this.rafId = requestAnimationFrame(() => this._loop());
+        }
+
+        _drawConsumer(c) {
+            const ctx = this.ctx;
+            const isPremium = c.ev.consumerType === 'premium';
+            // 身體 = 圓，顏色分型
+            ctx.fillStyle = isPremium ? '#f59e0b' : '#60a5fa';
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, 6, 0, Math.PI * 2);
+            ctx.fill();
+            if (isPremium) {
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            // 頭
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.arc(c.x, c.y - 9, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        _drawBubble(b, age) {
+            const ctx = this.ctx;
+            // Pop-in animation
+            const scale = age < 0.15 ? age / 0.15 : (age > 0.85 ? (1 - age) / 0.15 : 1);
+            const alpha = age > 0.85 ? Math.max(0, (1 - age) / 0.15) : 1;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.translate(b.x, b.y - 20 * age);
+            ctx.scale(scale, scale);
+            // Box
+            ctx.font = '700 13px sans-serif';
+            const padding = 6;
+            const textW = ctx.measureText(b.text).width;
+            const boxW = textW + padding * 2;
+            const boxH = 20;
+            ctx.fillStyle = b.good ? 'rgba(220, 252, 231, 0.95)' : 'rgba(254, 226, 226, 0.95)';
+            ctx.strokeStyle = b.good ? '#22c55e' : '#ef4444';
+            ctx.lineWidth = 2;
+            const bx = -boxW / 2;
+            const by = -boxH - 8;
+            // Rounded box
+            const r = 6;
+            ctx.beginPath();
+            ctx.moveTo(bx + r, by);
+            ctx.lineTo(bx + boxW - r, by);
+            ctx.quadraticCurveTo(bx + boxW, by, bx + boxW, by + r);
+            ctx.lineTo(bx + boxW, by + boxH - r);
+            ctx.quadraticCurveTo(bx + boxW, by + boxH, bx + boxW - r, by + boxH);
+            ctx.lineTo(bx + r, by + boxH);
+            ctx.quadraticCurveTo(bx, by + boxH, bx, by + boxH - r);
+            ctx.lineTo(bx, by + r);
+            ctx.quadraticCurveTo(bx, by, bx + r, by);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            // Tail
+            ctx.beginPath();
+            ctx.moveTo(-4, by + boxH);
+            ctx.lineTo(0, by + boxH + 5);
+            ctx.lineTo(4, by + boxH);
+            ctx.closePath();
+            ctx.fillStyle = b.good ? 'rgba(220, 252, 231, 0.95)' : 'rgba(254, 226, 226, 0.95)';
+            ctx.fill();
+            ctx.stroke();
+            // Text
+            ctx.fillStyle = b.good ? '#166534' : '#991b1b';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(b.text, 0, by + boxH / 2);
+            ctx.restore();
+        }
+    }
+
     // ---------- UI ----------
     let market = null;
     let gameOver = false;
+    let scene = null;
+    let pendingDayRec = null;   // 動畫期間存放的結算資料
 
     function el(tag, cls, text) {
         const e = document.createElement(tag);
@@ -951,11 +1336,9 @@
         if (!market || gameOver) return;
         const price = parseFloat($('dec-price').value);
         const qty = parseInt($('dec-qty').value, 10);
-        // 每天靜默算一份 AI 建議（不管玩家有沒有按按鈕），記下差值
-        // 用來畫學習曲線：前 10 天平均差 vs 後 10 天平均差 = 直覺是否收斂到 AI
         const aiSug = computeAISuggestion();
         market.decisionLog.push({
-            day: market.day + 1,   // 這天決策要跑的那一天
+            day: market.day + 1,
             playerPrice: price,
             aiPrice: aiSug.price,
             playerQty: qty,
@@ -965,13 +1348,57 @@
         market.player.setPlannedQuantity(qty);
 
         const rec = market.stepOneDay();
+        pendingDayRec = rec;
+
+        // 進入動畫階段：隱藏決策 & log，顯示 scene panel
+        $('scene-panel').hidden = false;
+        $('decision-panel').hidden = true;
+        $('scene-summary').hidden = true;
+        $('scene-day-label').textContent = `Day ${rec.day}`;
+
+        scene.setMarket(market);
+        scene.setSpeed(parseFloat($('cfg-anim-speed').value));
+        scene.animateDay(rec.day, rec.sceneEvents, showDaySummary);
+    }
+
+    function showDaySummary() {
+        const rec = pendingDayRec;
+        if (!rec) return;
+        // 底層畫店家最終狀態
+        scene.setMarket(market);
+        const p = market.player;
+        const last = p.history[p.history.length - 1];
+        const conv = rec.playerVisits > 0 ? (rec.playerSold / rec.playerVisits * 100).toFixed(0) + '%' : '—';
+        const profTag = rec.playerProfit >= 0 ? 'profit-good' : 'profit-bad';
+        const loyalCount = market.consumers.reduce((s, c) => s + ((c.loyalty[p.id] || 0) >= 1 ? 1 : 0), 0);
+        const closedNow = market.opponents.filter(o => o.closed && o.closedDay === rec.day);
+        const closedHtml = closedNow.length > 0
+            ? `<div class="row" style="color:#991b1b;"><b>💀 對手倒店</b><b>${closedNow.map(o => o.label).join('、')}</b></div>`
+            : '';
+        $('summary-title').textContent = `📊 Day ${rec.day} 結算`;
+        $('summary-body').innerHTML = `
+            <div class="row"><b>訪客</b><b>${rec.playerVisits} 人</b></div>
+            <div class="row"><b>成交率</b><b>${conv}（${rec.playerSold}/${rec.playerVisits}）</b></div>
+            <div class="row"><b>賣 / 烤</b><b>${rec.playerSold} / ${last.baked}（剩 ${last.wasted}）</b></div>
+            <div class="row"><b>今日淨利</b><b class="${profTag}">$${fmt(rec.playerProfit, 1)}</b></div>
+            <div class="row"><b>本金</b><b>$${fmt(rec.playerCumulative, 1)}</b></div>
+            <div class="row"><b>熟客</b><b>${loyalCount} 位${p.wasHot ? ' · 🔥 熱門！' : ''}</b></div>
+            ${closedHtml}
+        `;
+        $('scene-summary').hidden = false;
+    }
+
+    function proceedToNextDay() {
+        const rec = pendingDayRec;
+        pendingDayRec = null;
+        $('scene-panel').hidden = true;
+        $('scene-summary').hidden = true;
         logDay(rec);
         renderMineCard();
         renderOpponents();
         updateHeader();
         renderCharts();
 
-        // Check game state
         const aliveOpp = market.opponents.filter(o => !o.closed).length;
         if (rec.playerClosed) {
             endGame('lose_bankrupt');
@@ -980,6 +1407,7 @@
         } else if (market.day >= 30) {
             endGame('win_survived');
         } else {
+            $('decision-panel').hidden = false;
             renderDecisionDefaults();
             $('suggest-body').textContent = '按下「AI 建議」看它會怎麼決定';
             $('btn-apply-suggest').hidden = true;
@@ -1135,17 +1563,29 @@
         $('game-panel').hidden = true;
         $('chart-panel').hidden = true;
         $('gameover-panel').hidden = true;
+        $('scene-panel').hidden = true;
+        $('scene-summary').hidden = true;
         market = null;
         gameOver = false;
+        pendingDayRec = null;
+        if (scene && scene.playing) scene.skip();
     }
 
     // ---------- Wire up ----------
     function initUI() {
+        scene = new BakeryScene($('scene-canvas'));
         $('btn-start').addEventListener('click', startGame);
         $('btn-confirm').addEventListener('click', confirmDay);
         $('btn-ai-suggest').addEventListener('click', renderAISuggestion);
         $('btn-apply-suggest').addEventListener('click', applyAISuggestion);
         $('btn-restart').addEventListener('click', restart);
+        $('btn-next-day').addEventListener('click', proceedToNextDay);
+        $('btn-skip-anim').addEventListener('click', () => {
+            if (scene && scene.playing) scene.skip();
+        });
+        $('cfg-anim-speed').addEventListener('change', e => {
+            if (scene) scene.setSpeed(parseFloat(e.target.value));
+        });
         $('dec-price').addEventListener('input', e => {
             $('dec-price-val').textContent = '$' + fmt(parseFloat(e.target.value), 1);
         });
