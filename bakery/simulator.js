@@ -978,11 +978,12 @@
                     this.phase = 0;
                     if (this.eventIdx >= this.events.length) {
                         // 所有事件跑完 → live counters snap 到當日真實總數
-                        // ⚠ 必須多畫一幀，否則 canvas 停在 pre-snap 的 live 值
-                        // （動畫最後畫「訪客 1」，結算卡顯示「訪客 6」，兩者矛盾）
+                        // 用 rAF 排程重繪 —— 避免 same-frame 內 draw 被瀏覽器省略
                         this._snapStatsToFinal();
                         this._drawStaticBackground();
                         this.playing = false;
+                        // 保險：下一 frame 再畫一次，某些瀏覽器同 frame 多次 draw 只保留一個
+                        requestAnimationFrame(() => this._drawStaticBackground());
                         if (this.onFinish) this.onFinish();
                         return;
                     }
@@ -1612,6 +1613,12 @@
         if (!rec) return;
         // 底層畫店家最終狀態
         scene.setMarket(market);
+        // 防呆：force snap + redraw，確保結算卡打開時 canvas 已經是 post-snap
+        // （_loop 尾巴應該已經做了，但 rAF/browser 時序有時會漏掉）
+        if (scene && scene._shopStats) {
+            scene._snapStatsToFinal();
+            scene._drawStaticBackground();
+        }
         const p = market.player;
         const last = p.history[p.history.length - 1];
         const conv = rec.playerVisits > 0 ? (rec.playerSold / rec.playerVisits * 100).toFixed(0) + '%' : '—';
