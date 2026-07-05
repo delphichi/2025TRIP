@@ -224,6 +224,46 @@ body.sim-body {
 }
 /* HTML hidden attribute 被 display:flex 蓋掉，強制優先 */
 .scene-summary[hidden] { display: none !important; }
+
+.scene-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 4px;
+    padding: 8px 10px;
+    background: #fef3c7;
+    border-radius: 8px;
+    border: 1px solid #fbbf24;
+}
+.btn-scene {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 6px;
+    background: var(--primary);
+    color: white;
+    font-size: .9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .12s;
+}
+.btn-scene:hover:not(:disabled) { background: #92400e; }
+.btn-scene.btn-secondary { background: #6b7280; }
+.btn-scene.btn-secondary:hover:not(:disabled) { background: #4b5563; }
+.scene-speed-live {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .88em;
+    color: var(--muted);
+}
+.scene-speed-live input {
+    width: 90px;
+    padding: 6px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+}
 @keyframes summary-in {
     from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }
