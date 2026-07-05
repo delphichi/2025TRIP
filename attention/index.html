@@ -51,7 +51,25 @@
                 <b>點任一個詞</b>會看到它的注意力扇向其他詞。金色高亮 = 目前選中，箭頭粗細 = 這個詞投注多少注意力給對方。
                 Head 切換 = 換一個「思考角度」看同一個句子。
             </p>
-            <canvas id="scene" width="920" height="240"></canvas>
+            <div class="scene-wrap">
+                <canvas id="scene" width="920" height="240"></canvas>
+                <canvas id="scene-overlay" width="920" height="240"></canvas>
+            </div>
+            <div class="anim-controls" id="anim-controls">
+                <button id="btn-play" disabled>▶ 慢動作解析 Q·K</button>
+                <button id="btn-pause" hidden>⏸ 暫停</button>
+                <button id="btn-resume" hidden>▶ 繼續</button>
+                <button id="btn-step" hidden>⏭ 下一步</button>
+                <button id="btn-replay" hidden>↺ 重播</button>
+                <label class="anim-speed">速度
+                    <select id="cfg-speed">
+                        <option value="0.5">0.5×（慢）</option>
+                        <option value="1" selected>1×</option>
+                        <option value="2">2×（快）</option>
+                    </select>
+                </label>
+                <div class="anim-stage" id="anim-stage">階段：靜態</div>
+            </div>
         </section>
 
         <section class="panel qkv-panel">

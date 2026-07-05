@@ -54,6 +54,29 @@
                     { from: 4, to: 8, weight: 4.5 },
                 ],
             },
+            // 慢動作動畫用的教學文案。key = token idx，value = 短句（≤ 20 字）。
+            // 空的自動 fallback：qLabels 用「我這個詞想關注誰」、kLabels 用「我是：<token>」、
+            // vLabels 用 token 本身。填得越好動畫教學效果越強——這是給人類編輯的欄位。
+            qLabels: {
+                8: '我想知道我這個代詞指的是什麼',   // 它
+                2: '我想知道我這個動作作用在誰身上', // 買了
+                7: '我想知道我這個動作作用在誰身上', // 讀
+            },
+            kLabels: {
+                0: '人稱代詞：我（第一人稱主體）',
+                4: '名詞：一種能被買、被讀的實體物品',
+                8: '代詞：等待被指涉的物件',
+                2: '動詞：購買動作',
+                7: '動詞：閱讀動作',
+                1: '時間名詞：今天',
+                5: '時間名詞：晚上',
+            },
+            vLabels: {
+                0: '第一人稱主體',
+                4: '成冊的著作',
+                7: '閱讀動作',
+                8: '被指涉的物件',
+            },
         },
         {
             id: 'en-pronoun',
@@ -74,6 +97,18 @@
                 5: [],
                 6: [ { from: 0, to: 1, weight: 4.0 }, { from: 4, to: 5, weight: 4.0 } ],  // The→cat, the→mat
                 7: [ { from: 1, to: 7, weight: 3.5 } ],   // cat ↔ it
+            },
+            qLabels: {
+                7: 'I want to know what noun I refer to',   // it
+            },
+            kLabels: {
+                1: 'noun: cat (an animate creature)',
+                5: 'noun: mat (an inanimate object)',
+                7: 'pronoun: awaiting antecedent',
+            },
+            vLabels: {
+                1: 'the cat (subject)',
+                5: 'the mat (location)',
             },
         },
         {
@@ -97,6 +132,22 @@
                 5: [],
                 6: [ { from: 3, to: 4, weight: 4.0 }, { from: 7, to: 8, weight: 4.0 } ],   // 很→差、真的→好吃
                 7: [ { from: 8, to: 6, weight: 4.5 }, { from: 4, to: 2, weight: 4.5 } ],
+            },
+            qLabels: {
+                5: '我這個轉折詞想同時關注兩個對立情感',   // 但是
+            },
+            kLabels: {
+                4: '情感詞：負面（差）',
+                8: '情感詞：正面（好吃）',
+                2: '名詞：服務',
+                6: '名詞：菜',
+                5: '邏輯連詞：轉折',
+            },
+            vLabels: {
+                4: '負面情感內容',
+                8: '正面情感內容',
+                2: '評論對象：服務品質',
+                6: '評論對象：食物',
             },
         },
         {
@@ -137,6 +188,19 @@
                     { from: 10, to: 1, weight: 3.5 },  // tired → animal (adj → noun it describes)
                 ],
             },
+            qLabels: {
+                7: 'What noun do I refer to? (animate or inanimate?)',
+            },
+            kLabels: {
+                1: 'noun: animal (can get tired)',
+                5: 'noun: street (cannot get tired)',
+                7: 'pronoun: ambiguous reference',
+                10: 'adjective: tired (an animate trait)',
+            },
+            vLabels: {
+                1: 'the animal (subject who is tired)',
+                5: 'the street (location)',
+            },
         },
         {
             id: 'zh-longrange',
@@ -159,6 +223,21 @@
                 5: [],
                 6: [ { from: 2, to: 3, weight: 4.0 } ],  // 很→冷
                 7: [ { from: 8, to: 3, weight: 3.5 } ],   // 短袖回頭看冷（矛盾對照）
+            },
+            qLabels: {
+                4: '我這個轉折詞想連回我對應的「雖然」',   // 但是
+                7: '我這個動作作用在誰身上',              // 穿
+            },
+            kLabels: {
+                0: '邏輯連詞：讓步（雖然）',
+                4: '邏輯連詞：轉折（但是）',
+                3: '形容詞：冷',
+                8: '名詞：短袖（薄衣）',
+            },
+            vLabels: {
+                0: '讓步子句的內容鋪墊',
+                4: '轉折後的核心行動',
+                8: '違反直覺的動作對象',
             },
         },
     ];
@@ -613,11 +692,305 @@
         `;
     }
 
+    // ---------- Slow-motion Q·K animator ----------
+    // 6 個階段（Stage 0-6），這個 MVP 只實作 Stage 0-2（Q 亮起 + K 逐一打分 + raw score）
+    // Stage 3-6 return early。跟 SceneChart 分開一層 overlay canvas 畫，互不干擾。
+    const STAGE_NAMES = [
+        '0/6 淡出準備',
+        '1/6 Query 意圖',
+        '2/6 K 逐一打分',
+        '3/6 Raw score bar',
+        '4/6 Softmax 變形',
+        '5/6 化為箭頭',
+        '6/6 V 加權求和',
+    ];
+    const STAGE_DURATIONS_MS = [200, 1500, null /* N × 800 */, 500, 1500, 1000, Infinity];
+
+    class AttentionAnimator {
+        constructor(overlayCanvas, sceneChart) {
+            this.canvas = overlayCanvas;
+            this.ctx = overlayCanvas.getContext('2d');
+            this.scene = sceneChart;
+            this.playing = false;
+            this.speed = 1.0;
+            this.stage = 0;
+            this.subStep = 0;         // Stage 2 內：目前打分到哪個 j
+            this.stageStart = 0;
+            this.rafId = null;
+            this.onStageChange = null;
+            this._setupHiDPI();
+        }
+        _setupHiDPI() {
+            const dpr = window.devicePixelRatio || 1;
+            const w = this.canvas.clientWidth || this.canvas.width;
+            const h = this.canvas.clientHeight || this.canvas.height;
+            this.canvas.width = w * dpr;
+            this.canvas.height = h * dpr;
+            this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+            this.ctx.scale(dpr, dpr);
+            this.w = w; this.h = h;
+        }
+        start(preset, headIdx, queryIdx, raw, softmaxed) {
+            this.preset = preset;
+            this.head = headIdx;
+            this.query = queryIdx;
+            this.raw = raw[queryIdx];   // 只需要這 row
+            this.softmaxed = softmaxed[queryIdx];
+            this.tokens = preset.tokens;
+            this.stage = 0;
+            this.subStep = 0;
+            this.stageStart = performance.now();
+            this.playing = true;
+            this._loop();
+            if (this.onStageChange) this.onStageChange(this.stage);
+        }
+        pause() { this.playing = false; if (this.rafId) cancelAnimationFrame(this.rafId); }
+        resume() { if (this.playing) return; this.playing = true; this.stageStart = performance.now() - this._elapsedInStage; this._loop(); }
+        stop() {
+            this.playing = false;
+            if (this.rafId) cancelAnimationFrame(this.rafId);
+            this.stage = 0;
+            this.subStep = 0;
+            this._clear();
+        }
+        stepForward() {
+            // Stage 2: 進下一個 K；其他 stage：進下一階段
+            if (this.stage === 2 && this.subStep < this.tokens.length - 1) {
+                this.subStep += 1;
+                if (this.subStep === this.query) this.subStep += 1;
+                if (this.subStep >= this.tokens.length) this._advanceStage();
+            } else {
+                this._advanceStage();
+            }
+            this.stageStart = performance.now();
+            this._draw(0);
+            if (this.onStageChange) this.onStageChange(this.stage);
+        }
+        _advanceStage() {
+            this.stage = Math.min(6, this.stage + 1);
+            this.subStep = 0;
+            if (this.stage === 2) {
+                // 跳過 query 自己
+                this.subStep = this.query === 0 ? 1 : 0;
+            }
+        }
+        _loop() {
+            if (!this.playing) return;
+            const now = performance.now();
+            const elapsed = now - this.stageStart;
+            this._elapsedInStage = elapsed;
+            const dur = this._currentStageDurationMs();
+            const t = dur === Infinity ? 1 : Math.min(1, elapsed / dur);
+            this._draw(t);
+            if (t >= 1 && this.stage < 6) {
+                if (this.stage === 2 && this.subStep < this.tokens.length - 1) {
+                    this.subStep += 1;
+                    if (this.subStep === this.query) this.subStep = Math.min(this.tokens.length - 1, this.subStep + 1);
+                    this.stageStart = now;
+                } else {
+                    this._advanceStage();
+                    this.stageStart = now;
+                    if (this.onStageChange) this.onStageChange(this.stage);
+                }
+            }
+            this.rafId = requestAnimationFrame(() => this._loop());
+        }
+        _currentStageDurationMs() {
+            const base = STAGE_DURATIONS_MS[this.stage];
+            if (base === null) return 800 / this.speed;   // Stage 2 每個 substep
+            if (base === Infinity) return Infinity;
+            return base / this.speed;
+        }
+        _clear() { this.ctx.clearRect(0, 0, this.w, this.h); }
+
+        _draw(t) {
+            const { ctx } = this;
+            ctx.clearRect(0, 0, this.w, this.h);
+            if (this.stage === 0) return this._drawStage0(t);
+            if (this.stage === 1) return this._drawStage1(t);
+            if (this.stage === 2) return this._drawStage2(t);
+            if (this.stage >= 3) return this._drawStage3plus(t);
+        }
+
+        // Stage 0: dim everything except query（在 overlay 上蓋一層半透明蒙版，摳掉 query 節點）
+        _drawStage0(t) {
+            const { ctx } = this;
+            ctx.fillStyle = `rgba(255,255,255,${0.55 * t})`;
+            ctx.fillRect(0, 0, this.w, this.h);
+            const qb = this.scene.tokenBounds[this.query];
+            if (!qb) return;
+            // 摳一個透明洞（destination-out）
+            ctx.save();
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillStyle = '#000';
+            this._roundRect(qb.x - qb.w / 2 - 4, qb.y - 26, qb.w + 8, 52, 12);
+            ctx.fill();
+            ctx.restore();
+        }
+        // Stage 1: Q 思考氣泡從 query 節點上方冒出
+        _drawStage1(t) {
+            this._drawStage0(1);  // 保持 dim
+            const qb = this.scene.tokenBounds[this.query];
+            if (!qb) return;
+            const qText = (this.preset.qLabels || {})[this.query] || '我這個詞想關注誰？';
+            // Scale from 0.5 to 1 with easeOutBack
+            const scale = 0.5 + Math.min(1, t / 0.6) * 0.5;
+            const alpha = Math.min(1, t / 0.3);
+            this._drawBubble(qb.x, qb.y - 44, qText, {
+                fill: '#fef3c7',
+                stroke: '#eab308',
+                ink: '#78350f',
+                scale, alpha,
+                prefix: 'Q：',
+            });
+        }
+        // Stage 2: K 逐一打分（subStep = 目前算到哪個 j）
+        _drawStage2(t) {
+            this._drawStage0(1);
+            // 之前 substep 都已完成，畫留下的 K 標籤 + 灰色線
+            const done = this._doneKsBefore();
+            for (const j of done) this._drawKAndLine(j, 1, /*live=*/false);
+            // 當前 substep 正在打分
+            const j = this.subStep;
+            if (j >= 0 && j < this.tokens.length && j !== this.query) {
+                this._drawKAndLine(j, t, /*live=*/true);
+            }
+            // Q 泡泡一直保留
+            const qb = this.scene.tokenBounds[this.query];
+            if (qb) {
+                const qText = (this.preset.qLabels || {})[this.query] || '我這個詞想關注誰？';
+                this._drawBubble(qb.x, qb.y - 44, qText, {
+                    fill: '#fef3c7', stroke: '#eab308', ink: '#78350f',
+                    scale: 1, alpha: 1, prefix: 'Q：',
+                });
+            }
+        }
+        _doneKsBefore() {
+            const out = [];
+            for (let j = 0; j < this.tokens.length; j++) {
+                if (j === this.query) continue;
+                if (j < this.subStep) out.push(j);
+            }
+            return out;
+        }
+        _drawKAndLine(j, tLocal, live) {
+            const ctx = this.ctx;
+            const qb = this.scene.tokenBounds[this.query];
+            const kb = this.scene.tokenBounds[j];
+            if (!qb || !kb) return;
+            const alpha = Math.max(0.35, tLocal);
+            // K 標籤在節點下方
+            const kText = (this.preset.kLabels || {})[j] || `${this.tokens[j]}`;
+            this._drawBubble(kb.x, kb.y + 44, kText, {
+                fill: live ? '#dbeafe' : '#e0e7ff',
+                stroke: live ? '#3b82f6' : '#818cf8',
+                ink: '#1e3a8a',
+                scale: 1, alpha, prefix: 'K：',
+                tailUp: true,
+            });
+            // 臨時線 query → j
+            ctx.strokeStyle = live ? `rgba(124,58,237,${0.7 * tLocal})` : 'rgba(148,163,184,0.5)';
+            ctx.lineWidth = live ? 2 : 1.2;
+            ctx.setLineDash(live ? [] : [4, 3]);
+            const arch = 30 + Math.abs(j - this.query) * 8;
+            const cx = (qb.x + kb.x) / 2, cy = qb.y - arch;
+            ctx.beginPath();
+            ctx.moveTo(qb.x, qb.y - 22);
+            ctx.quadraticCurveTo(cx, cy, kb.x, kb.y - 22);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            // 分數 (raw pre-softmax)
+            const score = this.raw[j];
+            const scoreStr = 'Q·K = ' + score.toFixed(2);
+            ctx.font = 'bold 12px ui-monospace, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = live ? '#7c3aed' : '#6b7280';
+            const tx = cx, ty = cy + 6;
+            const pad = 4;
+            const tw = ctx.measureText(scoreStr).width + pad * 2;
+            ctx.fillStyle = live ? 'rgba(245,243,255,0.95)' : 'rgba(243,244,246,0.85)';
+            ctx.fillRect(tx - tw / 2, ty - 15, tw, 15);
+            ctx.strokeStyle = live ? '#a78bfa' : '#cbd5e1';
+            ctx.strokeRect(tx - tw / 2, ty - 15, tw, 15);
+            ctx.fillStyle = live ? '#7c3aed' : '#6b7280';
+            ctx.fillText(scoreStr, tx, ty - 2);
+        }
+        // Stage 3+: MVP 只實作到 Stage 2；後續階段先給個提示訊息
+        _drawStage3plus(t) {
+            const { ctx } = this;
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.fillRect(0, 0, this.w, this.h);
+            ctx.fillStyle = '#6d28d9';
+            ctx.font = 'bold 14px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Stage 3-6（Softmax 變形 → 箭頭 → V 加權公式）—— 下一輪實作', this.w / 2, this.h / 2);
+        }
+
+        // 通用：畫思考氣泡
+        _drawBubble(cx, cy, text, opts) {
+            const { fill, stroke, ink, scale, alpha, prefix = '', tailUp = false } = opts;
+            const ctx = this.ctx;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.font = '12px -apple-system, "Segoe UI", sans-serif';
+            const label = prefix + text;
+            const padX = 8, padY = 5;
+            const tw = ctx.measureText(label).width + padX * 2;
+            const th = 22;
+            const w = tw * scale;
+            const h = th * scale;
+            const x = cx - w / 2;
+            const y = cy - h / 2;
+            // Bubble body
+            ctx.fillStyle = fill;
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = 1.5;
+            this._roundRect(x, y, w, h, 6);
+            ctx.fill();
+            ctx.stroke();
+            // Tail
+            ctx.beginPath();
+            if (tailUp) {
+                ctx.moveTo(cx - 5, y);
+                ctx.lineTo(cx, y - 6);
+                ctx.lineTo(cx + 5, y);
+            } else {
+                ctx.moveTo(cx - 5, y + h);
+                ctx.lineTo(cx, y + h + 6);
+                ctx.lineTo(cx + 5, y + h);
+            }
+            ctx.closePath();
+            ctx.fillStyle = fill;
+            ctx.fill();
+            ctx.stroke();
+            // Text
+            ctx.fillStyle = ink;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = `bold ${12 * scale}px -apple-system, sans-serif`;
+            ctx.fillText(label, cx, cy);
+            ctx.restore();
+        }
+        _roundRect(x, y, w, h, r) {
+            const ctx = this.ctx;
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+    }
+
     // ---------- Wire up ----------
     let currentPresetIdx = 0;
     let currentHead = 0;
     let scene = null;
     let matrix = null;
+    let animator = null;
 
     function currentPreset() { return PRESETS[currentPresetIdx]; }
 
@@ -629,10 +1002,37 @@
         renderHeadsGrid(preset);
         renderQKVTrace(preset, mat, currentHead, scene.selectedIdx);
         renderNotes(preset);
+        // 動畫控制欄的狀態：只有選了詞才能按 ▶
+        $('btn-play').disabled = scene.selectedIdx === null;
+        if (animator) animator._clear();
+        _syncAnimControls('idle');
+        const st = $('anim-stage');
+        if (st) st.textContent = '階段：靜態';
+    }
+
+    function _syncAnimControls(state) {
+        // state: idle | playing | paused | done
+        const show = (id, on) => { const el = $(id); if (el) el.hidden = !on; };
+        show('btn-play', state === 'idle');
+        show('btn-pause', state === 'playing');
+        show('btn-resume', state === 'paused');
+        show('btn-step', state === 'playing' || state === 'paused');
+        show('btn-replay', state === 'playing' || state === 'paused' || state === 'done');
+    }
+
+    function startAnimation() {
+        const preset = currentPreset();
+        const { raw, mat } = buildMatrix(preset, currentHead);
+        if (scene.selectedIdx === null) return;
+        animator.speed = parseFloat($('cfg-speed').value) || 1;
+        animator.onStageChange = (stage) => {
+            $('anim-stage').textContent = '階段：' + STAGE_NAMES[stage];
+        };
+        animator.start(preset, currentHead, scene.selectedIdx, raw, mat);
+        _syncAnimControls('playing');
     }
 
     function bootstrap() {
-        // Fill preset dropdown
         const presetSel = $('cfg-preset');
         PRESETS.forEach((p, i) => {
             const opt = document.createElement('option');
@@ -643,10 +1043,12 @@
         presetSel.addEventListener('change', () => {
             currentPresetIdx = parseInt(presetSel.value);
             scene.selectedIdx = null;
+            if (animator) animator.stop();
             rerender();
         });
         $('cfg-head').addEventListener('change', () => {
             currentHead = parseInt($('cfg-head').value);
+            if (animator) animator.stop();
             rerender();
         });
         $('cfg-intensity').addEventListener('input', () => {
@@ -656,9 +1058,23 @@
 
         scene = new SceneChart($('scene'));
         scene.setIntensity(1.5);
-        scene.onSelect = () => rerender();
+        scene.onSelect = () => {
+            if (animator) animator.stop();
+            rerender();
+        };
 
         matrix = new MatrixChart($('matrix'));
+        animator = new AttentionAnimator($('scene-overlay'), scene);
+
+        // 動畫按鈕
+        $('btn-play').addEventListener('click', startAnimation);
+        $('btn-pause').addEventListener('click', () => { animator.pause(); _syncAnimControls('paused'); });
+        $('btn-resume').addEventListener('click', () => { animator.resume(); _syncAnimControls('playing'); });
+        $('btn-step').addEventListener('click', () => { animator.pause(); animator.stepForward(); _syncAnimControls('paused'); });
+        $('btn-replay').addEventListener('click', () => { animator.stop(); startAnimation(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && animator) { animator.stop(); rerender(); }
+        });
 
         rerender();
     }
