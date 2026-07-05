@@ -600,19 +600,20 @@
             this.canvas = canvas;
             this.ctx = canvas.getContext('2d');
             this._resize();
-            this.speed = 1;
+            // 每個客人的總時長（ms）；5 個 phase 依比例分配
+            // 500ms = 極快、4500ms = 預設慢、10000ms = 教學超慢
+            this.perCustomerMs = 4500;
             this.rafId = null;
             this.market = null;
             this.events = [];       // 依序播放的事件佇列
             this.eventIdx = 0;
-            this.phaseStartAt = 0;  // 目前這個客人的當前 phase 開始時間
+            this.phaseStartAt = 0;
             this.phase = 0;         // 0=進門 1=詢價 2=答覆 3=評估 4=決策 5=離開
             this.playing = false;
             this.onFinish = null;
             this._t0 = 0;
         }
 
-        // 每次 animateDay 前重新量 canvas（panel 從 hidden 變 visible 尺寸才對）
         _resize() {
             const canvas = this.canvas;
             const dpr = window.devicePixelRatio || 1;
@@ -626,7 +627,7 @@
             this.h = +h;
         }
 
-        setSpeed(s) { this.speed = s; }
+        setPerCustomerMs(ms) { this.perCustomerMs = Math.max(300, Math.min(60000, +ms || 4500)); }
         setMarket(m) { this.market = m; }
 
         // Producer id → 螢幕 position（左到右 0..4），玩家（id=0）永遠在中間 index=2
@@ -798,12 +799,12 @@
             return picked;
         }
 
-        // 每個客人 5 個 phase，每個 phase 有明確視覺
-        // 0=進門走路 (0.9s)、1=詢價 (0.7s)、2=店員答覆 (0.7s)、3=評估 (0.7s)、4=決策 (1.0s)、5=離開淡出 (0.5s)
-        // 一個客人約 4.5 秒（1× 速度）、7 個客人 = 一天 ~32 秒
-        // 4× 快進 = 一天 ~8 秒（新手要看細節時用 1×、熟悉後用 4×）
+        // 每個客人 5 個 phase，按 perCustomerMs 依比例分配
+        // 比例：進門 20% / 詢價 15.6% / 答覆 15.6% / 評估 15.6% / 決策 22.2% / 離開 11.1%
         _phaseDurations() {
-            return [900, 700, 700, 700, 1000, 500];
+            const total = this.perCustomerMs;
+            const props = [0.20, 0.156, 0.156, 0.156, 0.222, 0.111];
+            return props.map(p => p * total);
         }
 
         animateDay(dayNumber, events, onFinish) {
@@ -829,7 +830,7 @@
         _loop() {
             if (!this.playing) return;
             const now = performance.now();
-            const t = (now - this._t0) * this.speed;
+            const t = now - this._t0;   // 直接用 ms，不再乘 speed multiplier
 
             // 沒事件 → 結束
             if (this.events.length === 0) {
@@ -1466,7 +1467,7 @@
         $('scene-day-label').textContent = `Day ${rec.day}`;
 
         scene.setMarket(market);
-        scene.setSpeed(parseFloat($('cfg-anim-speed').value));
+        scene.setPerCustomerMs(parseInt($('cfg-anim-ms').value) || 4500);
         scene.animateDay(rec.day, rec.sceneEvents, showDaySummary);
     }
 
@@ -1692,8 +1693,8 @@
         $('btn-skip-anim').addEventListener('click', () => {
             if (scene && scene.playing) scene.skip();
         });
-        $('cfg-anim-speed').addEventListener('change', e => {
-            if (scene) scene.setSpeed(parseFloat(e.target.value));
+        $('cfg-anim-ms').addEventListener('change', e => {
+            if (scene) scene.setPerCustomerMs(parseInt(e.target.value) || 4500);
         });
         $('dec-price').addEventListener('input', e => {
             $('dec-price-val').textContent = '$' + fmt(parseFloat(e.target.value), 1);
