@@ -928,21 +928,32 @@
         _loop() {
             if (!this.playing || this.paused) return;
             const now = performance.now();
-            const t = now - this._t0;   // 直接用 ms，perCustomerMs 隨時可調
+            const t = now - this._t0;
 
             // 沒事件 → 結束
             if (this.events.length === 0) {
+                this._snapStatsToFinal();
+                this._drawStaticBackground();
                 this.playing = false;
                 if (this.onFinish) this.onFinish();
                 return;
             }
 
-            this._drawStaticBackground();
-
             const ev = this.events[this.eventIdx];
             const phaseDur = this._phaseDurations();
             const phaseElapsed = t - this.phaseStartAt;
             const phaseT = Math.min(1, phaseElapsed / phaseDur[this.phase]);
+
+            // Fix B：比例插值。放棄「事件觸發累加」——採樣 7 個混池抽事件，
+            // 玩家店期望值只有 0.5-1 個代表，用累加會嚴重失真。
+            // 改用「動畫整體進度 × 該店真實日總」：每家店的數字都平滑收斂到真實
+            // 值，不管有沒有被抽樣代表到。敘事層（7 個代表事件）跟數據層（每家
+            // 店的真實統計）徹底分開。
+            const customerProgress = (this.phase + phaseT) / phaseDur.length;
+            const overallProgress = Math.min(1, (this.eventIdx + customerProgress) / this.events.length);
+            this._updateStatsFromProgress(overallProgress);
+
+            this._drawStaticBackground();
 
             const slot = this._slotOf(ev.pid);
             const box = this._shopBox(slot);
@@ -968,22 +979,18 @@
             const phaseNames = ['進門', '詢價', '店員答覆', '評估', '決策', '離開'];
             ctx.fillText(phaseNames[this.phase], this.w - 12, 30);
 
-            // Phase 結束 → 更新 shop stats、下一個 phase 或下一個客人
+            // Phase 結束 → 下一個 phase 或下一個客人
             if (phaseElapsed >= phaseDur[this.phase]) {
-                this._updateStatsOnPhaseComplete(ev, this.phase);
                 this.phase += 1;
                 this.phaseStartAt = t;
                 if (this.phase >= phaseDur.length) {
                     this.eventIdx += 1;
                     this.phase = 0;
                     if (this.eventIdx >= this.events.length) {
-                        // 所有事件跑完 → live counters snap 到當日真實總數
-                        // 用 rAF 排程重繪 —— 避免 same-frame 內 draw 被瀏覽器省略
+                        // 動畫跑完：progress=1 自然導向 finalXxx 值，再 snap 一次防捨入誤差
                         this._snapStatsToFinal();
                         this._drawStaticBackground();
                         this.playing = false;
-                        // 保險：下一 frame 再畫一次，某些瀏覽器同 frame 多次 draw 只保留一個
-                        requestAnimationFrame(() => this._drawStaticBackground());
                         if (this.onFinish) this.onFinish();
                         return;
                     }
@@ -993,18 +1000,15 @@
             this.rafId = requestAnimationFrame(() => this._loop());
         }
 
-        // Phase 完成時 live counters 更新
-        // - phase 0 進門完 → visits+1
-        // - phase 4 決策完 + bought → sold+1、remaining-1
-        _updateStatsOnPhaseComplete(ev, phase) {
+        // Fix B 核心：整體進度 × 各店真實日總 = 現在應該顯示的數字
+        // progress=0 → visits=0、sold=0、remaining=baked
+        // progress=1 → visits=finalVisits、sold=finalSold、remaining=finalWasted
+        _updateStatsFromProgress(progress) {
             if (!this._shopStats) return;
-            const s = this._shopStats.get(ev.pid);
-            if (!s) return;
-            if (phase === 0) {
-                s.visits += 1;
-            } else if (phase === 4 && ev.bought) {
-                s.sold += 1;
-                s.remaining = Math.max(0, s.remaining - 1);
+            for (const [pid, s] of this._shopStats) {
+                s.visits = Math.round(progress * s.finalVisits);
+                s.sold = Math.round(progress * s.finalSold);
+                s.remaining = Math.max(0, s.baked - s.sold);
             }
         }
 
