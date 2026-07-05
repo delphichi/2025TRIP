@@ -207,18 +207,20 @@ body.sim-body {
     height: auto;
 }
 .scene-summary {
-    position: absolute;
-    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, .95);
-    backdrop-filter: blur(4px);
-    padding: 20px;
+    background: #fff7ed;
+    border: 2px solid #fdba74;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 12px;
     text-align: center;
     animation: summary-in .3s ease-out;
 }
+/* HTML hidden attribute 被 display:flex 蓋掉，強制優先 */
+.scene-summary[hidden] { display: none !important; }
 @keyframes summary-in {
     from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }

@@ -134,11 +134,6 @@
             <h2>🎬 <span id="scene-day-label">Day 0</span> 營業實況（店員視角）</h2>
             <div class="scene-wrap">
                 <canvas id="scene-canvas" width="920" height="360"></canvas>
-                <div class="scene-summary" id="scene-summary" hidden>
-                    <h3 id="summary-title">📊 今日結算</h3>
-                    <div id="summary-body"></div>
-                    <button id="btn-next-day">📅 明天見 → 設定明天的價格 & 數量</button>
-                </div>
             </div>
             <p class="hint">
                 <span class="dot dot-premium"></span> 精品客（金球 + 光暈）
@@ -148,6 +143,11 @@
                 <br>
                 動畫節奏在<b>開店設定</b>裡定，中途只能<button id="btn-skip-anim" class="btn-secondary" style="margin-left:6px;">⏭ 跳過動畫</button>
             </p>
+            <div class="scene-summary" id="scene-summary" hidden>
+                <h3 id="summary-title">📊 今日結算</h3>
+                <div id="summary-body"></div>
+                <button id="btn-next-day">📅 明天見 → 設定明天的價格 & 數量</button>
+            </div>
         </section>
 
         <section class="panel chart-panel" id="chart-panel" hidden>
