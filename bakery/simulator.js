@@ -44,7 +44,7 @@
             this.fatigue = 0;
             this.strikingDays = 0;
             this.priceMemoryToday = {};
-            this.cheapestPidYesterday = null;
+            this.preferredPidYesterday = null;
         }
 
         marginalUtility() { return Math.exp(-this.alpha * this.bought); }
@@ -89,16 +89,21 @@
                 }
             }
             this.pricesSeenToday = [];
+            // 記憶偏好：不再是「最便宜」而是「最適合我的」
+            // 高期望的消費者記得「離我 expected 最近的那家」= 匹配偏好
+            // 這樣高端消費者會固定回去 $50 的店、budget 消費者固定回去 $30 的
+            // 產生「熟客」的忠誠度效應——這是精品店能存活的機制
             const pids = Object.keys(this.priceMemoryToday);
             if (pids.length > 0) {
-                let minP = Infinity, minPid = null;
+                let bestGap = Infinity, bestPid = null;
                 for (const pid of pids) {
-                    if (this.priceMemoryToday[pid] < minP) {
-                        minP = this.priceMemoryToday[pid];
-                        minPid = Number(pid);
+                    const gap = Math.abs(this.priceMemoryToday[pid] - this.expected);
+                    if (gap < bestGap) {
+                        bestGap = gap;
+                        bestPid = Number(pid);
                     }
                 }
-                this.cheapestPidYesterday = minPid;
+                this.preferredPidYesterday = bestPid;
             }
             this.priceMemoryToday = {};
             this.energy = clamp(this.energy - randInt(25, 45), 0, 100);
@@ -332,6 +337,26 @@
             this.decisionLog = [];
         }
 
+        // 選店偏好加權：不再是均勻隨機，而是按「消費者期望價 vs 店家價」的距離
+        // exp(-gap / scale)：期望 $50 的消費者偏好 $50 附近的店；期望 $30 偏好 $30 附近
+        // scale=15：gap=15 時權重降到 37%，gap=30 降到 14%——軟性偏好、不絕對
+        // 這是市場分層（segmentation）的機制：精品店也能存活，因為有高期望消費者找它
+        _pickShopWeighted(consumer, openShops) {
+            if (openShops.length === 1) return openShops[0];
+            const weights = openShops.map(shop => {
+                const gap = Math.abs(consumer.expected - shop.effectivePrice());
+                return Math.exp(-gap / 15);
+            });
+            const sum = weights.reduce((s, w) => s + w, 0);
+            if (sum <= 0) return openShops[randInt(0, openShops.length - 1)];
+            let r = Math.random() * sum;
+            for (let i = 0; i < openShops.length; i++) {
+                r -= weights[i];
+                if (r <= 0) return openShops[i];
+            }
+            return openShops[openShops.length - 1];
+        }
+
         _neighborIds(cid) {
             const n = this.consumers.length;
             const perRow = Math.max(10, Math.min(20, n));
@@ -367,11 +392,11 @@
                     const panicMult = 1 + scarcity * (this.cfg.panicSensitivity || 0);
 
                     let p;
-                    if (round === 0 && c.cheapestPidYesterday !== null && Math.random() < 0.30) {
-                        const memP = open.find(x => x.id === c.cheapestPidYesterday);
+                    if (round === 0 && c.preferredPidYesterday !== null && Math.random() < 0.30) {
+                        const memP = open.find(x => x.id === c.preferredPidYesterday);
                         if (memP) p = memP;
                     }
-                    if (!p) p = open[randInt(0, open.length - 1)];
+                    if (!p) p = this._pickShopWeighted(c, open);
                     const price = p.offer();
                     if (price === null) continue;
 
