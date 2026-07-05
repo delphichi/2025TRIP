@@ -760,11 +760,12 @@
                 ctx.strokeRect(winX, winY, winW, winH);
             }
 
-            // 麵包 emoji 在窗內（顯示「剩」——用 history[last].wasted，不是 inventory
-            // 因為 endDay 已經把 inventory 設回 0，直接讀會全部是「售完」）
+            // 麵包 emoji 在窗內：優先讀 live _shopStats（動畫進行中隨事件更新），
+            // 沒有就 fallback 到 history[last] 靜態值
+            const stats = this._shopStats ? this._shopStats.get(producer.id) : null;
             const last = producer.history.length > 0 ? producer.history[producer.history.length - 1] : null;
-            const bakedToday = last ? last.baked : 0;
-            const remaining = last ? last.wasted : 0;
+            const bakedToday = stats ? stats.baked : (last ? last.baked : 0);
+            const remaining = stats ? stats.remaining : (last ? last.wasted : 0);
             ctx.font = `${Math.floor(winH * 0.4)}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -801,14 +802,13 @@
             ctx.fillStyle = producer.closed ? '#991b1b' : '#b45309';
             ctx.fillText(producer.closed ? `倒 D${producer.closedDay}` : `$${producer.effectivePrice().toFixed(0)}`, b.x + b.w / 2, b.y + b.h + 18);
 
-            // 帳本：烤 X 賣 Y 剩 Z · 訪 V —— 從 history + visitsToday 讀
-            // visitsToday 在 endDay 不被重設，下一天 bake() 才 reset，動畫時值還在
+            // 帳本：烤 X 賣 Y 剩 Z · 訪 V —— live counters（隨動畫更新）
             if (!producer.closed && bakedToday > 0) {
                 ctx.font = '600 10px ui-monospace, SFMono-Regular, monospace';
                 ctx.fillStyle = '#4b2e10';
                 ctx.textBaseline = 'top';
-                const soldToday = last.sold || 0;
-                const visits = producer.visitsToday || 0;
+                const soldToday = stats ? stats.sold : (last ? last.sold : 0);
+                const visits = stats ? stats.visits : (producer.visitsToday || 0);
                 ctx.fillText(`烤${bakedToday} 賣${soldToday} 剩${remaining}`, b.x + b.w / 2, b.y + b.h + 34);
                 ctx.fillText(`訪客 ${visits} 人`, b.x + b.w / 2, b.y + b.h + 46);
             }
@@ -871,7 +871,7 @@
         }
 
         animateDay(dayNumber, events, onFinish) {
-            this._resize();   // 重新量 canvas（panel 剛從 hidden 變 visible）
+            this._resize();
             this.onFinish = onFinish;
             this.playing = true;
             this.paused = false;
@@ -881,12 +881,43 @@
             this.phase = 0;
             this.phaseStartAt = 0;
             this._t0 = performance.now();
+
+            // Live counters：動畫開始 = 剩滿、賣 0、訪 0
+            // 每個 phase 完成時更新（進門完 → visits+1；決策完 & bought → sold+1、remaining-1）
+            // 動畫結束時 snap 到當日真實總數（sample 只有 7 個事件，數字會落後真實日）
+            this._shopStats = new Map();
+            for (const p of this.market.producers) {
+                const last = p.history.length > 0 ? p.history[p.history.length - 1] : {};
+                const baked = last.baked || 0;
+                this._shopStats.set(p.id, {
+                    baked,
+                    finalSold: last.sold || 0,
+                    finalWasted: last.wasted || 0,
+                    finalVisits: p.visitsToday || 0,
+                    remaining: baked,
+                    sold: 0,
+                    visits: 0,
+                });
+            }
+
             this._loop();
+        }
+
+        // 動畫結束時 live counters 對齊到當日真實全日總數
+        _snapStatsToFinal() {
+            if (!this._shopStats) return;
+            for (const [pid, s] of this._shopStats) {
+                s.remaining = s.finalWasted;
+                s.sold = s.finalSold;
+                s.visits = s.finalVisits;
+            }
         }
 
         skip() {
             this.playing = false;
             if (this.rafId) cancelAnimationFrame(this.rafId);
+            // 快轉時也 snap 到真實總數，讓玩家在結算前看到最終店況
+            this._snapStatsToFinal();
             this._drawStaticBackground();
             if (this.onFinish) this.onFinish();
         }
@@ -934,14 +965,17 @@
             const phaseNames = ['進門', '詢價', '店員答覆', '評估', '決策', '離開'];
             ctx.fillText(phaseNames[this.phase], this.w - 12, 30);
 
-            // Phase 結束 → 下一個 phase 或下一個客人
+            // Phase 結束 → 更新 shop stats、下一個 phase 或下一個客人
             if (phaseElapsed >= phaseDur[this.phase]) {
+                this._updateStatsOnPhaseComplete(ev, this.phase);
                 this.phase += 1;
                 this.phaseStartAt = t;
                 if (this.phase >= phaseDur.length) {
                     this.eventIdx += 1;
                     this.phase = 0;
                     if (this.eventIdx >= this.events.length) {
+                        // 所有事件跑完 → live counters snap 到當日真實總數
+                        this._snapStatsToFinal();
                         this.playing = false;
                         if (this.onFinish) this.onFinish();
                         return;
@@ -950,6 +984,21 @@
             }
 
             this.rafId = requestAnimationFrame(() => this._loop());
+        }
+
+        // Phase 完成時 live counters 更新
+        // - phase 0 進門完 → visits+1
+        // - phase 4 決策完 + bought → sold+1、remaining-1
+        _updateStatsOnPhaseComplete(ev, phase) {
+            if (!this._shopStats) return;
+            const s = this._shopStats.get(ev.pid);
+            if (!s) return;
+            if (phase === 0) {
+                s.visits += 1;
+            } else if (phase === 4 && ev.bought) {
+                s.sold += 1;
+                s.remaining = Math.max(0, s.remaining - 1);
+            }
         }
 
         _renderCustomer(ev, phase, phaseT, startX, startY, doorX, doorY, box) {
