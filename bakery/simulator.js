@@ -179,7 +179,10 @@
             this.revenueToday = 0;
             this.history = [];
             this.recentSales = [];
-            this.plannedQuantity = Math.max(1, Math.ceil(capacity / 2));
+            // Day 1 保守探路：capacity/5（跟 AI 給玩家的 Day 1 建議對稱）
+            // 原本 ceil(capacity/2) 讓對手一次砸產能一半的成本，Day 1 常被便宜對手拉光
+            // 客戶就直接虧 -$150~-$200 → 破 -$50 促銷底線 → 一開場就倒
+            this.plannedQuantity = Math.max(2, Math.round(capacity / 5));
             this.cumulativeProfit = 100;
             this.closed = false;
             this.closedDay = null;
@@ -1276,7 +1279,11 @@
         const suggestedPrice = clamp(p.price, +priceEl.min, +priceEl.max);
         priceEl.value = suggestedPrice.toFixed(1);
         $('dec-price-val').textContent = '$' + fmt(suggestedPrice, 1);
-        const qty = p.history.length > 0 ? p.history[p.history.length - 1].sold + 2 : Math.ceil(p.capacity / 2);
+        // Day 1 默認烤 capacity/5（保守探路，跟 AI 建議 + 對手 Day 1 一致）
+        // 之後每天用「昨日賣量 + 2 緩衝」的 heuristic
+        const qty = p.history.length > 0
+            ? p.history[p.history.length - 1].sold + 2
+            : Math.max(2, Math.round(p.capacity / 5));
         const qtyClamped = clamp(qty, 0, p.capacity);
         qtyEl.max = p.capacity;
         qtyEl.value = qtyClamped;
