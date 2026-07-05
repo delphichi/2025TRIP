@@ -693,18 +693,20 @@
     }
 
     // ---------- Slow-motion Q·K animator ----------
-    // 6 個階段（Stage 0-6），這個 MVP 只實作 Stage 0-2（Q 亮起 + K 逐一打分 + raw score）
-    // Stage 3-6 return early。跟 SceneChart 分開一層 overlay canvas 畫，互不干擾。
+    // 6 stages 標號 0-5，MVP 實作 Stage 0-1（Query 亮起 + K 逐一打分），
+    // Stage 2-5 return early。舊版有 Stage 0 淡出 + Stage 1 Q 泡泡分開，
+    // reviewer 建議合併成一個 stage，中間 200ms 淡出 → 之後 Q 泡泡出來，
+    // 節奏更緊湊、也少一個過場。
     const STAGE_NAMES = [
-        '0/6 淡出準備',
-        '1/6 Query 意圖',
+        '1/6 Query 亮起（背景淡化 + Q 泡泡）',
         '2/6 K 逐一打分',
         '3/6 Raw score bar',
         '4/6 Softmax 變形',
         '5/6 化為箭頭',
         '6/6 V 加權求和',
     ];
-    const STAGE_DURATIONS_MS = [200, 1500, null /* N × 800 */, 500, 1500, 1000, Infinity];
+    const STAGE_DURATIONS_MS = [1500, null /* per-substep */, 500, 1500, 1000, Infinity];
+    const DIM_INTRO_RATIO = 0.13;   // Stage 0 前 13% 時間用來淡出背景，之後才彈 Q 泡泡
 
     class AttentionAnimator {
         constructor(overlayCanvas, sceneChart) {
@@ -712,12 +714,17 @@
             this.ctx = overlayCanvas.getContext('2d');
             this.scene = sceneChart;
             this.playing = false;
-            this.speed = 1.0;
+            this._speed = 1.0;
             this.stage = 0;
-            this.subStep = 0;         // Stage 2 內：目前打分到哪個 j
             this.stageStart = 0;
+            this.elapsedInStage = 0;
             this.rafId = null;
             this.onStageChange = null;
+            // Stage 1（K 打分）用的 clean state machine：
+            // pendingKs = 還沒打分的 idx queue；currentK = 這輪正在打的；doneKs = 已完成的
+            this.pendingKs = [];
+            this.currentK = null;
+            this.doneKs = [];
             this._setupHiDPI();
         }
         _setupHiDPI() {
@@ -730,63 +737,111 @@
             this.ctx.scale(dpr, dpr);
             this.w = w; this.h = h;
         }
+        // 速度即時響應：改變 speed 時同步調整 stageStart，讓當前 t 不跳
+        get speed() { return this._speed; }
+        set speed(v) {
+            const oldSpeed = this._speed;
+            const newSpeed = v || 1;
+            if (oldSpeed === newSpeed) return;
+            if (this.playing) {
+                const now = performance.now();
+                const elapsed = now - this.stageStart;
+                // t_before = elapsed * oldSpeed / dur; t_after 要一樣 → 新 stageStart 位移
+                this.stageStart = now - elapsed * (oldSpeed / newSpeed);
+            }
+            this._speed = newSpeed;
+        }
+        // 一次算好這 row 的 raw score 用來 normalize 到 0-10 尺度
+        // 觀眾看不懂 6.42 是大是小，但看得懂 8.2/10 vs 1.3/10 誰強
+        _computeMaxRaw() {
+            let mx = 0;
+            for (let j = 0; j < this.raw.length; j++) {
+                if (j === this.query) continue;
+                if (this.raw[j] > mx) mx = this.raw[j];
+            }
+            return mx || 1;
+        }
         start(preset, headIdx, queryIdx, raw, softmaxed) {
             this.preset = preset;
             this.head = headIdx;
             this.query = queryIdx;
-            this.raw = raw[queryIdx];   // 只需要這 row
+            this.raw = raw[queryIdx];
             this.softmaxed = softmaxed[queryIdx];
             this.tokens = preset.tokens;
+            this.maxRaw = this._computeMaxRaw();
             this.stage = 0;
-            this.subStep = 0;
             this.stageStart = performance.now();
+            this.pendingKs = [];
+            for (let j = 0; j < this.tokens.length; j++) {
+                if (j !== queryIdx) this.pendingKs.push(j);
+            }
+            this.currentK = null;
+            this.doneKs = [];
             this.playing = true;
             this._loop();
             if (this.onStageChange) this.onStageChange(this.stage);
         }
         pause() { this.playing = false; if (this.rafId) cancelAnimationFrame(this.rafId); }
-        resume() { if (this.playing) return; this.playing = true; this.stageStart = performance.now() - this._elapsedInStage; this._loop(); }
+        resume() {
+            if (this.playing) return;
+            this.playing = true;
+            this.stageStart = performance.now() - this.elapsedInStage;
+            this._loop();
+        }
         stop() {
             this.playing = false;
             if (this.rafId) cancelAnimationFrame(this.rafId);
             this.stage = 0;
-            this.subStep = 0;
+            this.pendingKs = [];
+            this.currentK = null;
+            this.doneKs = [];
             this._clear();
         }
         stepForward() {
-            // Stage 2: 進下一個 K；其他 stage：進下一階段
-            if (this.stage === 2 && this.subStep < this.tokens.length - 1) {
-                this.subStep += 1;
-                if (this.subStep === this.query) this.subStep += 1;
-                if (this.subStep >= this.tokens.length) this._advanceStage();
+            if (this.stage === 1) {
+                // Stage 1（K 打分）內：把 currentK 塞進 doneKs、抽下一個
+                if (this.currentK !== null) this.doneKs.push(this.currentK);
+                if (this.pendingKs.length > 0) {
+                    this.currentK = this.pendingKs.shift();
+                } else {
+                    this._advanceStage();
+                }
             } else {
                 this._advanceStage();
             }
             this.stageStart = performance.now();
+            this.elapsedInStage = 0;
             this._draw(0);
             if (this.onStageChange) this.onStageChange(this.stage);
         }
         _advanceStage() {
-            this.stage = Math.min(6, this.stage + 1);
-            this.subStep = 0;
-            if (this.stage === 2) {
-                // 跳過 query 自己
-                this.subStep = this.query === 0 ? 1 : 0;
+            this.stage = Math.min(5, this.stage + 1);
+            // 進入 Stage 1 時初始化第一個 currentK
+            if (this.stage === 1 && this.currentK === null && this.pendingKs.length > 0) {
+                this.currentK = this.pendingKs.shift();
             }
         }
         _loop() {
             if (!this.playing) return;
             const now = performance.now();
             const elapsed = now - this.stageStart;
-            this._elapsedInStage = elapsed;
+            this.elapsedInStage = elapsed;
             const dur = this._currentStageDurationMs();
             const t = dur === Infinity ? 1 : Math.min(1, elapsed / dur);
             this._draw(t);
-            if (t >= 1 && this.stage < 6) {
-                if (this.stage === 2 && this.subStep < this.tokens.length - 1) {
-                    this.subStep += 1;
-                    if (this.subStep === this.query) this.subStep = Math.min(this.tokens.length - 1, this.subStep + 1);
-                    this.stageStart = now;
+            if (t >= 1 && this.stage < 5) {
+                if (this.stage === 1) {
+                    // 當前 K 打分完 → 塞 doneKs、抽下一個
+                    if (this.currentK !== null) this.doneKs.push(this.currentK);
+                    if (this.pendingKs.length > 0) {
+                        this.currentK = this.pendingKs.shift();
+                        this.stageStart = now;
+                    } else {
+                        this.currentK = null;
+                        this._advanceStage();
+                        this.stageStart = now;
+                        if (this.onStageChange) this.onStageChange(this.stage);
+                    }
                 } else {
                     this._advanceStage();
                     this.stageStart = now;
@@ -797,29 +852,62 @@
         }
         _currentStageDurationMs() {
             const base = STAGE_DURATIONS_MS[this.stage];
-            if (base === null) return 800 / this.speed;   // Stage 2 每個 substep
+            if (base === null) return 800 / this._speed;
             if (base === Infinity) return Infinity;
-            return base / this.speed;
+            return base / this._speed;
         }
         _clear() { this.ctx.clearRect(0, 0, this.w, this.h); }
 
         _draw(t) {
-            const { ctx } = this;
-            ctx.clearRect(0, 0, this.w, this.h);
+            this.ctx.clearRect(0, 0, this.w, this.h);
             if (this.stage === 0) return this._drawStage0(t);
             if (this.stage === 1) return this._drawStage1(t);
-            if (this.stage === 2) return this._drawStage2(t);
-            if (this.stage >= 3) return this._drawStage3plus(t);
+            if (this.stage >= 2) return this._drawStage2plus(t);
         }
 
-        // Stage 0: dim everything except query（在 overlay 上蓋一層半透明蒙版，摳掉 query 節點）
+        // Stage 0（合併版）：淡出背景 + Q 泡泡出現
+        // 前 13% 時間 dim 0→0.55 平滑淡出；之後 Q 泡泡 scale/alpha 彈出
         _drawStage0(t) {
+            const dimT = Math.min(1, t / DIM_INTRO_RATIO);
+            this._drawDimMask(dimT * 0.55);
+            const qb = this.scene.tokenBounds[this.query];
+            if (!qb) return;
+            const bubbleT = Math.max(0, (t - DIM_INTRO_RATIO) / (1 - DIM_INTRO_RATIO));
+            if (bubbleT <= 0) return;
+            const qText = (this.preset.qLabels || {})[this.query] || '我這個詞想關注誰？';
+            const scale = 0.5 + Math.min(1, bubbleT / 0.6) * 0.5;
+            const alpha = Math.min(1, bubbleT / 0.3);
+            this._drawBubble(qb.x, qb.y - 44, qText, {
+                fill: '#fef3c7', stroke: '#eab308', ink: '#78350f',
+                scale, alpha, prefix: 'Q：',
+                fontSize: 14,   // Q 泡泡大字，跟 K 拉開層級
+                padX: 10, padY: 6,
+            });
+        }
+        // Stage 1: K 逐一打分（clean state machine：pendingKs / currentK / doneKs）
+        _drawStage1(t) {
+            this._drawDimMask(0.55);
+            // Q 泡泡持續顯示
+            const qb = this.scene.tokenBounds[this.query];
+            if (qb) {
+                const qText = (this.preset.qLabels || {})[this.query] || '我這個詞想關注誰？';
+                this._drawBubble(qb.x, qb.y - 44, qText, {
+                    fill: '#fef3c7', stroke: '#eab308', ink: '#78350f',
+                    scale: 1, alpha: 1, prefix: 'Q：',
+                    fontSize: 14, padX: 10, padY: 6,
+                });
+            }
+            // 已完成的 K 用灰色細線 + 淡標籤保留
+            for (const j of this.doneKs) this._drawKAndLine(j, 1, /*live=*/false);
+            // 當前打分中：live
+            if (this.currentK !== null) this._drawKAndLine(this.currentK, t, /*live=*/true);
+        }
+        _drawDimMask(alpha) {
             const { ctx } = this;
-            ctx.fillStyle = `rgba(255,255,255,${0.55 * t})`;
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
             ctx.fillRect(0, 0, this.w, this.h);
             const qb = this.scene.tokenBounds[this.query];
             if (!qb) return;
-            // 摳一個透明洞（destination-out）
             ctx.save();
             ctx.globalCompositeOperation = 'destination-out';
             ctx.fillStyle = '#000';
@@ -827,70 +915,25 @@
             ctx.fill();
             ctx.restore();
         }
-        // Stage 1: Q 思考氣泡從 query 節點上方冒出
-        _drawStage1(t) {
-            this._drawStage0(1);  // 保持 dim
-            const qb = this.scene.tokenBounds[this.query];
-            if (!qb) return;
-            const qText = (this.preset.qLabels || {})[this.query] || '我這個詞想關注誰？';
-            // Scale from 0.5 to 1 with easeOutBack
-            const scale = 0.5 + Math.min(1, t / 0.6) * 0.5;
-            const alpha = Math.min(1, t / 0.3);
-            this._drawBubble(qb.x, qb.y - 44, qText, {
-                fill: '#fef3c7',
-                stroke: '#eab308',
-                ink: '#78350f',
-                scale, alpha,
-                prefix: 'Q：',
-            });
-        }
-        // Stage 2: K 逐一打分（subStep = 目前算到哪個 j）
-        _drawStage2(t) {
-            this._drawStage0(1);
-            // 之前 substep 都已完成，畫留下的 K 標籤 + 灰色線
-            const done = this._doneKsBefore();
-            for (const j of done) this._drawKAndLine(j, 1, /*live=*/false);
-            // 當前 substep 正在打分
-            const j = this.subStep;
-            if (j >= 0 && j < this.tokens.length && j !== this.query) {
-                this._drawKAndLine(j, t, /*live=*/true);
-            }
-            // Q 泡泡一直保留
-            const qb = this.scene.tokenBounds[this.query];
-            if (qb) {
-                const qText = (this.preset.qLabels || {})[this.query] || '我這個詞想關注誰？';
-                this._drawBubble(qb.x, qb.y - 44, qText, {
-                    fill: '#fef3c7', stroke: '#eab308', ink: '#78350f',
-                    scale: 1, alpha: 1, prefix: 'Q：',
-                });
-            }
-        }
-        _doneKsBefore() {
-            const out = [];
-            for (let j = 0; j < this.tokens.length; j++) {
-                if (j === this.query) continue;
-                if (j < this.subStep) out.push(j);
-            }
-            return out;
-        }
         _drawKAndLine(j, tLocal, live) {
             const ctx = this.ctx;
             const qb = this.scene.tokenBounds[this.query];
             const kb = this.scene.tokenBounds[j];
             if (!qb || !kb) return;
-            const alpha = Math.max(0.35, tLocal);
-            // K 標籤在節點下方
-            const kText = (this.preset.kLabels || {})[j] || `${this.tokens[j]}`;
-            this._drawBubble(kb.x, kb.y + 44, kText, {
+            const alpha = Math.max(0.4, tLocal);
+            const kText = (this.preset.kLabels || {})[j] || this.tokens[j];
+            // K 泡泡：小字、貼近節點下方（reviewer 建議：跟 Q 拉開視覺層級）
+            this._drawBubble(kb.x, kb.y + 40, kText, {
                 fill: live ? '#dbeafe' : '#e0e7ff',
                 stroke: live ? '#3b82f6' : '#818cf8',
                 ink: '#1e3a8a',
                 scale: 1, alpha, prefix: 'K：',
                 tailUp: true,
+                fontSize: 10, padX: 6, padY: 3,
             });
             // 臨時線 query → j
-            ctx.strokeStyle = live ? `rgba(124,58,237,${0.7 * tLocal})` : 'rgba(148,163,184,0.5)';
-            ctx.lineWidth = live ? 2 : 1.2;
+            ctx.strokeStyle = live ? `rgba(124,58,237,${0.75 * tLocal})` : 'rgba(148,163,184,0.4)';
+            ctx.lineWidth = live ? 2 : 1;
             ctx.setLineDash(live ? [] : [4, 3]);
             const arch = 30 + Math.abs(j - this.query) * 8;
             const cx = (qb.x + kb.x) / 2, cy = qb.y - arch;
@@ -899,25 +942,36 @@
             ctx.quadraticCurveTo(cx, cy, kb.x, kb.y - 22);
             ctx.stroke();
             ctx.setLineDash([]);
-            // 分數 (raw pre-softmax)
-            const score = this.raw[j];
-            const scoreStr = 'Q·K = ' + score.toFixed(2);
-            ctx.font = 'bold 12px ui-monospace, monospace';
+            // 分數：normalize 到 0-10 尺度（reviewer 建議：raw 值觀眾沒直覺）
+            const rawVal = this.raw[j];
+            const normalized = (rawVal / this.maxRaw) * 10;
+            const scoreStr = `Q·K = ${normalized.toFixed(1)} / 10`;
+            ctx.font = 'bold 11px ui-monospace, monospace';
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.fillStyle = live ? '#7c3aed' : '#6b7280';
-            const tx = cx, ty = cy + 6;
-            const pad = 4;
-            const tw = ctx.measureText(scoreStr).width + pad * 2;
-            ctx.fillStyle = live ? 'rgba(245,243,255,0.95)' : 'rgba(243,244,246,0.85)';
-            ctx.fillRect(tx - tw / 2, ty - 15, tw, 15);
+            ctx.textBaseline = 'middle';
+            const tw = ctx.measureText(scoreStr).width + 10;
+            const th = 16;
+            const tx = cx, ty = cy - 2;
+            ctx.fillStyle = live ? 'rgba(245,243,255,0.98)' : 'rgba(243,244,246,0.9)';
+            this._roundRect(tx - tw / 2, ty - th / 2, tw, th, 4);
+            ctx.fill();
             ctx.strokeStyle = live ? '#a78bfa' : '#cbd5e1';
-            ctx.strokeRect(tx - tw / 2, ty - 15, tw, 15);
+            ctx.lineWidth = 1;
+            this._roundRect(tx - tw / 2, ty - th / 2, tw, th, 4);
+            ctx.stroke();
             ctx.fillStyle = live ? '#7c3aed' : '#6b7280';
-            ctx.fillText(scoreStr, tx, ty - 2);
+            ctx.fillText(scoreStr, tx, ty);
+            // 迷你 bar 在標籤右邊，長度按 normalized/10 —— 觀眾一眼看強度
+            const barW = 24, barH = 4;
+            const bx = tx + tw / 2 + 4;
+            const by = ty - barH / 2;
+            ctx.fillStyle = live ? 'rgba(167,139,250,0.3)' : 'rgba(203,213,225,0.4)';
+            ctx.fillRect(bx, by, barW, barH);
+            ctx.fillStyle = live ? '#7c3aed' : '#94a3b8';
+            ctx.fillRect(bx, by, barW * (normalized / 10), barH);
         }
-        // Stage 3+: MVP 只實作到 Stage 2；後續階段先給個提示訊息
-        _drawStage3plus(t) {
+        // Stage 2+: MVP 只實作到 Stage 1；後續階段先給個提示
+        _drawStage2plus(t) {
             const { ctx } = this;
             ctx.fillStyle = 'rgba(255,255,255,0.55)';
             ctx.fillRect(0, 0, this.w, this.h);
@@ -927,30 +981,29 @@
             ctx.textBaseline = 'middle';
             ctx.fillText('Stage 3-6（Softmax 變形 → 箭頭 → V 加權公式）—— 下一輪實作', this.w / 2, this.h / 2);
         }
-
-        // 通用：畫思考氣泡
         _drawBubble(cx, cy, text, opts) {
-            const { fill, stroke, ink, scale, alpha, prefix = '', tailUp = false } = opts;
+            const {
+                fill, stroke, ink, scale = 1, alpha = 1,
+                prefix = '', tailUp = false,
+                fontSize = 12, padX = 8, padY = 5,
+            } = opts;
             const ctx = this.ctx;
             ctx.save();
             ctx.globalAlpha = alpha;
-            ctx.font = '12px -apple-system, "Segoe UI", sans-serif';
+            ctx.font = `bold ${fontSize}px -apple-system, "Segoe UI", sans-serif`;
             const label = prefix + text;
-            const padX = 8, padY = 5;
             const tw = ctx.measureText(label).width + padX * 2;
-            const th = 22;
+            const th = fontSize + padY * 2;
             const w = tw * scale;
             const h = th * scale;
             const x = cx - w / 2;
             const y = cy - h / 2;
-            // Bubble body
             ctx.fillStyle = fill;
             ctx.strokeStyle = stroke;
             ctx.lineWidth = 1.5;
             this._roundRect(x, y, w, h, 6);
             ctx.fill();
             ctx.stroke();
-            // Tail
             ctx.beginPath();
             if (tailUp) {
                 ctx.moveTo(cx - 5, y);
@@ -965,11 +1018,10 @@
             ctx.fillStyle = fill;
             ctx.fill();
             ctx.stroke();
-            // Text
             ctx.fillStyle = ink;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.font = `bold ${12 * scale}px -apple-system, sans-serif`;
+            ctx.font = `bold ${fontSize * scale}px -apple-system, sans-serif`;
             ctx.fillText(label, cx, cy);
             ctx.restore();
         }
@@ -1054,6 +1106,10 @@
         $('cfg-intensity').addEventListener('input', () => {
             scene.setIntensity(parseFloat($('cfg-intensity').value));
             rerender();
+        });
+        // 速度即時響應（動畫中改也生效，reviewer 建議）
+        $('cfg-speed').addEventListener('change', () => {
+            if (animator) animator.speed = parseFloat($('cfg-speed').value) || 1;
         });
 
         scene = new SceneChart($('scene'));
