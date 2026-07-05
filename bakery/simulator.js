@@ -610,6 +610,8 @@
             this.phaseStartAt = 0;
             this.phase = 0;         // 0=進門 1=詢價 2=答覆 3=評估 4=決策 5=離開
             this.playing = false;
+            this.paused = false;
+            this._pausedAt = 0;
             this.onFinish = null;
             this._t0 = 0;
         }
@@ -629,6 +631,25 @@
 
         setPerCustomerMs(ms) { this.perCustomerMs = Math.max(300, Math.min(60000, +ms || 4500)); }
         setMarket(m) { this.market = m; }
+
+        // 動畫中暫停：凍結 t、cancelAnimationFrame，狀態全保留
+        pause() {
+            if (!this.playing || this.paused) return;
+            this.paused = true;
+            this._pausedAt = performance.now();
+            if (this.rafId) cancelAnimationFrame(this.rafId);
+        }
+
+        // 繼續：暫停期間的 wall-clock 時間補回 _t0，恢復 _loop
+        resume() {
+            if (!this.playing || !this.paused) return;
+            const pausedDuration = performance.now() - this._pausedAt;
+            this._t0 += pausedDuration;
+            this.paused = false;
+            this._loop();
+        }
+
+        isPaused() { return this.paused; }
 
         // Producer id → 螢幕 position（左到右 0..4），玩家（id=0）永遠在中間 index=2
         _slotOf(pid) {
@@ -835,6 +856,7 @@
             this._resize();   // 重新量 canvas（panel 剛從 hidden 變 visible）
             this.onFinish = onFinish;
             this.playing = true;
+            this.paused = false;
             this._dayNumber = dayNumber;
             this.events = this._sampleEvents(events);
             this.eventIdx = 0;
@@ -852,9 +874,9 @@
         }
 
         _loop() {
-            if (!this.playing) return;
+            if (!this.playing || this.paused) return;
             const now = performance.now();
-            const t = now - this._t0;   // 直接用 ms，不再乘 speed multiplier
+            const t = now - this._t0;   // 直接用 ms，perCustomerMs 隨時可調
 
             // 沒事件 → 結束
             if (this.events.length === 0) {
@@ -1443,8 +1465,9 @@
         const cfg = makeMarketCfg(costTier, difficulty, mood);
         market = new Market(cfg);
         gameOver = false;
-        // 動畫節奏在開店設定時決定，整場遊戲用同一個節奏（要換就重新開店）
+        // 初始節奏由「開店設定」決定，開店後可在 scene 面板即時調整
         if (scene) scene.setPerCustomerMs(animMs);
+        $('cfg-anim-ms-live').value = animMs;   // 同步 scene 面板的即時輸入框
 
         $('setup-panel').hidden = true;
         $('game-panel').hidden = false;
@@ -1492,6 +1515,9 @@
         $('decision-panel').hidden = true;
         $('scene-summary').hidden = true;
         $('scene-day-label').textContent = `Day ${rec.day}`;
+        // 每天重置暫停 / 繼續按鈕：開始時是「暫停」可按
+        $('btn-pause-anim').hidden = false;
+        $('btn-resume-anim').hidden = true;
         $('scene-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         scene.setMarket(market);
@@ -1725,6 +1751,22 @@
         $('btn-next-day').addEventListener('click', proceedToNextDay);
         $('btn-skip-anim').addEventListener('click', () => {
             if (scene && scene.playing) scene.skip();
+        });
+        $('btn-pause-anim').addEventListener('click', () => {
+            if (!scene || !scene.playing || scene.paused) return;
+            scene.pause();
+            $('btn-pause-anim').hidden = true;
+            $('btn-resume-anim').hidden = false;
+        });
+        $('btn-resume-anim').addEventListener('click', () => {
+            if (!scene || !scene.playing || !scene.paused) return;
+            scene.resume();
+            $('btn-pause-anim').hidden = false;
+            $('btn-resume-anim').hidden = true;
+        });
+        // 動畫中即時改速度：input 每次變動立刻套用到 scene，下一 frame 生效
+        $('cfg-anim-ms-live').addEventListener('input', e => {
+            if (scene) scene.setPerCustomerMs(parseInt(e.target.value) || 4500);
         });
         $('dec-price').addEventListener('input', e => {
             $('dec-price-val').textContent = '$' + fmt(parseFloat(e.target.value), 1);

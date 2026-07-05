@@ -140,9 +140,15 @@
                 <span class="dot dot-budget"></span> 基礎客（藍球）
                 &nbsp;·&nbsp; 5 階段：<b>進門</b> → <b>詢價</b>（白泡）→ <b>店員答覆</b>（黃泡）
                 → <b>評估</b>（藍雲思考）→ <b>決策</b>（綠買 / 紅拒）→ <b>離開</b>
-                <br>
-                動畫節奏在<b>開店設定</b>裡定，中途只能<button id="btn-skip-anim" class="btn-secondary" style="margin-left:6px;">⏭ 跳過動畫</button>
             </p>
+            <div class="scene-controls">
+                <button id="btn-pause-anim" class="btn-scene">⏸ 暫停</button>
+                <button id="btn-resume-anim" class="btn-scene" hidden>▶ 繼續</button>
+                <label class="scene-speed-live">節奏 (ms/客人)
+                    <input type="number" id="cfg-anim-ms-live" min="500" max="30000" value="4500" step="500">
+                </label>
+                <button id="btn-skip-anim" class="btn-scene btn-secondary">⏭ 快轉到今日結算</button>
+            </div>
             <div class="scene-summary" id="scene-summary" hidden>
                 <h3 id="summary-title">📊 今日結算</h3>
                 <div id="summary-body"></div>
