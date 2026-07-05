@@ -108,6 +108,10 @@
                     <div class="stat-label">你的優勢</div>
                     <div class="stat-val" id="stat-edge">?</div>
                 </div>
+                <div class="stat-cell reveal-edge" id="edge-mood-cell" hidden>
+                    <div class="stat-label">氣氛（獨立顯示）</div>
+                    <div class="stat-val edge-mood" id="stat-mood">—</div>
+                </div>
             </div>
 
             <div class="cards-area" id="cards-area">
@@ -118,6 +122,7 @@
                 <button id="btn-pause">⏸ 暫停</button>
                 <button id="btn-resume" hidden>▶ 繼續</button>
                 <button id="btn-reveal" class="btn-secondary">👁 顯示 / 隱藏 count 面板</button>
+                <button id="btn-reveal-mood" class="btn-secondary">🌡 顯示 / 隱藏 氣氛標籤</button>
                 <button id="btn-quit" class="btn-danger">💤 結束這一輪</button>
                 <label class="deal-speed-live">節奏 (ms/張)
                     <input type="number" id="cfg-deal-ms-live" min="150" max="5000" value="800" step="50">
@@ -139,10 +144,31 @@
         </section>
 
         <section class="panel feedback-panel" id="feedback-panel" hidden>
-            <h2 id="feedback-title">📊 答題結果</h2>
+            <h2 id="feedback-title">📊 Count 答題結果</h2>
             <div id="feedback-body"></div>
+
+            <!-- Phase 2：第二題「你會下多少注？」（同張回饋卡內） -->
+            <div class="bet-section" id="bet-question-section" hidden>
+                <h3>💰 現在你會下多少注？</h3>
+                <p class="hint">
+                    根據剛才的 count（不管你答對答錯），你會如何調整賭注？基礎注 = 1x，
+                    最高 5x。目標：<b>count 越有利，注碼越高</b>。<br>
+                    <span class="hint-mini">📖 提示：Kelly 建議 = max(1, min(5, floor(true count − 1)))</span>
+                </p>
+                <div class="bet-buttons">
+                    <button class="bet-btn" data-bet="1">1× <span class="bet-label">最低注</span></button>
+                    <button class="bet-btn" data-bet="2">2× <span class="bet-label">小加</span></button>
+                    <button class="bet-btn" data-bet="3">3× <span class="bet-label">中加</span></button>
+                    <button class="bet-btn" data-bet="4">4× <span class="bet-label">加碼</span></button>
+                    <button class="bet-btn" data-bet="5">5× <span class="bet-label">全押</span></button>
+                </div>
+            </div>
+
+            <!-- Phase 2：bet 分析（點下注按鈕後才顯示） -->
+            <div id="bet-analysis" hidden></div>
+
             <div class="btn-row">
-                <button id="btn-continue-deal">▶ 繼續發牌</button>
+                <button id="btn-continue-deal" hidden>▶ 繼續發牌</button>
             </div>
         </section>
 

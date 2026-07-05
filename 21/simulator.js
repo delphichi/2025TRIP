@@ -24,6 +24,20 @@
         return -1;
     }
 
+    // Phase 2 新增：line-spread 下注建議
+    // True count <= 1 = 押最低注（1x）；每高 1 點多押 1 倍；上限 5x
+    function optimalBetUnits(trueCount) {
+        return Math.max(1, Math.min(5, Math.floor(trueCount - 1)));
+    }
+
+    // Phase 2 新增：優勢文字標籤（給常駐氣氛標籤 + bet 回饋用）
+    function edgeLabel(edge) {
+        if (edge > 0.01) return { text: '強烈有利，加碼', color: 'good', emoji: '🟢' };
+        if (edge > 0) return { text: '略微有利', color: 'ok', emoji: '🟡' };
+        if (edge > -0.005) return { text: '接近持平', color: 'neutral', emoji: '⚪' };
+        return { text: '莊家優勢，縮小賭注', color: 'bad', emoji: '🔴' };
+    }
+
     function rankLabel(rank) {
         if (rank === 11) return 'J';
         if (rank === 12) return 'Q';
@@ -124,14 +138,14 @@
             return { card, shouldQuiz };
         }
 
-        // 記錄玩家答題結果
-        recordQuiz(playerGuess) {
+        // Phase 2 兩階段記錄：先記 count（不放進 quizLog），再等 bet 一起 finalize
+        recordCountAnswer(playerGuess) {
             const correctCount = this.shoe.runningCount;
             const correctTrueCount = this.shoe.getTrueCount();
             const error = playerGuess - correctCount;
             const cardsShownThisRound = this.shoe.dealt.length - this.lastQuizCardIdx;
             const roundCards = this.shoe.dealt.slice(this.lastQuizCardIdx);
-            const quiz = {
+            const partial = {
                 quizIdx: this.quizLog.length,
                 cardsShown: this.shoe.dealt.length,
                 cardsThisRound: cardsShownThisRound,
@@ -143,13 +157,31 @@
                 absError: Math.abs(error),
                 correct: error === 0,
                 closeEnough: Math.abs(error) <= 1,
+                betPending: true,
             };
-            this.quizLog.push(quiz);
+            this.pendingQuiz = partial;
+            return partial;
+        }
+
+        // Phase 2：接收下注選擇，finalize 這一題 → push 進 quizLog
+        recordBetAnswer(playerBetUnits) {
+            const pending = this.pendingQuiz;
+            if (!pending) return null;
+            const optimal = optimalBetUnits(pending.correctTrueCount);
+            pending.playerBetUnits = playerBetUnits;
+            pending.optimalBetUnits = optimal;
+            pending.betError = playerBetUnits - optimal;
+            pending.trueCountAtQuiz = pending.correctTrueCount;
+            pending.playerEdgeAtQuiz = pending.correctTrueCount * 0.005 - 0.005;
+            pending.betPending = false;
+            this.quizLog.push(pending);
+            this.pendingQuiz = null;
+
             // 重置計數器 + 抽下次間隔
             this.cardsSinceLastQuiz = 0;
             this.nextQuizAt = nextQuizInterval(this.baseInterval);
             this.lastQuizCardIdx = this.shoe.dealt.length;
-            return quiz;
+            return pending;
         }
     }
 
@@ -180,6 +212,38 @@
         const biasVerdict = Math.abs(avgSignedError) < 0.3 ? 'balanced'
             : avgSignedError > 0 ? 'over' : 'under';
 
+        // Phase 2：下注分析（只算有下注紀錄的題目）
+        const withBets = log.filter(q => q.playerBetUnits !== undefined);
+        let betting = null;
+        if (withBets.length > 0) {
+            const totalBets = withBets.length;
+            const avgBetError = withBets.reduce((s, q) => s + q.betError, 0) / totalBets;
+            const perfectBets = withBets.filter(q => q.betError === 0).length;
+            const overBetCount = withBets.filter(q => q.betError >= 2).length;
+            const underBetStrong = withBets.filter(q => q.betError <= -2 && q.trueCountAtQuiz > 2).length;
+
+            // ⭐ 核心分離指標：count 算得準（差 ≤ 1）但下注幅度差 ≥ 2
+            // 「知道 vs 做到」是兩件事——這個數字就是證據
+            const accurateCountButBadBet = withBets.filter(q =>
+                q.absError <= 1 && Math.abs(q.betError) >= 2
+            ).length;
+            const knowingButNotExecutingRate = accurateCountButBadBet / totalBets;
+
+            // 系統性下注偏差
+            let betBiasVerdict;
+            if (Math.abs(avgBetError) < 0.3) betBiasVerdict = 'balanced';
+            else if (avgBetError > 0) betBiasVerdict = 'over';
+            else betBiasVerdict = 'under';
+
+            betting = {
+                totalBets, avgBetError, perfectBets,
+                overBetCount, underBetStrong,
+                accurateCountButBadBet, knowingButNotExecutingRate,
+                betBiasVerdict,
+                perfectBetRate: perfectBets / totalBets,
+            };
+        }
+
         return {
             totalQuizzes, correctCount, closeCount,
             overallAccuracy, closeAccuracy,
@@ -190,6 +254,7 @@
             finalRunning: session.shoe.runningCount,
             finalTrue: session.shoe.getTrueCount(),
             totalDealt: session.shoe.dealt.length,
+            betting,
         };
     }
 
@@ -213,7 +278,9 @@
     let dealMs = 800;
     let paused = false;
     let revealCounters = false;
+    let revealMood = false;      // Phase 2：氣氛標籤獨立 toggle
     let trainingWheels = false;
+    let currentPartialQuiz = null;   // Phase 2：count 已答但 bet 還沒選的 pending 題
 
     // ---------- Renderers ----------
     function el(tag, cls, text) {
@@ -257,15 +324,25 @@
         $('stat-progress').textContent = `${shoe.dealt.length} / ${shoe.cutAt}`;
         $('stat-remaining').textContent = `${shoe.cardsRemaining()} 張 · ${shoe.decksRemaining().toFixed(1)} 副`;
 
-        // 三個「可隱藏」的計數欄位
-        const cells = document.querySelectorAll('.stat-cell.reveal');
-        cells.forEach(c => c.classList.toggle('hidden', !revealCounters));
-
+        // Count 面板（3 欄）
+        const revealCells = document.querySelectorAll('.stat-cell.reveal');
+        revealCells.forEach(c => c.classList.toggle('hidden', !revealCounters));
         if (revealCounters) {
             $('stat-running').textContent = (shoe.runningCount > 0 ? '+' : '') + shoe.runningCount;
             $('stat-true').textContent = fmt(shoe.getTrueCount(), 2);
             const edgePct = shoe.getPlayerEdge() * 100;
             $('stat-edge').textContent = (edgePct >= 0 ? '+' : '') + fmt(edgePct, 2) + '%';
+        }
+
+        // Phase 2：氣氛標籤（獨立 toggle，跟 count 面板無關）
+        const moodCell = $('edge-mood-cell');
+        moodCell.hidden = !revealMood;
+        if (revealMood) {
+            const edge = shoe.getPlayerEdge();
+            const mood = edgeLabel(edge);
+            const moodEl = $('stat-mood');
+            moodEl.className = 'stat-val edge-mood mood-' + mood.color;
+            moodEl.textContent = mood.emoji + ' ' + mood.text;
         }
     }
 
@@ -309,8 +386,75 @@
         const playerGuess = parseInt(raw, 10);
         if (isNaN(playerGuess)) return;
 
-        const quiz = session.recordQuiz(playerGuess);
+        // Phase 2：先記 count 答案（partial，還沒 push 進 quizLog），顯示 count 回饋 + bet 問題
+        currentPartialQuiz = session.recordCountAnswer(playerGuess);
+        showCountFeedbackAndAskBet(currentPartialQuiz);
+    }
+
+    function showCountFeedbackAndAskBet(quiz) {
         showFeedback(quiz);
+        // 顯示 bet 問題區塊、隱藏 bet 分析 + continue 按鈕
+        $('bet-question-section').hidden = false;
+        $('bet-analysis').hidden = true;
+        $('btn-continue-deal').hidden = true;
+        // 移除所有 bet button 的舊 selected 標記
+        document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('selected'));
+    }
+
+    function onBetButtonClick(betUnits) {
+        if (!currentPartialQuiz) return;
+        const fullQuiz = session.recordBetAnswer(betUnits);
+        currentPartialQuiz = null;
+        showBetAnalysis(fullQuiz);
+    }
+
+    function showBetAnalysis(quiz) {
+        $('bet-question-section').hidden = true;
+        $('bet-analysis').hidden = false;
+        $('btn-continue-deal').hidden = false;
+
+        const analysisEl = $('bet-analysis');
+        analysisEl.className = '';   // reset class
+        const err = quiz.betError;
+        let cardClass, title, msg;
+        if (err === 0) {
+            cardClass = 'bet-perfect';
+            title = '✅ 完美跟上市場訊號';
+            msg = '你的下注幅度剛好對上 Kelly 建議值。這是最理想的算牌者行為——訊號怎麼講、注碼就怎麼下。';
+        } else if (err >= 2) {
+            cardClass = 'bet-over';
+            title = '⚠️ 你押得比訊號建議的更重';
+            msg = '如果 count 心算本身有誤差，過度下注會放大損失。真實賭場裡，破產 usually 不是敗在單次判斷失誤，而是在訊號模糊時仍然重押。';
+        } else if (err <= -2 && quiz.trueCountAtQuiz > 2) {
+            cardClass = 'bet-under';
+            title = '💡 這手訊號很強，你保留了實力但少賺了應得的優勢';
+            msg = '算牌的正期望值是靠「count 高時多押」堆出來的。持續低估訊號強度 = 平均每小時期望值變低，即使個別手不會爆倉。';
+        } else if (err > 0) {
+            cardClass = 'bet-over';
+            title = '略微加碼過頭';
+            msg = '差 1 倍，還在可接受範圍。要留意這是不是「count 稍微轉正就想加碼」的傾向。';
+        } else {
+            cardClass = 'bet-under';
+            title = '略微保守';
+            msg = '差 1 倍，還在可接受範圍。訊號還不明顯時保守是對的。';
+        }
+        analysisEl.classList.add(cardClass);
+
+        const mood = edgeLabel(quiz.playerEdgeAtQuiz);
+        analysisEl.innerHTML = `
+            <h4>${title}</h4>
+            <div class="bet-details">
+                <div class="row"><b>True Count</b><b>${fmt(quiz.trueCountAtQuiz, 2)}</b></div>
+                <div class="row"><b>你的優勢</b><b>${(quiz.playerEdgeAtQuiz * 100 >= 0 ? '+' : '') + fmt(quiz.playerEdgeAtQuiz * 100, 2)}%</b></div>
+                <div class="row"><b>氣氛</b><b class="mood-${mood.color}" style="color: ${mood.color === 'good' ? '#059669' : mood.color === 'ok' ? '#b45309' : mood.color === 'neutral' ? '#6b7280' : '#dc2626'};">${mood.emoji} ${mood.text}</b></div>
+                <div class="row"><b>你下注</b><b>${quiz.playerBetUnits}× 基礎注</b></div>
+                <div class="row"><b>Kelly 建議</b><b>${quiz.optimalBetUnits}× 基礎注</b></div>
+                <div class="row"><b>差距</b><b>${quiz.betError > 0 ? '+' : ''}${quiz.betError}（${quiz.betError > 0 ? '過度' : quiz.betError < 0 ? '保守' : '完美'}）</b></div>
+            </div>
+            <p class="bet-msg">${msg}</p>
+        `;
+
+        $('bet-analysis').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     function showFeedback(quiz) {
@@ -401,6 +545,10 @@
 
     function continueDealing() {
         $('feedback-panel').hidden = true;
+        $('bet-question-section').hidden = true;
+        $('bet-analysis').hidden = true;
+        $('btn-continue-deal').hidden = false;
+        currentPartialQuiz = null;
         paused = false;
         scheduleNextDeal();
     }
@@ -442,8 +590,58 @@
                 biasLine = '沒有系統性偏差，你的 +/- 平均值接近 0，只是隨機失誤。';
             }
 
+            // Phase 2：核心分離指標「知道 vs 做到」放最上面（教學核心訊號）
+            let knowingVsDoingBlock = '';
+            let bettingBlock = '';
+            if (analysis.betting) {
+                const b = analysis.betting;
+                const kvdPct = (b.knowingButNotExecutingRate * 100).toFixed(0);
+                const bigClass = b.knowingButNotExecutingRate > 0.3 ? 'high'
+                    : b.knowingButNotExecutingRate < 0.1 ? 'low' : '';
+                let kvdMsg;
+                if (b.knowingButNotExecutingRate > 0.3) {
+                    kvdMsg = `你的 count 心算相當準（差 ≤ 1），但下注幅度常常跟不上（差 ≥ 2）——這是算牌者最容易忽略的一環：<b>知道訊號在哪</b>，跟<b>根據訊號幅度做出對應大小的行動</b>，是兩種不同的能力。真實賭場裡，這個落差就是「算得對但賺不到錢」的原因。`;
+                } else if (b.knowingButNotExecutingRate < 0.1) {
+                    kvdMsg = `你 count 算得準的時候，下注幅度也跟上了——這就是算牌者該有的紀律：<b>資訊蒐集</b>跟<b>行動幅度</b>合一。`;
+                } else {
+                    kvdMsg = `有時候你 count 算對了但下注沒跟上——這算牌者常犯的錯，繼續練會收斂。`;
+                }
+
+                knowingVsDoingBlock = `
+                    <div class="knowing-vs-doing">
+                        <h3>⭐ 「知道 vs 做到」核心指標</h3>
+                        <p style="margin:4px 0 0;color:#78350f;">
+                            算牌準（差 ≤ 1）但下注幅度差 ≥ 2 的題數：
+                        </p>
+                        <div class="big-number ${bigClass}">${b.accurateCountButBadBet} / ${b.totalBets} 題（${kvdPct}%）</div>
+                        <p class="msg">${kvdMsg}</p>
+                    </div>
+                `;
+
+                // 其他 betting 統計
+                let betBiasMsg;
+                if (b.betBiasVerdict === 'over') {
+                    betBiasMsg = `<b>整體傾向加碼</b>（平均比建議多 ${fmt(b.avgBetError, 1)}x）—— 訊號模糊時要壓抑加碼衝動。`;
+                } else if (b.betBiasVerdict === 'under') {
+                    betBiasMsg = `<b>整體傾向保守</b>（平均比建議少 ${fmt(Math.abs(b.avgBetError), 1)}x）—— count 高時要敢於加碼，正期望值靠這個堆出來。`;
+                } else {
+                    betBiasMsg = `<b>下注幅度平衡</b>，沒有系統性偏差。`;
+                }
+
+                bettingBlock = `
+                    <h3>💰 下注判斷分析</h3>
+                    <ul>
+                        <li><b>完美跟上 Kelly 建議</b>：${b.perfectBets} / ${b.totalBets} 題（${(b.perfectBetRate*100).toFixed(0)}%）</li>
+                        <li><b>過度加碼（差 ≥ 2）</b>：${b.overBetCount} 題</li>
+                        <li><b>訊號強但保守（true count > 2 卻少下 ≥ 2）</b>：${b.underBetStrong} 題</li>
+                        <li>${betBiasMsg}</li>
+                    </ul>
+                `;
+            }
+
             body.innerHTML = `
-                <h3>📊 本輪表現</h3>
+                ${knowingVsDoingBlock}
+                <h3>📊 Count 心算表現</h3>
                 <ul>
                     <li><b>總題數</b>：${analysis.totalQuizzes} 題</li>
                     <li><b>完全正確率</b>：<span class="${accClass}">${(analysis.overallAccuracy*100).toFixed(0)}%</span>（${analysis.correctCount}/${analysis.totalQuizzes}）</li>
@@ -453,12 +651,16 @@
                     <li><b>系統性偏差</b>：${biasLine}</li>
                     <li><b>最大失誤</b>：第 ${analysis.worstQuiz.quizIdx + 1} 題，你答 ${signed(analysis.worstQuiz.playerGuess)}、正確 ${signed(analysis.worstQuiz.correctCount)}（差 ${signed(analysis.worstQuiz.error)}）</li>
                 </ul>
+                ${bettingBlock}
                 <p><b>最終 shoe 狀態</b>：Running = ${signed(analysis.finalRunning)}、True = ${fmt(analysis.finalTrue, 2)}</p>
                 <p class="hint">
                     <b>下一步練什麼？</b>
                     ${analysis.overallAccuracy >= 0.7
-                        ? '準確率 70%+，可以試「發牌節奏調快」或「切牌位置拉深（85%）」——牌堆越深、count 值波動越劇烈、越考驗持續注意力。'
+                        ? '準確率 70%+，可以試「發牌節奏調快」或「切牌位置拉深（85%）」。'
                         : '準確率還在 <70%，先關掉訓練輪、放慢發牌節奏（2000ms），把單張牌的 Hi-Lo 值記牢再挑戰。'}
+                    ${analysis.betting && analysis.betting.knowingButNotExecutingRate > 0.3
+                        ? '<br><br><b>特別：</b>你的「知道 vs 做到」落差 > 30%——下一輪特別練習「count 剛剛揭曉後、下注按鈕出現的那一秒」的判斷，讓兩者對齊。'
+                        : ''}
                 </p>
             `;
         }
@@ -488,6 +690,8 @@
         session = new CountTrainingSession(numDecks, pen, interval);
         paused = false;
         revealCounters = false;
+        revealMood = false;
+        currentPartialQuiz = null;
 
         $('setup-panel').hidden = true;
         $('game-panel').hidden = false;
@@ -542,6 +746,19 @@
         $('btn-reveal').addEventListener('click', () => {
             revealCounters = !revealCounters;
             updateShoeStats();
+        });
+        $('btn-reveal-mood').addEventListener('click', () => {
+            revealMood = !revealMood;
+            updateShoeStats();
+        });
+        // Phase 2：bet button 群
+        document.querySelectorAll('.bet-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const bet = parseInt(btn.dataset.bet, 10);
+                document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                onBetButtonClick(bet);
+            });
         });
         $('btn-quit').addEventListener('click', () => {
             if (!session) return;
