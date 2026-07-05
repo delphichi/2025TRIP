@@ -365,7 +365,10 @@
             const n = tokens.length;
             const padX = 30, padY = 60;
             const spacing = (w - padX * 2) / (n - 1 || 1);
-            const y = h / 2;
+            // Token 定位在畫面上 30%（Reviewer round 4）：canvas 從 240 拉到 340 後
+            // 若 y = h/2 會下移 50px 導致 Stage 2 的 raw 長條圖跟 token 節點重疊。
+            // 定 y ≈ h * 0.30 讓：上方留空間給箭頭 + Q 泡泡、下方留 240px 給 Stage 2 三層
+            const y = Math.round(h * 0.30);
 
             // Compute token bounds
             this.tokenBounds = tokens.map((t, i) => {
@@ -706,7 +709,10 @@
         '2/3 K 逐一打分（Q·K raw scores）',
         '3/3 Softmax 尖銳化（→ 機率分布）',
     ];
-    const STAGE_DURATIONS_MS = [1500, null /* per-substep */, 2500];
+    // Stage 2 從 2500 → 3500ms（Reviewer round 4 建議）：高潮期 sub-C
+    // 原本 1625ms 分成三段講「強者變強、弱者被壓、Σ=1」講不完一句話。拉到 3500ms
+    // 讓 sub-C 有 2275ms（1.4 倍），配旁白剛好。
+    const STAGE_DURATIONS_MS = [1500, null /* per-substep */, 3500];
     const DIM_INTRO_RATIO = 0.13;
 
     // Easing helpers
@@ -811,6 +817,7 @@
             this.currentK = null;
             this.doneKs = [];
             this.playing = true;
+            this._clear();   // 清掉上一輪 finish 留下的最後一幀
             this._loop();
             if (this.onStageChange) this.onStageChange(this.stage);
         }
@@ -855,14 +862,21 @@
             if (this.stage === 1 && this.currentK === null && this.pendingKs.length > 0) {
                 this.currentK = this.pendingKs.shift();
             }
-            // 超過最後 stage 就直接結束（不停在佔位訊息）
             if (this.stage >= STAGE_NAMES.length) {
-                setTimeout(() => {
-                    this.playing = false;
-                    if (this.rafId) cancelAnimationFrame(this.rafId);
-                    if (this.onEnd) this.onEnd();   // 通知 UI 重置
-                }, 0);
+                // Reviewer round 4：不呼叫 stop() 因為它會 _clear()；
+                // 改用 finish()：畫 Stage 2 的 t=1 結束幀 pin 在 overlay，
+                // playing=false 但 canvas 保留，讓觀眾停格研究/截圖
+                this.stage = STAGE_NAMES.length - 1;
+                this._draw(1);
+                this.stage = STAGE_NAMES.length;
+                setTimeout(() => this._finish(), 0);
             }
+        }
+        _finish() {
+            this.playing = false;
+            if (this.rafId) cancelAnimationFrame(this.rafId);
+            if (this.onEnd) this.onEnd();
+            // 注意：不 _clear()，讓 Stage 2 最後一幀留在 overlay 上
         }
         _loop() {
             if (!this.playing) return;
@@ -1052,19 +1066,27 @@
             for (const j of this.doneKs) this._drawKAndLine(j, 1, false);
         }
         _stage2Layout() {
-            // 三層佈局的 Y 座標（canvas h=340；token y ≈ h/2）
-            const rawTop = this.h * 0.52;
-            const rawMaxH = 30;
+            // Round 4：token 移到 h*0.30，所以 Stage 2 從 h*0.42 開始有很多空間。
+            // 三層 layout（相對比例）：
+            const rawTop = this.h * 0.42;
+            const rawMaxH = this.h * 0.09;   // ~30 for h=340
             const rawBase = rawTop + rawMaxH;
-            const formulaY = rawBase + 20;
-            const softTop = formulaY + 45;
-            const softMaxH = 55;   // 比 raw 高，讓尖銳化的視覺表現更誇張
+            const formulaY = rawBase + 8;
+            const softTop = formulaY + 46;
+            const softMaxH = this.h * 0.16;   // ~55 for h=340（比 raw 高，尖銳化更戲）
             const softBase = softTop + softMaxH;
-            const padX = 50;
             const N = this.stage2Ks.length;
-            const gap = 6;
-            const barW = (this.w - padX * 2 - gap * (N - 1)) / N;
-            return { rawTop, rawMaxH, rawBase, formulaY, softTop, softMaxH, softBase, padX, gap, barW, N };
+            // Reviewer round 4 建議：長條 x 對齊 token x（讓「token → raw → softmax」垂直串一列）
+            // Query 位置留一個「洞」有教學意義：query 不對自己打分
+            const barW = this.scene.tokenBounds && this.scene.tokenBounds.length >= 2
+                ? Math.max(24, (this.scene.tokenBounds[1].x - this.scene.tokenBounds[0].x) * 0.6)
+                : 40;
+            return { rawTop, rawMaxH, rawBase, formulaY, softTop, softMaxH, softBase, barW, N };
+        }
+        // 拿 token 位置陣列裡指定 idx 的 x 座標（stage2Ks[i] 的 x）
+        _tokenX(j) {
+            const tb = this.scene.tokenBounds && this.scene.tokenBounds[j];
+            return tb ? tb.x : (this.w / 2);
         }
         _drawRawBars(alpha) {
             const ctx = this.ctx;
@@ -1076,12 +1098,14 @@
             ctx.font = 'bold 11px -apple-system, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'bottom';
-            ctx.fillText('Raw Q·K 分數（灰色，normalize 到 0-10）', L.padX, L.rawTop - 4);
+            ctx.fillText('Raw Q·K 分數（灰色，normalize 到 0-10）', 30, L.rawTop - 4);
             for (let i = 0; i < L.N; i++) {
                 const j = this.stage2Ks[i];
-                const val = this.raw[j] / this.maxRaw;   // 0-1
+                const val = this.raw[j] / this.maxRaw;
                 const barH = val * L.rawMaxH;
-                const bx = L.padX + i * (L.barW + L.gap);
+                // Reviewer round 4：長條中心對齊 token x（每個 token 上下有自己的一列數據）
+                const cx = this._tokenX(j);
+                const bx = cx - L.barW / 2;
                 const by = L.rawBase - barH;
                 ctx.fillStyle = '#94a3b8';
                 ctx.fillRect(bx, by, L.barW, barH);
@@ -1090,12 +1114,7 @@
                 ctx.font = 'bold 10px ui-monospace, monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
-                ctx.fillText((val * 10).toFixed(1), bx + L.barW / 2, by - 1);
-                // token 標籤
-                ctx.fillStyle = '#4b5563';
-                ctx.font = '10px -apple-system, sans-serif';
-                ctx.textBaseline = 'top';
-                ctx.fillText(this.tokens[j], bx + L.barW / 2, L.rawBase + 3);
+                ctx.fillText((val * 10).toFixed(1), cx, by - 1);
             }
             ctx.restore();
         }
@@ -1138,16 +1157,16 @@
             ctx.font = 'bold 11px -apple-system, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'bottom';
-            ctx.fillText('Softmax 後的權重（紫色，機率分布，加總 = 1）', L.padX, L.softTop - 4);
+            ctx.fillText('Softmax 後的權重（紫色，機率分布，加總 = 1）', 30, L.softTop - 4);
             const morphT = easeInOutCubic(tC);
             for (let i = 0; i < L.N; i++) {
                 const j = this.stage2Ks[i];
-                const rawNorm = this.raw[j] / this.maxRaw;                 // 0-1
-                const softNorm = this.softmaxed[j] / this.maxSoft;         // 0-1，視覺放大到 max
-                // 初始 = raw 長度、目標 = softmax 長度，用 easeInOutCubic tween
+                const rawNorm = this.raw[j] / this.maxRaw;
+                const softNorm = this.softmaxed[j] / this.maxSoft;
                 const currentNorm = rawNorm + (softNorm - rawNorm) * morphT;
                 const barH = currentNorm * L.softMaxH;
-                const bx = L.padX + i * (L.barW + L.gap);
+                const cx = this._tokenX(j);
+                const bx = cx - L.barW / 2;
                 const by = L.softBase - barH;
                 // 顏色：弱長條淡（紫淺）、強長條深（紫深）
                 const softVal = this.softmaxed[j];
@@ -1172,7 +1191,7 @@
                 ctx.font = 'bold 10px ui-monospace, monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
-                ctx.fillText(label, bx + L.barW / 2, by - 1);
+                ctx.fillText(label, cx, by - 1);
             }
             ctx.restore();
         }
@@ -1182,7 +1201,7 @@
             const scale = 0.5 + 0.5 * easeOutBack(alpha);
             ctx.save();
             ctx.globalAlpha = alpha;
-            const cx = this.w - L.padX - 40;
+            const cx = this.w - 90;
             const cy = L.softTop - 20;
             const bw = 100 * scale;
             const bh = 22 * scale;
