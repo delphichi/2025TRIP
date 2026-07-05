@@ -663,8 +663,8 @@
             const gap = 10;
             const shopW = (totalW - 4 * gap) / 5;
             const x = marginX + slot * (shopW + gap);
-            const y = this.h * 0.36;
-            const shopH = this.h * 0.58;
+            const y = this.h * 0.22;      // 店往上挪，讓下方 60px 擺 name/price/stats
+            const shopH = this.h * 0.55;  // 縮矮，shop bottom = 0.77，ground 在 0.94
             return { x, y, w: shopW, h: shopH };
         }
 
@@ -760,15 +760,21 @@
                 ctx.strokeRect(winX, winY, winW, winH);
             }
 
-            // 麵包 emoji 在窗內（顯示庫存）
+            // 麵包 emoji 在窗內（顯示「剩」——用 history[last].wasted，不是 inventory
+            // 因為 endDay 已經把 inventory 設回 0，直接讀會全部是「售完」）
+            const last = producer.history.length > 0 ? producer.history[producer.history.length - 1] : null;
+            const bakedToday = last ? last.baked : 0;
+            const remaining = last ? last.wasted : 0;
             ctx.font = `${Math.floor(winH * 0.4)}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const breadCount = Math.min(3, Math.max(0, producer.inventory));
-            const bread = producer.closed ? '💀' : (producer.wasHot ? '🔥' : '🥐');
-            const label = producer.closed ? '💀' : (breadCount === 0 ? '（售完）' : '🥐'.repeat(breadCount));
+            const breadCount = Math.min(3, Math.max(0, remaining));
+            const label = producer.closed ? '💀'
+                : bakedToday === 0 ? '（未烤）'
+                : remaining === 0 ? '（售完）'
+                : '🥐'.repeat(breadCount);
             ctx.fillStyle = producer.closed ? '#991b1b' : '#78350f';
-            ctx.fillText(producer.closed ? '💀' : label, winX + winW / 2, winY + winH / 2);
+            ctx.fillText(label, winX + winW / 2, winY + winH / 2);
 
             // 門
             const doorW = b.w * 0.22;
@@ -794,6 +800,18 @@
             ctx.font = `800 14px ui-monospace, SFMono-Regular, monospace`;
             ctx.fillStyle = producer.closed ? '#991b1b' : '#b45309';
             ctx.fillText(producer.closed ? `倒 D${producer.closedDay}` : `$${producer.effectivePrice().toFixed(0)}`, b.x + b.w / 2, b.y + b.h + 18);
+
+            // 帳本：烤 X 賣 Y 剩 Z · 訪 V —— 從 history + visitsToday 讀
+            // visitsToday 在 endDay 不被重設，下一天 bake() 才 reset，動畫時值還在
+            if (!producer.closed && bakedToday > 0) {
+                ctx.font = '600 10px ui-monospace, SFMono-Regular, monospace';
+                ctx.fillStyle = '#4b2e10';
+                ctx.textBaseline = 'top';
+                const soldToday = last.sold || 0;
+                const visits = producer.visitsToday || 0;
+                ctx.fillText(`烤${bakedToday} 賣${soldToday} 剩${remaining}`, b.x + b.w / 2, b.y + b.h + 34);
+                ctx.fillText(`訪客 ${visits} 人`, b.x + b.w / 2, b.y + b.h + 46);
+            }
 
             // 🔥 badge 精品店 signaling
             if (producer.wasHot && !producer.closed) {
