@@ -933,19 +933,32 @@
         const decStr = d => d
             ? `你定 $${fmt(d.playerPrice, 1)} / 烤 ${d.playerQty} 個（AI 當時建議 $${fmt(d.aiPrice, 1)} / ${d.aiQty} 個）`
             : '（無決策紀錄）';
-        // 學習曲線判讀
-        let curveVerdict = '';
-        if (a.late.n >= 2 && a.early.n >= 2) {
+        // 學習曲線判讀：因果中性 —— delta 縮小可能是你動、也可能是 AI 跟著市場動
+        // 需要至少 4 天樣本才切前半 / 後半；否則 fallback 講清楚為什麼沒得判
+        let curveVerdict;
+        const N = a.early.n + a.late.n;
+        if (a.late.n < 2 || a.early.n < 2) {
+            curveVerdict = `<span class="analysis-sub">（只跑 ${N} 天，樣本不足——4 天以上才切得出前半 / 後半的差距趨勢）</span>`;
+        } else {
             const priceConv = a.late.price < a.early.price - 0.5;
             const priceDiv = a.late.price > a.early.price + 0.5;
-            if (priceConv) curveVerdict = `<b class="tag-good">收斂 ↘</b>：你越玩越靠近 AI 的建議價（前半平均差 $${fmt(a.early.price, 1)} → 後半 $${fmt(a.late.price, 1)}）——直覺在向 newsvendor 內化。`;
-            else if (priceDiv) curveVerdict = `<b>發散 ↗</b>：你越玩越偏離 AI（$${fmt(a.early.price, 1)} → $${fmt(a.late.price, 1)}）。可能是你發現「AI 只是啟發式、不是聖旨」，也可能是走偏了——看本金圖判定。`;
+            if (priceConv) curveVerdict = `<b class="tag-good">收斂 ↘</b>：跟 AI 建議價的差距在縮小（前半平均差 $${fmt(a.early.price, 1)} → 後半 $${fmt(a.late.price, 1)}）。可能是你在調整、也可能是 AI 跟著市場移動——看本金曲線判斷是哪一種。`;
+            else if (priceDiv) curveVerdict = `<b>發散 ↗</b>：跟 AI 建議價的差距在拉大（$${fmt(a.early.price, 1)} → $${fmt(a.late.price, 1)}）。可能是你發現「AI 只是啟發式、不是聖旨」，也可能是走偏了——看本金圖判定。`;
             else curveVerdict = `<b>穩定</b>：整場跟 AI 的差距差不多（$${fmt(a.early.price, 1)} → $${fmt(a.late.price, 1)}）。`;
+        }
+        // 峰值日語意：Day 1 是特殊 case——峰值 = 種子 + Day 1 淨利，之後一路陰乾
+        let peakLine;
+        if (a.peakDay === 1) {
+            peakLine = `<b>本金峰值：Day 1，本金 $${fmt(a.peakCash, 1)}</b>（= 種子 $100 + Day 1 淨利 $${fmt(a.peakProfit, 1)}）——<b class="tag-bad">你從 Day 2 起就沒再賺過錢</b>，這一場「一開始就走錯」，不是後來崩掉。`;
+        } else if (a.fellFromPeak) {
+            peakLine = `<b>本金峰值：Day ${a.peakDay}，本金 $${fmt(a.peakCash, 1)}</b>（之後開始下滑——這就是拐點）`;
+        } else {
+            peakLine = `<b>本金峰值：Day ${a.peakDay}，本金 $${fmt(a.peakCash, 1)}</b>（一路走高到最後——沒有拐點）`;
         }
         return `
             <h3>📊 這一場的回顧</h3>
             <ul>
-                <li><b>本金峰值：Day ${a.peakDay}，本金 $${fmt(a.peakCash, 1)}</b>${a.fellFromPeak ? '（之後開始下滑）' : '（一路走高到最後）'}<br>
+                <li>${peakLine}<br>
                     <span class="analysis-sub">那天決策：${decStr(a.peakDec)}</span></li>
                 <li><b>最慘單日：Day ${a.worstDay}，那天淨利 <span class="tag-bad">$${fmt(a.worstProfit, 1)}</span></b><br>
                     <span class="analysis-sub">那天決策：${decStr(a.worstDec)}</span></li>
