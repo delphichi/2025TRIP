@@ -75,6 +75,33 @@
             </div>
         </section>
 
+        <section class="panel scene-panel" id="scene-panel" hidden>
+            <h2>🎬 <span id="scene-day-label">Day 0</span> 營業實況（店員視角）</h2>
+            <div class="scene-wrap">
+                <canvas id="scene-canvas" width="920" height="360"></canvas>
+                <div class="scene-summary" id="scene-summary" hidden>
+                    <h3 id="summary-title">📊 今日結算</h3>
+                    <div id="summary-body"></div>
+                    <button id="btn-next-day">📅 明天見 → 設定明天的價格 & 數量</button>
+                </div>
+            </div>
+            <p class="hint">
+                <span class="dot dot-premium"></span> 精品客
+                <span class="dot dot-budget"></span> 基礎客
+                &nbsp;·&nbsp; 綠色泡泡 = 成交、紅色泡泡 = 拒買
+                <br>
+                <label>動畫速度
+                    <select id="cfg-anim-speed">
+                        <option value="0.5">0.5×</option>
+                        <option value="1" selected>1×</option>
+                        <option value="2">2×</option>
+                        <option value="4">4× 快進</option>
+                    </select>
+                </label>
+                <button id="btn-skip-anim" class="btn-secondary">⏭ 跳過動畫</button>
+            </p>
+        </section>
+
         <section class="panel game-panel" id="game-panel" hidden>
             <h2>📅 <span id="day-label">Day 0</span> · 我的本金 <span id="cash-label">$100</span></h2>
             <div class="board">

@@ -190,6 +190,84 @@ body.sim-body {
     animation: hot-pulse 1.5s ease-in-out infinite;
 }
 
+/* scene panel */
+.scene-panel { border-left-color: var(--accent); }
+.scene-wrap {
+    position: relative;
+    width: 100%;
+    background: linear-gradient(180deg, #fef9c3 0%, #fef3c7 60%, #ede9fe 100%);
+    border: 2px solid #fde68a;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+.scene-wrap canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.scene-summary {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, .95);
+    backdrop-filter: blur(4px);
+    padding: 20px;
+    text-align: center;
+    animation: summary-in .3s ease-out;
+}
+@keyframes summary-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+.scene-summary h3 {
+    color: var(--primary-dark);
+    margin: 0 0 12px;
+    font-size: 1.2em;
+}
+#summary-body {
+    background: #fff7ed;
+    border: 1px solid #fdba74;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-bottom: 14px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: .95em;
+    line-height: 1.7;
+    color: var(--ink);
+    max-width: 480px;
+}
+#summary-body .row { display: flex; justify-content: space-between; gap: 20px; }
+#summary-body .row b { color: var(--primary-dark); }
+#summary-body .profit-good { color: var(--success); font-weight: 700; }
+#summary-body .profit-bad { color: var(--danger); font-weight: 700; }
+#btn-next-day {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(245, 158, 11, .3);
+    transition: all .12s;
+}
+#btn-next-day:hover { background: #d97706; transform: translateY(-1px); }
+.dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin: 0 3px 0 6px;
+}
+.dot-premium { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, .5); }
+.dot-budget { background: #60a5fa; }
+
 /* decision panel */
 .decision-panel {
     background: #fff7ed;
