@@ -975,7 +975,10 @@
                     this.phase = 0;
                     if (this.eventIdx >= this.events.length) {
                         // 所有事件跑完 → live counters snap 到當日真實總數
+                        // ⚠ 必須多畫一幀，否則 canvas 停在 pre-snap 的 live 值
+                        // （動畫最後畫「訪客 1」，結算卡顯示「訪客 6」，兩者矛盾）
                         this._snapStatsToFinal();
+                        this._drawStaticBackground();
                         this.playing = false;
                         if (this.onFinish) this.onFinish();
                         return;
