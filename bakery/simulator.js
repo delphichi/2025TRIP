@@ -1415,9 +1415,12 @@
         const costTier = $('cfg-cost-tier').value;
         const difficulty = $('cfg-difficulty').value;
         const mood = $('cfg-market').value;
+        const animMs = parseInt($('cfg-anim-ms').value) || 4500;
         const cfg = makeMarketCfg(costTier, difficulty, mood);
         market = new Market(cfg);
         gameOver = false;
+        // 動畫節奏在開店設定時決定，整場遊戲用同一個節奏（要換就重新開店）
+        if (scene) scene.setPerCustomerMs(animMs);
 
         $('setup-panel').hidden = true;
         $('game-panel').hidden = false;
@@ -1467,7 +1470,7 @@
         $('scene-day-label').textContent = `Day ${rec.day}`;
 
         scene.setMarket(market);
-        scene.setPerCustomerMs(parseInt($('cfg-anim-ms').value) || 4500);
+        // ms 已於 startGame 時鎖定，這裡不再讀 input
         scene.animateDay(rec.day, rec.sceneEvents, showDaySummary);
     }
 
@@ -1692,9 +1695,6 @@
         $('btn-next-day').addEventListener('click', proceedToNextDay);
         $('btn-skip-anim').addEventListener('click', () => {
             if (scene && scene.playing) scene.skip();
-        });
-        $('cfg-anim-ms').addEventListener('change', e => {
-            if (scene) scene.setPerCustomerMs(parseInt(e.target.value) || 4500);
         });
         $('dec-price').addEventListener('input', e => {
             $('dec-price-val').textContent = '$' + fmt(parseFloat(e.target.value), 1);

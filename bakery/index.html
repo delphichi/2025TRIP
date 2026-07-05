@@ -69,7 +69,14 @@
                         <option value="harsh">⛈️ 嚴苛（通膨 + 高不耐煩）</option>
                     </select>
                 </label>
+                <label>動畫節奏：每個客人 (ms)
+                    <input type="number" id="cfg-anim-ms" min="500" max="30000" value="4500" step="500">
+                </label>
             </div>
+            <p class="hint">
+                <b>動畫節奏</b>：500 = 極快看不清、4500 = 預設慢、10000 = 教學超慢
+                （每個客人跑進門→詢價→答覆→評估→決策→離開 5 個階段，時間依比例分配）
+            </p>
             <div class="btn-row">
                 <button id="btn-start">▶ 開店</button>
             </div>
@@ -88,18 +95,10 @@
             <p class="hint">
                 <span class="dot dot-premium"></span> 精品客（金球 + 光暈）
                 <span class="dot dot-budget"></span> 基礎客（藍球）
+                &nbsp;·&nbsp; 5 階段：<b>進門</b> → <b>詢價</b>（白泡）→ <b>店員答覆</b>（黃泡）
+                → <b>評估</b>（藍雲思考）→ <b>決策</b>（綠買 / 紅拒）→ <b>離開</b>
                 <br>
-                每個客人跑 5 個階段：<b>進門</b> → <b>詢價</b>（白泡「多少錢？」）
-                → <b>店員答覆</b>（黃泡「$40 / 個」）→ <b>評估</b>（藍雲思考「我期望…」）
-                → <b>決策</b>（綠買 / 紅拒）→ <b>離開</b>
-                <br>
-                <label>每個客人 (ms)
-                    <input type="number" id="cfg-anim-ms" min="500" max="30000" value="4500" step="500">
-                </label>
-                <span class="hint" style="margin: 0 8px;">
-                    500 = 極快、4500 = 預設慢、10000 = 教學超慢
-                </span>
-                <button id="btn-skip-anim" class="btn-secondary">⏭ 跳過動畫</button>
+                動畫節奏在<b>開店設定</b>裡定，中途只能<button id="btn-skip-anim" class="btn-secondary" style="margin-left:6px;">⏭ 跳過動畫</button>
             </p>
         </section>
 
