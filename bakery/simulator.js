@@ -1463,11 +1463,14 @@
         const rec = market.stepOneDay();
         pendingDayRec = rec;
 
-        // 進入動畫階段：隱藏決策 & log，顯示 scene panel
+        // 進入動畫階段：隱藏決策 & log，顯示 scene panel + 捲到動畫區
         $('scene-panel').hidden = false;
         $('decision-panel').hidden = true;
         $('scene-summary').hidden = true;
         $('scene-day-label').textContent = `Day ${rec.day}`;
+        // 捲到 scene panel：原本它排在頁面最上方，玩家往下捲到 game panel /
+        // charts 之後按 confirm，動畫在螢幕上方跑，玩家的視窗完全看不到
+        $('scene-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         scene.setMarket(market);
         // ms 已於 startGame 時鎖定，這裡不再讀 input
