@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>21 點算牌訓練器 · Beat the Dealer</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#166534">
+</head>
+<body class="sim-body">
+
+    <header class="sim-header">
+        <h1>🎴 21 點算牌訓練器</h1>
+        <p class="sim-subtitle">牌堆有記憶——算的是機率的動態偏移，不是預測下一張是什麼</p>
+    </header>
+
+    <main class="sim-main">
+
+        <section class="panel intro-panel">
+            <h2>📖 歷史與原理</h2>
+            <p class="hint">
+                <b>Edward Thorp</b>（MIT 數學教授）1962 年出版《Beat the Dealer》——史上第一本用數學嚴謹證明「21 點可以被系統性打敗」的書。他用 IBM 704 跑蒙地卡羅模擬，算出每張牌被抽走後對玩家勝率的影響。
+            </p>
+            <p class="hint">
+                <b>核心洞見</b>：牌局是<b>有記憶的</b>。輪盤每次轉都是獨立事件，但 21 點的牌從一副牌抽走就不會放回去（直到重洗）。若牌堆剩下的大牌（10、J、Q、K、A）比例變高 → 對玩家有利（莊家爆牌 ↑、玩家 blackjack ↑、加倍下注的好牌更容易出現）；小牌比例高 → 對莊家有利。
+            </p>
+            <p class="hint">
+                <b>Hi-Lo 系統</b>（本訓練器用的方法）：2-6 記 +1、7-9 記 0、10-A 記 -1。心裡一路加總——數字越正代表大牌比例越高、該加碼；越負就縮小賭注甚至不下注。
+                <br>
+                跟麵包經濟學的 newsvendor 用歷史銷量估計 Q* 是同一種思路：<b>用過去觀測到的資訊更新對未來的機率分佈</b>。
+            </p>
+            <p class="hint">
+                <b>後續發展</b>：1990 年代 <b>MIT Blackjack Team</b> 把算牌升級成分工作業——算牌員坐著算但下小注，算到有利時用暗號通知「大玩家」進場押重注、贏了就走。幾年贏走數百萬美元，直到賭場用臉部辨識反制、把他們列入黑名單。電影《決勝 21 點》就在講他們。
+                <br>
+                賭場的反制包括：<b>多副牌</b>（副數越多算牌信號越弱）、<b>降低切牌位置</b>（發不到底就洗牌）、<b>禁止進出</b>等。這個訓練器讓你調這些旋鈕、直接看到「同樣的技巧、副數從 1 到 8，優勢從 +1.5% 掉到 +0.3%」的數字對比。
+            </p>
+        </section>
+
+        <section class="panel setup-panel" id="setup-panel">
+            <h2>🏗️ 開局設定</h2>
+            <div class="ctrl-grid">
+                <label>副牌數（賭場反制強度）
+                    <select id="cfg-decks">
+                        <option value="1">🎯 1 副（練習模式、優勢容易累積）</option>
+                        <option value="2">🎯 2 副（家用桌）</option>
+                        <option value="6" selected>🏢 6 副（標準賭場）</option>
+                        <option value="8">🏛 8 副（賭場反制強、優勢被稀釋）</option>
+                    </select>
+                </label>
+                <label>切牌位置（penetration）
+                    <select id="cfg-penetration">
+                        <option value="0.50">50%（極保守，早洗）</option>
+                        <option value="0.65">65%（賭場常用）</option>
+                        <option value="0.75" selected>75%（標準）</option>
+                        <option value="0.85">85%（放牛吃草，算牌天堂）</option>
+                    </select>
+                </label>
+                <label>問答間隔（每 X 張問一次）
+                    <select id="cfg-interval">
+                        <option value="3">每 3 張（超密集、極難）</option>
+                        <option value="5" selected>每 5 張（訓練標準）</option>
+                        <option value="8">每 8 張（節奏舒適）</option>
+                        <option value="12">每 12 張（挑戰記憶）</option>
+                    </select>
+                </label>
+                <label>發牌節奏 (ms/張)
+                    <input type="number" id="cfg-deal-ms" min="150" max="5000" value="800" step="50">
+                </label>
+                <label>訓練輪（顯示每張牌的 Hi-Lo 值）
+                    <select id="cfg-training-wheels">
+                        <option value="1">🚴 開（每張牌下面顯示 +1/0/-1）</option>
+                        <option value="0" selected>🎓 關（自己算）</option>
+                    </select>
+                </label>
+            </div>
+            <p class="hint">
+                <b>優勢預估</b>（開局前理論值）：<span id="edge-preview">請選擇設定</span>
+            </p>
+            <div class="btn-row">
+                <button id="btn-start">▶ 開始發牌</button>
+            </div>
+        </section>
+
+        <section class="panel game-panel" id="game-panel" hidden>
+            <h2>🎲 發牌實況</h2>
+            <div class="shoe-stats">
+                <div class="stat-cell">
+                    <div class="stat-label">副牌 / 切牌</div>
+                    <div class="stat-val" id="stat-shoe">6 副 · 75%</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-label">已發 / 總</div>
+                    <div class="stat-val" id="stat-progress">0 / 312</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-label">剩餘</div>
+                    <div class="stat-val" id="stat-remaining">312 張 · 6.0 副</div>
+                </div>
+                <div class="stat-cell reveal">
+                    <div class="stat-label">Running Count（暫隱）</div>
+                    <div class="stat-val" id="stat-running">?</div>
+                </div>
+                <div class="stat-cell reveal">
+                    <div class="stat-label">True Count</div>
+                    <div class="stat-val" id="stat-true">?</div>
+                </div>
+                <div class="stat-cell reveal">
+                    <div class="stat-label">你的優勢</div>
+                    <div class="stat-val" id="stat-edge">?</div>
+                </div>
+            </div>
+
+            <div class="cards-area" id="cards-area">
+                <p class="cards-empty">按「▶ 開始發牌」開始</p>
+            </div>
+
+            <div class="deal-controls">
+                <button id="btn-pause">⏸ 暫停</button>
+                <button id="btn-resume" hidden>▶ 繼續</button>
+                <button id="btn-reveal" class="btn-secondary">👁 顯示 / 隱藏 count 面板</button>
+                <button id="btn-quit" class="btn-danger">💤 結束這一輪</button>
+                <label class="deal-speed-live">節奏 (ms/張)
+                    <input type="number" id="cfg-deal-ms-live" min="150" max="5000" value="800" step="50">
+                </label>
+            </div>
+        </section>
+
+        <section class="panel question-panel" id="question-panel" hidden>
+            <h2>❓ 現在的 Running Count 是多少？</h2>
+            <p class="hint">
+                從上一次歸零 or 上一次答題結束開始，你心裡累計的 running count。
+                <br>
+                提示：Hi-Lo 系統 —— 2-6 = <b>+1</b>、7-9 = <b>0</b>、10-J-Q-K-A = <b>-1</b>。
+            </p>
+            <div class="answer-row">
+                <input type="number" id="answer-input" placeholder="輸入你的答案（可正可負）" step="1">
+                <button id="btn-submit-answer">✓ 送出（或按 Enter）</button>
+            </div>
+        </section>
+
+        <section class="panel feedback-panel" id="feedback-panel" hidden>
+            <h2 id="feedback-title">📊 答題結果</h2>
+            <div id="feedback-body"></div>
+            <div class="btn-row">
+                <button id="btn-continue-deal">▶ 繼續發牌</button>
+            </div>
+        </section>
+
+        <section class="panel stats-panel" id="stats-panel" hidden>
+            <h2>📈 本輪學習曲線</h2>
+            <div class="stats-summary" id="stats-summary"></div>
+        </section>
+
+        <section class="panel gameover-panel" id="gameover-panel" hidden>
+            <h2 id="gameover-title">🎴 這一副打完</h2>
+            <div id="gameover-body"></div>
+            <div class="btn-row">
+                <button id="btn-restart">↺ 換設定重來</button>
+                <button id="btn-same-again">🔁 同設定再一輪</button>
+            </div>
+        </section>
+
+        <footer class="sim-footer">
+            <p>模型：<strong>Hi-Lo 算牌系統 · Thorp 1962</strong>。
+            跟隔壁 <a href="../simulator.html">🍞 麵包經濟學</a>、
+            <a href="../bakery/index.html">🥐 Bakery Tycoon</a>、
+            <a href="../attention/index.html">🔍 Attention Sandbox</a>、
+            <a href="../lyric/index.html">🎵 Lyric Playback</a>、
+            <a href="../stock/index.html">📈 股市</a>、
+            <a href="../retirement/index.html">👴 退休金</a> 是姊妹作。</p>
+            <p><a href="../index.html">← 回家族旅遊 PWA</a></p>
+        </footer>
+
+    </main>
+
+    <script src="simulator.js"></script>
+</body>
+</html>
