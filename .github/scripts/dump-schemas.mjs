@@ -3,14 +3,24 @@
 // 讀 env：FINMIND_TOKEN、FMP_API_KEY、FRED_API_KEY、TW_TICKER、US_TICKER、YEARS
 // 輸出：markdown 到 stdout。
 
+// 秘密都 trim（GitHub Actions secret 會保留貼上時的前後空白 / 換行——常見坑）
+const trimEnv = k => (process.env[k] || '').trim();
+const FINMIND_TOKEN = trimEnv('FINMIND_TOKEN');
+const FMP_API_KEY = trimEnv('FMP_API_KEY');
+const FRED_API_KEY = trimEnv('FRED_API_KEY');
 const {
-    FINMIND_TOKEN = '',
-    FMP_API_KEY = '',
-    FRED_API_KEY = '',
     TW_TICKER = '2330',
     US_TICKER = 'AAPL',
     YEARS = '2',
 } = process.env;
+
+// 診斷：把原始長度 vs trim 後長度印出來，一眼看出有沒有偷夾 whitespace
+function keyDiag(name, rawLen, trimmedVal) {
+    if (!trimmedVal) return `❌ ${name} 未設定`;
+    const stray = rawLen - trimmedVal.length;
+    if (stray > 0) return `⚠️ ${name} 有 ${stray} 個前後空白已 trim（長度 ${rawLen} → ${trimmedVal.length}）`;
+    return `✅ ${name} 長度 ${trimmedVal.length}`;
+}
 
 const yearsBack = parseInt(YEARS) || 2;
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -334,6 +344,11 @@ async function dumpFRED() {
     let report = `# 📊 FinMind + FMP + FRED schema dump\n\n`;
     report += `- 產生時間: ${new Date().toISOString()}\n`;
     report += `- 台股: ${inlineCode(TW_TICKER)} · 美股: ${inlineCode(US_TICKER)} · 期間往回 ${yearsBack} 年\n`;
+    report += `\n## 🔑 Key 診斷（trim 前後長度）\n\n`;
+    report += `- ${keyDiag('FINMIND_TOKEN', (process.env.FINMIND_TOKEN || '').length, FINMIND_TOKEN)}\n`;
+    report += `- ${keyDiag('FMP_API_KEY',   (process.env.FMP_API_KEY   || '').length, FMP_API_KEY)}\n`;
+    report += `- ${keyDiag('FRED_API_KEY',  (process.env.FRED_API_KEY  || '').length, FRED_API_KEY)}\n`;
+    report += `\n> ⚠️ **常見坑**：GitHub Actions secret 保留貼上時的前後空白 / 換行，script 已自動 trim。\n> 若上面顯示「有 X 個前後空白已 trim」，代表原本會失敗，現在通過；但 secret 本身建議也重新編輯拿掉空白。\n`;
     report += `\n> **用途**：驗證 \`valuation/simulator.js\` 用的欄位名跟 3 個 API 實際回傳一致。\n> 也順便驗證 3 個 key 到底能不能通、額度剩多少。\n`;
 
     try { report += await dumpFinMind(); }
