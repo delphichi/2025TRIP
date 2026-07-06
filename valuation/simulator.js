@@ -519,6 +519,18 @@
         $('result-price').textContent = price !== null ? '$' + fmt(price, 2) : '—';
         $('result-pe').textContent = currentPE !== null && isFinite(currentPE) ? fmt(currentPE, 1) : '—';
         $('result-pbr').textContent = currentPBR !== null && isFinite(currentPBR) ? fmt(currentPBR, 2) : '—';
+
+        // Forward PE cell（Yahoo v7 quote · 只對 US 股觸發）
+        const yq = analysis.yahooQuote;
+        const fwdCell = $('result-cell-fwd-pe');
+        if (fwdCell) {
+            if (yq && yq.forwardPE && isFinite(yq.forwardPE)) {
+                fwdCell.hidden = false;
+                $('result-fwd-pe').textContent = fmt(yq.forwardPE, 1);
+            } else {
+                fwdCell.hidden = true;
+            }
+        }
         // 樣本：若 daily 顯示筆數 + 年份跨度；若 annual 顯示年數
         if (history.length > 30) {
             const yearSpan = `${history[0].year}-${history[history.length - 1].year}`;
@@ -585,6 +597,35 @@
         const isFmpSource = analysis.source !== 'FinMind';
         if (isFmpSource) {
             bodyHtml += `<br><br><span class="hint-mini">📌 <b>會計基準：GAAP</b>——FMP 用 SEC 10-Q/K 的 diluted EPS 算。AMD / NVDA / TSLA / PLTR 這類<b>高 SBC（股票薪酬）+ 併購攤銷</b>的科技股，Non-GAAP EPS 常是 GAAP 的 2-3 倍 → <b>Non-GAAP PE 反而低很多</b>。管理層在法說會 / 公告用的、Yahoo Finance / 券商多半顯示的都是 Non-GAAP TTM PE，跟本工具算的<b>不會對得上、不是 bug</b>。想拿 Non-GAAP 對照請去公司 IR 的 earnings release / 8-K。</span>`;
+        }
+        // Forward PE 對照（Yahoo v7 quote · 只對美股）· 對成長股判讀關鍵
+        if (yq && yq.forwardPE && isFinite(yq.forwardPE) && currentPE) {
+            const fwdPE = yq.forwardPE;
+            const compressionRatio = currentPE / fwdPE;
+            const compressionMsg = compressionRatio > 3
+                ? `<b>Forward PE ${fmt(fwdPE, 1)}</b> 遠低於 trailing PE ${fmt(currentPE, 1)}（差 ${compressionRatio.toFixed(1)}×）—— 市場定價<b>賭一個劇烈的成長跳躍</b>。TTM PE 高不代表貴、也不代表便宜，關鍵是「這個成長預期能不能兌現」（Layer 3 護城河跟你自己判斷分析師 EPS 估的可信度）。若成長 miss，估值會用「TTM PE 補跌」的方式回歸——結構性下修風險。`
+                : compressionRatio > 1.5
+                ? `Forward PE ${fmt(fwdPE, 1)} vs trailing ${fmt(currentPE, 1)}（差 ${compressionRatio.toFixed(1)}×）—— 市場預期成長中，但不極端。`
+                : compressionRatio > 0.9
+                ? `Forward PE ${fmt(fwdPE, 1)} ≈ trailing ${fmt(currentPE, 1)} —— 市場預期獲利<b>維持水位</b>，非高成長型定價。`
+                : `⚠️ Forward PE ${fmt(fwdPE, 1)} <b>高於</b> trailing ${fmt(currentPE, 1)} —— 分析師預期<b>獲利衰退</b>。這是<b>盈餘週期反轉訊號</b>，要看是暫時性還是結構性。`;
+            bodyHtml += `<br><br>📈 <b>Forward vs Trailing PE</b>：${compressionMsg}`;
+        }
+        // 美股短興趣（Yahoo）· Layer 5 情緒替補
+        if (yq) {
+            const shortPct = yq.sharesShortPercentOfFloat;
+            const shortDays = yq.shortRatio;
+            const bits = [];
+            if (shortPct && isFinite(shortPct)) {
+                const p = shortPct * 100;
+                bits.push(`空單佔流通股 <b>${p.toFixed(1)}%</b>${p > 10 ? '（高 · 逆勢空頭壓力大 · 但也是軋空題材）' : p > 3 ? '（中）' : '（低 · 市場一致看多 or 無爭議 · 有時是複雜情緒）'}`);
+            }
+            if (shortDays && isFinite(shortDays)) {
+                bits.push(`空單回補天數 <b>${shortDays.toFixed(1)}</b>${shortDays > 5 ? '（>5 天 · 空單擁擠）' : ''}`);
+            }
+            if (bits.length) {
+                bodyHtml += `<br><br>🎯 <b>美股情緒（Layer 5 替補）</b>：${bits.join(' · ')}—— 沒 TW 融資餘額直接、但反映當下市場對這家公司的空方定位。`;
+            }
         }
         $('verdict-body').innerHTML = bodyHtml;
 
@@ -1208,6 +1249,38 @@
             console.warn('FMP forex fallback failed:', e.message);
             return null;
         }
+    }
+
+    // Yahoo v7 quote endpoint · 一次拿 trailingPE + forwardPE + epsForward + short interest
+    // 用 CORS proxy 走跟 TWD=X / FRED 同一組 fallback chain
+    // 對美股：補「Forward PE」（工具目前缺 · 對成長股判讀關鍵）+ 短興趣（Layer 5 · 情緒替補）
+    async function fetchYahooQuote(ticker) {
+        const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}`;
+        let data = null;
+        try { data = await fredRawFetch(url); } catch (_) {}
+        if (!data) {
+            for (const proxy of CORS_PROXIES) {
+                try {
+                    data = await fredRawFetch(`${proxy}${encodeURIComponent(url)}`);
+                    break;
+                } catch (_) { data = null; }
+            }
+        }
+        if (!data || !data.quoteResponse || !Array.isArray(data.quoteResponse.result) || !data.quoteResponse.result[0]) {
+            return null;
+        }
+        const q = data.quoteResponse.result[0];
+        return {
+            trailingPE: q.trailingPE,
+            forwardPE: q.forwardPE,
+            epsTrailing: q.epsTrailingTwelveMonths,
+            epsForward: q.epsForward,
+            priceToBook: q.priceToBook,
+            shortRatio: q.shortRatio,
+            sharesShortPercentFloat: q.sharesPercentSharesOut, // Yahoo 有時放這欄
+            sharesShortPercentOfFloat: q.sharesShortPercentOfFloat,
+            beta: q.beta,
+        };
     }
 
     // VIX 有兩個來源，優先走 FRED VIXCLS（免費、免額度）
@@ -1839,10 +1912,11 @@
                 stockPromise = fetchStockData(ticker, fmpKey, years);
             }
 
-            // 平行抓總體 / 匯率 / 融資 + 股利 + ADR counterpart（都 optional · 失敗回 null 不擋主流程）
+            // 平行抓總體 / 匯率 / 融資 + 股利 + ADR counterpart + Yahoo quote（都 optional）
             // VIX 從 macro.vix（FRED VIXCLS）拿，FMP 只當 fallback
             // ADR counterpart：查 US 股時若命中 ADR_MAP、順便抓對應台股價（例：TSM → 2330）
-            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart] = await Promise.all([
+            // Yahoo quote：只對美股抓 · 補 Forward PE + 短興趣
+            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote] = await Promise.all([
                 stockPromise,
                 fetchMacroFred(fredKey),
                 fetchForexUsdTwd(fmpKey),
@@ -1850,6 +1924,7 @@
                 (isFinmind && finmindToken) ? fetchMarginTW(ticker, finmindToken) : Promise.resolve(null),
                 (isFinmind && finmindToken) ? fetchDividendTW(ticker, finmindToken) : Promise.resolve([]),
                 (!isFinmind) ? fetchAdrCounterpart(ticker, finmindToken) : Promise.resolve(null),
+                (!isFinmind) ? fetchYahooQuote(ticker) : Promise.resolve(null),
             ]);
 
             // VIX 優先 FRED（免額度、更穩定）→ 失敗 fallback FMP
@@ -1859,6 +1934,7 @@
             data.dividendsTW = dividendsTW;
             data.adrCounterpart = adrCounterpart;
             data.fxSeries = fx;
+            data.yahooQuote = yahooQuote;
             renderResult(data);
             renderMacroPanel(macro, fx, vix);
         } catch (e) {
