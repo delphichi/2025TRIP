@@ -945,8 +945,9 @@
     // Fallback：allorigins.win 公開 CORS proxy
     const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
-    // 全域錯誤帶到 UI，讓 status 顯示真正原因（不是空話「key 無效 or 網路失敗」）
+    // 全域錯誤帶到 UI · fredFailedSeries 記個別失敗的 series id
     let fredLastError = null;
+    let fredFailedSeries = [];
 
     async function fredRawFetch(url) {
         const res = await fetch(url);
@@ -980,25 +981,39 @@
             .filter(o => !isNaN(o.value));
     }
 
+    // 為什麼不用 Promise.all？dump 報告驗證 GitHub Actions 直連 FRED 7 個 series 全通，
+    // 但瀏覽器因 CORS 走 allorigins.win proxy，並發 7 個請求會被 proxy IP 限流
+    // → 用戶實測 4/7 通、3/7 失敗（DGS10 T10Y2Y HY spread 通，FEDFUNDS/CPI/VIX 或其他變化中）
+    // 改成 sequential + 250ms 間隔穩定通過，代價是 7 × 250ms = ~1.75s 額外延遲，可接受
     async function fetchMacroFred(apiKey) {
         fredLastError = null;
+        fredFailedSeries = [];
         if (!apiKey) return null;
         const start = todayMinusYears(2);
-        // 每個 series 各自 catch——一個失敗不影響其他；把第一個錯誤存進 fredLastError 帶給 UI
-        const capture = p => p.catch(e => {
-            if (!fredLastError) fredLastError = e.message;
-            return [];
-        });
-        const [dgs10, dtwexbgs, fedfunds, t10y2y, cpi, hyspread, vix] = await Promise.all([
-            capture(fredFetch('DGS10', apiKey, start)),
-            capture(fredFetch('DTWEXBGS', apiKey, start)),
-            capture(fredFetch('FEDFUNDS', apiKey, start)),
-            capture(fredFetch('T10Y2Y', apiKey, start)),
-            capture(fredFetch('CPIAUCSL', apiKey, start)),
-            capture(fredFetch('BAMLH0A0HYM2', apiKey, start)),
-            capture(fredFetch('VIXCLS', apiKey, start)),
-        ]);
-        return { dgs10, dtwexbgs, fedfunds, t10y2y, cpi, hyspread, vix };
+        const seriesConfig = [
+            { key: 'dgs10',    id: 'DGS10' },
+            { key: 'dtwexbgs', id: 'DTWEXBGS' },
+            { key: 'fedfunds', id: 'FEDFUNDS' },
+            { key: 't10y2y',   id: 'T10Y2Y' },
+            { key: 'cpi',      id: 'CPIAUCSL' },
+            { key: 'hyspread', id: 'BAMLH0A0HYM2' },
+            { key: 'vix',      id: 'VIXCLS' },
+        ];
+        const result = {};
+        for (let i = 0; i < seriesConfig.length; i++) {
+            const { key, id } = seriesConfig[i];
+            try {
+                result[key] = await fredFetch(id, apiKey, start);
+            } catch (e) {
+                result[key] = [];
+                fredFailedSeries.push(id);
+                if (!fredLastError) fredLastError = `${id}: ${e.message}`;
+            }
+            if (i < seriesConfig.length - 1) {
+                await new Promise(r => setTimeout(r, 250));
+            }
+        }
+        return result;
     }
 
     // FMP 匯率（USD/TWD）——用 historical-price-eod/full
@@ -1278,9 +1293,18 @@
             const hasFx = fx && fx.length;
             const hasVix = vix && vix.length;
             const parts = [];
-            parts.push(hasFred ? '<span class="src-ok">✅ FRED 利率</span>'
-                : fredKey ? `<span class="src-err">❌ FRED${fredLastError ? '（' + fredLastError + '）' : '（未知錯誤）'}</span>`
-                : '<span class="src-warn">⚠️ FRED（設定區塊填 key 才會抓）</span>');
+            // 判斷 FRED 狀態：全通 / 部分失敗 / 全空
+            let fredStatus;
+            if (!fredKey) {
+                fredStatus = '<span class="src-warn">⚠️ FRED（設定區塊填 key 才會抓）</span>';
+            } else if (!hasFred && fredFailedSeries.length === 0) {
+                fredStatus = `<span class="src-err">❌ FRED${fredLastError ? '（' + fredLastError + '）' : '（未知錯誤）'}</span>`;
+            } else if (fredFailedSeries.length > 0) {
+                fredStatus = `<span class="src-warn">⚠️ FRED 部分失敗（${fredFailedSeries.join(', ')} · CORS proxy 限流? 重跑一次）</span>`;
+            } else {
+                fredStatus = '<span class="src-ok">✅ FRED 全通</span>';
+            }
+            parts.push(fredStatus);
             parts.push(hasFx ? '<span class="src-ok">✅ USD/TWD 匯率</span>'
                 : fmpKey ? '<span class="src-warn">⚠️ USD/TWD（FMP 額度用完 or forex tier 不支援）</span>'
                 : '<span class="src-warn">⚠️ USD/TWD（需 FMP key）</span>');
