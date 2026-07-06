@@ -153,6 +153,18 @@ textarea {
     margin-top: 2px;
 }
 
+.sample-warn {
+    background: #fef3c7;
+    border-left: 5px solid var(--warning);
+    color: #78350f;
+    padding: 12px 16px;
+    margin: 14px 0 6px;
+    border-radius: 0 8px 8px 0;
+    font-size: .92em;
+    line-height: 1.6;
+}
+.sample-warn b { color: #78350f; }
+
 .verdict-box {
     padding: 16px 20px;
     border-radius: 10px;
