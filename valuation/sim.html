@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>股票模擬器 · GOOGL 2023-01-01 訓練</title>
+    <title>股票模擬器 · 對抗倖存者偏差訓練</title>
     <link rel="stylesheet" href="style.css">
     <meta name="theme-color" content="#7c3aed">
 </head>
@@ -17,67 +17,43 @@
     <main class="sim-main">
 
         <section class="panel intro-panel">
-            <h2>📖 訓練目標</h2>
+            <h2>📖 訓練目標 · 對抗倖存者偏差</h2>
             <p class="hint">
-                <b>核心設計</b>：模擬器把你放進 2023-01-01 的認知狀態——當時剛過完 2022 科技大跌年、Alphabet 剛裁員、ChatGPT 剛紅、Bard 還沒發表。
-                你先設起始部位、然後<b>時間軸一格一格推進</b>，每個重大事件發生時暫停、告訴你剛剛發生什麼 + 目前股價 + 目前部位、你決定加碼 / 減碼 / 持平、然後才進下一個事件。
+                <b>核心設計</b>：模擬器把你放進<b>當時的認知狀態</b>——不知道之後會發生什麼、時間軸一格一格推進、每個重大事件發生時暫停、你決定加碼 / 減碼 / 持平、然後才進下一個事件。
             </p>
             <p class="hint">
-                <b>為什麼比一次決策有價值</b>：真實投資最考驗人的是「事件連續轟炸下的情緒管理」。Bard 失誤 -8% 你會不會慌賣？DOJ 裁決你會不會停損？Q1 2026 淨利 +81% 表面數字你會不會 FOMO 加碼？
-                每個節點都測一次、事後複盤才看得出你的心理弱點在哪。
+                <b>為什麼要跑多支股票</b>：只跑一支「事後看起來很成功」的股票（例如 GOOGL、META、NVDA）會嚴重高估你的判斷力。<b>倖存者偏差的解方</b>就是同一個心理狀態跑多情境——包含「輸家」（INTC 從 $50 跌到 $25）、「V 型反彈」（META $88 → $700+）、「反擊型龍頭」（GOOGL $89 → $366）——才看得出你的判斷是 skill 還是 luck。
             </p>
             <p class="hint hint-mini">
-                📍 <b>目前 MVP</b>：GOOGL 2023-01-01 到現在（2026-07）· 基準資金 $100k · 12 個重大事件節點。
+                📍 <b>選一個情境開始</b>：3 個對照情境 · 基準資金 $100k · 每個 12-13 個事件節點。
                 <a href="./index.html">← 回估值分析器</a>
             </p>
         </section>
 
-        <section class="panel snapshot-panel" id="snapshot-panel">
-            <h2>📸 快照 · 2023-01-01 你看到的資訊</h2>
-            <p class="hint">這是 2023-01-01 那天 GOOGL 的實際狀態 · 之後的事情你都<b>不知道</b>。</p>
-
-            <div class="sim-price-panel" id="sim-price-panel">
-                <div class="sim-loading">📡 抓 GOOGL 歷史股價中……</div>
-            </div>
-
-            <div class="sim-snapshot-grid">
-                <div class="snap-cell">
-                    <div class="snap-label">🏢 公司</div>
-                    <div class="snap-val">Alphabet (GOOGL)</div>
-                    <div class="snap-note">搜尋 + Android + YouTube + Cloud + Waymo</div>
-                </div>
-                <div class="snap-cell">
-                    <div class="snap-label">💰 估值（YE 2022）</div>
-                    <div class="snap-val">PE ~18x · PBR ~4.5x</div>
-                    <div class="snap-note">跟 2021 高峰（PE 25x）回落 · 中期便宜</div>
-                </div>
-                <div class="snap-cell">
-                    <div class="snap-label">📊 2022 財報</div>
-                    <div class="snap-val">營收 +10% · EPS -19%</div>
-                    <div class="snap-note">廣告景氣走弱 · 前年高基期</div>
-                </div>
-                <div class="snap-cell">
-                    <div class="snap-label">🇺🇸 總經 · 2023-01-01</div>
-                    <div class="snap-val">DGS10 3.88% · FED 4.33%</div>
-                    <div class="snap-note">升息尾聲 · CPI 6.5% 見頂 · VIX 21.6</div>
-                </div>
-                <div class="snap-cell">
-                    <div class="snap-label">🌡 市場情緒</div>
-                    <div class="snap-val">科技大跌年後</div>
-                    <div class="snap-note">Alphabet 剛裁員 12,000 · 2022 GOOGL -39%</div>
-                </div>
-                <div class="snap-cell">
-                    <div class="snap-label">🎯 當時敘事</div>
-                    <div class="snap-val">⚠️ ChatGPT 威脅論</div>
-                    <div class="snap-note">2022-11 ChatGPT 上線 · Bard 尚未發表</div>
-                </div>
+        <section class="panel scenario-selector-panel" id="scenario-selector-panel">
+            <h2>🎯 選擇訓練情境</h2>
+            <div class="scenario-grid" id="scenario-grid">
+                <!-- populated by JS -->
             </div>
         </section>
 
-        <section class="panel decision-sim-panel" id="decision-sim-panel">
+        <section class="panel snapshot-panel" id="snapshot-panel" hidden>
+            <h2 id="snapshot-title">📸 快照</h2>
+            <p class="hint" id="snapshot-subtitle"></p>
+
+            <div class="sim-price-panel" id="sim-price-panel">
+                <div class="sim-loading">📡 抓歷史股價中……</div>
+            </div>
+
+            <div class="sim-snapshot-grid" id="sim-snapshot-grid">
+                <!-- populated by JS -->
+            </div>
+        </section>
+
+        <section class="panel decision-sim-panel" id="decision-sim-panel" hidden>
             <h2>🎯 起始部位 · 你要投入多少 %？</h2>
             <p class="hint">
-                總資金 <b>$100,000</b>（基準）· 你決定<b>起始時</b>要投入多少比例買 GOOGL、剩下留現金。
+                總資金 <b>$100,000</b>（基準）· 你決定<b>起始時</b>要投入多少比例、剩下留現金。
                 之後每個事件節點都會讓你重新決策 · 這只是「進場多少」。
             </p>
 
@@ -91,6 +67,7 @@
 
             <div class="btn-row">
                 <button id="btn-start-game">🎮 開始遊戲 · 進入時間流</button>
+                <button id="btn-back-to-selector" class="btn-secondary">← 換情境</button>
             </div>
         </section>
 
