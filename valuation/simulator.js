@@ -610,36 +610,42 @@
     async function fetchFinMindCashFlow(ticker, token) {
         try {
             const startDate = todayMinusYears(4);
-            const rows = await finMindFetch('TaiwanStockCashFlowsStatement', ticker, startDate, todayStr(), token);
-            if (!rows || rows.length === 0) return null;
-            // Pivot long → wide
-            const byDate = new Map();
-            rows.forEach(r => {
-                if (!byDate.has(r.date)) byDate.set(r.date, {});
-                byDate.get(r.date)[r.type] = r.value;
+            // 兩張表要一起抓：
+            // - CashFlowsStatement: YTD 累計，拿營運CF + CapEx（要差分成單季）
+            // - FinancialStatements: 單季，拿稅後淨利 IncomeAfterTaxes（不用差分）
+            // 為什麼不從現金流表拿淨利？——現金流表只有稅前（IncomeBeforeIncomeTaxFromContinuingOperations
+            //   跟 NetIncomeBeforeTax），這是「用來回算調整項」的起始點，不是損益表的稅後淨利。
+            //   拿稅前來跟營運CF 比獲利品質背離、基準點就錯了（稅前 vs 稅後差~20%）。
+            const [cfRows, fsRows] = await Promise.all([
+                finMindFetch('TaiwanStockCashFlowsStatement', ticker, startDate, todayStr(), token),
+                finMindFetch('TaiwanStockFinancialStatements', ticker, startDate, todayStr(), token),
+            ]);
+            if (!cfRows || cfRows.length === 0) return null;
+
+            // Pivot 現金流表（YTD 累計）
+            const cfByDate = new Map();
+            cfRows.forEach(r => {
+                if (!cfByDate.has(r.date)) cfByDate.set(r.date, {});
+                cfByDate.get(r.date)[r.type] = r.value;
+            });
+            // Pivot 損益表（單季）→ 拿稅後淨利
+            const fsByDate = new Map();
+            (fsRows || []).forEach(r => {
+                if (!fsByDate.has(r.date)) fsByDate.set(r.date, {});
+                fsByDate.get(r.date)[r.type] = r.value;
             });
 
-            // 台股 CashFlowsStatement 是 YTD 累計（跟 FinancialStatements 單季不同！）
-            // - 真實欄位（dump 驗證過）：
-            //   * CashFlowsFromOperatingActivities = 營運 CF
-            //   * PropertyAndPlantAndEquipment = CapEx 現金流出（負值）
-            //   * IncomeFromContinuingOperations = 繼續營業單位本期淨利（稅後）
-            // - FinMind 沒有 FreeCashFlow 欄位 → FCF = OperatingCF + CapEx（CapEx 已是負值）
-            const datesAsc = Array.from(byDate.keys()).sort();
+            const datesAsc = Array.from(cfByDate.keys()).sort();
             const ytdByDate = new Map();
             datesAsc.forEach(d => {
-                const flat = byDate.get(d);
+                const flat = cfByDate.get(d);
                 const opCF = flat.CashFlowsFromOperatingActivities
                           ?? flat.NetCashInflowFromOperatingActivities ?? null;
                 const capEx = flat.PropertyAndPlantAndEquipment ?? null;
                 const fcf = (opCF !== null && capEx !== null) ? opCF + capEx : null;
-                const ni = flat.IncomeFromContinuingOperations
-                        ?? flat.NetIncomeBeforeTax ?? null;
-                ytdByDate.set(d, { date: d, opCF, fcf, ni });
+                ytdByDate.set(d, { date: d, opCF, fcf });
             });
 
-            // YTD → 單季：找同年前一季 YTD 減掉
-            // Q1(-03-31) 本身就是單季；Q2/Q3/Q4 減去同年前一季
             const prevQuarterDate = d => {
                 const [y, m] = d.split('-').map(Number);
                 if (m === 3)  return null;
@@ -657,14 +663,21 @@
                 const cur = ytdByDate.get(d);
                 const prevD = prevQuarterDate(d);
                 const prev = prevD ? ytdByDate.get(prevD) : null;
+                // 淨利：從損益表拿 IncomeAfterTaxes（本期淨利 淨損，稅後）
+                //       fallback 用 EquityAttributableToOwnersOfParent（稅後淨利歸屬於母公司）
+                //       這張表本身就是單季，不做差分
+                const fsFlat = fsByDate.get(d) || {};
+                const netIncome = fsFlat.IncomeAfterTaxes
+                               ?? fsFlat.EquityAttributableToOwnersOfParent
+                               ?? null;
                 if (!prev) {
-                    return { date: d, operatingCF: cur.opCF, freeCF: cur.fcf, netIncome: cur.ni };
+                    return { date: d, operatingCF: cur.opCF, freeCF: cur.fcf, netIncome };
                 }
                 return {
                     date: d,
                     operatingCF: diff(cur.opCF, prev.opCF),
                     freeCF:      diff(cur.fcf, prev.fcf),
-                    netIncome:   diff(cur.ni, prev.ni),
+                    netIncome,
                 };
             });
 
@@ -863,8 +876,10 @@
                 <b>紙上獲利 vs 真實現金</b>：淨利成長但營運現金流沒同步 = 應收膨脹 / 存貨堆積 / 認列時點差異 = 獲利品質警訊。
                 同向 = 紮實；差 &gt; 15pp = 疑慮。
                 <br>
-                <span class="hint-mini">📌 台股 FinMind 現金流原始是 <b>YTD 累計</b>，這裡已自動轉單季（Q4=Q4−Q3，Q3=Q3−Q2…）跟 EPS/營收表達一致。
-                自由現金流 = 營運CF + 取得不動產廠房設備（後者為負值 = CapEx），FinMind 沒直接欄位、由程式算出。</span>
+                <span class="hint-mini">📌 台股資料來源：
+                <b>營運CF + CapEx</b>：現金流量表 CashFlowsFromOperatingActivities + PropertyAndPlantAndEquipment（負值），原始是 YTD 累計、已自動差分成單季。
+                <b>自由現金流</b>：FinMind 沒直接欄位，由 <code>營運CF + CapEx</code> 算出。
+                <b>淨利（稅後）</b>：改抓損益表 IncomeAfterTaxes，本身已是單季。<b>不用現金流量表裡的 IncomeBefore*（那是稅前調整起點）</b>——用稅前跟營運CF 比，基準錯（稅前 vs 稅後差 ~20%）。</span>
             </p>
             ${divergenceBanner}
             <div class="fund-grid">
