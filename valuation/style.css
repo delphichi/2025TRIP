@@ -102,6 +102,8 @@ textarea {
 .hint { color: var(--muted); font-size: .88em; margin: 8px 0 0; line-height: 1.55; }
 .hint b { color: var(--ink); }
 .hint a { color: var(--primary); }
+.hint-mini { display: inline-block; font-size: .84em; color: #6b7280; background: #f9fafb; border-left: 3px solid #cbd5e1; padding: 4px 8px; margin-top: 6px; border-radius: 0 4px 4px 0; }
+.hint-mini b { color: var(--primary-dark); }
 
 .intro-panel { border-left-color: var(--accent); }
 .warning-panel { border-left-color: var(--danger); background: #fef2f2; }
