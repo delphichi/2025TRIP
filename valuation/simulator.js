@@ -842,6 +842,9 @@
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
         $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml;
 
+        // 決策框架 · 只在成功分析後顯示、可載入舊記錄
+        try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
+
         setStatus('success', `✅ 查到 ${ticker} 資料`);
     }
 
@@ -2132,6 +2135,297 @@
         // innerHTML 允許 <b> / <br> / <a> · 用於錯誤訊息裡的診斷格式化
         // 訊息來源都是我們自己模板 · 外部字串（FMP error）內嵌時仍該注意 · 目前未偵測到 FMP 回 HTML
         s.innerHTML = msg;
+    }
+
+    // ========== 決策框架（情境樹 + 證偽清單 + 部位試算） ==========
+    // 目的：把「工具揭露訊號 → 使用者判讀」的下一步結構化 · 追蹤自己的判斷歷史
+    // - 情境樹：4 情境機率必須 = 100% · 每個情境給估值判斷
+    // - 證偽清單：根據本股觸發的訊號預先建議 · 使用者增/刪/改
+    // - 部位試算：簡化凱利邏輯 · 建議比例 ≈ 可承受虧損 / 負向情境跌幅
+    // - 存 localStorage: valuation-decision-{ticker} · 純本機
+    // - 超過 3 個月標黃 · 提示重新檢視
+
+    const DECISION_KEY_PREFIX = 'valuation-decision-';
+
+    function loadDecisionRecord(ticker) {
+        try {
+            const raw = localStorage.getItem(DECISION_KEY_PREFIX + ticker);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    }
+
+    function saveDecisionRecord(ticker, data) {
+        try {
+            const record = { ...data, ticker, timestamp: new Date().toISOString() };
+            localStorage.setItem(DECISION_KEY_PREFIX + ticker, JSON.stringify(record));
+            return record;
+        } catch (e) { return null; }
+    }
+
+    function clearDecisionRecord(ticker) {
+        localStorage.removeItem(DECISION_KEY_PREFIX + ticker);
+    }
+
+    // 建議情境（使用者可以自由改名 · 這只是預設）
+    function suggestScenarios(analysis) {
+        const t = analysis.ticker;
+        return [
+            { name: `${t} 主要成長敘事兌現（正向）`, prob: 25, verdict: '合理' },
+            { name: '成長放緩但基本面未崩（中性下行）', prob: 40, verdict: '偏貴' },
+            { name: '估值收縮 / 主要疑慮兌現（負向）', prob: 25, verdict: '過貴' },
+            { name: '黑天鵝（總經 / 地緣 / 監管）', prob: 10, verdict: '過貴' },
+        ];
+    }
+
+    // 根據本股觸發的訊號、預設可證偽條件
+    function suggestFalsifyConditions(analysis) {
+        const conds = [];
+        const cf = analysis.cashFlow;
+        const fund = analysis.fundamentals;
+
+        // 現金流背離觸發過 → 追蹤能否收斂
+        if (cf && cf.divergence && cf.divergence.kind === 'warning') {
+            conds.push({ text: '連續 2 季自由現金流未改善（FCF YoY 仍為負 or 大幅低於淨利成長）', checked: false, date: '' });
+        }
+        // 非營運項目佔比高 → 追蹤能否收斂
+        if (fund && fund.nonOpRatioTtm && Math.abs(fund.nonOpRatioTtm) > 0.2) {
+            conds.push({ text: '非營運項目佔稅前獲利 TTM 降至 <20%（下季 10-Q 追查 OI&E 明細）', checked: false, date: '' });
+        }
+        // SBC 高 → 追蹤能否降低
+        if (cf && cf.sbcRatioTtm && cf.sbcRatioTtm > 0.25) {
+            conds.push({ text: 'SBC / GAAP 淨利 TTM 降至 <15%（獲利品質改善）', checked: false, date: '' });
+        }
+        // 樣本量少 → 到未來能有更長歷史時重新驗證
+        if (analysis.history && analysis.history.length < 30) {
+            const yrs = new Set(analysis.history.map(h => h.year)).size;
+            if (yrs < 10) {
+                conds.push({ text: `取得 10+ 年歷史後、當前 PE 百分位重新計算 · 是否仍在前 25%（目前只 ${yrs} 年樣本）`, checked: false, date: '' });
+            }
+        }
+        // 分佈離散度大 → 觀察均值回歸
+        const analysisSourceIsFMP = analysis.source !== 'FinMind';
+        if (analysisSourceIsFMP && analysis.currentPE > 50) {
+            conds.push({ text: `絕對 PE 降至 <30（跟「PE 25 是正常」對照 · 目前 ${analysis.currentPE.toFixed(1)}）`, checked: false, date: '' });
+        }
+        // 總經：泛用條件
+        conds.push({ text: 'HY 利差擴大至 4%+ or 殖利率倒掛再度出現（總經風險升溫）', checked: false, date: '' });
+        conds.push({ text: 'Forward PE 中位跟 SPY 差距擴大（相對估值再度背離）', checked: false, date: '' });
+        return conds;
+    }
+
+    function renderDecisionTimestamp(saved) {
+        const el = $('decision-timestamp');
+        if (!el) return;
+        if (!saved || !saved.timestamp) {
+            el.className = 'decision-timestamp ts-fresh';
+            el.innerHTML = '📝 <b>新建記錄</b> · 填完按「存這份決策記錄」會保留在本機';
+            return;
+        }
+        const then = new Date(saved.timestamp);
+        const now = new Date();
+        const months = (now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24 * 30);
+        const stale = months > 3;
+        el.className = 'decision-timestamp ' + (stale ? 'ts-stale' : 'ts-fresh');
+        const warn = stale ? ' · ⚠️ <b>超過 3 個月、市場狀況可能已改變、建議重新檢視 + 存新版</b>' : '';
+        el.innerHTML = `📅 本記錄填於 <b>${then.toISOString().slice(0, 10)}</b>（${months.toFixed(1)} 個月前）${warn}`;
+    }
+
+    function renderScenarioTree(scenarios) {
+        const container = $('scenario-tree');
+        if (!container) return;
+        container.innerHTML = scenarios.map((s, i) => `
+            <div class="scenario-row" data-i="${i}">
+                <div class="scenario-header">
+                    <input type="text" class="scenario-name" data-i="${i}" value="${escapeAttr(s.name)}" placeholder="情境 ${i + 1} 名稱">
+                </div>
+                <div class="scenario-body">
+                    <label class="scenario-prob-label">
+                        機率
+                        <input type="range" class="scenario-prob" data-i="${i}" min="0" max="100" step="1" value="${s.prob}">
+                        <span class="scenario-prob-val" id="scenario-prob-val-${i}">${s.prob}%</span>
+                    </label>
+                    <label class="scenario-verdict-label">
+                        此情境估值判斷
+                        <select class="scenario-verdict" data-i="${i}">
+                            <option ${s.verdict === '便宜' ? 'selected' : ''}>便宜</option>
+                            <option ${s.verdict === '合理' ? 'selected' : ''}>合理</option>
+                            <option ${s.verdict === '偏貴' ? 'selected' : ''}>偏貴</option>
+                            <option ${s.verdict === '過貴' ? 'selected' : ''}>過貴</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function escapeAttr(s) {
+        return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    }
+
+    function renderFalsifyList(conds) {
+        const container = $('falsify-list');
+        if (!container) return;
+        container.innerHTML = conds.map((c, i) => `
+            <div class="falsify-row" data-i="${i}">
+                <input type="checkbox" class="falsify-check" data-i="${i}" ${c.checked ? 'checked' : ''}>
+                <input type="text" class="falsify-text" data-i="${i}" value="${escapeAttr(c.text)}">
+                <input type="date" class="falsify-date" data-i="${i}" value="${c.date || ''}" title="觸發日期">
+                <button class="falsify-del" data-i="${i}" title="刪除">✕</button>
+            </div>
+        `).join('');
+    }
+
+    function readCurrentScenarios() {
+        const rows = document.querySelectorAll('#scenario-tree .scenario-row');
+        return Array.from(rows).map((row, i) => ({
+            name: row.querySelector('.scenario-name').value,
+            prob: parseInt(row.querySelector('.scenario-prob').value) || 0,
+            verdict: row.querySelector('.scenario-verdict').value,
+        }));
+    }
+
+    function readCurrentFalsify() {
+        const rows = document.querySelectorAll('#falsify-list .falsify-row');
+        return Array.from(rows).map(row => ({
+            text: row.querySelector('.falsify-text').value,
+            checked: row.querySelector('.falsify-check').checked,
+            date: row.querySelector('.falsify-date').value,
+        }));
+    }
+
+    function updateProbSum() {
+        const scenarios = readCurrentScenarios();
+        const sum = scenarios.reduce((s, x) => s + x.prob, 0);
+        const el = $('prob-sum');
+        if (!el) return;
+        if (sum === 100) {
+            el.textContent = '總和：100% ✅';
+            el.className = 'prob-sum prob-sum-ok';
+        } else {
+            el.textContent = `總和：${sum}% ${sum > 100 ? '⚠️ 超過 100% · 調整機率' : '⚠️ 不足 100% · 調整機率'}`;
+            el.className = 'prob-sum prob-sum-warn';
+        }
+        // 同時更新每個 slider label
+        scenarios.forEach((s, i) => {
+            const v = $(`scenario-prob-val-${i}`);
+            if (v) v.textContent = s.prob + '%';
+        });
+        // 觸發部位試算重算
+        updatePositionCalc();
+    }
+
+    function updatePositionCalc() {
+        const el = $('dec-calc-result');
+        if (!el) return;
+        const totalAssets = parseFloat($('dec-total-assets').value) || 0;
+        const maxLoss = parseFloat($('dec-max-loss').value) || 10;
+        const expectedDrop = parseFloat($('dec-expected-drop').value) || 40;
+        if (expectedDrop === 0) {
+            el.innerHTML = '負向情境跌幅不能是 0';
+            return;
+        }
+        // 建議比例 = 可承受虧損 / 負向情境預期跌幅
+        //   例：承受 10%、跌 40% → 投入 25%（跌 40% × 25% = 損失 10% 剛好）
+        const suggestedPct = (maxLoss / expectedDrop) * 100;
+        const clamped = Math.min(100, Math.max(0, suggestedPct));
+        const suggestedAmt = totalAssets * (clamped / 100);
+
+        // 情境正負向分析：正向 = A + B、負向 = C + D
+        const scenarios = readCurrentScenarios();
+        const positiveProb = (scenarios[0]?.prob || 0) + (scenarios[1]?.prob || 0);
+        const negativeProb = (scenarios[2]?.prob || 0) + (scenarios[3]?.prob || 0);
+        const evNote = (positiveProb + negativeProb === 100)
+            ? `<br>正向情境機率合計 ${positiveProb}% · 負向 ${negativeProb}%${negativeProb > 50 ? ' · <b>負向偏高、上限應更保守</b>' : ''}`
+            : '';
+
+        el.innerHTML = `
+            <div class="calc-primary">建議投入比例：<b>${clamped.toFixed(1)}%</b>${totalAssets > 0 ? ` ≈ <b>$${suggestedAmt.toLocaleString(undefined, {maximumFractionDigits: 0})}</b>` : ''}</div>
+            <div class="calc-detail">公式：<code>可承受虧損 ${maxLoss}% ÷ 預期跌幅 ${expectedDrop}%</code>${evNote}</div>
+            <div class="calc-warn">⚠️ 這是<b>粗略試算不是財務建議</b>——沒考慮利率、稅、跟其他持股的相關性、你的整體風險偏好。凱利公式在實務上常被建議打對折（half-Kelly）避免劇烈回撤。</div>
+        `;
+    }
+
+    function addFalsifyCondition() {
+        const rows = document.querySelectorAll('#falsify-list .falsify-row');
+        const nextI = rows.length;
+        const div = document.createElement('div');
+        div.className = 'falsify-row';
+        div.dataset.i = nextI;
+        div.innerHTML = `
+            <input type="checkbox" class="falsify-check" data-i="${nextI}">
+            <input type="text" class="falsify-text" data-i="${nextI}" placeholder="自訂條件（例：Q2 EPS guidance 下修）">
+            <input type="date" class="falsify-date" data-i="${nextI}" title="觸發日期">
+            <button class="falsify-del" data-i="${nextI}" title="刪除">✕</button>
+        `;
+        $('falsify-list').appendChild(div);
+    }
+
+    function initDecisionFramework(analysis) {
+        const panel = $('decision-panel');
+        if (!panel) return;
+        panel.hidden = false;
+
+        const saved = loadDecisionRecord(analysis.ticker);
+        const scenarios = (saved && saved.scenarios && saved.scenarios.length === 4)
+            ? saved.scenarios : suggestScenarios(analysis);
+        const conds = (saved && saved.falsify && saved.falsify.length > 0)
+            ? saved.falsify : suggestFalsifyConditions(analysis);
+
+        renderDecisionTimestamp(saved);
+        renderScenarioTree(scenarios);
+        renderFalsifyList(conds);
+
+        // 委派事件（container-level · 避免每次 render 都重掛）
+        const tree = $('scenario-tree');
+        tree.oninput = () => updateProbSum();
+
+        const falsify = $('falsify-list');
+        falsify.onclick = e => {
+            if (e.target.classList.contains('falsify-del')) {
+                const row = e.target.closest('.falsify-row');
+                if (row) row.remove();
+            }
+        };
+
+        // 部位試算 input 變 → 重算
+        ['dec-total-assets', 'dec-max-loss', 'dec-expected-drop'].forEach(id => {
+            const el = $(id);
+            if (el) el.oninput = () => updatePositionCalc();
+        });
+
+        // 儲存 / 清除 / 新增
+        $('btn-save-decision').onclick = () => {
+            const record = saveDecisionRecord(analysis.ticker, {
+                scenarios: readCurrentScenarios(),
+                falsify: readCurrentFalsify(),
+            });
+            const s = $('dec-save-status');
+            if (record) {
+                s.textContent = `✅ 存好了（${record.timestamp.slice(0, 16).replace('T', ' ')}）`;
+                s.className = 'dec-save-status saved';
+                renderDecisionTimestamp(record);
+            } else {
+                s.textContent = '❌ 存失敗（localStorage 可能滿了）';
+                s.className = 'dec-save-status err';
+            }
+        };
+        $('btn-clear-decision').onclick = () => {
+            if (confirm(`確定清除 ${analysis.ticker} 的決策記錄？（無法還原）`)) {
+                clearDecisionRecord(analysis.ticker);
+                const fresh = suggestScenarios(analysis);
+                const freshConds = suggestFalsifyConditions(analysis);
+                renderScenarioTree(fresh);
+                renderFalsifyList(freshConds);
+                renderDecisionTimestamp(null);
+                updateProbSum();
+                $('dec-save-status').textContent = '🗑 已清除';
+                $('dec-save-status').className = 'dec-save-status';
+            }
+        };
+        $('btn-add-falsify').onclick = () => addFalsifyCondition();
+
+        // 初始化總和跟部位計算
+        updateProbSum();
     }
 
     // ---------- Handlers ----------

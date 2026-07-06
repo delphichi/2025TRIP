@@ -287,6 +287,61 @@
             </div>
         </section>
 
+        <section class="panel decision-panel" id="decision-panel" hidden>
+            <h2>🎯 決策框架（追蹤自己的判斷 · 存 localStorage）</h2>
+            <div class="decision-timestamp" id="decision-timestamp"></div>
+            <p class="hint">
+                <b>工具不告訴你買不買 · 但你的判斷應該被結構化 · 而且能事後追蹤</b>。
+                填完存下來 · 下次打開同一支股票會自動載回這份記錄 · 追蹤情境有沒有走 / 證偽條件有沒有觸發。
+                <span class="hint-mini">超過 3 個月自動標黃 · 提示重新檢視。存的位置：<code>localStorage / valuation-decision-{ticker}</code>·純本機、不上傳。</span>
+            </p>
+
+            <div class="decision-section">
+                <h3>🌳 情境樹（4 個情境的機率總和 = 100%）</h3>
+                <p class="hint">預設情境名稱可以直接改成這支股票的具體訊號 · 每個情境給機率 + 該情境下對估值的判斷。</p>
+                <div id="scenario-tree"></div>
+                <div class="prob-sum" id="prob-sum">總和：100%</div>
+            </div>
+
+            <div class="decision-section">
+                <h3>💰 部位試算（簡化凱利邏輯 · 不是財務建議）</h3>
+                <p class="hint">
+                    公式：<code>建議比例 ≈ 可承受虧損% / 負向情境預期跌幅%</code> ·
+                    這是<b>粗略試算</b>·不考慮利率 / 稅 / 相關性 / 你自己的風險偏好·真決策要跟自己的整體資產配置一起看。
+                </p>
+                <div class="calc-inputs">
+                    <label>總資產（可投資額）
+                        <input type="number" id="dec-total-assets" placeholder="1000000" step="10000">
+                    </label>
+                    <label>負向情境可承受最大虧損 %
+                        <input type="number" id="dec-max-loss" value="10" min="1" max="100" step="1">
+                    </label>
+                    <label>負向情境預期跌幅 %（自估）
+                        <input type="number" id="dec-expected-drop" value="40" min="5" max="90" step="5">
+                    </label>
+                </div>
+                <div class="calc-result" id="dec-calc-result">—</div>
+            </div>
+
+            <div class="decision-section">
+                <h3>✅ 可證偽條件清單（觸發 = 論點被證偽 = 該重新評估）</h3>
+                <p class="hint">
+                    根據這支股票已抓到的訊號預設 · 你可以增/刪/改。<b>勾選 = 已觸發</b> · 填日期讓自己記得什麼時候翻牌。
+                    <span class="hint-mini">卡爾·波普：一個論點必須是「可能被證明錯」的、才算科學 · 投資論點也一樣。</span>
+                </p>
+                <div id="falsify-list"></div>
+                <div class="btn-row">
+                    <button id="btn-add-falsify" class="btn-secondary">+ 新增自訂條件</button>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button id="btn-save-decision">💾 存這份決策記錄</button>
+                <button id="btn-clear-decision" class="btn-secondary">🗑 清除本股記錄</button>
+                <span id="dec-save-status" class="dec-save-status"></span>
+            </div>
+        </section>
+
         <section class="panel unknowns-panel" id="unknowns-panel">
             <h2>❓ 這工具沒回答（但你必須知道）的問題</h2>
             <p class="hint">

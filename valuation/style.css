@@ -586,6 +586,196 @@ textarea {
 .macro-links li { margin: 4px 0; color: var(--muted); }
 .macro-links a { color: var(--primary); font-weight: 600; }
 
+/* 🎯 決策框架 panel */
+.decision-panel { border-left-color: #7c3aed; background: #faf5ff; }
+.decision-panel h2 { color: #6b21a8; }
+.decision-panel h3 { color: #6b21a8; margin: 14px 0 6px; font-size: 1em; border-bottom: 1px dashed #ddd6fe; padding-bottom: 4px; }
+.decision-timestamp {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: .9em;
+    margin: 4px 0 12px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    line-height: 1.6;
+}
+.decision-timestamp.ts-fresh { background: #f0fdf4; border-left: 4px solid var(--success); color: #14532d; }
+.decision-timestamp.ts-stale { background: #fef3c7; border-left: 4px solid var(--warning); color: #78350f; }
+.decision-timestamp b { color: inherit; }
+.decision-section {
+    background: #fff;
+    border: 1px solid #ddd6fe;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 10px 0;
+}
+
+/* 情境樹 */
+.scenario-row {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin: 6px 0;
+}
+.scenario-header { margin-bottom: 6px; }
+.scenario-name {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: .95em;
+    font-weight: 600;
+    color: var(--ink);
+    background: #fff;
+    font-family: inherit;
+}
+.scenario-body {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+    align-items: center;
+}
+.scenario-prob-label, .scenario-verdict-label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: .8em;
+    color: var(--muted);
+}
+.scenario-prob {
+    width: 100%;
+    accent-color: #7c3aed;
+}
+.scenario-prob-val {
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    color: #6b21a8;
+    text-align: right;
+    font-size: .95em;
+    display: block;
+}
+.scenario-verdict {
+    padding: 5px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #fff;
+    font-size: .9em;
+    font-family: inherit;
+}
+.prob-sum {
+    padding: 6px 10px;
+    border-radius: 4px;
+    text-align: center;
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    margin-top: 8px;
+}
+.prob-sum.prob-sum-ok { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
+.prob-sum.prob-sum-warn { background: #fee2e2; color: #7f1d1d; border: 2px solid var(--danger); animation: subtle-pulse 1.5s ease-in-out infinite; }
+@keyframes subtle-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .7; }
+}
+
+/* 部位試算 */
+.calc-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin: 8px 0;
+}
+.calc-inputs label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: .85em;
+    color: var(--muted);
+}
+.calc-inputs input {
+    padding: 6px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #f9fafb;
+    font-family: inherit;
+    font-size: .95em;
+}
+.calc-result {
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-size: .95em;
+    line-height: 1.6;
+}
+.calc-primary { font-size: 1.15em; color: #6b21a8; margin-bottom: 4px; }
+.calc-primary b { color: #4c1d95; }
+.calc-detail { color: var(--muted); font-size: .85em; margin-bottom: 6px; }
+.calc-detail code { background: #ede9fe; padding: 1px 5px; border-radius: 3px; color: #5b21b6; }
+.calc-warn { color: #78350f; background: #fef3c7; padding: 6px 8px; border-radius: 4px; font-size: .82em; line-height: 1.5; }
+.calc-warn b { color: inherit; }
+
+/* 證偽清單 */
+.falsify-row {
+    display: grid;
+    grid-template-columns: auto 1fr 130px auto;
+    gap: 8px;
+    align-items: center;
+    padding: 5px 8px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    margin: 4px 0;
+}
+.falsify-check {
+    accent-color: #7c3aed;
+    width: 18px;
+    height: 18px;
+}
+.falsify-row:has(.falsify-check:checked) {
+    background: #fef3c7;
+    border-color: var(--warning);
+}
+.falsify-row:has(.falsify-check:checked) .falsify-text {
+    text-decoration: line-through;
+    color: #78350f;
+}
+.falsify-text {
+    padding: 5px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #f9fafb;
+    font-size: .88em;
+    font-family: inherit;
+    color: var(--ink);
+}
+.falsify-date {
+    padding: 4px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: .82em;
+    font-family: inherit;
+    background: #f9fafb;
+}
+.falsify-del {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: .95em;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+.falsify-del:hover { background: #fee2e2; }
+
+.dec-save-status {
+    margin-left: 10px;
+    font-size: .88em;
+    color: var(--muted);
+}
+.dec-save-status.saved { color: var(--success); font-weight: 700; }
+.dec-save-status.err { color: var(--danger); font-weight: 700; }
+
 /* 「還沒回答的問題」panel */
 .unknowns-panel { border-left-color: #d97706; background: #fffbeb; }
 .unknowns-panel h2 { color: #b45309; }
