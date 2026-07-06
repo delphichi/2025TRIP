@@ -958,8 +958,11 @@
     // Series id 常用：DGS10（10Y 公債殖利率）、T10Y2Y（10-2 利差）、FEDFUNDS（聯邦基金利率）、DTWEXBGS（美元廣義指數）
     const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
     // FRED 不回 Access-Control-Allow-Origin → 瀏覽器直連會被 CORS 擋
-    // Fallback：allorigins.win 公開 CORS proxy
-    const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+    // 兩層 fallback：allorigins → corsproxy.io（一個被限流另一個補上）
+    const CORS_PROXIES = [
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?url=',
+    ];
 
     // 全域錯誤帶到 UI · fredFailedSeries 記個別失敗的 series id
     let fredLastError = null;
@@ -975,16 +978,22 @@
         const params = `series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
         const directUrl = `${FRED_BASE}?${params}`;
         let data;
+        const errors = [];
+        // 依序試：直連 → allorigins → corsproxy.io
         try {
             data = await fredRawFetch(directUrl);
         } catch (e) {
-            // 直連失敗（多半 CORS）→ 走 proxy
-            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(directUrl)}`;
-            try {
-                data = await fredRawFetch(proxyUrl);
-            } catch (e2) {
-                throw new Error(`直連 ${e.message} · proxy ${e2.message}`);
+            errors.push(`direct: ${e.message}`);
+            for (const proxy of CORS_PROXIES) {
+                try {
+                    data = await fredRawFetch(`${proxy}${encodeURIComponent(directUrl)}`);
+                    break;
+                } catch (e2) {
+                    errors.push(`${proxy.split('/')[2]}: ${e2.message}`);
+                    data = null;
+                }
             }
+            if (!data) throw new Error(errors.join(' · '));
         }
         // FRED API-level 錯誤（key 錯 / series 不存在）—— 這種會 wrap 在 HTTP 200 回傳裡
         if (data && data.error_code) {
@@ -1026,7 +1035,7 @@
                 if (!fredLastError) fredLastError = `${id}: ${e.message}`;
             }
             if (i < seriesConfig.length - 1) {
-                await new Promise(r => setTimeout(r, 250));
+                await new Promise(r => setTimeout(r, 500));   // 250ms 不夠、daily 系列 payload 大更容易被 throttle
             }
         }
         return result;
@@ -1357,8 +1366,16 @@
                  macro && interpretT10y2y(macro.t10y2y), v => v.toFixed(2) + ' pp', '#7c3aed', fredMissing);
         bindCell(macro && macro.fedfunds, 'macro-fedfunds-val', 'macro-fedfunds-spark', 'macro-fedfunds-note',
                  macro && interpretFedfunds(macro.fedfunds), v => v.toFixed(2) + '%', '#d97706', fredMissing);
-        bindCell(macro && macro.cpi, 'macro-cpi-val', 'macro-cpi-spark', 'macro-cpi-note',
-                 macro && interpretCpi(macro.cpi), v => v.toFixed(1), '#ea580c', fredMissing);
+        // CPI cell 顯示 YoY %（原始是絕對指數 300+，看不出通膨變化）
+        const cpiSeries = macro && macro.cpi;
+        const cpiYoYSeries = (cpiSeries && cpiSeries.length >= 13)
+            ? cpiSeries.slice(12).map((d, i) => ({
+                date: d.date,
+                value: ((d.value - cpiSeries[i].value) / cpiSeries[i].value) * 100,
+            }))
+            : null;
+        bindCell(cpiYoYSeries, 'macro-cpi-val', 'macro-cpi-spark', 'macro-cpi-note',
+                 macro && interpretCpi(macro.cpi), v => '+' + v.toFixed(1) + '%', '#ea580c', fredMissing);
         bindCell(macro && macro.hyspread, 'macro-hy-val', 'macro-hy-spark', 'macro-hy-note',
                  macro && interpretHyspread(macro.hyspread), v => v.toFixed(2) + '%', '#7c2d12', fredMissing);
         bindCell(fx, 'macro-fx-val', 'macro-fx-spark', 'macro-fx-note',
