@@ -568,28 +568,45 @@
             }
         }
 
-        // Verdict
-        const v = verdict(pePercentile, pbrPercentile);
-        const box = $('verdict-box');
-        box.className = 'verdict-box ' + v.kind;
-        $('verdict-title').textContent = v.title;
-        let bodyHtml = v.body || '';
-        // 補充：實際百分位數字
-        if (pePercentile !== null) {
-            bodyHtml += `<br><br><b>PE 百分位</b>：${fmtPct(pePercentile)}（${fmt(currentPE, 1)} vs 歷史中位數 ${fmt(peStats.median, 1)}）`;
-        }
-        if (pbrPercentile !== null) {
-            bodyHtml += `<br><b>PBR 百分位</b>：${fmtPct(pbrPercentile)}（${fmt(currentPBR, 2)} vs 歷史中位數 ${fmt(pbrStats.median, 2)}）`;
-        }
-        // 分佈離散度警訊：max/min > 5× 代表歷史裡有極端異常年，中位數判讀失真
-        // AMD 是典型案例：PE 56→278 = 5×、PBR 1.85→23.65 = 12.8×（2023 EPS 崩 + 2021 加密泡沫）
+        // 分佈離散度偵測（先算 · 決定要不要覆蓋 verdict）
+        // max/min > 5× 代表歷史裡有極端異常年，中位數判讀失真、百分位當強訊號會誤導
+        // AMD 典型案例：PE 56→278 = 5×、PBR 1.85→23.65 = 12.8×（2023 EPS 崩 + 2021 加密泡沫）
         const peSpread = peStats && peStats.min > 0 ? peStats.max / peStats.min : null;
         const pbrSpread = pbrStats && pbrStats.min > 0 ? pbrStats.max / pbrStats.min : null;
         const spreads = [];
         if (peSpread && peSpread > 5) spreads.push(`PE ${peSpread.toFixed(1)}×（${fmt(peStats.min,1)}→${fmt(peStats.max,1)}）`);
         if (pbrSpread && pbrSpread > 5) spreads.push(`PBR ${pbrSpread.toFixed(1)}×（${fmt(pbrStats.min,2)}→${fmt(pbrStats.max,2)}）`);
-        if (spreads.length) {
-            bodyHtml += `<br><br>⚠️ <b>分佈離散度極大</b>：${spreads.join(' · ')}——歷史裡有異常年份（EPS 崩、加密泡沫、併購一次性事件），<b>中位數這個統計量被拉扁、百分位失去參考意義</b>。當前值的「相對位置」是跟一個異常放大的分佈比，不是跟「正常年份」比。<b>看絕對值</b>（例：PE 80.5 = 半導體週期股極端貴，跟自己歷史「相對便宜」無關）。`;
+        const isDistorted = spreads.length > 0;
+
+        // Verdict — 離散度極大時覆蓋成琥珀警告，避免使用者只讀「🟡 中高區間」溫和標題就下判斷
+        const v = verdict(pePercentile, pbrPercentile);
+        if (isDistorted) {
+            // 判斷絕對值是否也極端貴（避免相對位置樂觀誤導）
+            const absExtreme = (currentPE && isFinite(currentPE) && currentPE > 40)
+                            || (currentPBR && isFinite(currentPBR) && currentPBR > 10);
+            v.kind = 'warning';   // 琥珀色 · 覆蓋原本的 cheap/fair/expensive
+            v.title = absExtreme
+                ? '🟠 統計失真警示 · 絕對值極端貴 · 相對位置判讀不可靠'
+                : '🟠 統計失真警示 · 分佈離散度極大 · 相對位置判讀不可靠';
+            v.body = null;   // 覆蓋原 body · 下方會 prepend 更強的離散度說明
+        }
+        const box = $('verdict-box');
+        box.className = 'verdict-box ' + v.kind;
+        $('verdict-title').textContent = v.title;
+        let bodyHtml = '';
+
+        // 離散度警訊 · 若觸發放最前面（在 percentile 之前）· 使用者眼球從頂端讀
+        if (isDistorted) {
+            bodyHtml += `⚠️ <b>分佈離散度極大</b>：${spreads.join(' · ')}——歷史裡有異常年份（EPS 崩、加密泡沫、併購一次性事件），<b>中位數被拉扁、百分位失去參考意義</b>。<br><br>👉 <b>改看絕對值</b>：${currentPE && isFinite(currentPE) ? `<b>PE ${fmt(currentPE,1)}</b>` : ''}${currentPE && currentPBR ? ' · ' : ''}${currentPBR && isFinite(currentPBR) ? `<b>PBR ${fmt(currentPBR,2)}</b>` : ''}——用「PE 25 是正常」的<b>絕對基準</b>判讀，不要靠這裡算出來的百分位。半導體週期股 PE &gt; 40 = 極端貴、消費品 &gt; 30 = 貴，跟自己歷史「相對便宜」無關。<br><br>`;
+        }
+
+        bodyHtml += v.body || '';
+        // 補充：實際百分位數字（離散度大時這幾行會被前面警訊覆蓋語氣，但保留給使用者對照）
+        if (pePercentile !== null) {
+            bodyHtml += `<br><br><b>PE 百分位</b>：${fmtPct(pePercentile)}（${fmt(currentPE, 1)} vs 歷史中位數 ${fmt(peStats.median, 1)}）${isDistorted ? ' <span class="hint-mini">← 失真警訊已觸發、這個數字不當強訊號</span>' : ''}`;
+        }
+        if (pbrPercentile !== null) {
+            bodyHtml += `<br><b>PBR 百分位</b>：${fmtPct(pbrPercentile)}（${fmt(currentPBR, 2)} vs 歷史中位數 ${fmt(pbrStats.median, 2)}）`;
         }
         // GAAP vs Non-GAAP 說明（美股獨有 · 台股 IFRS 財報沒這麼強烈的分裂）
         // AMD / NVDA / TSLA / PLTR 高 SBC + 併購攤銷公司，Non-GAAP EPS 常是 GAAP 的 2-3×
