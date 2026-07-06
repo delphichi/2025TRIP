@@ -91,23 +91,26 @@
             </div>
 
             <div class="decision-panel-live">
-                <h3>🎯 你要怎麼調整？</h3>
-                <p class="hint hint-mini">💡 <b>什麼都不動</b> = 維持現有股數（不做任何買賣）· 拉 slider 或按 preset 才會加減碼</p>
-                <div class="pos-adjust-row">
-                    <div class="pos-current">
-                        目前部位：<b id="pos-current-val">—</b>
+                <h3>🎯 你要怎麼調整？（買賣股數）</h3>
+                <p class="hint hint-mini">💡 <b>什麼都不動</b>（slider = 0）就是維持現有股數 · 拉左邊賣、右邊買 · 「部位 %」是這筆買賣的<b>結果</b>而不是輸入</p>
+                <div class="share-delta-row">
+                    <div class="share-delta-label">
+                        <span class="delta-arrow">⬅ 賣</span>
+                        <b id="share-delta-val">0 股（維持）</b>
+                        <span class="delta-arrow">買 ➡</span>
                     </div>
-                    <div class="pos-target">
-                        目標比例：<input type="range" id="pos-target" min="0" max="100" step="5" value="20">
-                        <b id="pos-target-val">20%</b>
+                    <input type="range" id="pos-target" min="-100" max="100" step="1" value="0">
+                    <div class="share-delta-range">
+                        <span id="share-delta-min">最多賣 —</span>
+                        <span id="share-delta-max">最多買 —</span>
                     </div>
                 </div>
                 <div class="preset-buttons">
-                    <button class="preset-btn preset-sell-all" data-preset="0">🚪 全部出清</button>
-                    <button class="preset-btn preset-sell" data-preset="-20">📉 減碼 20pp</button>
-                    <button class="preset-btn preset-hold" data-preset="0-delta">✋ 維持現有</button>
-                    <button class="preset-btn preset-buy" data-preset="+20">📈 加碼 20pp</button>
-                    <button class="preset-btn preset-all-in" data-preset="100">🚀 All-in</button>
+                    <button class="preset-btn preset-sell-all" data-preset="sell-all">🚪 賣光持股</button>
+                    <button class="preset-btn preset-sell" data-preset="sell-half">📉 賣一半</button>
+                    <button class="preset-btn preset-hold" data-preset="hold">✋ 維持現有</button>
+                    <button class="preset-btn preset-buy" data-preset="buy-half-cash">📈 加碼半現金</button>
+                    <button class="preset-btn preset-all-in" data-preset="buy-all-cash">🚀 用光現金</button>
                 </div>
                 <div class="pos-delta-preview" id="pos-delta-preview"></div>
                 <div class="btn-row">

@@ -423,26 +423,27 @@
         if (!priceSeries || !game.startPrice) return;
         game.initialPct = initialPct;
 
-        const stockValue = game.base * (initialPct / 100);
-        game.shares = stockValue / game.startPrice;
-        game.cash = game.base - stockValue;
+        // 整數股：買入 floor((base * initialPct%) / startPrice) 股 · 剩下留現金
+        const targetSpend = game.base * (initialPct / 100);
+        game.shares = Math.floor(targetSpend / game.startPrice);
+        game.cash = game.base - game.shares * game.startPrice;
         game.currentDate = game.startDate;
         game.currentPrice = game.startPrice;
         game.prevPrice = null;
         game.currentEventIdx = 0;
         game.decisions = [];
-        game.lastTargetPct = initialPct;
+        game.lastTargetPct = currentPositionPct();
         game.lastTargetDate = game.startDate;
         game.lastTargetPrice = game.startPrice;
 
         game.decisions.push({
             date: game.startDate,
-            event: `🎬 起始建倉 · ${initialPct}%`,
+            event: `🎬 起始建倉 · 買 ${game.shares} 股`,
             price: game.startPrice,
             oldPct: 0,
-            newPct: initialPct,
+            newPct: game.lastTargetPct,
             totalValue: currentTotalValue(),
-            action: `買入 ${game.shares.toFixed(1)} 股 · 剩餘現金 ${fmtMoney(game.cash)}`,
+            action: `買入 ${game.shares} 股 · 剩餘現金 ${fmtMoney(game.cash)}`,
         });
 
         $('snapshot-panel').hidden = true;
@@ -530,7 +531,7 @@
                 <div class="pf-cell">
                     <div class="pf-label">📈 ${scenario.ticker} 股票</div>
                     <div class="pf-val">${fmtMoney(stockValue)}</div>
-                    <div class="pf-sub">${game.shares.toFixed(1)} 股 × ${fmtMoney(game.currentPrice)}</div>
+                    <div class="pf-sub">${game.shares} 股 × ${fmtMoney(game.currentPrice)}</div>
                 </div>
                 <div class="pf-cell pf-total">
                     <div class="pf-label">💼 總資產</div>
@@ -546,48 +547,65 @@
             ${driftNote}
         `;
 
-        const posInt = Math.round(posPct / 5) * 5;
-        $('pos-current-val').textContent = `${posPct.toFixed(0)}%`;
-        $('pos-target').value = posInt;
-        $('pos-target-val').textContent = `${posInt}%`;
+        // 配置 share-delta slider 的範圍
+        const maxBuy = Math.floor(game.cash / game.currentPrice);
+        const maxSell = Math.floor(game.shares);
+        const slider = $('pos-target');
+        slider.min = -maxSell;
+        slider.max = maxBuy;
+        slider.step = 1;
+        slider.value = 0;   // 每個新事件預設 = 維持現有
+        $('share-delta-min').textContent = `最多賣 ${maxSell} 股`;
+        $('share-delta-max').textContent = `最多買 ${maxBuy} 股`;
         updateDeltaPreview();
 
         renderDecisionLog();
     }
 
     function updateDeltaPreview() {
-        const targetPct = parseInt($('pos-target').value) || 0;
+        const deltaShares = parseInt($('pos-target').value) || 0;
         const currentPct = currentPositionPct();
-        const delta = targetPct - currentPct;
-        const total = currentTotalValue();
-        const targetStockValue = total * (targetPct / 100);
-        const currentStockValue = game.shares * game.currentPrice;
-        const deltaValue = targetStockValue - currentStockValue;
+        const price = game.currentPrice;
+        const cost = deltaShares * price;   // 正=買入花費、負=賣出回收
 
-        const isHold = Math.abs(delta) <= HOLD_THRESHOLD_PP + 1e-6;
+        const newShares = game.shares + deltaShares;
+        const newCash = game.cash - cost;
+        const newTotal = newCash + newShares * price;
+        const newPct = newTotal > 0 ? (newShares * price / newTotal) * 100 : 0;
 
-        let msg;
-        let cls;
-        let btnLabel;
-        if (isHold) {
-            msg = `✋ 維持現有 ${game.shares.toFixed(1)} 股 · 不做任何買賣（目前部位 ${currentPct.toFixed(1)}%）`;
+        // 更新 slider 中央文字
+        let deltaLabel;
+        if (deltaShares === 0) deltaLabel = '0 股（維持）';
+        else if (deltaShares > 0) deltaLabel = `+${deltaShares} 股（買入）`;
+        else deltaLabel = `${deltaShares} 股（賣出）`;
+        $('share-delta-val').textContent = deltaLabel;
+
+        let msg, cls, btnLabel, btnCls;
+        if (deltaShares === 0) {
+            msg = `✋ 維持現有 ${game.shares} 股 · 不做任何買賣（目前部位 ${currentPct.toFixed(1)}%）`;
             cls = 'preview-hold';
-            btnLabel = `✋ 維持現有 ${game.shares.toFixed(1)} 股 · 進到下一個事件`;
-        } else if (delta > 0) {
-            const deltaShares = deltaValue / game.currentPrice;
-            msg = `📈 加碼 ${delta.toFixed(0)} pp · 買 ${deltaShares.toFixed(1)} 股（${fmtMoney(deltaValue)} · 用現金 ${fmtMoney(game.cash)} 的 ${(deltaValue / game.cash * 100).toFixed(0)}%）`;
-            cls = 'preview-buy';
-            btnLabel = `📈 加碼 ${delta.toFixed(0)} pp · 進到下一個事件`;
-            if (deltaValue > game.cash + 0.5) {
-                msg = `⚠ 現金不夠 · 你只有 ${fmtMoney(game.cash)} · 最多加到 ${((game.cash + currentStockValue) / total * 100).toFixed(0)}%（會用光現金）`;
+            btnLabel = `✋ 維持現有 ${game.shares} 股 · 進到下一個事件`;
+            btnCls = 'btn-hold';
+        } else if (deltaShares > 0) {
+            if (cost > game.cash + 0.01) {
+                const maxAffordable = Math.floor(game.cash / price);
+                msg = `⚠ 現金不夠 · 你只有 ${fmtMoney(game.cash)} · 最多買 ${maxAffordable} 股（想買 ${deltaShares} 股要 ${fmtMoney(cost)}）`;
                 cls = 'preview-warn';
-                btnLabel = `⚠ 現金上限 · 進到下一個事件`;
+                btnLabel = `⚠ 現金不足 · 最多買 ${maxAffordable} 股`;
+                btnCls = 'btn-warn';
+            } else {
+                msg = `📈 買 ${deltaShares} 股 · 花 ${fmtMoney(cost)}（現金 ${fmtMoney(game.cash)} → ${fmtMoney(newCash)}）· 部位 ${currentPct.toFixed(1)}% → ${newPct.toFixed(1)}%`;
+                cls = 'preview-buy';
+                btnLabel = `📈 買 ${deltaShares} 股 · 進到下一個事件`;
+                btnCls = 'btn-buy';
             }
         } else {
-            const deltaShares = Math.abs(deltaValue) / game.currentPrice;
-            msg = `📉 減碼 ${Math.abs(delta).toFixed(0)} pp · 賣 ${deltaShares.toFixed(1)} 股（回收 ${fmtMoney(Math.abs(deltaValue))}）`;
+            const sellShares = -deltaShares;
+            const proceeds = -cost;
+            msg = `📉 賣 ${sellShares} 股 · 回收 ${fmtMoney(proceeds)}（現金 ${fmtMoney(game.cash)} → ${fmtMoney(newCash)}）· 部位 ${currentPct.toFixed(1)}% → ${newPct.toFixed(1)}%`;
             cls = 'preview-sell';
-            btnLabel = `📉 減碼 ${Math.abs(delta).toFixed(0)} pp · 進到下一個事件`;
+            btnLabel = `📉 賣 ${sellShares} 股 · 進到下一個事件`;
+            btnCls = 'btn-sell';
         }
         const el = $('pos-delta-preview');
         el.className = `pos-delta-preview ${cls}`;
@@ -596,22 +614,31 @@
         const btn = $('btn-confirm-decision');
         if (btn) {
             btn.textContent = btnLabel;
-            btn.className = isHold ? 'btn-hold' : (delta > 0 ? 'btn-buy' : 'btn-sell');
+            btn.className = btnCls;
         }
     }
 
     function renderDecisionLog() {
         const tbl = $('decision-log-table');
-        tbl.innerHTML = `<tr><th>日期</th><th>事件</th><th>股價</th><th>調整</th><th>總資產</th></tr>`;
+        tbl.innerHTML = `<tr><th>日期</th><th>事件</th><th>股價</th><th>買賣</th><th>總資產</th></tr>`;
         game.decisions.forEach(d => {
             const tr = document.createElement('tr');
-            const delta = d.newPct - d.oldPct;
-            const deltaTxt = Math.abs(delta) < 0.5 ? '✋ 持平' : (delta > 0 ? `📈 +${delta.toFixed(0)}pp` : `📉 ${delta.toFixed(0)}pp`);
+            let actionTxt;
+            if (d.deltaShares === undefined) {
+                // 起始建倉
+                actionTxt = `🎬 建倉 ${d.sharesAfter || ''} 股`;
+            } else if (d.deltaShares === 0) {
+                actionTxt = `✋ 持平（${d.sharesAfter} 股）`;
+            } else if (d.deltaShares > 0) {
+                actionTxt = `📈 買 ${d.deltaShares} 股 → ${d.sharesAfter} 股`;
+            } else {
+                actionTxt = `📉 賣 ${Math.abs(d.deltaShares)} 股 → ${d.sharesAfter} 股`;
+            }
             tr.innerHTML = `
                 <td>${d.date}</td>
                 <td>${d.event}</td>
                 <td>${fmtMoney(d.price)}</td>
-                <td>${d.oldPct.toFixed(0)}% → ${d.newPct.toFixed(0)}%<br><small>${deltaTxt}</small></td>
+                <td>${actionTxt}<br><small>部位 ${d.oldPct.toFixed(0)}% → ${d.newPct.toFixed(0)}%</small></td>
                 <td>${fmtMoney(d.totalValue)}</td>
             `;
             tbl.appendChild(tr);
@@ -619,32 +646,34 @@
     }
 
     function confirmDecision() {
-        const targetPct = parseInt($('pos-target').value) || 0;
+        let deltaShares = parseInt($('pos-target').value) || 0;
         const ev = scenario.events[game.currentEventIdx];
         const oldPct = currentPositionPct();
+        const price = game.currentPrice;
 
         let action;
-        let logNewPct;
-
-        if (Math.abs(targetPct - oldPct) <= HOLD_THRESHOLD_PP + 1e-6) {
+        if (deltaShares === 0) {
             action = '✋ 持平 · 不做任何買賣';
-            logNewPct = oldPct;
-            // 持平時 lastTargetPct 不變（保留上次主動決定的目標）
-        } else {
-            const total = currentTotalValue();
-            let cappedTargetPct = targetPct;
-            const targetStockValue = total * (targetPct / 100);
-            const currentStockValue = game.shares * game.currentPrice;
-            if (targetStockValue > currentStockValue + game.cash + 0.01) {
-                cappedTargetPct = ((currentStockValue + game.cash) / total) * 100;
-            }
-            const result = rebalanceToTargetPct(cappedTargetPct);
-            action = result.action;
-            logNewPct = cappedTargetPct;
-            // 主動 rebalance · 更新 lastTargetPct
-            game.lastTargetPct = cappedTargetPct;
+        } else if (deltaShares > 0) {
+            // Cap by cash
+            const maxAffordable = Math.floor(game.cash / price);
+            if (deltaShares > maxAffordable) deltaShares = maxAffordable;
+            const cost = deltaShares * price;
+            game.shares += deltaShares;
+            game.cash -= cost;
+            action = `📈 買 ${deltaShares} 股（花 ${fmtMoney(cost)}）`;
+            game.lastTargetPct = currentPositionPct();
             game.lastTargetDate = ev.date;
-            game.lastTargetPrice = game.currentPrice;
+            game.lastTargetPrice = price;
+        } else {
+            const sellShares = Math.min(-deltaShares, game.shares);
+            const proceeds = sellShares * price;
+            game.shares -= sellShares;
+            game.cash += proceeds;
+            action = `📉 賣 ${sellShares} 股（回收 ${fmtMoney(proceeds)}）`;
+            game.lastTargetPct = currentPositionPct();
+            game.lastTargetDate = ev.date;
+            game.lastTargetPrice = price;
         }
 
         game.decisions.push({
@@ -652,7 +681,9 @@
             event: ev.label,
             price: game.currentPrice,
             oldPct: oldPct,
-            newPct: logNewPct,
+            newPct: currentPositionPct(),
+            sharesAfter: game.shares,
+            deltaShares: deltaShares,
             totalValue: currentTotalValue(),
             action,
         });
@@ -691,7 +722,7 @@
         const totalDecisions = game.decisions.length;
         const nonHoldDecisions = game.decisions.filter((d, i) => {
             if (i === 0) return false;
-            return Math.abs(d.newPct - d.oldPct) >= 0.5;
+            return d.deltaShares !== 0 && d.deltaShares !== undefined;
         }).length;
 
         const startIdx = priceSeries.findIndex(p => p.date >= game.startDate);
@@ -708,16 +739,27 @@
         const yourVsAllIn = finalTotal - buyHoldAllInFinal;
 
         const decisionLogHtml = game.decisions.map((d, i) => {
-            const delta = d.newPct - d.oldPct;
-            const deltaCls = Math.abs(delta) < 0.5 ? 'pm-hold' : delta > 0 ? 'pm-buy' : 'pm-sell';
-            const deltaTxt = Math.abs(delta) < 0.5 ? '✋ 持平' : delta > 0 ? `📈 加 ${delta.toFixed(0)}pp` : `📉 減 ${Math.abs(delta).toFixed(0)}pp`;
+            let deltaCls, actionTxt;
+            if (d.deltaShares === undefined) {
+                deltaCls = 'pm-buy';
+                actionTxt = `🎬 建倉 ${d.sharesAfter || ''} 股`;
+            } else if (d.deltaShares === 0) {
+                deltaCls = 'pm-hold';
+                actionTxt = `✋ 持平（${d.sharesAfter} 股）`;
+            } else if (d.deltaShares > 0) {
+                deltaCls = 'pm-buy';
+                actionTxt = `📈 買 ${d.deltaShares} → ${d.sharesAfter} 股`;
+            } else {
+                deltaCls = 'pm-sell';
+                actionTxt = `📉 賣 ${Math.abs(d.deltaShares)} → ${d.sharesAfter} 股`;
+            }
             return `
                 <tr class="${deltaCls}">
                     <td>${i}</td>
                     <td>${d.date}</td>
                     <td>${d.event}</td>
                     <td>${fmtMoney(d.price)}</td>
-                    <td>${d.oldPct.toFixed(0)}% → ${d.newPct.toFixed(0)}%<br><small>${deltaTxt}</small></td>
+                    <td>${actionTxt}<br><small>部位 ${d.oldPct.toFixed(0)}% → ${d.newPct.toFixed(0)}%</small></td>
                     <td>${fmtMoney(d.totalValue)}</td>
                 </tr>
             `;
@@ -813,25 +855,22 @@
         $('btn-back-to-selector').addEventListener('click', backToSelector);
 
         const target = $('pos-target');
-        target.addEventListener('input', () => {
-            $('pos-target-val').textContent = target.value + '%';
-            updateDeltaPreview();
-        });
+        target.addEventListener('input', updateDeltaPreview);
 
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const preset = btn.getAttribute('data-preset');
-                const currentPct = currentPositionPct();
-                let target;
-                if (preset === '0-delta') target = Math.round(currentPct / 5) * 5;
-                else if (preset === '0') target = 0;
-                else if (preset === '100') target = 100;
-                else {
-                    const delta = parseInt(preset);
-                    target = Math.max(0, Math.min(100, Math.round((currentPct + delta) / 5) * 5));
-                }
-                $('pos-target').value = target;
-                $('pos-target-val').textContent = target + '%';
+                const price = game.currentPrice;
+                let deltaShares = 0;
+                if (preset === 'hold') deltaShares = 0;
+                else if (preset === 'sell-all') deltaShares = -Math.floor(game.shares);
+                else if (preset === 'sell-half') deltaShares = -Math.floor(game.shares / 2);
+                else if (preset === 'buy-half-cash') deltaShares = Math.floor((game.cash * 0.5) / price);
+                else if (preset === 'buy-all-cash') deltaShares = Math.floor(game.cash / price);
+                // Clamp to slider range
+                const slider = $('pos-target');
+                deltaShares = Math.max(parseInt(slider.min), Math.min(parseInt(slider.max), deltaShares));
+                slider.value = deltaShares;
                 updateDeltaPreview();
             });
         });
