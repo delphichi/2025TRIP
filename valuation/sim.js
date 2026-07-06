@@ -296,6 +296,9 @@
         renderDecisionLog();
     }
 
+    // slider step 是 5% · 半個 step (2.5pp) 內視為「持平」· 避免市值漂移造成的假減碼
+    const HOLD_THRESHOLD_PP = 2.5;
+
     function updateDeltaPreview() {
         const targetPct = parseInt($('pos-target').value) || 0;
         const currentPct = currentPositionPct();
@@ -307,8 +310,8 @@
 
         let msg;
         let cls;
-        if (Math.abs(delta) < 0.5) {
-            msg = `✋ 持平 · 不動`;
+        if (Math.abs(delta) <= HOLD_THRESHOLD_PP + 1e-6) {
+            msg = `✋ 持平 · 不做任何買賣（目前部位 ${currentPct.toFixed(1)}%）`;
             cls = 'preview-hold';
         } else if (delta > 0) {
             msg = `📈 加碼 ${delta.toFixed(0)} pp · 買 ${fmtMoney(deltaValue)}（用現金 ${fmtMoney(game.cash)} 的 ${(deltaValue / game.cash * 100).toFixed(0)}%）`;
@@ -350,24 +353,33 @@
         const ev = EVENTS[game.currentEventIdx];
         const oldPct = currentPositionPct();
 
-        // Cap by available cash if buying
-        const total = currentTotalValue();
-        let cappedTargetPct = targetPct;
-        const targetStockValue = total * (targetPct / 100);
-        const currentStockValue = game.shares * game.currentPrice;
-        if (targetStockValue > currentStockValue + game.cash + 0.01) {
-            // 用光現金 · target = (currentStockValue + cash) / total
-            cappedTargetPct = ((currentStockValue + game.cash) / total) * 100;
-        }
+        let action;
+        let logNewPct;
 
-        const { action } = rebalanceToTargetPct(cappedTargetPct);
+        if (Math.abs(targetPct - oldPct) <= HOLD_THRESHOLD_PP + 1e-6) {
+            // 持平 · 完全不 rebalance · 避免市值漂移造成假買賣
+            action = '✋ 持平 · 不做任何買賣';
+            logNewPct = oldPct;
+        } else {
+            // Cap by available cash if buying
+            const total = currentTotalValue();
+            let cappedTargetPct = targetPct;
+            const targetStockValue = total * (targetPct / 100);
+            const currentStockValue = game.shares * game.currentPrice;
+            if (targetStockValue > currentStockValue + game.cash + 0.01) {
+                cappedTargetPct = ((currentStockValue + game.cash) / total) * 100;
+            }
+            const result = rebalanceToTargetPct(cappedTargetPct);
+            action = result.action;
+            logNewPct = cappedTargetPct;
+        }
 
         game.decisions.push({
             date: ev.date,
             event: ev.label,
             price: game.currentPrice,
             oldPct: oldPct,
-            newPct: cappedTargetPct,
+            newPct: logNewPct,
             totalValue: currentTotalValue(),
             action,
         });
