@@ -35,6 +35,115 @@
     }
     function todayStr() { return new Date().toISOString().substring(0, 10); }
 
+    // ---------- 財報成長性（近 10 季 + YoY） ----------
+    // 每個 metric 回傳：[{ date, value, yoy }] × 10
+    // YoY 計算：找相同季度前一年的值比較
+    // - 絕對值型（EPS、營收）: yoy = (cur - prior) / |prior|（%）
+    // - 比率型（毛利率、營益率）: yoy = cur - prior（百分點 pp，非 %）
+
+    function yoyDate(currentDate) {
+        // "2024-03-31" → "2023-03-31"
+        const parts = currentDate.split('-');
+        return `${parseInt(parts[0]) - 1}-${parts[1]}-${parts[2]}`;
+    }
+
+    // FMP：/income-statement?symbol=X&period=quarter
+    async function fetchFmpFundamentals(ticker, apiKey) {
+        try {
+            const rows = await fmpFetch(`/income-statement?symbol=${ticker}&period=quarter`, apiKey);
+            if (!rows || rows.length === 0) return null;
+            // 新到舊排序
+            rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            return processFundamentals(rows, {
+                revenue: r => r.revenue,
+                eps: r => r.eps,
+                grossMargin: r => r.grossProfitRatio,   // 已經是 0-1 ratio
+                operatingMargin: r => r.operatingIncomeRatio,
+            });
+        } catch (e) {
+            console.warn('FMP fundamentals fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    // FinMind：TaiwanStockFinancialStatements 是 long format
+    // 需要 pivot：group by date、type 當欄位
+    async function fetchFinMindFundamentals(ticker, token) {
+        try {
+            const startDate = todayMinusYears(4);   // 4 年 = 16 季足夠算 10 季 YoY
+            const rows = await finMindFetch('TaiwanStockFinancialStatements', ticker, startDate, todayStr(), token);
+            if (!rows || rows.length === 0) return null;
+            // Pivot：{ date: { type1: value1, type2: value2, ... } }
+            const byDate = new Map();
+            rows.forEach(r => {
+                if (!byDate.has(r.date)) byDate.set(r.date, {});
+                byDate.get(r.date)[r.type] = r.value;
+            });
+            // 排序（新到舊）並建構 wide rows
+            const dates = Array.from(byDate.keys()).sort().reverse();
+            const wideRows = dates.map(d => {
+                const flat = byDate.get(d);
+                // 試多個可能欄位名（FinMind schema 有時分 Revenue / OperatingRevenue）
+                const revenue = flat.Revenue || flat.OperatingRevenue || flat.TotalRevenue || null;
+                const grossProfit = flat.GrossProfit || flat.OperatingGrossProfit || null;
+                const opIncome = flat.OperatingIncome || flat.OperatingProfit || null;
+                const eps = flat.EPS || flat.BasicEPS || flat.DilutedEPS || null;
+                return {
+                    date: d,
+                    revenue,
+                    eps,
+                    grossMargin: (grossProfit !== null && revenue) ? grossProfit / revenue : null,
+                    operatingMargin: (opIncome !== null && revenue) ? opIncome / revenue : null,
+                };
+            });
+            return processFundamentals(wideRows, {
+                revenue: r => r.revenue,
+                eps: r => r.eps,
+                grossMargin: r => r.grossMargin,
+                operatingMargin: r => r.operatingMargin,
+            });
+        } catch (e) {
+            console.warn('FinMind fundamentals fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    // 通用：從 rows 陣列（新到舊）+ getter map，算出近 10 季 + YoY
+    function processFundamentals(rows, getters) {
+        const dateSet = new Set(rows.map(r => r.date));
+        const rowByDate = new Map(rows.map(r => [r.date, r]));
+        const N = Math.min(10, rows.length);
+
+        const build = (getter, isRatio) => {
+            const entries = [];
+            for (let i = 0; i < N; i++) {
+                const cur = rows[i];
+                const priorDate = yoyDate(cur.date);
+                const prior = rowByDate.get(priorDate);
+                const val = getter(cur);
+                const priorVal = prior ? getter(prior) : null;
+                let yoy = null;
+                if (val !== null && val !== undefined && isFinite(val) &&
+                    priorVal !== null && priorVal !== undefined && isFinite(priorVal) && priorVal !== 0) {
+                    if (isRatio) {
+                        yoy = val - priorVal;   // pp
+                    } else {
+                        yoy = (val - priorVal) / Math.abs(priorVal);   // %
+                    }
+                }
+                entries.push({ date: cur.date, value: val, yoy });
+            }
+            return entries;
+        };
+
+        return {
+            eps: build(getters.eps, false),
+            revenue: build(getters.revenue, false),
+            grossMargin: build(getters.grossMargin, true),
+            operatingMargin: build(getters.operatingMargin, true),
+        };
+    }
+
     // 從每日 PER/PBR array 建構出年度統計 + 全部日資料當歷史樣本
     // 直方圖用「全部日資料」→ 樣本量比 FMP 年報大 250 倍、分佈更細
     async function fetchTwStockData(rawTicker, token, years) {
@@ -44,11 +153,12 @@
         if (!/^\d+$/.test(ticker)) throw new Error(`FinMind 台股 ticker 必須是純數字（例：2330、0050），你輸入 "${ticker}"`);
         const startDate = todayMinusYears(years);
         const endDate = todayStr();
-        // 平行抓：PER 歷史 + 股價（近一週） + 公司資訊
-        const [perData, priceData, infoData] = await Promise.all([
+        // 平行抓：PER 歷史 + 股價（近一週） + 公司資訊 + 財報成長性
+        const [perData, priceData, infoData, fundamentals] = await Promise.all([
             finMindFetch('TaiwanStockPER', ticker, startDate, endDate, token),
-            finMindFetch('TaiwanStockPrice', ticker, todayMinusYears(0.05), endDate, token),   // 近 ~18 天內找最新
+            finMindFetch('TaiwanStockPrice', ticker, todayMinusYears(0.05), endDate, token),
             finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []),
+            fetchFinMindFundamentals(ticker, token),
         ]);
 
         if (!perData || perData.length === 0) throw new Error(`FinMind 找不到 ${ticker} 的 PER/PBR 資料（可能是新股或未收）`);
@@ -97,6 +207,7 @@
             latestRatioDate: latest.date,
             sector,
             source: 'FinMind',
+            fundamentals,
         };
     }
 
@@ -141,11 +252,12 @@
     async function fetchStockData(ticker, apiKey, years) {
         setStatus('loading', `📡 抓 ${ticker} 資料中……`);
 
-        // 平行抓：quote + profile + ratios（新版都用 ?symbol=）
-        const [quote, profile, ratios] = await Promise.all([
+        // 平行抓：quote + profile + ratios + income statement quarterly
+        const [quote, profile, ratios, fundamentals] = await Promise.all([
             fmpFetch(`/quote?symbol=${ticker}`, apiKey),
             fmpFetch(`/profile?symbol=${ticker}`, apiKey),
             fmpFetch(`/ratios?symbol=${ticker}`, apiKey),
+            fetchFmpFundamentals(ticker, apiKey),
         ]);
 
         if (!quote || quote.length === 0) throw new Error(`找不到 ticker: ${ticker}（FMP 資料庫沒收 or 格式錯，台股要加 .TW）`);
@@ -187,6 +299,7 @@
             latestRatioDate: ratios[0] ? ratios[0].date : null,
             sector: p.sector,
             industry: p.industry,
+            fundamentals,
         };
     }
 
@@ -460,9 +573,69 @@
         if (latestRatioDate) {
             tableHtml += `<p class="hint">歷年 ratio 資料來自年報，最新一筆日期：<b>${latestRatioDate}</b>。若日期太舊（例如超過 1 年），當前 PE 用 quote 的 real-time 值（price / EPS-TTM），跟歷年可能有基準差異。</p>`;
         }
-        $('detail-box').innerHTML = tableHtml;
+        // 財報成長性表塞在歷年 ratio 之前（更重要）
+        const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
+        $('detail-box').innerHTML = fundHtml + tableHtml;
 
         setStatus('success', `✅ 查到 ${ticker} 資料`);
+    }
+
+    // ---------- Fundamentals table 渲染 ----------
+    function renderFundamentalsHtml(fund) {
+        if (!fund) return '<p class="hint">⚠️ 這個資料源 or 標的沒抓到季度財報，成長性表隱藏。</p>';
+
+        // 判斷本次是否有任何有效資料
+        const hasAny = ['eps', 'revenue', 'grossMargin', 'operatingMargin']
+            .some(k => fund[k] && fund[k].some(e => e.value !== null && isFinite(e.value)));
+        if (!hasAny) return '<p class="hint">⚠️ 這個標的的季度財報 API 回傳空值。</p>';
+
+        const renderTable = (title, entries, isRatio, fmtVal) => {
+            let html = `<div class="fund-cell"><h4>${title}</h4><table class="fund-table"><tr><th>季度</th><th>值</th><th>YoY</th></tr>`;
+            entries.forEach(e => {
+                const dateStr = e.date || '—';
+                const valStr = (e.value !== null && isFinite(e.value)) ? fmtVal(e.value) : '—';
+                let yoyStr = '—', yoyCls = '';
+                if (e.yoy !== null && isFinite(e.yoy)) {
+                    if (isRatio) {
+                        // 比率型：yoy 是絕對百分點差
+                        const pp = e.yoy * 100;
+                        yoyStr = (pp > 0 ? '+' : '') + pp.toFixed(1) + ' pp';
+                    } else {
+                        // 絕對值型：yoy 是相對百分比
+                        const pct = e.yoy * 100;
+                        yoyStr = (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+                    }
+                    yoyCls = e.yoy > 0.001 ? 'yoy-pos' : e.yoy < -0.001 ? 'yoy-neg' : '';
+                }
+                html += `<tr><td>${dateStr}</td><td>${valStr}</td><td class="${yoyCls}">${yoyStr}</td></tr>`;
+            });
+            html += '</table></div>';
+            return html;
+        };
+
+        // 營收縮放：< 1e9 顯示原值、>=1e9 顯示 十億／百萬
+        const fmtRevenue = v => {
+            if (Math.abs(v) >= 1e12) return (v / 1e12).toFixed(2) + '兆';
+            if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+            return v.toFixed(0);
+        };
+
+        return `
+            <h3>📊 財報成長性（近 10 季 + YoY）</h3>
+            <p class="hint">
+                YoY = 跟去年同一季比較。<b>絕對值型（EPS、營收）</b> YoY 用 % 表示；
+                <b>比率型（毛利率、營益率）</b> YoY 用 <b>pp（百分點）</b>表示。
+                連續 4 季 YoY 都 &gt; 0 = 成長股訊號；連續 &lt; 0 = 衰退警訊。
+            </p>
+            <div class="fund-grid">
+                ${renderTable('💵 EPS', fund.eps, false, v => v.toFixed(2))}
+                ${renderTable('💰 營收', fund.revenue, false, fmtRevenue)}
+                ${renderTable('📈 毛利率', fund.grossMargin, true, v => (v * 100).toFixed(1) + '%')}
+                ${renderTable('📉 營益率', fund.operatingMargin, true, v => (v * 100).toFixed(1) + '%')}
+            </div>
+        `;
     }
 
     function setStatus(kind, msg) {
