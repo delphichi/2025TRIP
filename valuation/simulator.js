@@ -271,20 +271,51 @@
     async function fetchStockData(ticker, apiKey, years) {
         setStatus('loading', `📡 抓 ${ticker} 資料中……`);
 
-        // 平行抓：quote + profile + ratios + fundamentals + cashflow
-        const [quote, profile, ratios, fundamentals, cashFlow] = await Promise.all([
-            fmpFetch(`/quote?symbol=${ticker}`, apiKey),
-            fmpFetch(`/profile?symbol=${ticker}`, apiKey),
-            fmpFetch(`/ratios?symbol=${ticker}`, apiKey),
-            fetchFmpFundamentals(ticker, apiKey),
-            fetchFmpCashFlow(ticker, apiKey),
+        // Promise.allSettled + 個別診斷：一個端點 402 不擋整份查詢，也告訴使用者哪個掛了
+        // FMP 免費 tier 對特定 ticker / endpoint 組合會回 402（例：GOOG 觀察到）·
+        // 用 GOOGL 通常可以繞（同公司不同 class · FMP 授權可能不同）
+        const label = (name, promise) => promise.then(
+            v => ({ name, ok: true, value: v }),
+            e => ({ name, ok: false, error: e.message })
+        );
+        const results = await Promise.all([
+            label('quote',          fmpFetch(`/quote?symbol=${ticker}`, apiKey)),
+            label('profile',        fmpFetch(`/profile?symbol=${ticker}`, apiKey)),
+            label('ratios',         fmpFetch(`/ratios?symbol=${ticker}`, apiKey)),
+            label('income-stmt',    fetchFmpFundamentals(ticker, apiKey)),
+            label('cash-flow',      fetchFmpCashFlow(ticker, apiKey)),
         ]);
+        const [quoteR, profileR, ratiosR, fundR, cfR] = results;
+        const failed = results.filter(r => !r.ok);
 
-        if (!quote || quote.length === 0) throw new Error(`找不到 ticker: ${ticker}（FMP 資料庫沒收 or 格式錯，台股要加 .TW）`);
+        // 生成 402 專用建議：試 GOOG↔GOOGL / TSLA↔TSLA / BRK.A↔BRK.B 這類 dual-class
+        const has402 = failed.some(f => /402|Premium|subscription/i.test(f.error || ''));
+        const dualClassHint = has402
+            ? `\n💡 <b>402 特殊處理</b>：FMP 免費 tier 對特定 ticker × endpoint 組合會鎖付費。若是 <b>dual-class</b> 公司（GOOG/GOOGL · FOX/FOXA · BRK.A/BRK.B），試另一個 class 通常可繞（同公司但 FMP 授權可能不同）· 例：${ticker} = GOOG → 試 <b>GOOGL</b>。`
+            : '';
+
+        // quote 是主查詢必要 · 失敗就整份 abort
+        const quote = quoteR.ok ? quoteR.value : null;
+        if (!quote || !Array.isArray(quote) || quote.length === 0) {
+            const failedList = failed.map(f => `<b>${f.name}</b>: ${f.error}`).join(' · ');
+            throw new Error(
+                `${ticker} FMP 主查詢失敗（quote endpoint 沒回值）。` +
+                `<br>失敗端點：${failedList || 'quote 空回傳'}${dualClassHint}`
+            );
+        }
         const q = quote[0];
-        const p = profile && profile[0] ? profile[0] : {};
+        const p = (profileR.ok && profileR.value && profileR.value[0]) ? profileR.value[0] : {};
+        const ratios = ratiosR.ok ? ratiosR.value : null;
+        const fundamentals = fundR.ok ? fundR.value : null;
+        const cashFlow = cfR.ok ? cfR.value : null;
 
-        if (!ratios || ratios.length === 0) throw new Error(`${ticker} 沒有歷年 ratio 資料（可能是新股、ETF、指數 或 FMP 未收）`);
+        if (!ratios || !Array.isArray(ratios) || ratios.length === 0) {
+            const failedList = failed.map(f => `<b>${f.name}</b>: ${f.error}`).join(' · ');
+            throw new Error(
+                `${ticker} 沒有歷年 ratio 資料（quote OK 但 /ratios 掛了 · 這是 FMP 免費 tier 對特定 ticker 常見的限制）。` +
+                `<br>失敗端點：${failedList}${dualClassHint}`
+            );
+        }
 
         // 抓完全部（新 API 沒 limit param），client 端 slice 取要的年數
         // FMP /api/v3 舊版 vs /stable/ 新版欄位名差很多，多試幾個
@@ -2048,7 +2079,9 @@
         const s = $('query-status');
         s.hidden = false;
         s.className = 'query-status ' + kind;
-        s.textContent = msg;
+        // innerHTML 允許 <b> / <br> / <a> · 用於錯誤訊息裡的診斷格式化
+        // 訊息來源都是我們自己模板 · 外部字串（FMP error）內嵌時仍該注意 · 目前未偵測到 FMP 回 HTML
+        s.innerHTML = msg;
     }
 
     // ---------- Handlers ----------
