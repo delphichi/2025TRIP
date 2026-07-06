@@ -307,6 +307,22 @@ textarea {
     border: 1px solid #93c5fd;
 }
 
+/* 會計基準 tag（GAAP / Non-GAAP）· 提醒使用者這是哪一種 PE / EPS */
+.acct-tag {
+    display: inline-block;
+    font-size: .58em;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 4px;
+    background: #fef3c7;
+    color: #78350f;
+    border: 1px solid #fde68a;
+    letter-spacing: .5px;
+    cursor: help;
+}
+
 /* ADR 折溢價計算表 */
 .adr-calc {
     margin: 10px 0;
