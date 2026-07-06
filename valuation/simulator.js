@@ -580,11 +580,12 @@
         if (latestRatioDate) {
             tableHtml += `<p class="hint">歷年 ratio 資料來自年報，最新一筆日期：<b>${latestRatioDate}</b>。若日期太舊（例如超過 1 年），當前 PE 用 quote 的 real-time 值（price / EPS-TTM），跟歷年可能有基準差異。</p>`;
         }
-        // 層次 2-5 表順序：現金流背離 → 財報成長性 → 法人買賣超 → 歷年 ratio
+        // 層次 2-5 表順序：現金流背離 → 財報成長性 → 法人買賣超 → 融資餘額 → 歷年 ratio
         const cfHtml = renderCashFlowHtml(analysis.cashFlow);
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         const instHtml = renderInstitutionalHtml(analysis.institutional);
-        $('detail-box').innerHTML = cfHtml + fundHtml + instHtml + tableHtml;
+        const marginHtml = renderMarginHtml(analysis.marginTW);
+        $('detail-box').innerHTML = cfHtml + fundHtml + instHtml + marginHtml + tableHtml;
 
         setStatus('success', `✅ 查到 ${ticker} 資料`);
     }
@@ -936,6 +937,263 @@
         `;
     }
 
+    // ========== 層次 4：總體環境（FRED 利率 + FMP 匯率 + FMP VIX） ==========
+    // FRED（美聯儲 St. Louis Fed）free API：https://api.stlouisfed.org/fred/series/observations
+    // Series id 常用：DGS10（10Y 公債殖利率）、T10Y2Y（10-2 利差）、FEDFUNDS（聯邦基金利率）、DTWEXBGS（美元廣義指數）
+    const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
+
+    async function fredFetch(seriesId, apiKey, startDate) {
+        const url = `${FRED_BASE}?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+            if (res.status === 400) throw new Error(`FRED API key 無效 or series ${seriesId} 錯誤`);
+            throw new Error(`FRED HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        if (!data.observations) return [];
+        // FRED 對缺值標記為 '.'，過濾掉
+        return data.observations
+            .filter(o => o.value !== '.')
+            .map(o => ({ date: o.date, value: parseFloat(o.value) }))
+            .filter(o => !isNaN(o.value));
+    }
+
+    async function fetchMacroFred(apiKey) {
+        if (!apiKey) return null;
+        const start = todayMinusYears(2);
+        try {
+            const [dgs10, dtwexbgs, fedfunds, t10y2y] = await Promise.all([
+                fredFetch('DGS10', apiKey, start).catch(() => []),
+                fredFetch('DTWEXBGS', apiKey, start).catch(() => []),
+                fredFetch('FEDFUNDS', apiKey, start).catch(() => []),
+                fredFetch('T10Y2Y', apiKey, start).catch(() => []),
+            ]);
+            return { dgs10, dtwexbgs, fedfunds, t10y2y };
+        } catch (e) {
+            console.warn('FRED fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    // FMP 匯率（USD/TWD）——用 historical-price-eod/full
+    async function fetchForexUsdTwd(apiKey) {
+        if (!apiKey) return null;
+        try {
+            const data = await fmpFetch('/historical-price-eod/full?symbol=USDTWD', apiKey);
+            const rows = Array.isArray(data) ? data : (data && data.historical) || [];
+            if (!rows.length) return null;
+            // FMP 新→舊，反成舊→新，只取近 500 天
+            return rows.slice(0, 500).reverse()
+                .map(r => ({ date: r.date, value: r.close || r.adjClose }))
+                .filter(r => r.value && isFinite(r.value));
+        } catch (e) {
+            console.warn('FMP forex fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    // FMP VIX（^VIX）——url-encode 成 %5EVIX
+    async function fetchVixHistory(apiKey) {
+        if (!apiKey) return null;
+        try {
+            const data = await fmpFetch('/historical-price-eod/full?symbol=%5EVIX', apiKey);
+            const rows = Array.isArray(data) ? data : (data && data.historical) || [];
+            if (!rows.length) return null;
+            return rows.slice(0, 500).reverse()
+                .map(r => ({ date: r.date, value: r.close || r.adjClose }))
+                .filter(r => r.value && isFinite(r.value));
+        } catch (e) {
+            console.warn('FMP VIX fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    // 台股融資餘額（FinMind · 已在 schema dump 確認免費可用）
+    async function fetchMarginTW(ticker, token) {
+        try {
+            const startDate = todayMinusYears(2);
+            const rows = await finMindFetch('TaiwanStockMarginPurchaseShortSale', ticker, startDate, todayStr(), token);
+            if (!rows || rows.length === 0) return null;
+            return rows.map(r => ({
+                date: r.date,
+                marginBalance: r.MarginPurchaseTodayBalance,
+                shortBalance: r.ShortSaleTodayBalance,
+            })).filter(r => r.marginBalance !== null && r.marginBalance !== undefined);
+        } catch (e) {
+            console.warn('FinMind margin fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    // ---------- 解讀邏輯（層次 4 + 5） ----------
+    function interpretDgs10(dgs10) {
+        if (!dgs10 || dgs10.length < 60) return null;
+        const now = dgs10[dgs10.length - 1].value;
+        const idx90 = Math.max(0, dgs10.length - 63);
+        const past = dgs10[idx90].value;
+        const delta = now - past;
+        if (delta > 0.5) return { kind: 'warn',
+            text: `⚠️ 十年期公債殖利率近 3 個月 <b>${past.toFixed(2)}% → ${now.toFixed(2)}%</b>（+${delta.toFixed(2)}pp）。高本益比股票的折現率壓力上升，這是<b>估值收縮的總經逆風</b>，跟公司體質無關。` };
+        if (delta < -0.5) return { kind: 'good',
+            text: `✅ 十年期公債殖利率近 3 個月 <b>${past.toFixed(2)}% → ${now.toFixed(2)}%</b>（${delta.toFixed(2)}pp）。低利率環境對高成長股估值有利。` };
+        return { kind: 'ok',
+            text: `十年期公債殖利率近 3 個月變化 ${delta.toFixed(2)}pp（${past.toFixed(2)}% → ${now.toFixed(2)}%），無明顯總經壓力。` };
+    }
+
+    function interpretT10y2y(t10y2y) {
+        if (!t10y2y || t10y2y.length === 0) return null;
+        const latest = t10y2y[t10y2y.length - 1].value;
+        if (latest < 0) return { kind: 'warn',
+            text: `⚠️ 10Y-2Y 利差 <b>${latest.toFixed(2)}pp · 殖利率倒掛</b>。歷史上是衰退領先指標（提前 12-18 個月），不代表個股會跌，但總經風險升溫。` };
+        return { kind: 'ok',
+            text: `10Y-2Y 利差 ${latest.toFixed(2)}pp · 未倒掛。` };
+    }
+
+    function interpretFx(fx) {
+        if (!fx || fx.length < 120) return null;
+        const now = fx[fx.length - 1].value;
+        const yearAgo = fx[Math.max(0, fx.length - 252)].value;
+        const pct = (now - yearAgo) / yearAgo;
+        if (pct > 0.03) return { kind: 'ok',
+            text: `USD/TWD 一年 <b>+${(pct*100).toFixed(1)}%</b>（${yearAgo.toFixed(2)} → ${now.toFixed(2)}）· 新台幣貶值 = <b>出口毛利率有匯率順風</b>，粗估貢獻約 ${(pct*100).toFixed(1)} pp 到出口營收。<b>要從財報公布的毛利率變化裡扣掉這塊，才看得出真正的成本改善 / 良率提升 / 產品組合貢獻。</b>` };
+        if (pct < -0.03) return { kind: 'warn',
+            text: `USD/TWD 一年 <b>${(pct*100).toFixed(1)}%</b>（${yearAgo.toFixed(2)} → ${now.toFixed(2)}）· 新台幣升值 = <b>出口毛利率有匯率逆風</b>。公布的毛利率若還維持 or 上升，代表非匯率的體質改善其實比帳面更強。` };
+        return { kind: 'ok',
+            text: `USD/TWD 一年變化 ${(pct*100).toFixed(1)}%（${yearAgo.toFixed(2)} → ${now.toFixed(2)}），匯率影響小。` };
+    }
+
+    function interpretVix(vix) {
+        if (!vix || vix.length === 0) return null;
+        const latest = vix[vix.length - 1].value;
+        if (latest < 15) return { kind: 'warn',
+            text: `VIX <b>${latest.toFixed(1)}</b> &lt; 15 · <b>市場過度自滿</b>。歷史上常是短期見頂訊號（但也可能持續很久）。這不是預測工具，只反映市場的恐慌溫度。` };
+        if (latest > 30) return { kind: 'warn',
+            text: `VIX <b>${latest.toFixed(1)}</b> &gt; 30 · <b>市場恐慌</b>。歷史上常是短期超賣、但也可能是趨勢崩壞開始。單靠 VIX 判斷不了方向。` };
+        return { kind: 'ok',
+            text: `VIX <b>${latest.toFixed(1)}</b>（15-30 區間），市場情緒正常。` };
+    }
+
+    function interpretMargin(margin) {
+        if (!margin || margin.length < 60) return null;
+        const sorted = margin.slice().sort((a, b) => a.date.localeCompare(b.date));
+        const latest = sorted[sorted.length - 1];
+        const past = sorted[Math.max(0, sorted.length - 63)];
+        if (!past.marginBalance) return null;
+        const delta = latest.marginBalance - past.marginBalance;
+        const pct = delta / past.marginBalance;
+        const fmt = n => Number(n).toLocaleString();
+        if (pct > 0.20) return { kind: 'warn',
+            text: `⚠️ 融資餘額近 3 個月 <b>+${(pct*100).toFixed(0)}%</b>（${fmt(past.marginBalance)} → ${fmt(latest.marginBalance)} 張）· 散戶槓桿追高中。反轉時融資斷頭骨牌會放大跌幅。<b>不是不能買，但這波上漲的燃料有一部分是散戶槓桿。</b>` };
+        if (pct < -0.15) return { kind: 'good',
+            text: `✅ 融資餘額近 3 個月 <b>${(pct*100).toFixed(0)}%</b>（${fmt(past.marginBalance)} → ${fmt(latest.marginBalance)} 張）· 散戶槓桿收斂，籌碼較穩定。若股價還在漲，多半是法人 / 大戶主導，這種上漲較健康。` };
+        return { kind: 'ok',
+            text: `融資餘額近 3 個月變化 ${(pct*100).toFixed(0)}%（${fmt(latest.marginBalance)} 張），籌碼結構穩定。` };
+    }
+
+    // ---------- Sparkline util ----------
+    function drawSparkline(canvas, data, color = '#0f766e') {
+        if (!canvas || !data || data.length === 0) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth || canvas.width || 200;
+        const h = canvas.clientHeight || canvas.height || 40;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, w, h);
+        const values = data.map(d => d.value);
+        const min = Math.min(...values), max = Math.max(...values);
+        const range = max - min || 1;
+        const padX = 3, padY = 5;
+        const chartW = w - padX * 2, chartH = h - padY * 2;
+        // Zero line if data crosses zero
+        if (min < 0 && max > 0) {
+            const zeroY = padY + chartH - ((0 - min) / range) * chartH;
+            ctx.strokeStyle = '#d1d5db';
+            ctx.setLineDash([2, 3]);
+            ctx.beginPath();
+            ctx.moveTo(padX, zeroY);
+            ctx.lineTo(padX + chartW, zeroY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        data.forEach((d, i) => {
+            const x = padX + (i / Math.max(1, data.length - 1)) * chartW;
+            const y = padY + chartH - ((d.value - min) / range) * chartH;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        // Last point marker
+        const last = data[data.length - 1];
+        const lastX = padX + chartW;
+        const lastY = padY + chartH - ((last.value - min) / range) * chartH;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ---------- Render macro panel ----------
+    function renderMacroPanel(macro, fx, vix) {
+        const panel = $('macro-panel');
+        if (!panel) return;
+        const anyData = (macro && ((macro.dgs10 && macro.dgs10.length) || (macro.t10y2y && macro.t10y2y.length)
+                                  || (macro.fedfunds && macro.fedfunds.length)))
+                     || (fx && fx.length) || (vix && vix.length);
+        if (!anyData) return;
+        panel.hidden = false;
+
+        const bindCell = (series, valId, sparkId, noteId, interp, fmtVal, color) => {
+            if (!series || !series.length) return;
+            const latest = series[series.length - 1].value;
+            $(valId).textContent = fmtVal(latest);
+            drawSparkline($(sparkId), series, color);
+            if (noteId && interp) {
+                const note = interp;
+                $(noteId).innerHTML = note ? `<span class="macro-note macro-note-${note.kind}">${note.text}</span>` : '';
+            }
+        };
+
+        if (macro) {
+            bindCell(macro.dgs10, 'macro-dgs10-val', 'macro-dgs10-spark', 'macro-dgs10-note',
+                     interpretDgs10(macro.dgs10), v => v.toFixed(2) + '%', '#dc2626');
+            bindCell(macro.t10y2y, 'macro-t10y2y-val', 'macro-t10y2y-spark', 'macro-t10y2y-note',
+                     interpretT10y2y(macro.t10y2y), v => v.toFixed(2) + ' pp', '#7c3aed');
+            bindCell(macro.fedfunds, 'macro-fedfunds-val', 'macro-fedfunds-spark', null,
+                     null, v => v.toFixed(2) + '%', '#d97706');
+        }
+        if (fx) {
+            bindCell(fx, 'macro-fx-val', 'macro-fx-spark', 'macro-fx-note',
+                     interpretFx(fx), v => v.toFixed(3), '#0891b2');
+        }
+        if (vix) {
+            bindCell(vix, 'macro-vix-val', 'macro-vix-spark', 'macro-vix-note',
+                     interpretVix(vix), v => v.toFixed(1), '#db2777');
+        }
+    }
+
+    // ---------- Render 融資餘額（塞進 detail-box） ----------
+    function renderMarginHtml(margin) {
+        if (!margin || margin.length === 0) return '';
+        const note = interpretMargin(margin);
+        const cls = note ? (note.kind === 'warn' ? 'divergence-warn' : note.kind === 'good' ? 'divergence-good' : 'divergence-ok') : 'divergence-ok';
+        const banner = note ? `<div class="divergence-banner ${cls}">${note.text}</div>` : '';
+        return `
+            <h3>💳 融資餘額（散戶槓桿 · 層次 5 · 情緒延伸）</h3>
+            <p class="hint">
+                <b>融資餘額 = 散戶用信用擴張買進的張數</b>。餘額急升 + 股價新高 = 追高過熱，
+                反轉時斷頭骨牌會放大跌幅。餘額下降但股價還在漲 = 籌碼從散戶轉到法人 / 大戶。
+                <span class="hint-mini">FinMind <code>TaiwanStockMarginPurchaseShortSale</code> · 近 3 個月 vs 現在</span>
+            </p>
+            ${banner}
+        `;
+    }
+
     // ---------- 🔍 診斷：印出 FinMind 原始欄位 ----------
     // 目的：驗證程式用的欄位名（NetIncome、FreeCashFlow...）跟 FinMind 實際回傳的一致
     // 對每個 long-format dataset：unique type + origin_name（中文原名）+ sample raw row
@@ -1078,26 +1336,43 @@
             ticker = source === 'finmind' ? rawTicker.replace(/\.TW$/i, '') : rawTicker.toUpperCase();
         }
 
+        // 層次 4 / 5 額外資料源（不影響主流程；沒 key 就跳過）
+        const fredKey = $('cfg-fred-key').value.trim();
+        if (fredKey) localStorage.setItem('fred_api_key', fredKey);
+        const fmpKeyForMacro = $('cfg-api-key').value.trim();   // VIX / USD/TWD 用同一把 FMP key
+        const finmindTokenForMargin = $('cfg-finmind-token').value.trim();
+
         try {
-            let data;
-            if (source === 'finmind') {
-                const token = $('cfg-finmind-token').value.trim();
-                if (!token) {
+            const isFinmind = source === 'finmind';
+            let stockPromise;
+            if (isFinmind) {
+                if (!finmindTokenForMargin) {
                     setStatus('error', '⚠️ 台股需要 FinMind token — 請先貼進「FinMind Token」欄位');
                     return;
                 }
-                localStorage.setItem('finmind_token', token);
-                data = await fetchTwStockData(ticker, token, years);
+                localStorage.setItem('finmind_token', finmindTokenForMargin);
+                stockPromise = fetchTwStockData(ticker, finmindTokenForMargin, years);
             } else {
-                const apiKey = $('cfg-api-key').value.trim();
-                if (!apiKey) {
+                if (!fmpKeyForMacro) {
                     setStatus('error', '⚠️ 美股需要 FMP API key — 請先貼進「FMP API Key」欄位');
                     return;
                 }
-                localStorage.setItem('fmp_api_key', apiKey);
-                data = await fetchStockData(ticker, apiKey, years);
+                localStorage.setItem('fmp_api_key', fmpKeyForMacro);
+                stockPromise = fetchStockData(ticker, fmpKeyForMacro, years);
             }
+
+            // 平行抓總體 / 匯率 / VIX / 融資（都 optional · 失敗回 null 不擋主流程）
+            const [data, macro, fx, vix, marginTW] = await Promise.all([
+                stockPromise,
+                fetchMacroFred(fredKey),
+                fetchForexUsdTwd(fmpKeyForMacro),
+                fetchVixHistory(fmpKeyForMacro),
+                (isFinmind && finmindTokenForMargin) ? fetchMarginTW(ticker, finmindTokenForMargin) : Promise.resolve(null),
+            ]);
+
+            data.marginTW = marginTW;
             renderResult(data);
+            renderMacroPanel(macro, fx, vix);
         } catch (e) {
             setStatus('error', `❌ ${e.message}`);
             console.error(e);
@@ -1180,6 +1455,8 @@
         if (savedKey) $('cfg-api-key').value = savedKey;
         const savedToken = localStorage.getItem('finmind_token');
         if (savedToken) $('cfg-finmind-token').value = savedToken;
+        const savedFredKey = localStorage.getItem('fred_api_key');
+        if (savedFredKey && $('cfg-fred-key')) $('cfg-fred-key').value = savedFredKey;
 
         $('cfg-mode').addEventListener('change', onModeChange);
         $('btn-query').addEventListener('click', onQuery);
