@@ -980,6 +980,81 @@ textarea {
     .sim-main { padding: 20px; gap: 18px; }
 }
 
+/* ====================== SCENARIO SELECTOR ====================== */
+.scenario-selector-panel {
+    border-left-color: #059669;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+}
+.scenario-selector-panel h2 { color: #14532d; }
+
+.scenario-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 10px;
+}
+@media (min-width: 700px) {
+    .scenario-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.scenario-card {
+    background: #fff;
+    border: 2px solid #d1fae5;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.scenario-card:hover {
+    transform: translateY(-2px);
+    border-color: #059669;
+    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.15);
+}
+.scenario-emoji { font-size: 2.5em; text-align: center; }
+.scenario-title {
+    font-size: 1.15em;
+    font-weight: 700;
+    color: #14532d;
+    text-align: center;
+}
+.scenario-subtitle {
+    font-size: .85em;
+    color: #4b5563;
+    line-height: 1.5;
+    flex: 1;
+}
+.scenario-outcome {
+    font-size: .82em;
+    font-weight: 600;
+    padding: 6px 8px;
+    background: #f9fafb;
+    border-radius: 4px;
+    color: #374151;
+    border-left: 3px solid #9ca3af;
+}
+.btn-scenario-select {
+    background: #059669;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: .9em;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+}
+.btn-scenario-select:hover { background: #047857; }
+
+.btn-secondary {
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+}
+.btn-secondary:hover:not(:disabled) { background: #e5e7eb !important; }
+
 /* ====================== GAME PANEL (event-by-event) ====================== */
 .game-panel {
     border-left-color: #7c3aed;
