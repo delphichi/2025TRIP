@@ -1247,6 +1247,14 @@ textarea {
 }
 .btn-link:hover { background: var(--primary); color: #fff; }
 
+/* 動態按鈕：hold=灰、buy=綠、sell=紅 · 讓玩家一眼看出這關會不會動 */
+#btn-confirm-decision.btn-hold { background: #6b7280; }
+#btn-confirm-decision.btn-hold:hover:not(:disabled) { background: #4b5563; }
+#btn-confirm-decision.btn-buy { background: #059669; }
+#btn-confirm-decision.btn-buy:hover:not(:disabled) { background: #047857; }
+#btn-confirm-decision.btn-sell { background: #dc2626; }
+#btn-confirm-decision.btn-sell:hover:not(:disabled) { background: #b91c1c; }
+
 @media (min-width: 700px) {
     .pf-grid { grid-template-columns: repeat(4, 1fr); }
     .event-price-row { grid-template-columns: 220px 1fr; }
