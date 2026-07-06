@@ -1062,19 +1062,53 @@
         return result;
     }
 
-    // FMP 匯率（USD/TWD）——用 historical-price-eod/full
-    async function fetchForexUsdTwd(apiKey) {
-        if (!apiKey) return null;
+    // USD/TWD 匯率 · 資料源優先順序（都免費，無 key）：
+    //   1. Yahoo Finance TWD=X（有 2 年+ 歷史、無 key、走同一組 CORS proxy chain）
+    //   2. FMP historical-price-eod/full?symbol=USDTWD（fallback · 需 key + 額度）
+    // 為什麼不用 Frankfurter？ECB reference rates 名單不含 TWD、直接 400/404
+    // 為什麼不用 FRED？DEXTAIUS 2020 年已停更
+    async function fetchForexUsdTwd(fmpKey) {
+        // Try 1: Yahoo Finance TWD=X (v8/finance/chart JSON endpoint)
         try {
-            const data = await fmpFetch('/historical-price-eod/full?symbol=USDTWD', apiKey);
+            const now = Math.floor(Date.now() / 1000);
+            const twoYearsAgo = now - 730 * 24 * 3600;
+            const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/TWD=X?period1=${twoYearsAgo}&period2=${now}&interval=1d`;
+            let data = null;
+            try { data = await fredRawFetch(yUrl); } catch (_) {}
+            if (!data) {
+                for (const proxy of CORS_PROXIES) {
+                    try {
+                        data = await fredRawFetch(`${proxy}${encodeURIComponent(yUrl)}`);
+                        break;
+                    } catch (_) { data = null; }
+                }
+            }
+            if (data && data.chart && data.chart.result && data.chart.result[0]) {
+                const r = data.chart.result[0];
+                const ts = r.timestamp || [];
+                const closes = (r.indicators && r.indicators.quote && r.indicators.quote[0]
+                              && r.indicators.quote[0].close) || [];
+                const series = ts.map((t, i) => ({
+                    date: new Date(t * 1000).toISOString().slice(0, 10),
+                    value: closes[i],
+                })).filter(r => r.value && isFinite(r.value));
+                if (series.length) return series;
+            }
+        } catch (e) {
+            console.warn('Yahoo TWD=X failed:', e.message);
+        }
+
+        // Try 2: FMP fallback
+        if (!fmpKey) return null;
+        try {
+            const data = await fmpFetch('/historical-price-eod/full?symbol=USDTWD', fmpKey);
             const rows = Array.isArray(data) ? data : (data && data.historical) || [];
             if (!rows.length) return null;
-            // FMP 新→舊，反成舊→新，只取近 500 天
             return rows.slice(0, 500).reverse()
                 .map(r => ({ date: r.date, value: r.close || r.adjClose }))
                 .filter(r => r.value && isFinite(r.value));
         } catch (e) {
-            console.warn('FMP forex fetch failed:', e.message);
+            console.warn('FMP forex fallback failed:', e.message);
             return null;
         }
     }
@@ -1352,8 +1386,7 @@
             }
             parts.push(fredStatus);
             parts.push(hasFx ? '<span class="src-ok">✅ USD/TWD 匯率</span>'
-                : fmpKey ? '<span class="src-warn">⚠️ USD/TWD（FMP 額度用完 or forex tier 不支援）</span>'
-                : '<span class="src-warn">⚠️ USD/TWD（需 FMP key）</span>');
+                : '<span class="src-warn">⚠️ USD/TWD（Yahoo TWD=X + FMP fallback 都失敗 · 開 devtools console 看細節）</span>');
             parts.push(hasVix ? '<span class="src-ok">✅ VIX</span>'
                 : fmpKey ? '<span class="src-warn">⚠️ VIX（FMP 額度用完）</span>'
                 : '<span class="src-warn">⚠️ VIX（需 FMP key）</span>');
@@ -1399,8 +1432,9 @@
                  macro && interpretCpi(macro.cpi), v => '+' + v.toFixed(1) + '%', '#ea580c', fredMissing);
         bindCell(macro && macro.hyspread, 'macro-hy-val', 'macro-hy-spark', 'macro-hy-note',
                  macro && interpretHyspread(macro.hyspread), v => v.toFixed(2) + '%', '#7c2d12', fredMissing);
+        const fxMissing = '⚠️ 尚未取得 USD/TWD 資料。先試 Yahoo TWD=X（走 CORS proxy）、失敗才 fallback FMP。若都失敗，可能是 proxy 限流 or Yahoo blocking · 重載試試。';
         bindCell(fx, 'macro-fx-val', 'macro-fx-spark', 'macro-fx-note',
-                 interpretFx(fx), v => v.toFixed(3), '#0891b2', fmpMissing);
+                 interpretFx(fx), v => v.toFixed(3), '#0891b2', fxMissing);
         // VIX 現在優先 FRED，missing 訊息也對應改
         const vixMissing = (macro && !macro.vix) || !macro ? '⚠️ 尚未取得資料。優先走 FRED VIXCLS（免額度），失敗才 fallback FMP。' : fmpMissing;
         bindCell(vix, 'macro-vix-val', 'macro-vix-spark', 'macro-vix-note',
