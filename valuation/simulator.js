@@ -120,8 +120,10 @@
             const entries = [];
             for (let i = 0; i < N; i++) {
                 const cur = rows[i];
-                const priorDate = yoyDate(cur.date);
-                const prior = rowByDate.get(priorDate);
+                // 台積電這種 -03-31 準時的：exact date match 直接命中
+                // AAPL / Costco 這種財年結週六會漂移的：exact match 失敗、fallback 到 i+4 offset
+                let prior = rowByDate.get(yoyDate(cur.date));
+                if (!prior && rows[i + 4]) prior = rows[i + 4];
                 const val = getter(cur);
                 const priorVal = prior ? getter(prior) : null;
                 let yoy = null;
@@ -736,7 +738,9 @@
             const entries = [];
             for (let i = 0; i < N; i++) {
                 const cur = rows[i];
-                const prior = rowByDate.get(yoyDate(cur.date));
+                // 同 processFundamentals：財年結週六會漂移 → exact match fallback 到 i+4 offset
+                let prior = rowByDate.get(yoyDate(cur.date));
+                if (!prior && rows[i + 4]) prior = rows[i + 4];
                 const val = getter(cur);
                 const priorVal = prior ? getter(prior) : null;
                 let yoy = null;
