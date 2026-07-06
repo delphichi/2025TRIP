@@ -518,6 +518,23 @@
         const pePercentile = currentPE !== null && isFinite(currentPE) ? percentileOf(currentPE, peSorted) : null;
         const pbrPercentile = currentPBR !== null && isFinite(currentPBR) ? percentileOf(currentPBR, pbrSorted) : null;
 
+        // 樣本量警訊（放在 verdict 上方，優先度最高）
+        // FinMind daily 資料的 uniqueYears 準確反映年跨度；FMP annual 則等於 history.length
+        const uniqueYears = new Set(history.map(h => h.year)).size;
+        const warnEl = $('sample-warn');
+        if (warnEl) {
+            if (uniqueYears < 10) {
+                const isFmp = analysis.source !== 'FinMind';
+                const twHint = isFmp
+                    ? '<br>若這是美股 ADR（例：TSM、BABA、NIO），<b>建議改查對應本地上市代號</b>（TSM → 2330 · BABA → 9988.HK · NIO → 9866.HK），FinMind / 本地資料源歷史深度是 FMP 免費 tier 的好幾倍（TSM 5 年 vs 2330 20 年 4920 筆每日）。'
+                    : '';
+                warnEl.innerHTML = `<b>⚠️ 歷史樣本只有 ${uniqueYears} 年</b>——可能只涵蓋一個景氣循環（半導體 3-4 年 / 消費品 5-7 年 / 房地產 8-10 年），<b>百分位判讀的統計顯著度低</b>，不要當強訊號用。${twHint}`;
+                warnEl.hidden = false;
+            } else {
+                warnEl.hidden = true;
+            }
+        }
+
         // Verdict
         const v = verdict(pePercentile, pbrPercentile);
         const box = $('verdict-box');
