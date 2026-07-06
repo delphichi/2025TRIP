@@ -473,24 +473,57 @@
     }
 
     // ---------- Handlers ----------
+    // 自動路由：從 ticker 格式判斷該用哪個 API
+    // - 純數字（2330、0050、0700）→ 台股（FinMind）
+    // - 數字.TW / 數字.HK → 台股（strip .TW） / FMP
+    // - 純字母（AAPL、TSLA、GOOGL）→ 美股（FMP）
+    // - 字母.字母（BRK.B）→ FMP
+    function detectSource(ticker) {
+        const t = ticker.trim().toUpperCase();
+        // .TW 後綴 → FinMind（strip .TW）
+        if (t.endsWith('.TW')) return { source: 'finmind', normalized: t.replace(/\.TW$/, '') };
+        // 純數字 → FinMind 台股
+        if (/^\d+$/.test(t)) return { source: 'finmind', normalized: t };
+        // 含字母 → FMP
+        return { source: 'fmp', normalized: t };
+    }
+
     async function onQuery() {
-        const mode = $('cfg-mode').value;
-        const ticker = $('cfg-ticker').value.trim();
-        if (!ticker) { setStatus('error', '⚠️ 請輸入 ticker'); return; }
+        const modeSelect = $('cfg-mode').value;
+        const rawTicker = $('cfg-ticker').value.trim();
+        if (!rawTicker) { setStatus('error', '⚠️ 請輸入 ticker'); return; }
         const years = parseInt($('cfg-years').value) || 10;
+
+        // 決定實際用哪個 source
+        let source, ticker;
+        if (modeSelect === 'auto') {
+            const detected = detectSource(rawTicker);
+            source = detected.source;
+            ticker = detected.normalized;
+            setStatus('loading', `🤖 偵測到 ${source === 'finmind' ? '台股（FinMind）' : '美股 / 全球（FMP）'} → ${ticker}`);
+        } else {
+            source = modeSelect;
+            ticker = source === 'finmind' ? rawTicker.replace(/\.TW$/i, '') : rawTicker.toUpperCase();
+        }
 
         try {
             let data;
-            if (mode === 'finmind') {
+            if (source === 'finmind') {
                 const token = $('cfg-finmind-token').value.trim();
-                if (!token) { setStatus('error', '⚠️ 請先設定 FinMind token'); return; }
+                if (!token) {
+                    setStatus('error', '⚠️ 台股需要 FinMind token — 請先貼進「FinMind Token」欄位');
+                    return;
+                }
                 localStorage.setItem('finmind_token', token);
                 data = await fetchTwStockData(ticker, token, years);
             } else {
                 const apiKey = $('cfg-api-key').value.trim();
-                if (!apiKey) { setStatus('error', '⚠️ 請先設定 FMP API key'); return; }
+                if (!apiKey) {
+                    setStatus('error', '⚠️ 美股需要 FMP API key — 請先貼進「FMP API Key」欄位');
+                    return;
+                }
                 localStorage.setItem('fmp_api_key', apiKey);
-                data = await fetchStockData(ticker.toUpperCase(), apiKey, years);
+                data = await fetchStockData(ticker, apiKey, years);
             }
             renderResult(data);
         } catch (e) {
@@ -548,14 +581,17 @@
         const isManual = mode === 'manual';
         const isFmp = mode === 'fmp';
         const isFinmind = mode === 'finmind';
+        const isAuto = mode === 'auto';
 
         $('query-panel').hidden = isManual;
         $('manual-panel').hidden = !isManual;
+        // 自動模式：兩個 key 都顯示（讓用戶都貼、按 ticker 決定用哪個）
         // 顯示 / 隱藏對應 API 的 key 欄位跟 hint
-        document.querySelectorAll('.mode-fmp').forEach(el => el.hidden = !isFmp);
-        document.querySelectorAll('.mode-finmind').forEach(el => el.hidden = !isFinmind);
+        document.querySelectorAll('.mode-fmp').forEach(el => el.hidden = !(isFmp || isAuto));
+        document.querySelectorAll('.mode-finmind').forEach(el => el.hidden = !(isFinmind || isAuto));
         // Ticker placeholder 依 mode 換
-        if (isFmp) $('cfg-ticker').placeholder = 'AAPL、TSLA、GOOGL（純字母代碼）';
+        if (isAuto) $('cfg-ticker').placeholder = '數字 = 台股（2330）、字母 = 美股（AAPL）';
+        else if (isFmp) $('cfg-ticker').placeholder = 'AAPL、TSLA、GOOGL（純字母代碼）';
         else if (isFinmind) $('cfg-ticker').placeholder = '2330、0050、2454（4 碼數字，不加 .TW）';
     }
 
