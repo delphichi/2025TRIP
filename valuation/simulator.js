@@ -611,6 +611,48 @@
                 : `⚠️ Forward PE ${fmt(fwdPE, 1)} <b>高於</b> trailing ${fmt(currentPE, 1)} —— 分析師預期<b>獲利衰退</b>。這是<b>盈餘週期反轉訊號</b>，要看是暫時性還是結構性。`;
             bodyHtml += `<br><br>📈 <b>Forward vs Trailing PE</b>：${compressionMsg}`;
         }
+        // PEG Ratio (Peter Lynch) · 兩個版本都算 · 有解時同時顯示
+        // - Trailing PEG = trailing PE / (最新 YoY EPS 成長率 %)
+        // - Forward PEG = forward PE / (Yahoo epsForward vs epsTrailing 的隱含成長 %)
+        // 限制：EPS 前年為負 or 一次性大跳（AMD 2025 +164%）會讓 PEG 失真
+        const computePeg = (pe, growthPct) => {
+            if (!pe || !isFinite(pe) || pe <= 0) return null;
+            if (!growthPct || !isFinite(growthPct) || growthPct <= 0) return null;
+            return pe / growthPct;
+        };
+        const pegKind = peg =>
+            peg == null ? null :
+            peg < 1 ? { cls: 'success', label: '<1 便宜（Lynch 標準）' } :
+            peg < 2 ? { cls: 'muted',   label: '1-2 合理' } :
+                      { cls: 'danger',  label: '>2 貴' };
+        // trailing PEG：用 fundamentals 最新一筆 EPS YoY（僅 mode==='YoY' 才用）
+        let trailingPeg = null, trailingGrowth = null;
+        if (analysis.fundamentals && analysis.fundamentals.eps && analysis.fundamentals.eps[0]) {
+            const top = analysis.fundamentals.eps[0];
+            if (top.mode === 'YoY' && top.yoy !== null && isFinite(top.yoy) && top.yoy > 0) {
+                trailingGrowth = top.yoy * 100;
+                trailingPeg = computePeg(currentPE, trailingGrowth);
+            }
+        }
+        // forward PEG：需 Yahoo epsForward + epsTrailing 都有
+        let forwardPeg = null, impliedFwdGrowth = null;
+        if (yq && yq.forwardPE && yq.epsForward && yq.epsTrailing
+            && isFinite(yq.epsForward) && isFinite(yq.epsTrailing) && yq.epsTrailing > 0) {
+            impliedFwdGrowth = ((yq.epsForward - yq.epsTrailing) / yq.epsTrailing) * 100;
+            forwardPeg = computePeg(yq.forwardPE, impliedFwdGrowth);
+        }
+        if (trailingPeg !== null || forwardPeg !== null) {
+            const bits = [];
+            if (trailingPeg !== null) {
+                const k = pegKind(trailingPeg);
+                bits.push(`<b>Trailing PEG ${trailingPeg.toFixed(2)}</b>（${trailingGrowth.toFixed(0)}% YoY · <span style="color:var(--${k.cls})">${k.label}</span>）`);
+            }
+            if (forwardPeg !== null) {
+                const k = pegKind(forwardPeg);
+                bits.push(`<b>Forward PEG ${forwardPeg.toFixed(2)}</b>（隱含 ${impliedFwdGrowth.toFixed(0)}% · <span style="color:var(--${k.cls})">${k.label}</span>）`);
+            }
+            bodyHtml += `<br><br>🎯 <b>PEG（Peter Lynch）</b>：${bits.join(' · ')}<br><span class="hint-mini"><b>⚠️ PEG 的兩個死角</b>：(1) <b>假設成長率可線性延續</b>——對成長剛起飛的公司低估風險、對成熟公司高估回歸壓力；(2) <b>一次性大跳基期效應</b>——AMD 2025 淨利 +164% 主要是 2023 低基期，若把 164% 當「可持續成長率」算 PEG 會嚴重失真、看起來「便宜」但那不是穩定成長。要跟 3-5 年 CAGR + Layer 3 護城河判讀合起來讀。</span>`;
+        }
         // 美股短興趣（Yahoo）· Layer 5 情緒替補
         if (yq) {
             const shortPct = yq.sharesShortPercentOfFloat;
