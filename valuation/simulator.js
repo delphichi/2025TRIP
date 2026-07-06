@@ -341,12 +341,20 @@
 
     // ---------- Percentile / Statistics ----------
     function percentileOf(value, sortedArray) {
-        // 回傳 value 在 sortedArray 的百分位（0-1）
-        // 小於 25% = 便宜、大於 75% = 貴
+        // Midrank formula：value == 某樣本時，該筆各半算 below / above
+        //   → value == median → percentile ≈ 50%（統計慣例，不像 strict-below 會算成 40%）
+        // 用意：AMD 這種小樣本（FMP 5 筆）· current PE 直接來自 ratios[0] →
+        //       current 剛好等於某筆 · 之前 `v < value` 排除掉 ties → 百分位失真 20pp
+        // 對大樣本（2330 每日 4920 筆）幾乎沒差 · 對小樣本差別顯著
         if (!sortedArray.length) return null;
-        let countBelow = 0;
-        for (const v of sortedArray) if (v < value) countBelow += 1;
-        return countBelow / sortedArray.length;
+        // FP epsilon：金融比率經常「數學相等但 float 差 ULP」
+        const eps = Math.max(Math.abs(value) * 1e-9, 1e-12);
+        let below = 0, equal = 0;
+        for (const v of sortedArray) {
+            if (v < value - eps) below += 1;
+            else if (Math.abs(v - value) <= eps) equal += 1;
+        }
+        return (below + 0.5 * equal) / sortedArray.length;
     }
 
     function stats(arr) {
@@ -560,6 +568,16 @@
         }
         if (pbrPercentile !== null) {
             bodyHtml += `<br><b>PBR 百分位</b>：${fmtPct(pbrPercentile)}（${fmt(currentPBR, 2)} vs 歷史中位數 ${fmt(pbrStats.median, 2)}）`;
+        }
+        // 分佈離散度警訊：max/min > 5× 代表歷史裡有極端異常年，中位數判讀失真
+        // AMD 是典型案例：PE 56→278 = 5×、PBR 1.85→23.65 = 12.8×（2023 EPS 崩 + 2021 加密泡沫）
+        const peSpread = peStats && peStats.min > 0 ? peStats.max / peStats.min : null;
+        const pbrSpread = pbrStats && pbrStats.min > 0 ? pbrStats.max / pbrStats.min : null;
+        const spreads = [];
+        if (peSpread && peSpread > 5) spreads.push(`PE ${peSpread.toFixed(1)}×（${fmt(peStats.min,1)}→${fmt(peStats.max,1)}）`);
+        if (pbrSpread && pbrSpread > 5) spreads.push(`PBR ${pbrSpread.toFixed(1)}×（${fmt(pbrStats.min,2)}→${fmt(pbrStats.max,2)}）`);
+        if (spreads.length) {
+            bodyHtml += `<br><br>⚠️ <b>分佈離散度極大</b>：${spreads.join(' · ')}——歷史裡有異常年份（EPS 崩、加密泡沫、併購一次性事件），<b>中位數這個統計量被拉扁、百分位失去參考意義</b>。當前值的「相對位置」是跟一個異常放大的分佈比，不是跟「正常年份」比。<b>看絕對值</b>（例：PE 80.5 = 半導體週期股極端貴，跟自己歷史「相對便宜」無關）。`;
         }
         $('verdict-body').innerHTML = bodyHtml;
 
