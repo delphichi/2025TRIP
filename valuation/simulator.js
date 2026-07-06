@@ -7,12 +7,13 @@
     const fmtPct = n => (n === null || n === undefined || Number.isNaN(n)) ? '—' : (n * 100).toFixed(0) + '%';
 
     // ---------- FMP API ----------
-    // Financial Modeling Prep：免費 tier 250 次/日
-    // 端點：
-    // - /api/v3/profile/{ticker} 公司基本資料 + 股價
-    // - /api/v3/quote/{ticker} 即時 quote（含 PE）
-    // - /api/v3/ratios/{ticker}?limit=X 歷年 annual ratios（含 PE、PBR）
-    const FMP_BASE = 'https://financialmodelingprep.com/api/v3';
+    // Financial Modeling Prep：新版 stable API（2024 改版，取代舊 /api/v3）
+    // 端點格式改成 query param：/stable/{endpoint}?symbol=TICKER
+    // - /stable/quote?symbol=X       即時 quote（含 pe、marketCap）
+    // - /stable/profile?symbol=X     公司基本資料
+    // - /stable/ratios?symbol=X      歷年年度 ratios（含 priceEarningsRatio、priceToBookRatio）
+    // - /stable/ratios-ttm?symbol=X  TTM ratios（最新 12 個月）
+    const FMP_BASE = 'https://financialmodelingprep.com/stable';
 
     async function fmpFetch(path, apiKey) {
         const url = `${FMP_BASE}${path}${path.includes('?') ? '&' : '?'}apikey=${apiKey}`;
@@ -22,7 +23,12 @@
             try {
                 const errBody = await res.json();
                 if (errBody['Error Message']) msg = errBody['Error Message'];
+                else if (errBody.message) msg = errBody.message;
             } catch (_) {}
+            // 常見錯誤翻譯
+            if (res.status === 401) msg = 'API key 無效或未啟用';
+            if (res.status === 403) msg = '這個 endpoint 需要付費 tier';
+            if (res.status === 429) msg = '免費額度已用完（250 次/日），明天再試 or 升級';
             throw new Error(msg);
         }
         const data = await res.json();
@@ -30,45 +36,51 @@
         return data;
     }
 
+    // 防禦性讀值：新舊 API 欄位名可能不同，multi-try
+    function pickField(obj, ...names) {
+        for (const n of names) {
+            if (obj[n] !== null && obj[n] !== undefined) return obj[n];
+        }
+        return null;
+    }
+
     async function fetchStockData(ticker, apiKey, years) {
-        const status = $('query-status');
         setStatus('loading', `📡 抓 ${ticker} 資料中……`);
 
-        // 平行抓：quote + profile + ratios
+        // 平行抓：quote + profile + ratios（新版都用 ?symbol=）
         const [quote, profile, ratios] = await Promise.all([
-            fmpFetch(`/quote/${ticker}`, apiKey),
-            fmpFetch(`/profile/${ticker}`, apiKey),
-            fmpFetch(`/ratios/${ticker}?limit=${years}`, apiKey),
+            fmpFetch(`/quote?symbol=${ticker}`, apiKey),
+            fmpFetch(`/profile?symbol=${ticker}`, apiKey),
+            fmpFetch(`/ratios?symbol=${ticker}`, apiKey),
         ]);
 
-        if (!quote || quote.length === 0) throw new Error(`找不到 ticker: ${ticker}（FMP 資料庫沒收）`);
+        if (!quote || quote.length === 0) throw new Error(`找不到 ticker: ${ticker}（FMP 資料庫沒收 or 格式錯，台股要加 .TW）`);
         const q = quote[0];
         const p = profile && profile[0] ? profile[0] : {};
 
-        // ratios 是陣列 每筆是一年，含 priceEarningsRatio、priceToBookRatio 等
-        if (!ratios || ratios.length === 0) throw new Error(`${ticker} 沒有歷年 ratio 資料（可能是新股或 FMP 未收）`);
+        if (!ratios || ratios.length === 0) throw new Error(`${ticker} 沒有歷年 ratio 資料（可能是新股、ETF、指數 或 FMP 未收）`);
 
+        // 抓完全部（新 API 沒 limit param），client 端 slice 取要的年數
+        // 欄位名新舊都試：priceEarningsRatio / peRatio、priceToBookRatio / pbRatio
         const peHistory = ratios.map(r => ({
-            year: r.date ? r.date.substring(0, 4) : '?',
-            pe: r.priceEarningsRatio,
-            pbr: r.priceToBookRatio,
-        })).filter(r => r.pe !== null && r.pe !== undefined && isFinite(r.pe));
+            year: r.date ? r.date.substring(0, 4) : (r.calendarYear || '?'),
+            pe: pickField(r, 'priceEarningsRatio', 'peRatio', 'pe'),
+            pbr: pickField(r, 'priceToBookRatio', 'pbRatio', 'pb'),
+        })).filter(r => r.pe !== null && isFinite(r.pe));
 
         if (peHistory.length < 3) throw new Error(`歷年 PE 樣本不足（只有 ${peHistory.length} 年），無法統計`);
 
-        // 反轉：FMP 回傳從新到舊，改成舊到新方便繪圖
-        peHistory.reverse();
+        // 只保留要求的年數（FMP 回傳從新到舊）
+        const sliced = peHistory.slice(0, years);
+        // 反轉：改成舊到新方便繪圖
+        sliced.reverse();
 
-        // 當前 PE：優先 quote.pe，其次算 price / eps
-        let currentPE = q.pe;
+        // 當前 PE：優先 quote.pe，其次 price / eps
+        let currentPE = pickField(q, 'pe', 'peRatio');
         if (!currentPE && q.price && q.eps) currentPE = q.price / q.eps;
 
-        // 當前 PBR：quote 沒有，用最新 ratio.priceToBookRatio；如果太舊就用 price / bvps
-        let currentPBR = null;
-        if (ratios[0] && ratios[0].priceToBookRatio) {
-            // 但如果最新 ratio 的日期太舊（例如上一年報），還是用 price / bvps 比較新
-            currentPBR = ratios[0].priceToBookRatio;
-        }
+        // 當前 PBR：用最新一筆 ratio（ratios[0] 是最新的年報）
+        let currentPBR = pickField(ratios[0] || {}, 'priceToBookRatio', 'pbRatio', 'pb');
 
         return {
             ticker,
@@ -77,7 +89,7 @@
             currentPE,
             currentPBR,
             marketCap: q.marketCap,
-            history: peHistory,
+            history: sliced,
             latestRatioDate: ratios[0] ? ratios[0].date : null,
             sector: p.sector,
             industry: p.industry,
