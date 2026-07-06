@@ -289,6 +289,24 @@ textarea {
 .fund-table td.yoy-pos { color: var(--success); font-weight: 700; }
 .fund-table td.yoy-neg { color: var(--danger); font-weight: 700; }
 
+/* QoQ fallback tag（YoY 抓不到時用前一季比較，警示有季節性） */
+.mode-tag {
+    display: inline-block;
+    font-size: .7em;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 3px;
+    letter-spacing: .3px;
+    cursor: help;
+}
+.mode-tag.mode-qoq {
+    background: #dbeafe;
+    color: #1e3a8a;
+    border: 1px solid #93c5fd;
+}
+
 /* 現金流背離 banner（層次 2） */
 .divergence-banner {
     margin: 10px 0;
