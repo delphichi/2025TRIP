@@ -580,9 +580,15 @@
 
     // ---------- Presets ----------
     const COST_TIERS = {
-        low:  { cost: 18, capacity: 30, initPrice: 32, name: '低成本' },
-        mid:  { cost: 25, capacity: 25, initPrice: 45, name: '中成本' },
-        high: { cost: 34, capacity: 20, initPrice: 62, name: '高成本' },
+        street:     { cost: 15, capacity: 36, initPrice: 24, name: '路邊攤' },
+        cart:       { cost: 20, capacity: 30, initPrice: 34, name: '攤販' },
+        bakery:     { cost: 25, capacity: 25, initPrice: 45, name: '麵包坊' },
+        boutique:   { cost: 30, capacity: 21, initPrice: 55, name: '精品店' },
+        department: { cost: 36, capacity: 17, initPrice: 68, name: '百貨專櫃' },
+        // 舊 key 保留 · 相容舊 localStorage
+        low: { cost: 20, capacity: 30, initPrice: 34, name: '攤販' },
+        mid: { cost: 25, capacity: 25, initPrice: 45, name: '麵包坊' },
+        high: { cost: 30, capacity: 21, initPrice: 55, name: '精品店' },
     };
 
     function makeOpponents(difficulty) {

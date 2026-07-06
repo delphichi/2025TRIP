@@ -48,11 +48,13 @@
         <section class="panel setup-panel" id="setup-panel">
             <h2>🏗️ 開店設定（僅第一天）</h2>
             <div class="ctrl-grid">
-                <label>你的成本結構 · 決定店型
+                <label>你的成本結構 · 決定店型 + 客層
                     <select id="cfg-cost-tier">
-                        <option value="low">🏪 攤販 · 低成本（$18/個 · 產能 30）— 走量薄利 · 吸引 budget 客</option>
-                        <option value="mid" selected>🥐 麵包坊 · 中成本（$25/個 · 產能 25）— 平衡 · 客層通吃</option>
-                        <option value="high">🏢 百貨專櫃 · 高成本（$34/個 · 產能 20）— 高單價 · premium 客不殺價</option>
+                        <option value="street">🛒 路邊攤（$15/個 · 產能 36 · 開價 $24）— 極低成本走量 · budget 客擠爆、premium 只 30% 進門</option>
+                        <option value="cart">🏪 攤販（$20/個 · 產能 30 · 開價 $34）— 走量薄利 · 偏 budget 客</option>
+                        <option value="bakery" selected>🥐 麵包坊（$25/個 · 產能 25 · 開價 $45）— 平衡 · 客層通吃</option>
+                        <option value="boutique">🎁 精品店（$30/個 · 產能 21 · 開價 $55）— 偏 premium 客 · 少殺價</option>
+                        <option value="department">🏢 百貨專櫃（$36/個 · 產能 17 · 開價 $68）— 極高單價 · premium 客不殺價、budget 幾乎不進</option>
                     </select>
                 </label>
                 <label>對手強度
