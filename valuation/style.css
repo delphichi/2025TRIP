@@ -275,6 +275,76 @@ textarea {
 .fund-table td.yoy-pos { color: var(--success); font-weight: 700; }
 .fund-table td.yoy-neg { color: var(--danger); font-weight: 700; }
 
+/* 現金流背離 banner（層次 2） */
+.divergence-banner {
+    margin: 10px 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border-left: 5px solid;
+    font-size: .92em;
+    line-height: 1.6;
+}
+.divergence-banner.divergence-warn {
+    background: #fef2f2;
+    border-color: var(--danger);
+    color: #7f1d1d;
+}
+.divergence-banner.divergence-good {
+    background: #dcfce7;
+    border-color: var(--success);
+    color: #14532d;
+}
+.divergence-banner.divergence-ok {
+    background: #f3f4f6;
+    border-color: var(--muted);
+    color: var(--ink);
+}
+.divergence-banner b { color: inherit; }
+
+/* 法人買賣超 summary（層次 5） */
+.inst-summary {
+    background: #f0fdfa;
+    border: 1px solid #5eead4;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: .92em;
+    line-height: 1.7;
+    margin-top: 8px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.inst-summary b { color: var(--primary-dark); font-family: inherit; }
+
+/* 5 層框架 tag（intro-panel） */
+.layer-tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: .82em;
+    font-weight: 700;
+    margin-right: 4px;
+    color: #fff;
+}
+.layer-tag.layer-1 { background: #0891b2; }   /* cyan  · 估值 */
+.layer-tag.layer-2 { background: #059669; }   /* green · 品質 */
+.layer-tag.layer-3 { background: #7c3aed; }   /* purple · 護城河 */
+.layer-tag.layer-4 { background: #d97706; }   /* orange · 總體 */
+.layer-tag.layer-5 { background: #db2777; }   /* pink  · 情緒 */
+
+/* 「還沒回答的問題」panel */
+.unknowns-panel { border-left-color: #d97706; background: #fffbeb; }
+.unknowns-panel h2 { color: #b45309; }
+.unknowns-list {
+    padding-left: 22px;
+    margin: 10px 0;
+}
+.unknowns-list li {
+    margin: 8px 0;
+    font-size: .92em;
+    line-height: 1.65;
+    color: var(--ink);
+}
+.unknowns-list li b { color: #b45309; }
+
 .sim-footer {
     text-align: center;
     color: var(--muted);

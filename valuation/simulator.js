@@ -153,12 +153,14 @@
         if (!/^\d+$/.test(ticker)) throw new Error(`FinMind 台股 ticker 必須是純數字（例：2330、0050），你輸入 "${ticker}"`);
         const startDate = todayMinusYears(years);
         const endDate = todayStr();
-        // 平行抓：PER 歷史 + 股價（近一週） + 公司資訊 + 財報成長性
-        const [perData, priceData, infoData, fundamentals] = await Promise.all([
+        // 平行抓：PER 歷史 + 股價 + 公司資訊 + 財報成長性 + 現金流 + 法人買賣超
+        const [perData, priceData, infoData, fundamentals, cashFlow, institutional] = await Promise.all([
             finMindFetch('TaiwanStockPER', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockPrice', ticker, todayMinusYears(0.05), endDate, token),
             finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []),
             fetchFinMindFundamentals(ticker, token),
+            fetchFinMindCashFlow(ticker, token),
+            fetchInstitutionalTW(ticker, token),
         ]);
 
         if (!perData || perData.length === 0) throw new Error(`FinMind 找不到 ${ticker} 的 PER/PBR 資料（可能是新股或未收）`);
@@ -208,6 +210,8 @@
             sector,
             source: 'FinMind',
             fundamentals,
+            cashFlow,
+            institutional,
         };
     }
 
@@ -252,12 +256,13 @@
     async function fetchStockData(ticker, apiKey, years) {
         setStatus('loading', `📡 抓 ${ticker} 資料中……`);
 
-        // 平行抓：quote + profile + ratios + income statement quarterly
-        const [quote, profile, ratios, fundamentals] = await Promise.all([
+        // 平行抓：quote + profile + ratios + fundamentals + cashflow
+        const [quote, profile, ratios, fundamentals, cashFlow] = await Promise.all([
             fmpFetch(`/quote?symbol=${ticker}`, apiKey),
             fmpFetch(`/profile?symbol=${ticker}`, apiKey),
             fmpFetch(`/ratios?symbol=${ticker}`, apiKey),
             fetchFmpFundamentals(ticker, apiKey),
+            fetchFmpCashFlow(ticker, apiKey),
         ]);
 
         if (!quote || quote.length === 0) throw new Error(`找不到 ticker: ${ticker}（FMP 資料庫沒收 or 格式錯，台股要加 .TW）`);
@@ -300,6 +305,8 @@
             sector: p.sector,
             industry: p.industry,
             fundamentals,
+            cashFlow,
+            institutional: null,   // FMP 沒有 13F 這麼細，US 目前跳過
         };
     }
 
@@ -573,11 +580,147 @@
         if (latestRatioDate) {
             tableHtml += `<p class="hint">歷年 ratio 資料來自年報，最新一筆日期：<b>${latestRatioDate}</b>。若日期太舊（例如超過 1 年），當前 PE 用 quote 的 real-time 值（price / EPS-TTM），跟歷年可能有基準差異。</p>`;
         }
-        // 財報成長性表塞在歷年 ratio 之前（更重要）
+        // 層次 2-5 表順序：現金流背離 → 財報成長性 → 法人買賣超 → 歷年 ratio
+        const cfHtml = renderCashFlowHtml(analysis.cashFlow);
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
-        $('detail-box').innerHTML = fundHtml + tableHtml;
+        const instHtml = renderInstitutionalHtml(analysis.institutional);
+        $('detail-box').innerHTML = cfHtml + fundHtml + instHtml + tableHtml;
 
         setStatus('success', `✅ 查到 ${ticker} 資料`);
+    }
+
+    // ---------- 現金流量（層次 2：獲利品質核心） ----------
+    // 檢測「淨利 vs 營運CF 背離」：淨利↑ 但 CF↓ = 應收膨脹 or 存貨堆積 = 紙上獲利
+    async function fetchFmpCashFlow(ticker, apiKey) {
+        try {
+            const rows = await fmpFetch(`/cash-flow-statement?symbol=${ticker}&period=quarter`, apiKey);
+            if (!rows || rows.length === 0) return null;
+            rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            return processCashFlow(rows, {
+                operatingCF: r => r.operatingCashFlow,
+                freeCF: r => r.freeCashFlow,
+                netIncome: r => r.netIncome,
+            });
+        } catch (e) {
+            console.warn('FMP cash flow fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    async function fetchFinMindCashFlow(ticker, token) {
+        try {
+            const startDate = todayMinusYears(4);
+            const rows = await finMindFetch('TaiwanStockCashFlowsStatement', ticker, startDate, todayStr(), token);
+            if (!rows || rows.length === 0) return null;
+            // Pivot long → wide（同 fundamentals 的做法）
+            const byDate = new Map();
+            rows.forEach(r => {
+                if (!byDate.has(r.date)) byDate.set(r.date, {});
+                byDate.get(r.date)[r.type] = r.value;
+            });
+            const dates = Array.from(byDate.keys()).sort().reverse();
+            const wideRows = dates.map(d => {
+                const flat = byDate.get(d);
+                return {
+                    date: d,
+                    operatingCF: flat.CashFlowsFromOperatingActivities || flat.OperatingCashFlow || null,
+                    freeCF: flat.FreeCashFlow || null,
+                    netIncome: flat.NetIncome || flat.NetIncomeAfterTax || flat.NetIncomeAttributableToOwners || null,
+                };
+            });
+            return processCashFlow(wideRows, {
+                operatingCF: r => r.operatingCF,
+                freeCF: r => r.freeCF,
+                netIncome: r => r.netIncome,
+            });
+        } catch (e) {
+            console.warn('FinMind cash flow fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    function processCashFlow(rows, getters) {
+        const rowByDate = new Map(rows.map(r => [r.date, r]));
+        const N = Math.min(10, rows.length);
+        const build = (getter) => {
+            const entries = [];
+            for (let i = 0; i < N; i++) {
+                const cur = rows[i];
+                const prior = rowByDate.get(yoyDate(cur.date));
+                const val = getter(cur);
+                const priorVal = prior ? getter(prior) : null;
+                let yoy = null;
+                if (val !== null && isFinite(val) && priorVal !== null && isFinite(priorVal) && priorVal !== 0) {
+                    yoy = (val - priorVal) / Math.abs(priorVal);
+                }
+                entries.push({ date: cur.date, value: val, yoy });
+            }
+            return entries;
+        };
+        const opCF = build(getters.operatingCF);
+        const fCF = build(getters.freeCF);
+        const ni = build(getters.netIncome);
+
+        // 背離偵測：近 4 季 avg(NI YoY) vs avg(CF YoY)
+        // 若 NI YoY > 15pp CF YoY → 獲利品質警訊
+        const avgYoY = arr => {
+            const valid = arr.filter(e => e.yoy !== null).map(e => e.yoy);
+            if (valid.length < 2) return null;
+            return valid.reduce((s, v) => s + v, 0) / valid.length;
+        };
+        const niYoY = avgYoY(ni.slice(0, 4));
+        const cfYoY = avgYoY(opCF.slice(0, 4));
+        let divergence = null;
+        if (niYoY !== null && cfYoY !== null) {
+            const gap = niYoY - cfYoY;
+            if (gap > 0.15) divergence = { kind: 'warning', gap, msg: `⚠️ 近 4 季<b>淨利年增 ${(niYoY*100).toFixed(0)}% 但營運CF 年增 ${(cfYoY*100).toFixed(0)}%</b>——差 ${(gap*100).toFixed(0)}pp。可能是應收帳款膨脹 or 存貨堆積 or 認列時點差異，<b>獲利品質有疑慮</b>，回去看資產負債表確認。` };
+            else if (gap < -0.15) divergence = { kind: 'positive', gap, msg: `✅ 近 4 季<b>營運CF 年增 ${(cfYoY*100).toFixed(0)}% 高於淨利年增 ${(niYoY*100).toFixed(0)}%</b>——獲利品質紮實，現金比帳面更漂亮。` };
+            else divergence = { kind: 'ok', gap, msg: `✓ 淨利跟營運 CF 同向（差 ${(gap*100).toFixed(0)}pp），獲利品質沒問題。` };
+        }
+
+        return { operatingCF: opCF, freeCF: fCF, netIncome: ni, divergence };
+    }
+
+    // ---------- 台股法人買賣超（層次 5：市場情緒） ----------
+    async function fetchInstitutionalTW(ticker, token) {
+        try {
+            const startDate = todayMinusYears(0.25);   // 近 3 個月
+            const rows = await finMindFetch('TaiwanStockInstitutionalInvestorsBuySell', ticker, startDate, todayStr(), token);
+            if (!rows || rows.length === 0) return null;
+            // FinMind schema: { date, stock_id, name, buy, sell }
+            // name 是「Foreign_Investor」「Investment_Trust」「Dealer_Hedging」「Dealer_self」等
+            const byDate = new Map();
+            rows.forEach(r => {
+                if (!byDate.has(r.date)) byDate.set(r.date, { foreign: 0, trust: 0, dealer: 0 });
+                const net = (r.buy || 0) - (r.sell || 0);
+                if (r.name && r.name.includes('Foreign')) byDate.get(r.date).foreign += net;
+                else if (r.name && r.name.includes('Investment_Trust')) byDate.get(r.date).trust += net;
+                else if (r.name && r.name.includes('Dealer')) byDate.get(r.date).dealer += net;
+            });
+            const dates = Array.from(byDate.keys()).sort().reverse().slice(0, 20);   // 近 20 天
+            const daily = dates.map(d => {
+                const v = byDate.get(d);
+                return {
+                    date: d,
+                    foreign: v.foreign,
+                    trust: v.trust,
+                    dealer: v.dealer,
+                    total: v.foreign + v.trust + v.dealer,
+                };
+            });
+            // 累計 20 天總買賣超
+            const sum = daily.reduce((acc, d) => ({
+                foreign: acc.foreign + d.foreign,
+                trust: acc.trust + d.trust,
+                dealer: acc.dealer + d.dealer,
+                total: acc.total + d.total,
+            }), { foreign: 0, trust: 0, dealer: 0, total: 0 });
+
+            return { daily, sum20d: sum };
+        } catch (e) {
+            console.warn('FinMind institutional fetch failed:', e.message);
+            return null;
+        }
     }
 
     // ---------- Fundamentals table 渲染 ----------
@@ -635,6 +778,100 @@
                 ${renderTable('📈 毛利率', fund.grossMargin, true, v => (v * 100).toFixed(1) + '%')}
                 ${renderTable('📉 營益率', fund.operatingMargin, true, v => (v * 100).toFixed(1) + '%')}
             </div>
+        `;
+    }
+
+    // 現金流量 + 淨利背離渲染
+    function renderCashFlowHtml(cf) {
+        if (!cf) return '';
+        const fmtNum = v => {
+            if (v === null || !isFinite(v)) return '—';
+            if (Math.abs(v) >= 1e12) return (v / 1e12).toFixed(2) + '兆';
+            if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            return v.toFixed(0);
+        };
+        const fmtYoY = y => {
+            if (y === null || !isFinite(y)) return '—';
+            const pct = y * 100;
+            return (pct > 0 ? '+' : '') + pct.toFixed(0) + '%';
+        };
+        const yoyCls = y => y === null ? '' : y > 0.001 ? 'yoy-pos' : y < -0.001 ? 'yoy-neg' : '';
+
+        const renderCol = (title, entries) => {
+            let h = `<div class="fund-cell"><h4>${title}</h4><table class="fund-table"><tr><th>季度</th><th>值</th><th>YoY</th></tr>`;
+            entries.forEach(e => {
+                h += `<tr><td>${e.date || '—'}</td><td>${fmtNum(e.value)}</td><td class="${yoyCls(e.yoy)}">${fmtYoY(e.yoy)}</td></tr>`;
+            });
+            h += '</table></div>';
+            return h;
+        };
+
+        let divergenceBanner = '';
+        if (cf.divergence) {
+            const d = cf.divergence;
+            const cls = d.kind === 'warning' ? 'divergence-warn' : d.kind === 'positive' ? 'divergence-good' : 'divergence-ok';
+            divergenceBanner = `<div class="divergence-banner ${cls}">${d.msg}</div>`;
+        }
+
+        return `
+            <h3>💰 現金流量 vs 淨利（層次 2：獲利品質核心）</h3>
+            <p class="hint">
+                <b>紙上獲利 vs 真實現金</b>：淨利成長但營運現金流沒同步 = 應收膨脹 / 存貨堆積 / 認列時點差異 = 獲利品質警訊。
+                同向 = 紮實；差 &gt; 15pp = 疑慮。
+            </p>
+            ${divergenceBanner}
+            <div class="fund-grid">
+                ${renderCol('🏭 營運現金流', cf.operatingCF)}
+                ${renderCol('🆓 自由現金流', cf.freeCF)}
+                ${renderCol('📖 淨利（帳面）', cf.netIncome)}
+            </div>
+        `;
+    }
+
+    // 法人買賣超渲染
+    function renderInstitutionalHtml(inst) {
+        if (!inst || !inst.daily || inst.daily.length === 0) return '';
+        const fmtShares = v => {
+            if (v === 0 || !v) return '0';
+            const abs = Math.abs(v);
+            if (abs >= 1e7) return (v / 1e7).toFixed(1) + '千萬股';
+            if (abs >= 1e4) return (v / 1e4).toFixed(1) + '萬股';
+            return v.toFixed(0) + '股';
+        };
+        const cls = v => v > 0 ? 'yoy-pos' : v < 0 ? 'yoy-neg' : '';
+        const sum = inst.sum20d;
+        const totalSign = sum.total > 0 ? '📈 淨買超' : sum.total < 0 ? '📉 淨賣超' : '⚖️ 中性';
+
+        let dailyTable = `<table class="fund-table"><tr><th>日期</th><th>外資</th><th>投信</th><th>自營</th><th>合計</th></tr>`;
+        inst.daily.slice(0, 10).forEach(d => {
+            dailyTable += `<tr>
+                <td>${d.date}</td>
+                <td class="${cls(d.foreign)}">${fmtShares(d.foreign)}</td>
+                <td class="${cls(d.trust)}">${fmtShares(d.trust)}</td>
+                <td class="${cls(d.dealer)}">${fmtShares(d.dealer)}</td>
+                <td class="${cls(d.total)}">${fmtShares(d.total)}</td>
+            </tr>`;
+        });
+        dailyTable += '</table>';
+
+        return `
+            <h3>🏦 三大法人買賣超（層次 5：市場情緒 · 近 20 天累計）</h3>
+            <p class="hint">
+                <b>外資 / 投信 / 自營</b>近 20 天的買賣超趨勢。連續買超 = 有機構在建倉，連續賣超 = 有機構在出貨。
+                <b>不是 buy 訊號</b>——法人也會看錯，但它反映「有資訊優勢的錢在往哪走」。
+            </p>
+            <div class="inst-summary">
+                <b>近 20 天累計：</b>
+                外資 <span class="${cls(sum.foreign)}">${fmtShares(sum.foreign)}</span> ·
+                投信 <span class="${cls(sum.trust)}">${fmtShares(sum.trust)}</span> ·
+                自營 <span class="${cls(sum.dealer)}">${fmtShares(sum.dealer)}</span> ·
+                <b>合計 <span class="${cls(sum.total)}">${fmtShares(sum.total)}</span> ${totalSign}</b>
+            </div>
+            <details style="margin-top:10px;">
+                <summary style="cursor:pointer;color:var(--primary);font-weight:600;">📋 展開近 10 天明細</summary>
+                ${dailyTable}
+            </details>
         `;
     }
 
