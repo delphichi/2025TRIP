@@ -35,8 +35,8 @@
                 <b class="layer-tag layer-3">層次 3 · 護城河 & 成長持續性</b>：客戶集中度、產業結構、TAM 天花板
                 （<b>✗ 得讀法說會 + 產業報告</b>）
                 <br>
-                <b class="layer-tag layer-4">層次 4 · 總體環境</b>：利率、匯率、VIX（<b>✓ 新增</b> · FRED + FMP）
-                · 地緣風險、產業景氣循環位置（<b>✗ 附外連 CME/SEMI/WSTS 手動查</b>）
+                <b class="layer-tag layer-4">層次 4 · 總體環境</b>：利率、通膨、信用利差、匯率、VIX
+                （<b>✓ 有</b> · FRED 7 個 series + FMP）· 地緣風險、產業循環（<b>✗ 附外連 CME/SEMI/WSTS 手動查</b>）
                 <br>
                 <b class="layer-tag layer-5">層次 5 · 市場情緒</b>：法人買賣超、內部人異動、融資融券
                 （<b>✓ 台股新增法人</b>）
@@ -218,12 +218,13 @@
         </section>
 
         <section class="panel macro-panel" id="macro-panel" hidden>
-            <h2>🌐 總體環境（層次 4：利率 · 匯率 · VIX）</h2>
+            <h2>🌐 總體環境（層次 4：利率 · 通膨 · 信用 · 匯率 · VIX）</h2>
             <p class="hint">
                 這些跟公司體質無關，但直接影響估值。<b>利率上升 → 高本益比股折現壓力大</b>；
-                <b>殖利率倒掛 → 衰退領先訊號</b>；<b>新台幣升貶 → 出口毛利率順逆風</b>；
+                <b>殖利率倒掛 → 衰退領先訊號</b>；<b>CPI 高於 2% 目標 → 降息空間受限</b>；
+                <b>HY 利差 &lt; 3% → 市場信用風險過度樂觀</b>；<b>新台幣升貶 → 出口毛利率順逆風</b>；
                 <b>VIX → 市場恐慌溫度計</b>。
-                <span class="hint-mini">資料來源：FRED（利率）· FMP（USD/TWD、VIX）</span>
+                <span class="hint-mini">資料來源：FRED（利率、通膨、信用利差、VIX）· FMP（USD/TWD、VIX 備援）。VIX 現在優先走 FRED VIXCLS，免額度、更穩定。</span>
             </p>
             <div class="macro-status-line" id="macro-status">等待查詢後顯示資料源狀態……</div>
             <div class="macro-grid">
@@ -244,6 +245,18 @@
                     <div class="macro-val" id="macro-fedfunds-val">—</div>
                     <canvas class="macro-spark" id="macro-fedfunds-spark" width="200" height="42"></canvas>
                     <div class="macro-note-slot" id="macro-fedfunds-note"></div>
+                </div>
+                <div class="macro-cell">
+                    <div class="macro-label">🔥 CPI 通膨（YoY）</div>
+                    <div class="macro-val" id="macro-cpi-val">—</div>
+                    <canvas class="macro-spark" id="macro-cpi-spark" width="200" height="42"></canvas>
+                    <div class="macro-note-slot" id="macro-cpi-note"></div>
+                </div>
+                <div class="macro-cell">
+                    <div class="macro-label">📊 高收益債利差（HY spread）</div>
+                    <div class="macro-val" id="macro-hy-val">—</div>
+                    <canvas class="macro-spark" id="macro-hy-spark" width="200" height="42"></canvas>
+                    <div class="macro-note-slot" id="macro-hy-note"></div>
                 </div>
                 <div class="macro-cell">
                     <div class="macro-label">💵 USD / TWD 匯率</div>
