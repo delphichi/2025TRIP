@@ -591,34 +591,53 @@
         high: { cost: 30, capacity: 21, initPrice: 55, name: '精品店' },
     };
 
-    function makeOpponents(difficulty) {
-        // 4 家 AI 對手，成本 / 產能組合
-        const opponentBase = {
-            easy: [
-                { cost: 32, capacity: 22, price: 55, label: '對手 A · 高本' },
-                { cost: 30, capacity: 24, price: 52, label: '對手 B · 中高本' },
-                { cost: 28, capacity: 25, price: 48, label: '對手 C · 中本' },
-                { cost: 27, capacity: 25, price: 46, label: '對手 D · 中本' },
-            ],
-            normal: [
-                { cost: 28, capacity: 24, price: 50, label: '對手 A · 中高本' },
-                { cost: 25, capacity: 25, price: 45, label: '對手 B · 中本' },
-                { cost: 22, capacity: 27, price: 40, label: '對手 C · 中低本' },
-                { cost: 20, capacity: 30, price: 36, label: '對手 D · 低本' },
-            ],
-            hard: [
-                { cost: 22, capacity: 27, price: 40, label: '對手 A · 中低本' },
-                { cost: 20, capacity: 28, price: 36, label: '對手 B · 低本' },
-                { cost: 17, capacity: 32, price: 32, label: '對手 C · 極低本' },
-                { cost: 16, capacity: 34, price: 30, label: '對手 D · 極低本' },
-            ],
-        };
-        return opponentBase[difficulty] || opponentBase.normal;
+    // 對手 tier 相對於玩家 tier 決定 · 讓難度反映「對手擠壓從哪個方向來」
+    //   normal：4 個對手 = 4 個非玩家 tier（避免撞 tier · 全景競爭）
+    //   hard  ：對手 tier ≤ 玩家 tier（便宜對手夾攻）
+    //   easy  ：對手 tier ≥ 玩家 tier（貴對手 · 玩家有 cost 優勢）
+    function makeOpponents(difficulty, playerCostTierKey) {
+        const ORDERED_TIERS = ['street', 'cart', 'bakery', 'boutique', 'department'];
+        // 解 alias：low/mid/high → cart/bakery/boutique
+        const playerCost = COST_TIERS[playerCostTierKey].cost;
+        const playerTierKey = getShopTier(playerCost).key;
+        const playerIdx = ORDERED_TIERS.indexOf(playerTierKey);
+
+        let candidateTiers;
+        if (difficulty === 'easy') {
+            // 玩家 tier + 上方所有 tier · 若多於 4 個取「最上面」4 個（最貴 · 玩家 cost 優勢最大）
+            candidateTiers = ORDERED_TIERS.slice(playerIdx);
+            if (candidateTiers.length > 4) candidateTiers = candidateTiers.slice(-4);
+            while (candidateTiers.length < 4) candidateTiers.push(candidateTiers[candidateTiers.length - 1]);
+        } else if (difficulty === 'hard') {
+            // 玩家 tier + 下方所有 tier · 若多於 4 個取「最下面」4 個（最便宜 · 壓力最大）
+            candidateTiers = ORDERED_TIERS.slice(0, playerIdx + 1);
+            if (candidateTiers.length > 4) candidateTiers = candidateTiers.slice(0, 4);
+            while (candidateTiers.length < 4) candidateTiers.unshift(candidateTiers[0]);
+        } else {
+            // normal: 4 個非玩家 tier · 剛好 4 個
+            candidateTiers = ORDERED_TIERS.filter(t => t !== playerTierKey);
+        }
+
+        const opponents = [];
+        for (let i = 0; i < 4; i++) {
+            const tierKey = candidateTiers[i];
+            const t = COST_TIERS[tierKey];
+            // ±1 cost 微擾 · 讓對手不會完全相同（範圍 ≥4 · 不會跨 tier）
+            const costJitter = randInt(-1, 1);
+            const priceJitter = randInt(-2, 2);
+            opponents.push({
+                cost: t.cost + costJitter,
+                capacity: t.capacity,
+                price: t.initPrice + priceJitter,
+                label: `對手 ${String.fromCharCode(65 + i)} · ${t.name}`,
+            });
+        }
+        return opponents;
     }
 
     function makeMarketCfg(costTier, difficulty, mood) {
         const tier = COST_TIERS[costTier];
-        const opponents = makeOpponents(difficulty);
+        const opponents = makeOpponents(difficulty, costTier);
         const moodMap = {
             calm:   { inflation: 0.0000, competition: 0.05, gossip: false, patience: 0, panicSensitivity: 0.1 },
             normal: { inflation: 0.0015, competition: 0.10, gossip: true,  patience: 4, panicSensitivity: 0.2 },
