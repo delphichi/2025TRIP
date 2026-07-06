@@ -1225,6 +1225,48 @@ textarea {
     gap: 10px;
     margin: 8px 0;
 }
+
+/* Share-delta slider · 中間 = 0 = 維持、左賣右買 */
+.share-delta-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #faf5ff;
+    border-radius: 8px;
+    border: 1px solid #ddd6fe;
+    margin: 8px 0;
+}
+.share-delta-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .9em;
+}
+.share-delta-label b {
+    font-family: ui-monospace, monospace;
+    font-size: 1.3em;
+    color: #7c3aed;
+    font-weight: 700;
+}
+.share-delta-label .delta-arrow {
+    color: #6b7280;
+    font-size: .82em;
+    font-weight: 600;
+}
+.share-delta-row input[type="range"] {
+    width: 100%;
+    accent-color: #7c3aed;
+}
+.share-delta-range {
+    display: flex;
+    justify-content: space-between;
+    font-size: .78em;
+    color: #6b7280;
+    font-family: ui-monospace, monospace;
+}
+#btn-confirm-decision.btn-warn { background: #d97706; }
+#btn-confirm-decision.btn-warn:hover:not(:disabled) { background: #b45309; }
 .pos-current {
     padding: 8px 12px;
     background: #f9fafb;
