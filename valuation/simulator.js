@@ -1139,42 +1139,65 @@
     }
 
     // ---------- Render macro panel ----------
+    // 一律顯示 panel（即使全部拿不到）——每個 cell 沒資料時要告訴使用者「缺什麼」，
+    // 不然容易誤以為「這塊完全沒做」（實際上程式在，只是 key 沒填 / FMP 額度用完）。
     function renderMacroPanel(macro, fx, vix) {
         const panel = $('macro-panel');
         if (!panel) return;
-        const anyData = (macro && ((macro.dgs10 && macro.dgs10.length) || (macro.t10y2y && macro.t10y2y.length)
-                                  || (macro.fedfunds && macro.fedfunds.length)))
-                     || (fx && fx.length) || (vix && vix.length);
-        if (!anyData) return;
         panel.hidden = false;
 
-        const bindCell = (series, valId, sparkId, noteId, interp, fmtVal, color) => {
-            if (!series || !series.length) return;
+        // 頂部 dashboard：3 個資料源的狀態一目了然
+        const status = $('macro-status');
+        if (status) {
+            const fredKey = ($('cfg-fred-key') && $('cfg-fred-key').value.trim()) || '';
+            const fmpKey = $('cfg-api-key').value.trim();
+            const hasFred = macro && macro.dgs10 && macro.dgs10.length;
+            const hasFx = fx && fx.length;
+            const hasVix = vix && vix.length;
+            const parts = [];
+            parts.push(hasFred ? '<span class="src-ok">✅ FRED 利率</span>'
+                : fredKey ? '<span class="src-err">❌ FRED（key 無效 or 網路失敗）</span>'
+                : '<span class="src-warn">⚠️ FRED（設定區塊填 key 才會抓）</span>');
+            parts.push(hasFx ? '<span class="src-ok">✅ USD/TWD 匯率</span>'
+                : fmpKey ? '<span class="src-warn">⚠️ USD/TWD（FMP 額度用完 or forex tier 不支援）</span>'
+                : '<span class="src-warn">⚠️ USD/TWD（需 FMP key）</span>');
+            parts.push(hasVix ? '<span class="src-ok">✅ VIX</span>'
+                : fmpKey ? '<span class="src-warn">⚠️ VIX（FMP 額度用完）</span>'
+                : '<span class="src-warn">⚠️ VIX（需 FMP key）</span>');
+            status.innerHTML = parts.join(' · ');
+        }
+
+        const fredMissing = '⚠️ 尚未取得 FRED 資料。請到「資料來源設定」區塊填 FRED API key，免費申請：<a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" rel="noopener">fred.stlouisfed.org/docs/api/api_key</a>';
+        const fmpMissing = '⚠️ 尚未取得 FMP 資料。可能是 FMP key 沒填、額度用完（免費 250 次/日），或 forex/index tier 不開放。';
+
+        const bindCell = (series, valId, sparkId, noteId, interp, fmtVal, color, missingMsg) => {
+            const valEl = $(valId);
+            if (!valEl) return;
+            if (!series || !series.length) {
+                valEl.textContent = '—';
+                valEl.classList.add('macro-val-empty');
+                if (noteId) $(noteId).innerHTML = `<span class="macro-note macro-note-ok">${missingMsg}</span>`;
+                return;
+            }
+            valEl.classList.remove('macro-val-empty');
             const latest = series[series.length - 1].value;
-            $(valId).textContent = fmtVal(latest);
+            valEl.textContent = fmtVal(latest);
             drawSparkline($(sparkId), series, color);
             if (noteId && interp) {
-                const note = interp;
-                $(noteId).innerHTML = note ? `<span class="macro-note macro-note-${note.kind}">${note.text}</span>` : '';
+                $(noteId).innerHTML = `<span class="macro-note macro-note-${interp.kind}">${interp.text}</span>`;
             }
         };
 
-        if (macro) {
-            bindCell(macro.dgs10, 'macro-dgs10-val', 'macro-dgs10-spark', 'macro-dgs10-note',
-                     interpretDgs10(macro.dgs10), v => v.toFixed(2) + '%', '#dc2626');
-            bindCell(macro.t10y2y, 'macro-t10y2y-val', 'macro-t10y2y-spark', 'macro-t10y2y-note',
-                     interpretT10y2y(macro.t10y2y), v => v.toFixed(2) + ' pp', '#7c3aed');
-            bindCell(macro.fedfunds, 'macro-fedfunds-val', 'macro-fedfunds-spark', null,
-                     null, v => v.toFixed(2) + '%', '#d97706');
-        }
-        if (fx) {
-            bindCell(fx, 'macro-fx-val', 'macro-fx-spark', 'macro-fx-note',
-                     interpretFx(fx), v => v.toFixed(3), '#0891b2');
-        }
-        if (vix) {
-            bindCell(vix, 'macro-vix-val', 'macro-vix-spark', 'macro-vix-note',
-                     interpretVix(vix), v => v.toFixed(1), '#db2777');
-        }
+        bindCell(macro && macro.dgs10, 'macro-dgs10-val', 'macro-dgs10-spark', 'macro-dgs10-note',
+                 macro && interpretDgs10(macro.dgs10), v => v.toFixed(2) + '%', '#dc2626', fredMissing);
+        bindCell(macro && macro.t10y2y, 'macro-t10y2y-val', 'macro-t10y2y-spark', 'macro-t10y2y-note',
+                 macro && interpretT10y2y(macro.t10y2y), v => v.toFixed(2) + ' pp', '#7c3aed', fredMissing);
+        bindCell(macro && macro.fedfunds, 'macro-fedfunds-val', 'macro-fedfunds-spark', 'macro-fedfunds-note',
+                 null, v => v.toFixed(2) + '%', '#d97706', fredMissing);
+        bindCell(fx, 'macro-fx-val', 'macro-fx-spark', 'macro-fx-note',
+                 interpretFx(fx), v => v.toFixed(3), '#0891b2', fmpMissing);
+        bindCell(vix, 'macro-vix-val', 'macro-vix-spark', 'macro-vix-note',
+                 interpretVix(vix), v => v.toFixed(1), '#db2777', fmpMissing);
     }
 
     // ---------- Render 融資餘額（塞進 detail-box） ----------

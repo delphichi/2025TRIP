@@ -459,6 +459,21 @@ textarea {
 .macro-note-good { background: #dcfce7; color: #14532d; border-color: var(--success); }
 .macro-note-ok   { background: #f3f4f6; color: var(--ink); border-color: var(--muted); }
 .macro-note b { color: inherit; }
+.macro-note a { color: var(--primary); }
+.macro-val-empty { color: #d1d5db !important; font-size: 1em !important; font-weight: 400 !important; }
+.macro-status-line {
+    background: #fff;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: .85em;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    margin: 6px 0;
+    line-height: 1.7;
+}
+.macro-status-line .src-ok   { color: var(--success); font-weight: 700; }
+.macro-status-line .src-warn { color: #b45309; font-weight: 700; }
+.macro-status-line .src-err  { color: var(--danger); font-weight: 700; }
 .macro-links {
     background: #fff;
     border: 1px dashed #fde68a;

@@ -35,8 +35,8 @@
                 <b class="layer-tag layer-3">層次 3 · 護城河 & 成長持續性</b>：客戶集中度、產業結構、TAM 天花板
                 （<b>✗ 得讀法說會 + 產業報告</b>）
                 <br>
-                <b class="layer-tag layer-4">層次 4 · 總體環境</b>：利率、匯率、地緣風險、產業景氣循環位置
-                （<b>✗ 手動疊圖比對</b>，Priority 2 會加）
+                <b class="layer-tag layer-4">層次 4 · 總體環境</b>：利率、匯率、VIX（<b>✓ 新增</b> · FRED + FMP）
+                · 地緣風險、產業景氣循環位置（<b>✗ 附外連 CME/SEMI/WSTS 手動查</b>）
                 <br>
                 <b class="layer-tag layer-5">層次 5 · 市場情緒</b>：法人買賣超、內部人異動、融資融券
                 （<b>✓ 台股新增法人</b>）
@@ -225,6 +225,7 @@
                 <b>VIX → 市場恐慌溫度計</b>。
                 <span class="hint-mini">資料來源：FRED（利率）· FMP（USD/TWD、VIX）</span>
             </p>
+            <div class="macro-status-line" id="macro-status">等待查詢後顯示資料源狀態……</div>
             <div class="macro-grid">
                 <div class="macro-cell">
                     <div class="macro-label">🇺🇸 10Y 公債殖利率（DGS10）</div>
@@ -242,6 +243,7 @@
                     <div class="macro-label">🏦 聯邦資金利率（FEDFUNDS）</div>
                     <div class="macro-val" id="macro-fedfunds-val">—</div>
                     <canvas class="macro-spark" id="macro-fedfunds-spark" width="200" height="42"></canvas>
+                    <div class="macro-note-slot" id="macro-fedfunds-note"></div>
                 </div>
                 <div class="macro-cell">
                     <div class="macro-label">💵 USD / TWD 匯率</div>
