@@ -27,6 +27,24 @@
         return a;
     }
 
+    // ---------- Shop Tier · 5 級店型（自動依 cost 分類）----------
+    // 店型影響：(a) 畫面（drawShop 的 palette + 裝飾）
+    //         (b) 客戶偏好（premium 偏好高端、budget 偏好低端）
+    //         (c) 議價空間（premium 客到高端店少殺價）
+    function getShopTier(cost) {
+        if (cost < 18)  return { key: 'street',     name: '路邊攤',   emoji: '🛒' };
+        if (cost < 22)  return { key: 'cart',       name: '攤販',     emoji: '🏪' };
+        if (cost < 28)  return { key: 'bakery',     name: '麵包坊',   emoji: '🥐' };
+        if (cost < 32)  return { key: 'boutique',   name: '精品店',   emoji: '🎁' };
+        return             { key: 'department', name: '百貨專櫃', emoji: '🏢' };
+    }
+
+    // premium 客戶對各店型的訪店偏好倍率（乘在原本的權重上）
+    // 路邊攤 0.35 → premium 客戶約 30% 機率會進來（1/(1+其他權重)）
+    const PREMIUM_SHOP_BIAS = { street: 0.35, cart: 0.55, bakery: 1.00, boutique: 2.20, department: 3.00 };
+    // budget 客戶對各店型的訪店偏好倍率 · 反方向
+    const BUDGET_SHOP_BIAS  = { street: 2.50, cart: 1.80, bakery: 1.00, boutique: 0.40, department: 0.25 };
+
     // ---------- Consumer (Phase 2：客群分型 + 熟客累積) ----------
     // 消費者兩種類型：'budget' 基礎型 / 'premium' 精品型
     // - budget（60%）：期望價低、比較容易被市場價拉走（追低價）、消耗快、對價格敏感
@@ -66,7 +84,8 @@
         marginalUtility() { return Math.exp(-this.alpha * this.bought); }
 
         // decide 現在需要 pid：熟客加成是「對這家店」的價格容忍
-        decide(price, pid, panicMult = 1) {
+        // shopTierKey：premium 客戶進高端店時少殺價（cap 抬高、更容易付近乎 ask 價）
+        decide(price, pid, panicMult = 1, shopTierKey = null) {
             const mu = this.marginalUtility();
             if (price > this.budget) return false;
             if (price > this.maxWtp * mu * panicMult) return false;
@@ -76,6 +95,15 @@
             let cap = this.expected * this.confidence * mu * panicMult * loyaltyBonus;
             if (this.energy < 25) cap *= 1.4;
             else if (this.energy < 45) cap *= 1.15;
+            // 少殺價空間：premium 客戶進 boutique/department 時 · 期望「不用議價」·
+            //   願意付近乎 ask 價 · cap × 1.20
+            if (this.type === 'premium' && (shopTierKey === 'department' || shopTierKey === 'boutique')) {
+                cap *= 1.20;
+            }
+            // 相反：budget 客戶被「拐」進高端店 · 極度敏感 · cap × 0.85
+            if (this.type === 'budget' && (shopTierKey === 'department' || shopTierKey === 'boutique')) {
+                cap *= 0.85;
+            }
             const noise = 1 + (Math.random() - 0.5) * 0.1;
             return price <= cap * noise;
         }
@@ -414,6 +442,13 @@
                 const loyalty = consumer.loyalty[shop.id] || 0;
                 w *= (1 + 0.02 * loyalty);
                 if (shop.wasHot) w *= 1.35;
+                // 型別偏好：premium 客戶偏好高端店（30% 機率造訪路邊攤）
+                //           budget 客戶偏好低端店（避開百貨/精品）
+                const tierKey = getShopTier(shop.initialCost).key;
+                const bias = consumer.type === 'premium'
+                    ? (PREMIUM_SHOP_BIAS[tierKey] || 1.0)
+                    : (BUDGET_SHOP_BIAS[tierKey] || 1.0);
+                w *= bias;
                 return w;
             });
             const sum = weights.reduce((s, w) => s + w, 0);
@@ -470,13 +505,15 @@
                     const price = p.offer();
                     if (price === null) continue;
 
-                    const bought = c.decide(price, p.id, panicMult);
+                    const shopTierKey = getShopTier(p.initialCost).key;
+                    const bought = c.decide(price, p.id, panicMult, shopTierKey);
                     c.observePrice(price, p.id);
                     p.visitsToday = (p.visitsToday || 0) + 1;
 
                     sceneEvents.push({
                         round, cid: c.id, pid: p.id,
                         consumerType: c.type,
+                        shopTierKey,
                         price, bought,
                     });
 
@@ -672,33 +709,114 @@
             return { x, y, w: shopW, h: shopH };
         }
 
-        // 依 cost tier 畫不同精緻度的店面
+        // 依 cost tier 畫不同精緻度的店面（5 tier · 路邊攤 → 百貨專櫃）
         _drawShop(producer) {
             const { ctx } = this;
             const slot = this._slotOf(producer.id);
             const b = this._shopBox(slot);
             const cost = producer.initialCost;
             const isPlayer = producer.id === 0;
+            const tier = getShopTier(cost);
 
-            // Cost tier: <22 = 陋店、22-30 = 中檔、>=30 = 精品
-            // 精品店身色改成深奶油（原本 #fef3c7 跟天空背景撞色，變隱形）
-            let bodyColor, roofColor, awningColor, ornate;
-            if (cost < 22) {
-                bodyColor = '#a8825a'; roofColor = '#7c5c3b'; awningColor = null; ornate = false;
-            } else if (cost < 30) {
-                bodyColor = '#e0c9a6'; roofColor = '#8b5e3c'; awningColor = '#c53030'; ornate = false;
-            } else {
-                bodyColor = '#f4a460'; roofColor = '#7c2d12'; awningColor = '#78350f'; ornate = true;
+            // 各 tier 的 palette + 裝飾旗標
+            let bodyColor, roofColor, awningColor, ornate, glass, neonSign, umbrella;
+            switch (tier.key) {
+                case 'street':
+                    // 路邊攤：塑膠桌 + 大陽傘 · 沒屋頂沒牆
+                    bodyColor = '#d1d5db'; roofColor = null; awningColor = null;
+                    ornate = false; glass = false; neonSign = false; umbrella = '#dc2626';
+                    break;
+                case 'cart':
+                    // 木推車：木頭色 · 小遮雨布
+                    bodyColor = '#a8825a'; roofColor = '#7c5c3b'; awningColor = null;
+                    ornate = false; glass = false; neonSign = false; umbrella = null;
+                    break;
+                case 'bakery':
+                    // 街角麵包坊：磚牆 + 遮陽篷
+                    bodyColor = '#e0c9a6'; roofColor = '#8b5e3c'; awningColor = '#c53030';
+                    ornate = false; glass = false; neonSign = false; umbrella = null;
+                    break;
+                case 'boutique':
+                    // 精品店：石造 + 金框大窗 + 條紋遮陽
+                    bodyColor = '#f4a460'; roofColor = '#7c2d12'; awningColor = '#78350f';
+                    ornate = true; glass = false; neonSign = false; umbrella = null;
+                    break;
+                case 'department':
+                default:
+                    // 百貨專櫃：玻璃帷幕 + 燈光招牌
+                    bodyColor = '#1e293b'; roofColor = '#0f172a'; awningColor = null;
+                    ornate = true; glass = true; neonSign = true; umbrella = null;
+                    break;
+            }
+
+            // === 特殊 tier：路邊攤（沒屋頂 · 只有桌面 + 陽傘）===
+            if (tier.key === 'street') {
+                // 陽傘桿
+                const poleX = b.x + b.w / 2;
+                ctx.fillStyle = '#78716c';
+                ctx.fillRect(poleX - 1, b.y + 20, 2, b.h - 30);
+                // 陽傘（大圓弧）
+                const umbY = b.y + 22;
+                ctx.fillStyle = umbrella;
+                ctx.beginPath();
+                ctx.moveTo(b.x - 8, umbY);
+                ctx.quadraticCurveTo(b.x + b.w / 2, b.y - 8, b.x + b.w + 8, umbY);
+                ctx.lineTo(b.x + b.w + 4, umbY + 4);
+                ctx.quadraticCurveTo(b.x + b.w / 2, b.y - 2, b.x - 4, umbY + 4);
+                ctx.closePath();
+                ctx.fill();
+                // 傘骨
+                ctx.strokeStyle = '#7f1d1d';
+                ctx.lineWidth = 1;
+                for (let i = 1; i < 4; i++) {
+                    const fx = b.x + (b.w * i / 4);
+                    ctx.beginPath();
+                    ctx.moveTo(fx, umbY);
+                    ctx.lineTo(fx - 4, umbY + 5);
+                    ctx.stroke();
+                }
+                // 折疊桌
+                const tableY = b.y + b.h - 30;
+                ctx.fillStyle = '#e5e7eb';
+                ctx.fillRect(b.x + 4, tableY, b.w - 8, 6);
+                ctx.strokeStyle = '#6b7280';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(b.x + 4, tableY, b.w - 8, 6);
+                // 桌腳
+                ctx.fillStyle = '#9ca3af';
+                ctx.fillRect(b.x + 10, tableY + 6, 3, 24);
+                ctx.fillRect(b.x + b.w - 13, tableY + 6, 3, 24);
+                // 桌上麵包（會用下方 stats 邏輯畫）
+                const winY = tableY - 20, winH = 20, winX = b.x + 12, winW = b.w - 24;
+                this._drawShopBreadWindow(producer, winX, winY, winW, winH, false);
+                // 手寫招牌
+                ctx.font = `italic 700 ${isPlayer ? 12 : 11}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillStyle = isPlayer ? '#f97316' : '#78350f';
+                const stallName = isPlayer ? `🛒 我的路邊攤` : `🛒 ${producer.label.replace(/^對手 /, '').replace(/\s·.*$/, '')}`;
+                ctx.fillText(stallName, b.x + b.w / 2, b.y + b.h + 4);
+                // 玩家箭頭
+                if (isPlayer) {
+                    ctx.font = '18px sans-serif';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillStyle = '#f97316';
+                    ctx.fillText('▼', b.x + b.w / 2, b.y + 4);
+                }
+                // 價格 + stats
+                this._drawShopFooter(producer, b, isPlayer, tier);
+                return;
             }
 
             // 屋頂三角
-            ctx.fillStyle = roofColor;
-            ctx.beginPath();
-            ctx.moveTo(b.x - 4, b.y + 10);
-            ctx.lineTo(b.x + b.w / 2, b.y - 4);
-            ctx.lineTo(b.x + b.w + 4, b.y + 10);
-            ctx.closePath();
-            ctx.fill();
+            if (roofColor) {
+                ctx.fillStyle = roofColor;
+                ctx.beginPath();
+                ctx.moveTo(b.x - 4, b.y + 10);
+                ctx.lineTo(b.x + b.w / 2, b.y - 4);
+                ctx.lineTo(b.x + b.w + 4, b.y + 10);
+                ctx.closePath();
+                ctx.fill();
+            }
 
             // 主體
             ctx.fillStyle = bodyColor;
@@ -706,6 +824,54 @@
             ctx.strokeStyle = isPlayer ? '#f97316' : '#4b2e10';
             ctx.lineWidth = isPlayer ? 4 : 2;
             ctx.strokeRect(b.x, b.y + 8, b.w, b.h - 8);
+
+            // 百貨專櫃：玻璃帷幕 · 主體用漸層 + 反光線
+            if (glass) {
+                const glassGrad = ctx.createLinearGradient(b.x, b.y + 8, b.x + b.w, b.y + b.h);
+                glassGrad.addColorStop(0, 'rgba(148, 197, 236, 0.35)');
+                glassGrad.addColorStop(0.5, 'rgba(203, 225, 249, 0.20)');
+                glassGrad.addColorStop(1, 'rgba(148, 197, 236, 0.35)');
+                ctx.fillStyle = glassGrad;
+                ctx.fillRect(b.x + 2, b.y + 10, b.w - 4, b.h - 14);
+                // 反光斜線
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    const sx = b.x + 6 + i * (b.w / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(sx, b.y + 14);
+                    ctx.lineTo(sx + 10, b.y + b.h - 8);
+                    ctx.stroke();
+                }
+            }
+            // 百貨專櫃 · 霓虹招牌（懸在屋頂上方）
+            if (neonSign) {
+                const nsW = b.w * 0.9;
+                const nsH = 14;
+                const nsX = b.x + (b.w - nsW) / 2;
+                const nsY = b.y - 10;
+                // 發光暈
+                const glowGrad = ctx.createRadialGradient(
+                    nsX + nsW / 2, nsY + nsH / 2, 2,
+                    nsX + nsW / 2, nsY + nsH / 2, nsW / 1.5
+                );
+                glowGrad.addColorStop(0, 'rgba(232, 121, 249, 0.6)');
+                glowGrad.addColorStop(1, 'rgba(232, 121, 249, 0)');
+                ctx.fillStyle = glowGrad;
+                ctx.fillRect(nsX - 20, nsY - 8, nsW + 40, nsH + 16);
+                // 招牌本體
+                ctx.fillStyle = '#701a75';
+                ctx.fillRect(nsX, nsY, nsW, nsH);
+                ctx.strokeStyle = '#f0abfc';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(nsX, nsY, nsW, nsH);
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#fdf4ff';
+                ctx.fillText('★ BAKERY ★', nsX + nsW / 2, nsY + nsH / 2);
+            }
+
             // 玩家店額外「你在這」箭頭
             if (isPlayer) {
                 ctx.font = '18px sans-serif';
@@ -795,13 +961,13 @@
                 ctx.fill();
             }
 
-            // 招牌 & 價格
+            // 招牌 & 價格（含 tier emoji）
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
             ctx.font = `700 ${isPlayer ? 12 : 11}px sans-serif`;
             ctx.fillStyle = isPlayer ? '#f97316' : '#78350f';
-            const name = isPlayer ? '🥐 我的店' : producer.label.replace(/^對手 /, '').replace(/\s·.*$/, '');
-            ctx.fillText(name, b.x + b.w / 2, b.y + b.h + 4);
+            const rawName = isPlayer ? '我的店' : producer.label.replace(/^對手 /, '').replace(/\s·.*$/, '');
+            ctx.fillText(`${tier.emoji} ${rawName}`, b.x + b.w / 2, b.y + b.h + 4);
             ctx.font = `800 14px ui-monospace, SFMono-Regular, monospace`;
             ctx.fillStyle = producer.closed ? '#991b1b' : '#b45309';
             ctx.fillText(producer.closed ? `倒 D${producer.closedDay}` : `$${producer.effectivePrice().toFixed(0)}`, b.x + b.w / 2, b.y + b.h + 18);
@@ -818,6 +984,57 @@
             }
 
             // 🔥 badge 精品店 signaling
+            if (producer.wasHot && !producer.closed) {
+                ctx.font = '18px sans-serif';
+                ctx.fillText('🔥', b.x + b.w - 14, b.y + 4);
+            }
+        }
+
+        // 路邊攤專用：畫桌面上的麵包（沒有窗、直接放在桌上）
+        _drawShopBreadWindow(producer, winX, winY, winW, winH, ornate) {
+            const { ctx } = this;
+            ctx.fillStyle = '#fef9c3';
+            ctx.fillRect(winX, winY, winW, winH);
+            ctx.strokeStyle = ornate ? '#d97706' : '#78350f';
+            ctx.lineWidth = ornate ? 2 : 1;
+            ctx.strokeRect(winX, winY, winW, winH);
+            const stats = this._shopStats ? this._shopStats.get(producer.id) : null;
+            const last = producer.history.length > 0 ? producer.history[producer.history.length - 1] : null;
+            const bakedToday = stats ? stats.baked : (last ? last.baked : 0);
+            const remaining = stats ? stats.remaining : (last ? last.wasted : 0);
+            ctx.font = `${Math.floor(winH * 0.7)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const breadCount = Math.min(3, Math.max(0, remaining));
+            const label = producer.closed ? '💀'
+                : bakedToday === 0 ? '（未烤）'
+                : remaining === 0 ? '（售完）'
+                : '🥐'.repeat(breadCount);
+            ctx.fillStyle = producer.closed ? '#991b1b' : '#78350f';
+            ctx.fillText(label, winX + winW / 2, winY + winH / 2);
+        }
+
+        // 路邊攤專用：畫價格 + stats 在攤位下方
+        _drawShopFooter(producer, b, isPlayer, tier) {
+            const { ctx } = this;
+            const stats = this._shopStats ? this._shopStats.get(producer.id) : null;
+            const last = producer.history.length > 0 ? producer.history[producer.history.length - 1] : null;
+            const bakedToday = stats ? stats.baked : (last ? last.baked : 0);
+            const remaining = stats ? stats.remaining : (last ? last.wasted : 0);
+            ctx.font = `800 14px ui-monospace, SFMono-Regular, monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = producer.closed ? '#991b1b' : '#b45309';
+            ctx.fillText(producer.closed ? `倒 D${producer.closedDay}` : `$${producer.effectivePrice().toFixed(0)}`, b.x + b.w / 2, b.y + b.h + 18);
+            if (!producer.closed && bakedToday > 0) {
+                ctx.font = '600 10px ui-monospace, SFMono-Regular, monospace';
+                ctx.fillStyle = '#4b2e10';
+                const soldToday = stats ? stats.sold : (last ? last.sold : 0);
+                const visits = stats ? stats.visits : (producer.visitsToday || 0);
+                ctx.fillText(`烤${bakedToday} 賣${soldToday} 剩${remaining}`, b.x + b.w / 2, b.y + b.h + 34);
+                ctx.fillText(`訪客 ${visits} 人`, b.x + b.w / 2, b.y + b.h + 46);
+            }
+            // 🔥 badge
             if (producer.wasHot && !producer.closed) {
                 ctx.font = '18px sans-serif';
                 ctx.fillText('🔥', b.x + b.w - 14, b.y + 4);
