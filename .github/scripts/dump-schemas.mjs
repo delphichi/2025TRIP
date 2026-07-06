@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// FinMind + FMP schema dump —— 印出每個 dataset / endpoint 實際回傳的欄位名。
-// 讀 env：FINMIND_TOKEN、FMP_API_KEY、TW_TICKER、US_TICKER、YEARS
+// FinMind + FMP + FRED schema dump —— 印出每個 dataset / endpoint / series 實際回傳的欄位名。
+// 讀 env：FINMIND_TOKEN、FMP_API_KEY、FRED_API_KEY、TW_TICKER、US_TICKER、YEARS
 // 輸出：markdown 到 stdout。
 
 const {
     FINMIND_TOKEN = '',
     FMP_API_KEY = '',
+    FRED_API_KEY = '',
     TW_TICKER = '2330',
     US_TICKER = 'AAPL',
     YEARS = '2',
@@ -224,17 +225,123 @@ async function dumpFMP() {
     return out;
 }
 
+// ---------------- FRED ----------------
+// St. Louis Fed 免費 API · 2 個關鍵 endpoint：
+//   /fred/series?series_id=X            → metadata（title / units / frequency / seasonal_adjustment / last_updated）
+//   /fred/series/observations?series_id=X → 實際 { date, value } 資料
+// value = '.' 代表缺值（假日 / 未公布）
+const FRED_BASE = 'https://api.stlouisfed.org/fred';
+
+// 我們程式在用的 + 值得探索的 series（覆蓋層次 4 判讀所需 + Priority 2 備援）
+const FRED_SERIES = [
+    // 已用
+    { id: 'DGS10',       note: '10Y 公債殖利率 · 已用（層次 4 主指標）' },
+    { id: 'T10Y2Y',      note: '10-2 利差 · 已用（衰退領先指標）' },
+    { id: 'FEDFUNDS',    note: '聯邦資金利率 · 已用（月頻）' },
+    { id: 'DTWEXBGS',    note: '美元廣義指數 · 已抓（尚未 render）' },
+    // 備援 / Priority 2
+    { id: 'VIXCLS',      note: 'VIX 收盤（FRED 版本 · 若 FMP 額度用完可備援）' },
+    { id: 'CPIAUCSL',    note: 'CPI 消費者物價指數（通膨壓力）' },
+    { id: 'CPILFESL',    note: '核心 CPI（去除食品能源）' },
+    { id: 'UNRATE',      note: '失業率（勞動市場鬆緊）' },
+    { id: 'PAYEMS',      note: '非農就業（總體強度）' },
+    { id: 'MORTGAGE30US',note: '30 年房貸利率（消費者利率傳導）' },
+    { id: 'DGS2',        note: '2Y 公債殖利率（政策預期）' },
+    { id: 'BAMLH0A0HYM2',note: '高收益債利差（信用風險溫度計）' },
+    { id: 'DCOILWTICO',  note: 'WTI 原油（能源 / 通膨投入）' },
+    { id: 'GDP',         note: '美國 GDP（季頻）' },
+];
+
+async function fredFetch(path, params) {
+    const qs = new URLSearchParams({ api_key: FRED_API_KEY, file_type: 'json', ...params });
+    return safeFetch(`${FRED_BASE}${path}?${qs}`);
+}
+
+async function dumpFRED() {
+    let out = heading(2, '🇺🇸 FRED (St. Louis Fed)');
+    out += `\n- 期間: ${inlineCode(startDate)} → ${inlineCode(endDate)}\n- key: ${FRED_API_KEY ? '✅ 有' : '❌ 未設 FRED_API_KEY secret'}\n`;
+
+    if (!FRED_API_KEY) {
+        out += '\n> ⚠️ 沒 FRED_API_KEY，跳過。到 Settings → Secrets 加。\n';
+        return out;
+    }
+
+    // Step 1：先用 DGS10 metadata 端點驗證 key 是否有效
+    out += '\n### 🔑 Key 驗證（用 DGS10 metadata 試打）\n\n';
+    const probe = await fredFetch('/series', { series_id: 'DGS10' });
+    if (!probe.ok) {
+        out += `❌ Key 無效 or 網路失敗 · HTTP ${probe.status}\n${code(truncate(JSON.stringify(probe.body), 500))}\n`;
+        out += '\n> 常見錯誤：400 = key 格式錯 · 403 = key 已撤銷 · 429 = 額度用完\n';
+        return out;
+    }
+    out += `✅ Key 有效（HTTP ${probe.status}）\n`;
+
+    // Step 2：逐 series 抓 metadata + observations
+    for (const s of FRED_SERIES) {
+        out += heading(3, `📦 \`${s.id}\``);
+        out += `_${s.note}_\n\n`;
+
+        // Metadata
+        const meta = await fredFetch('/series', { series_id: s.id });
+        if (!meta.ok) {
+            out += `❌ metadata HTTP ${meta.status}: ${truncate(JSON.stringify(meta.body), 200)}\n`;
+            continue;
+        }
+        const seriesInfo = meta.body && meta.body.seriess && meta.body.seriess[0];
+        if (seriesInfo) {
+            out += '| field | value |\n| --- | --- |\n';
+            const keys = ['id', 'title', 'frequency', 'frequency_short', 'units', 'units_short',
+                          'seasonal_adjustment', 'seasonal_adjustment_short', 'last_updated',
+                          'observation_start', 'observation_end', 'popularity'];
+            keys.forEach(k => {
+                if (seriesInfo[k] !== undefined) out += `| \`${k}\` | ${truncate(String(seriesInfo[k]), 100)} |\n`;
+            });
+            out += '\n';
+        } else {
+            out += `⚠️ metadata payload 沒 seriess[0]：${truncate(JSON.stringify(meta.body), 300)}\n`;
+        }
+
+        // Observations
+        const obs = await fredFetch('/series/observations', { series_id: s.id, observation_start: startDate });
+        if (!obs.ok) {
+            out += `❌ observations HTTP ${obs.status}: ${truncate(JSON.stringify(obs.body), 200)}\n`;
+            continue;
+        }
+        const observations = (obs.body && obs.body.observations) || [];
+        const validObs = observations.filter(o => o.value !== '.');
+        out += `- **rows**: ${observations.length} total · **${validObs.length} valid**（value = "." 是缺值 / 假日）\n`;
+        if (observations.length) {
+            out += `- **sample row keys**: \`${Object.keys(observations[0]).join(', ')}\`\n`;
+        }
+        if (validObs.length) {
+            const first = validObs[0], last = validObs[validObs.length - 1];
+            out += `- **first**: ${first.date} = ${first.value}\n`;
+            out += `- **latest**: ${last.date} = ${last.value}\n`;
+        }
+        out += '\n';
+
+        // 前 3 + 尾 3 sample
+        out += '<details><summary>📄 sample observations（首 3 有效 + 尾 3 有效）</summary>\n\n';
+        const sampleSet = [...validObs.slice(0, 3), '...', ...validObs.slice(-3)];
+        out += code(JSON.stringify(sampleSet, null, 2));
+        out += '\n</details>\n';
+    }
+    return out;
+}
+
 // ---------------- main ----------------
 (async () => {
-    let report = `# 📊 FinMind + FMP schema dump\n\n`;
+    let report = `# 📊 FinMind + FMP + FRED schema dump\n\n`;
     report += `- 產生時間: ${new Date().toISOString()}\n`;
     report += `- 台股: ${inlineCode(TW_TICKER)} · 美股: ${inlineCode(US_TICKER)} · 期間往回 ${yearsBack} 年\n`;
-    report += `\n> **用途**：驗證 \`valuation/simulator.js\` 用的欄位名跟 API 實際回傳一致。\n> 特別注意 FinMind 現金流量表的 \`FreeCashFlow\` 跟 \`NetIncome\` 是不是有其他名字。\n`;
+    report += `\n> **用途**：驗證 \`valuation/simulator.js\` 用的欄位名跟 3 個 API 實際回傳一致。\n> 也順便驗證 3 個 key 到底能不能通、額度剩多少。\n`;
 
     try { report += await dumpFinMind(); }
     catch (e) { report += `\n## FinMind ERROR\n\n${e.stack}\n`; }
     try { report += await dumpFMP(); }
     catch (e) { report += `\n## FMP ERROR\n\n${e.stack}\n`; }
+    try { report += await dumpFRED(); }
+    catch (e) { report += `\n## FRED ERROR\n\n${e.stack}\n`; }
 
     process.stdout.write(report);
 })();

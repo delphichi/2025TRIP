@@ -1,11 +1,13 @@
 name: dump-api-schemas
 
-# 目的：一次撈 FinMind + FMP 所有相關 dataset / endpoint 的實際欄位名，
+# 目的：一次撈 FinMind + FMP + FRED 所有相關 dataset / endpoint / series 的實際欄位名，
 # 讓 valuation/simulator.js 可以用真的 field name 而不是猜。
+# 順便驗證 3 個 API key 到底能不能通 / 額度剩多少。
 #
-# 前置：Repo → Settings → Secrets and variables → Actions 加兩個 secret：
-#   FINMIND_TOKEN  = 你的 FinMind API token
-#   FMP_API_KEY    = 你的 FMP API key
+# 前置：Repo → Settings → Secrets and variables → Actions 加三個 secret：
+#   FINMIND_TOKEN  = FinMind API token
+#   FMP_API_KEY    = FMP API key
+#   FRED_API_KEY   = FRED API key（fred.stlouisfed.org/docs/api/api_key.html 免費申請）
 #
 # 用法：Actions → dump-api-schemas → Run workflow → 可改 ticker → 跑完下載 artifact
 # 或看 job step summary（會直接 render 出來）。
@@ -36,10 +38,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Dump FinMind + FMP schemas
+      - name: Dump FinMind + FMP + FRED schemas
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           TW_TICKER: ${{ inputs.tw_ticker }}
           US_TICKER: ${{ inputs.us_ticker }}
           YEARS: ${{ inputs.years }}
