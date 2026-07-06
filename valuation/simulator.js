@@ -612,23 +612,66 @@
             const startDate = todayMinusYears(4);
             const rows = await finMindFetch('TaiwanStockCashFlowsStatement', ticker, startDate, todayStr(), token);
             if (!rows || rows.length === 0) return null;
-            // Pivot long → wide（同 fundamentals 的做法）
+            // Pivot long → wide
             const byDate = new Map();
             rows.forEach(r => {
                 if (!byDate.has(r.date)) byDate.set(r.date, {});
                 byDate.get(r.date)[r.type] = r.value;
             });
-            const dates = Array.from(byDate.keys()).sort().reverse();
-            const wideRows = dates.map(d => {
+
+            // 台股 CashFlowsStatement 是 YTD 累計（跟 FinancialStatements 單季不同！）
+            // - 真實欄位（dump 驗證過）：
+            //   * CashFlowsFromOperatingActivities = 營運 CF
+            //   * PropertyAndPlantAndEquipment = CapEx 現金流出（負值）
+            //   * IncomeFromContinuingOperations = 繼續營業單位本期淨利（稅後）
+            // - FinMind 沒有 FreeCashFlow 欄位 → FCF = OperatingCF + CapEx（CapEx 已是負值）
+            const datesAsc = Array.from(byDate.keys()).sort();
+            const ytdByDate = new Map();
+            datesAsc.forEach(d => {
                 const flat = byDate.get(d);
+                const opCF = flat.CashFlowsFromOperatingActivities
+                          ?? flat.NetCashInflowFromOperatingActivities ?? null;
+                const capEx = flat.PropertyAndPlantAndEquipment ?? null;
+                const fcf = (opCF !== null && capEx !== null) ? opCF + capEx : null;
+                const ni = flat.IncomeFromContinuingOperations
+                        ?? flat.NetIncomeBeforeTax ?? null;
+                ytdByDate.set(d, { date: d, opCF, fcf, ni });
+            });
+
+            // YTD → 單季：找同年前一季 YTD 減掉
+            // Q1(-03-31) 本身就是單季；Q2/Q3/Q4 減去同年前一季
+            const prevQuarterDate = d => {
+                const [y, m] = d.split('-').map(Number);
+                if (m === 3)  return null;
+                if (m === 6)  return `${y}-03-31`;
+                if (m === 9)  return `${y}-06-30`;
+                if (m === 12) return `${y}-09-30`;
+                return null;
+            };
+            const diff = (cur, prev) => {
+                if (cur === null || prev === null) return null;
+                return cur - prev;
+            };
+
+            const quarterlyWide = datesAsc.map(d => {
+                const cur = ytdByDate.get(d);
+                const prevD = prevQuarterDate(d);
+                const prev = prevD ? ytdByDate.get(prevD) : null;
+                if (!prev) {
+                    return { date: d, operatingCF: cur.opCF, freeCF: cur.fcf, netIncome: cur.ni };
+                }
                 return {
                     date: d,
-                    operatingCF: flat.CashFlowsFromOperatingActivities || flat.OperatingCashFlow || null,
-                    freeCF: flat.FreeCashFlow || null,
-                    netIncome: flat.NetIncome || flat.NetIncomeAfterTax || flat.NetIncomeAttributableToOwners || null,
+                    operatingCF: diff(cur.opCF, prev.opCF),
+                    freeCF:      diff(cur.fcf, prev.fcf),
+                    netIncome:   diff(cur.ni, prev.ni),
                 };
             });
-            return processCashFlow(wideRows, {
+
+            // processCashFlow 期待新→舊
+            quarterlyWide.sort((a, b) => b.date.localeCompare(a.date));
+
+            return processCashFlow(quarterlyWide, {
                 operatingCF: r => r.operatingCF,
                 freeCF: r => r.freeCF,
                 netIncome: r => r.netIncome,
@@ -819,6 +862,9 @@
             <p class="hint">
                 <b>紙上獲利 vs 真實現金</b>：淨利成長但營運現金流沒同步 = 應收膨脹 / 存貨堆積 / 認列時點差異 = 獲利品質警訊。
                 同向 = 紮實；差 &gt; 15pp = 疑慮。
+                <br>
+                <span class="hint-mini">📌 台股 FinMind 現金流原始是 <b>YTD 累計</b>，這裡已自動轉單季（Q4=Q4−Q3，Q3=Q3−Q2…）跟 EPS/營收表達一致。
+                自由現金流 = 營運CF + 取得不動產廠房設備（後者為負值 = CapEx），FinMind 沒直接欄位、由程式算出。</span>
             </p>
             ${divergenceBanner}
             <div class="fund-grid">
