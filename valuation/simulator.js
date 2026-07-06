@@ -1513,29 +1513,34 @@
             ticker = source === 'finmind' ? rawTicker.replace(/\.TW$/i, '') : rawTicker.toUpperCase();
         }
 
-        // 層次 4 / 5 額外資料源（不影響主流程；沒 key 就跳過）
+        // 三把 key 各自獨立、都可能被用到：
+        //  - FMP：美股主查詢 or 台股時的 USD/TWD + VIX fallback
+        //  - FinMind：台股主查詢 + 融資 + 股利
+        //  - FRED：層次 4 總體（跟股票無關，隨查隨用）
+        // → 只要用戶填了就存 localStorage，不管當下的 query mode 是哪個
+        //   （之前 bug：只在 mode 命中對應分支才存，台股 mode 下 FMP key 就會被吃掉）
+        const fmpKey = $('cfg-api-key').value.trim();
+        const finmindToken = $('cfg-finmind-token').value.trim();
         const fredKey = $('cfg-fred-key').value.trim();
-        if (fredKey) localStorage.setItem('fred_api_key', fredKey);
-        const fmpKeyForMacro = $('cfg-api-key').value.trim();   // VIX / USD/TWD 用同一把 FMP key
-        const finmindTokenForMargin = $('cfg-finmind-token').value.trim();
+        if (fmpKey)       localStorage.setItem('fmp_api_key',   fmpKey);
+        if (finmindToken) localStorage.setItem('finmind_token', finmindToken);
+        if (fredKey)      localStorage.setItem('fred_api_key',  fredKey);
 
         try {
             const isFinmind = source === 'finmind';
             let stockPromise;
             if (isFinmind) {
-                if (!finmindTokenForMargin) {
+                if (!finmindToken) {
                     setStatus('error', '⚠️ 台股需要 FinMind token — 請先貼進「FinMind Token」欄位');
                     return;
                 }
-                localStorage.setItem('finmind_token', finmindTokenForMargin);
-                stockPromise = fetchTwStockData(ticker, finmindTokenForMargin, years);
+                stockPromise = fetchTwStockData(ticker, finmindToken, years);
             } else {
-                if (!fmpKeyForMacro) {
+                if (!fmpKey) {
                     setStatus('error', '⚠️ 美股需要 FMP API key — 請先貼進「FMP API Key」欄位');
                     return;
                 }
-                localStorage.setItem('fmp_api_key', fmpKeyForMacro);
-                stockPromise = fetchStockData(ticker, fmpKeyForMacro, years);
+                stockPromise = fetchStockData(ticker, fmpKey, years);
             }
 
             // 平行抓總體 / 匯率 / 融資 + 股利（都 optional · 失敗回 null 不擋主流程）
@@ -1543,10 +1548,10 @@
             const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW] = await Promise.all([
                 stockPromise,
                 fetchMacroFred(fredKey),
-                fetchForexUsdTwd(fmpKeyForMacro),
-                fetchVixHistoryFmp(fmpKeyForMacro),
-                (isFinmind && finmindTokenForMargin) ? fetchMarginTW(ticker, finmindTokenForMargin) : Promise.resolve(null),
-                (isFinmind && finmindTokenForMargin) ? fetchDividendTW(ticker, finmindTokenForMargin) : Promise.resolve([]),
+                fetchForexUsdTwd(fmpKey),
+                fetchVixHistoryFmp(fmpKey),
+                (isFinmind && finmindToken) ? fetchMarginTW(ticker, finmindToken) : Promise.resolve(null),
+                (isFinmind && finmindToken) ? fetchDividendTW(ticker, finmindToken) : Promise.resolve([]),
             ]);
 
             // VIX 優先 FRED（免額度、更穩定）→ 失敗 fallback FMP
