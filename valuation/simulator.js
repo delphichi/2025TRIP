@@ -272,14 +272,27 @@
         if (!ratios || ratios.length === 0) throw new Error(`${ticker} 沒有歷年 ratio 資料（可能是新股、ETF、指數 或 FMP 未收）`);
 
         // 抓完全部（新 API 沒 limit param），client 端 slice 取要的年數
-        // 欄位名新舊都試：priceEarningsRatio / peRatio、priceToBookRatio / pbRatio
+        // FMP /api/v3 舊版 vs /stable/ 新版欄位名差很多，多試幾個
+        const PE_FIELDS  = ['priceToEarningsRatio', 'priceEarningsRatio', 'peRatio', 'pe',
+                            'priceEarningsRatioTTM', 'priceToEarningsRatioTTM'];
+        const PBR_FIELDS = ['priceToBookRatio', 'priceBookValueRatio', 'pbRatio', 'pb',
+                            'priceToBookValueRatio'];
         const peHistory = ratios.map(r => ({
             year: r.date ? r.date.substring(0, 4) : (r.calendarYear || '?'),
-            pe: pickField(r, 'priceEarningsRatio', 'peRatio', 'pe'),
-            pbr: pickField(r, 'priceToBookRatio', 'pbRatio', 'pb'),
+            pe:  pickField(r, ...PE_FIELDS),
+            pbr: pickField(r, ...PBR_FIELDS),
         })).filter(r => r.pe !== null && isFinite(r.pe));
 
-        if (peHistory.length < 3) throw new Error(`歷年 PE 樣本不足（只有 ${peHistory.length} 年），無法統計`);
+        if (peHistory.length < 3) {
+            // 診斷：把 ratios[0] 的所有 keys 列出，讓你一眼看到 FMP 實際用什麼欄位名
+            const firstKeys = ratios[0] ? Object.keys(ratios[0]).join(', ') : '(空)';
+            throw new Error(
+                `${ticker} 歷年 PE 樣本不足（只 ${peHistory.length} 筆有 PE，實抓 ${ratios.length} 筆 ratios）。` +
+                `可能 FMP 新版欄位名又改了 or 免費 tier 沒開這端點。` +
+                `\n第一筆 ratios[0] 有的欄位：${firstKeys}` +
+                `\n→ 把上面欄位名回報給我加進 pickField，或跑 GitHub Actions dump-api-schemas → FMP → /ratios 章節看實際欄位`
+            );
+        }
 
         // 只保留要求的年數（FMP 回傳從新到舊）
         const sliced = peHistory.slice(0, years);
@@ -287,11 +300,11 @@
         sliced.reverse();
 
         // 當前 PE：優先 quote.pe，其次 price / eps
-        let currentPE = pickField(q, 'pe', 'peRatio');
+        let currentPE = pickField(q, 'pe', 'peRatio', 'priceToEarningsRatio');
         if (!currentPE && q.price && q.eps) currentPE = q.price / q.eps;
 
         // 當前 PBR：用最新一筆 ratio（ratios[0] 是最新的年報）
-        let currentPBR = pickField(ratios[0] || {}, 'priceToBookRatio', 'pbRatio', 'pb');
+        let currentPBR = pickField(ratios[0] || {}, ...PBR_FIELDS);
 
         return {
             ticker,
