@@ -308,25 +308,40 @@
         const currentStockValue = game.shares * game.currentPrice;
         const deltaValue = targetStockValue - currentStockValue;
 
+        const isHold = Math.abs(delta) <= HOLD_THRESHOLD_PP + 1e-6;
+
         let msg;
         let cls;
-        if (Math.abs(delta) <= HOLD_THRESHOLD_PP + 1e-6) {
-            msg = `✋ 持平 · 不做任何買賣（目前部位 ${currentPct.toFixed(1)}%）`;
+        let btnLabel;
+        if (isHold) {
+            msg = `✋ 維持現有 ${game.shares.toFixed(1)} 股 · 不做任何買賣（目前部位 ${currentPct.toFixed(1)}%）`;
             cls = 'preview-hold';
+            btnLabel = `✋ 維持現有 ${game.shares.toFixed(0)} 股 · 進到下一個事件`;
         } else if (delta > 0) {
-            msg = `📈 加碼 ${delta.toFixed(0)} pp · 買 ${fmtMoney(deltaValue)}（用現金 ${fmtMoney(game.cash)} 的 ${(deltaValue / game.cash * 100).toFixed(0)}%）`;
+            const deltaShares = deltaValue / game.currentPrice;
+            msg = `📈 加碼 ${delta.toFixed(0)} pp · 買 ${deltaShares.toFixed(1)} 股（${fmtMoney(deltaValue)} · 用現金 ${fmtMoney(game.cash)} 的 ${(deltaValue / game.cash * 100).toFixed(0)}%）`;
             cls = 'preview-buy';
+            btnLabel = `📈 加碼 ${delta.toFixed(0)} pp · 進到下一個事件`;
             if (deltaValue > game.cash + 0.5) {
-                msg = `⚠ 現金不夠 · 你只有 ${fmtMoney(game.cash)} · 最多加到 ${((game.cash + currentStockValue) / total * 100).toFixed(0)}%`;
+                msg = `⚠ 現金不夠 · 你只有 ${fmtMoney(game.cash)} · 最多加到 ${((game.cash + currentStockValue) / total * 100).toFixed(0)}%（會用光現金）`;
                 cls = 'preview-warn';
+                btnLabel = `⚠ 現金上限 · 進到下一個事件`;
             }
         } else {
-            msg = `📉 減碼 ${Math.abs(delta).toFixed(0)} pp · 賣 ${fmtMoney(Math.abs(deltaValue))} 回現金`;
+            const deltaShares = Math.abs(deltaValue) / game.currentPrice;
+            msg = `📉 減碼 ${Math.abs(delta).toFixed(0)} pp · 賣 ${deltaShares.toFixed(1)} 股（回收 ${fmtMoney(Math.abs(deltaValue))}）`;
             cls = 'preview-sell';
+            btnLabel = `📉 減碼 ${Math.abs(delta).toFixed(0)} pp · 進到下一個事件`;
         }
         const el = $('pos-delta-preview');
         el.className = `pos-delta-preview ${cls}`;
         el.textContent = msg;
+
+        const btn = $('btn-confirm-decision');
+        if (btn) {
+            btn.textContent = btnLabel;
+            btn.className = isHold ? 'btn-hold' : (delta > 0 ? 'btn-buy' : 'btn-sell');
+        }
     }
 
     function renderDecisionLog() {
