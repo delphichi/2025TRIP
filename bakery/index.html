@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bakery Tycoon · 撐得下去的才是贏家</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- Cache-busting：叫瀏覽器不要快取 HTML · 每次載入 HTML 都拿最新 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- CSS 加時間戳 · 每次 HTML 刷新都拿最新 style.css（不用手動硬刷）-->
+    <script>document.write('<link rel="stylesheet" href="style.css?v=' + Date.now() + '">');</script>
     <meta name="theme-color" content="#78350f">
 </head>
 <body class="sim-body">
@@ -196,6 +201,7 @@
 
     </main>
 
-    <script src="simulator.js"></script>
+    <!-- JS 加時間戳 · 每次 HTML 刷新都拿最新 simulator.js -->
+    <script>document.write('<script src="simulator.js?v=' + Date.now() + '"><\/script>');</script>
 </body>
 </html>
