@@ -674,6 +674,7 @@
                 operatingCF: r => r.operatingCashFlow,
                 freeCF: r => r.freeCashFlow,
                 netIncome: r => r.netIncome,
+                sbc: r => r.stockBasedCompensation,   // FMP 現金流表有直接欄位
             });
         } catch (e) {
             console.warn('FMP cash flow fetch failed:', e.message);
@@ -805,6 +806,23 @@
         const opCF = build(getters.operatingCF);
         const fCF = build(getters.freeCF);
         const ni = build(getters.netIncome);
+        const sbc = getters.sbc ? build(getters.sbc) : null;
+
+        // SBC 佔 GAAP 淨利比例（TTM · 用近 4 季 sum ÷ 近 4 季淨利 sum）
+        // 判讀：<10% 輕微 · 10-25% 中度 · >25% 重度
+        // 對 AMD/NVDA/TSLA/PLTR 這種高 SBC 公司特別重要，讓使用者直接看到「GAAP vs Non-GAAP
+        //   分裂的來源」而不用管理層決定叫什麼是「一次性」
+        let sbcRatioTtm = null;
+        if (sbc && sbc.length >= 4 && ni.length >= 4) {
+            let sbcSum = 0, niSum = 0, valid = true;
+            for (let i = 0; i < 4; i++) {
+                if (sbc[i].value === null || !isFinite(sbc[i].value) ||
+                    ni[i].value === null || !isFinite(ni[i].value)) { valid = false; break; }
+                sbcSum += sbc[i].value;
+                niSum += ni[i].value;
+            }
+            if (valid && Math.abs(niSum) > 1) sbcRatioTtm = sbcSum / Math.abs(niSum);
+        }
 
         // 背離偵測：近 4 季 avg(NI YoY) vs avg(CF YoY)
         // 若 NI YoY > 15pp CF YoY → 獲利品質警訊
@@ -825,7 +843,7 @@
             else divergence = { kind: 'ok', gap, msg: `✓ 淨利跟營運 CF 同向（差 ${(gap*100).toFixed(0)}pp），獲利品質沒問題。` };
         }
 
-        return { operatingCF: opCF, freeCF: fCF, netIncome: ni, divergence };
+        return { operatingCF: opCF, freeCF: fCF, netIncome: ni, sbc, sbcRatioTtm, divergence };
     }
 
     // ---------- 台股法人買賣超（層次 5：市場情緒） ----------
@@ -967,6 +985,24 @@
             divergenceBanner = `<div class="divergence-banner ${cls}">${d.msg}</div>`;
         }
 
+        // SBC 佔 GAAP 淨利 TTM 比例（美股 FMP 才有 stockBasedCompensation 欄位）
+        let sbcBanner = '';
+        if (cf.sbcRatioTtm !== null && cf.sbcRatioTtm !== undefined) {
+            const pct = cf.sbcRatioTtm * 100;
+            let cls, msg;
+            if (pct < 10) {
+                cls = 'divergence-ok';
+                msg = `✓ <b>SBC / GAAP 淨利 = ${pct.toFixed(1)}%</b>（近 4 季 TTM）· &lt; 10% · <b>SBC 影響輕微</b>，GAAP 淨利大致可信、Non-GAAP 差距小。`;
+            } else if (pct < 25) {
+                cls = 'divergence-warn';
+                msg = `⚠️ <b>SBC / GAAP 淨利 = ${pct.toFixed(1)}%</b>（近 4 季 TTM）· 10-25% <b>中度稀釋</b>——看券商 / 公司公告的 Non-GAAP 數字時要打折扣，Non-GAAP PE 通常會比 GAAP PE 低 15-30%。`;
+            } else {
+                cls = 'divergence-warn';
+                msg = `🚨 <b>SBC / GAAP 淨利 = ${pct.toFixed(1)}%</b>（近 4 季 TTM）· &gt; 25% <b>重度稀釋</b>——<b>SBC 是獲利結構的重要成分</b>，GAAP 跟 Non-GAAP 差距會很大。「股票薪酬是不是真實成本」是<b>價值觀選擇不是對錯</b>：Buffett 認為是（「若不是薪酬，那是什麼？」）；管理層在 Non-GAAP 裡把它加回去、認為那是「稀釋股本」不是「支出」。看這個數字決定你要用哪把尺 —— 這比爭論 PE 該用哪種更有實質意義。`;
+            }
+            sbcBanner = `<div class="divergence-banner ${cls}">${msg}</div>`;
+        }
+
         return `
             <h3>💰 現金流量 vs 淨利（層次 2：獲利品質核心）</h3>
             <p class="hint">
@@ -979,10 +1015,12 @@
                 <b>淨利（稅後）</b>：改抓損益表 IncomeAfterTaxes，本身已是單季。<b>不用現金流量表裡的 IncomeBefore*（那是稅前調整起點）</b>——用稅前跟營運CF 比，基準錯（稅前 vs 稅後差 ~20%）。</span>
             </p>
             ${divergenceBanner}
+            ${sbcBanner}
             <div class="fund-grid">
                 ${renderCol('🏭 營運現金流', cf.operatingCF)}
                 ${renderCol('🆓 自由現金流', cf.freeCF)}
                 ${renderCol('📖 淨利（帳面）', cf.netIncome)}
+                ${cf.sbc ? renderCol('💸 股票薪酬 (SBC)', cf.sbc) : ''}
             </div>
         `;
     }
