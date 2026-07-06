@@ -234,6 +234,47 @@ textarea {
 .detail-box th { background: #f3f4f6; color: var(--primary-dark); font-weight: 700; text-align: center; }
 .detail-box td:first-child { text-align: left; color: var(--muted); }
 
+/* 財報成長性 4-cell 網格 */
+.fund-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+    margin: 10px 0;
+}
+.fund-cell {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+.fund-cell h4 {
+    margin: 0 0 6px;
+    font-size: .95em;
+    color: var(--primary-dark);
+    border-bottom: 1px dashed #e5e7eb;
+    padding-bottom: 4px;
+}
+.fund-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: .82em;
+}
+.fund-table th, .fund-table td {
+    padding: 3px 5px;
+    text-align: right;
+    border-bottom: 1px solid #f3f4f6;
+}
+.fund-table th {
+    background: #f9fafb;
+    color: var(--primary-dark);
+    font-weight: 700;
+    text-align: center;
+}
+.fund-table td:first-child { text-align: left; color: var(--muted); font-size: .95em; }
+.fund-table td.yoy-pos { color: var(--success); font-weight: 700; }
+.fund-table td.yoy-neg { color: var(--danger); font-weight: 700; }
+
 .sim-footer {
     text-align: center;
     color: var(--muted);
