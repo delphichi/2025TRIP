@@ -875,6 +875,107 @@
         `;
     }
 
+    // ---------- 🔍 診斷：印出 FinMind 原始欄位 ----------
+    // 目的：驗證程式用的欄位名（NetIncome、FreeCashFlow...）跟 FinMind 實際回傳的一致
+    // 對每個 long-format dataset：unique type + origin_name（中文原名）+ sample raw row
+    async function debugFinMindFields(ticker, token) {
+        const escapeHtml = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+        const startDate = todayMinusYears(1.2);   // 抓 1 年多足夠涵蓋 4 季報
+        const endDate = todayStr();
+        // 每個 dataset：{ name, dataId, note }
+        // note 是預期的用途/我們程式讀了哪些欄位——方便比對
+        const datasets = [
+            { name: 'TaiwanStockFinancialStatements', dataId: ticker,
+              note: '損益表——我們讀 Revenue / OperatingRevenue / TotalRevenue、GrossProfit / OperatingGrossProfit、OperatingIncome / OperatingProfit、EPS / BasicEPS / DilutedEPS' },
+            { name: 'TaiwanStockCashFlowsStatement', dataId: ticker,
+              note: '現金流量表——我們讀 CashFlowsFromOperatingActivities / OperatingCashFlow、FreeCashFlow、NetIncome / NetIncomeAfterTax / NetIncomeAttributableToOwners' },
+            { name: 'TaiwanStockBalanceSheet', dataId: ticker,
+              note: '資產負債表（Priority 2 會用）——現在僅列欄位' },
+            { name: 'TaiwanStockPER', dataId: ticker,
+              note: '每日 PER / PBR（已在用）' },
+            { name: 'TaiwanStockInstitutionalInvestorsBuySell', dataId: ticker,
+              note: '三大法人買賣超——我們讀 name（Foreign_Investor / Investment_Trust / Dealer_*）+ buy + sell' },
+        ];
+
+        let output = `<div class="debug-block"><p class="hint">ticker = <code>${escapeHtml(ticker)}</code> · 抓 <code>${startDate}</code> ~ <code>${endDate}</code></p></div>`;
+
+        for (const ds of datasets) {
+            output += `<div class="debug-block"><h3>📦 <code>${escapeHtml(ds.name)}</code></h3>`;
+            output += `<p class="debug-note">${escapeHtml(ds.note)}</p>`;
+            try {
+                setStatus('loading', `📡 抓 ${ds.name}……`);
+                const rows = await finMindFetch(ds.name, ds.dataId, startDate, endDate, token);
+                if (!rows || rows.length === 0) {
+                    output += `<p class="debug-empty">⚠️ 0 rows returned（免費 tier 可能沒開這個 dataset 或這支股票沒資料）</p></div>`;
+                    continue;
+                }
+                output += `<p><b>✅ ${rows.length} rows</b> · sample row keys: <code>${Object.keys(rows[0]).map(escapeHtml).join(', ')}</code></p>`;
+
+                // Long format：有 type 欄位
+                if (rows[0].type !== undefined) {
+                    const typeMap = new Map();
+                    rows.forEach(r => {
+                        const key = r.type;
+                        if (!typeMap.has(key)) {
+                            typeMap.set(key, { origin: r.origin_name || '', count: 0, sample: r.value });
+                        }
+                        typeMap.get(key).count += 1;
+                    });
+                    output += `<p><b>unique type 值（共 ${typeMap.size} 個）</b>：</p>`;
+                    output += '<table class="debug-table"><tr><th>type（程式抓的欄位名）</th><th>origin_name（中文原名）</th><th>rows</th><th>sample value</th></tr>';
+                    const sorted = Array.from(typeMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                    sorted.forEach(([t, info]) => {
+                        output += `<tr><td><code>${escapeHtml(t)}</code></td><td>${escapeHtml(info.origin)}</td><td>${info.count}</td><td>${escapeHtml(String(info.sample))}</td></tr>`;
+                    });
+                    output += '</table>';
+                }
+                // Institutional：有 name 欄位當分類
+                else if (rows[0].name !== undefined) {
+                    const nameMap = new Map();
+                    rows.forEach(r => {
+                        if (!nameMap.has(r.name)) nameMap.set(r.name, 0);
+                        nameMap.set(r.name, nameMap.get(r.name) + 1);
+                    });
+                    output += `<p><b>unique name 值（共 ${nameMap.size} 個）</b>：</p>`;
+                    output += '<table class="debug-table"><tr><th>name（程式用來分類外資 / 投信 / 自營）</th><th>rows</th></tr>';
+                    Array.from(nameMap.entries()).sort().forEach(([n, c]) => {
+                        output += `<tr><td><code>${escapeHtml(n)}</code></td><td>${c}</td></tr>`;
+                    });
+                    output += '</table>';
+                }
+
+                // Sample raw JSON（前 3 筆）
+                const sampleJson = JSON.stringify(rows.slice(0, 3), null, 2);
+                output += `<details class="debug-details"><summary>📄 sample raw JSON（前 3 rows）</summary><pre>${escapeHtml(sampleJson)}</pre></details>`;
+                output += '</div>';
+            } catch (e) {
+                output += `<p class="debug-error">❌ Error: ${escapeHtml(e.message)}</p></div>`;
+            }
+        }
+        return output;
+    }
+
+    async function onDebugFields() {
+        const token = $('cfg-finmind-token').value.trim();
+        if (!token) { setStatus('error', '⚠️ 需要 FinMind token'); return; }
+        const rawTicker = $('cfg-ticker').value.trim();
+        if (!rawTicker) { setStatus('error', '⚠️ 需要在 Ticker 欄位填一支台股（例：2330）'); return; }
+        const ticker = rawTicker.replace(/\.TW$/i, '').replace(/^tw/i, '').trim();
+        if (!/^\d+$/.test(ticker)) { setStatus('error', `⚠️ FinMind 台股 ticker 必須是純數字，你輸入 "${ticker}"`); return; }
+
+        localStorage.setItem('finmind_token', token);
+        $('debug-panel').hidden = false;
+        $('debug-output').innerHTML = '<p class="hint">📡 抓資料中……可能要 5-10 秒（一次跑 5 個 dataset）</p>';
+        try {
+            const html = await debugFinMindFields(ticker, token);
+            $('debug-output').innerHTML = html;
+            setStatus('success', `✅ ${ticker} 診斷完成——把不匹配的欄位名回報給我改程式`);
+        } catch (e) {
+            $('debug-output').innerHTML = `<p class="debug-error">❌ ${e.message}</p>`;
+            setStatus('error', `❌ ${e.message}`);
+        }
+    }
+
     function setStatus(kind, msg) {
         const s = $('query-status');
         s.hidden = false;
@@ -1023,6 +1124,8 @@
         $('btn-query').addEventListener('click', onQuery);
         $('btn-clear-key').addEventListener('click', onClearKey);
         $('btn-manual-analyze').addEventListener('click', onManualAnalyze);
+        const btnDebug = $('btn-debug-fields');
+        if (btnDebug) btnDebug.addEventListener('click', onDebugFields);
 
         // Enter in ticker input → query
         $('cfg-ticker').addEventListener('keydown', e => {

@@ -330,6 +330,85 @@ textarea {
 .layer-tag.layer-4 { background: #d97706; }   /* orange · 總體 */
 .layer-tag.layer-5 { background: #db2777; }   /* pink  · 情緒 */
 
+/* 🔍 診斷 panel（FinMind 原始欄位） */
+.debug-panel { border-left-color: #6366f1; background: #eef2ff; }
+.debug-panel h2 { color: #4338ca; }
+.debug-block {
+    background: #fff;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 10px 0;
+}
+.debug-block h3 {
+    color: #4338ca;
+    margin: 0 0 6px;
+    font-size: 1em;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.debug-note {
+    color: var(--muted);
+    font-size: .82em;
+    margin: 4px 0 8px;
+    line-height: 1.5;
+}
+.debug-empty, .debug-error {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: .88em;
+    margin: 6px 0;
+}
+.debug-empty { background: #fef3c7; color: #92400e; }
+.debug-error { background: #fee2e2; color: #7f1d1d; }
+.debug-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: .82em;
+    margin: 8px 0;
+}
+.debug-table th, .debug-table td {
+    padding: 5px 8px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+}
+.debug-table th {
+    background: #e0e7ff;
+    color: #3730a3;
+    font-weight: 700;
+}
+.debug-table code {
+    background: #f1f5f9;
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: #4338ca;
+}
+.debug-details {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: #f9fafb;
+    border-radius: 6px;
+}
+.debug-details summary {
+    cursor: pointer;
+    color: var(--primary);
+    font-weight: 600;
+    font-size: .88em;
+}
+.debug-details pre {
+    margin: 8px 0 0;
+    padding: 10px;
+    background: #1f2937;
+    color: #e5e7eb;
+    border-radius: 6px;
+    font-size: .78em;
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+    line-height: 1.5;
+}
+
 /* 「還沒回答的問題」panel */
 .unknowns-panel { border-left-color: #d97706; background: #fffbeb; }
 .unknowns-panel h2 { color: #b45309; }
