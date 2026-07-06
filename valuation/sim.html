@@ -11,7 +11,7 @@
 
     <header class="sim-header">
         <h1>🎮 股票投資模擬器</h1>
-        <p class="sim-subtitle">給你歷史時間點 · 訓練「當下該怎麼判斷」的能力 · 沒有未來函數作弊</p>
+        <p class="sim-subtitle">給你歷史時間點 · <b>事件一個一個放</b> · 每次揭曉你都要重新決策</p>
     </header>
 
     <main class="sim-main">
@@ -19,17 +19,16 @@
         <section class="panel intro-panel">
             <h2>📖 訓練目標</h2>
             <p class="hint">
-                <b>核心設計</b>：模擬器把資料<b>凍結</b>在你選的歷史時間點——那個時間點之前的所有資料看得到（財報、PE、當時總經環境），
-                之後的股價完全隱藏。你根據當時能看到的資訊做決策（投入多少 % 資產、設定證偽條件），
-                然後模擬器揭曉實際走勢、算你的報酬率、做事後複盤。
+                <b>核心設計</b>：模擬器把你放進 2023-01-01 的認知狀態——當時剛過完 2022 科技大跌年、Alphabet 剛裁員、ChatGPT 剛紅、Bard 還沒發表。
+                你先設起始部位、然後<b>時間軸一格一格推進</b>，每個重大事件發生時暫停、告訴你剛剛發生什麼 + 目前股價 + 目前部位、你決定加碼 / 減碼 / 持平、然後才進下一個事件。
             </p>
             <p class="hint">
-                <b>為什麼這樣訓練有價值</b>：真實投資最難的是「當下不知道結果」——你在 2023-01-01 看到 GOOGL 剛裁員 12000 人 · Bard 還沒發表 · ChatGPT 剛紅、被視為 Google 的<b>威脅</b>·當時的判斷跟兩年後回頭看的「明顯該買」感受完全不同。
-                模擬器強迫你進入那個時間點的認知狀態 · 對照你事後看的結果 · 找出「當下該怎麼想」的判斷 heuristic。
+                <b>為什麼比一次決策有價值</b>：真實投資最考驗人的是「事件連續轟炸下的情緒管理」。Bard 失誤 -8% 你會不會慌賣？DOJ 裁決你會不會停損？Q1 2026 淨利 +81% 表面數字你會不會 FOMO 加碼？
+                每個節點都測一次、事後複盤才看得出你的心理弱點在哪。
             </p>
-            <p class="hint">
-                <b>目前 MVP</b>：GOOGL 2023-01-01 到現在（2026-07）· 之後會擴充其他股票 / 時間點。
-                <a href="./index.html">← 回估值分析器（看當下的完整 5 層）</a>
+            <p class="hint hint-mini">
+                📍 <b>目前 MVP</b>：GOOGL 2023-01-01 到現在（2026-07）· 基準資金 $100k · 12 個重大事件節點。
+                <a href="./index.html">← 回估值分析器</a>
             </p>
         </section>
 
@@ -44,97 +43,115 @@
             <div class="sim-snapshot-grid">
                 <div class="snap-cell">
                     <div class="snap-label">🏢 公司</div>
-                    <div class="snap-val">Alphabet Inc. (GOOGL)</div>
-                    <div class="snap-note">網路搜尋 + Android + YouTube + Google Cloud + Waymo</div>
+                    <div class="snap-val">Alphabet (GOOGL)</div>
+                    <div class="snap-note">搜尋 + Android + YouTube + Cloud + Waymo</div>
                 </div>
                 <div class="snap-cell">
-                    <div class="snap-label">💰 估值（YE 2022 GAAP）</div>
+                    <div class="snap-label">💰 估值（YE 2022）</div>
                     <div class="snap-val">PE ~18x · PBR ~4.5x</div>
-                    <div class="snap-note">跟 2021 高峰（PE 25x）比已回落 · 中期以來相對便宜區間</div>
+                    <div class="snap-note">跟 2021 高峰（PE 25x）回落 · 中期便宜</div>
                 </div>
                 <div class="snap-cell">
                     <div class="snap-label">📊 2022 財報</div>
                     <div class="snap-val">營收 +10% · EPS -19%</div>
-                    <div class="snap-note">廣告景氣走弱 · 前一年高基期 · 但仍成長</div>
+                    <div class="snap-note">廣告景氣走弱 · 前年高基期</div>
                 </div>
                 <div class="snap-cell">
                     <div class="snap-label">🇺🇸 總經 · 2023-01-01</div>
-                    <div class="snap-val">DGS10 3.88% · FEDFUNDS 4.33%</div>
-                    <div class="snap-note">Fed 升息週期尾聲 · CPI 6.5% 見頂緩降 · VIX 21.6 中性偏警戒</div>
+                    <div class="snap-val">DGS10 3.88% · FED 4.33%</div>
+                    <div class="snap-note">升息尾聲 · CPI 6.5% 見頂 · VIX 21.6</div>
                 </div>
                 <div class="snap-cell">
                     <div class="snap-label">🌡 市場情緒</div>
-                    <div class="snap-val">科技股大跌年後</div>
-                    <div class="snap-note">Alphabet 剛裁員 12,000 人 · Meta -64%、Amazon -50%、Google -39%（2022 年跌幅）· 「科技股泡沫已破」共識</div>
+                    <div class="snap-val">科技大跌年後</div>
+                    <div class="snap-note">Alphabet 剛裁員 12,000 · 2022 GOOGL -39%</div>
                 </div>
                 <div class="snap-cell">
-                    <div class="snap-label">🎯 當時的敘事</div>
+                    <div class="snap-label">🎯 當時敘事</div>
                     <div class="snap-val">⚠️ ChatGPT 威脅論</div>
-                    <div class="snap-note">2022-11 ChatGPT 上線 · 市場擔心 Google 搜尋壟斷會被 AI 顛覆 · Bard 尚未發表</div>
+                    <div class="snap-note">2022-11 ChatGPT 上線 · Bard 尚未發表</div>
                 </div>
-            </div>
-
-            <div class="snap-known-hint">
-                <b>💡 你現在能看到的（合法資訊）</b>：以上所有內容 · 加上你在 valuation 分析器看到的<b>5 年歷史 PE 百分位（2018-2022）</b>· 5 年 CAGR · 過去的法說會逐字稿。
-                <br><b>你看不到的（不能作弊）</b>：2023-01-01 之後任何價格 / 財報 / 新聞。Bard 表現如何、Gemini 什麼時候發、Waymo 什麼時候融資 · <b>你完全不知道</b>。
             </div>
         </section>
 
         <section class="panel decision-sim-panel" id="decision-sim-panel">
-            <h2>🎯 你的決策</h2>
+            <h2>🎯 起始部位 · 你要投入多少 %？</h2>
             <p class="hint">
-                根據上面的資訊、加上你能從 valuation 分析器（不用未來函數）看到的過去 5 層分析 · 決定投入多少、設什麼證偽條件。
+                總資金 <b>$100,000</b>（基準）· 你決定<b>起始時</b>要投入多少比例買 GOOGL、剩下留現金。
+                之後每個事件節點都會讓你重新決策 · 這只是「進場多少」。
             </p>
 
-            <div class="decision-section">
-                <h3>💰 投入部位（% 總資產）</h3>
-                <div class="sim-pos-row">
-                    <input type="range" id="sim-pos" min="0" max="100" step="5" value="20">
-                    <span class="sim-pos-val" id="sim-pos-val">20%</span>
-                </div>
-                <p class="hint hint-mini">0% = 不進場觀察 · 100% = All-in（極少建議）· 常見範圍 5-25%</p>
+            <div class="sim-pos-row">
+                <input type="range" id="sim-pos" min="0" max="100" step="5" value="20">
+                <span class="sim-pos-val" id="sim-pos-val">20%</span>
             </div>
-
-            <div class="decision-section">
-                <h3>🛡 證偽條件（觸發就重新檢視）</h3>
-                <p class="hint">預設 4 條 · 勾選代表你會嚴格執行 · 沒勾的表示你的論點不受這條影響（風險自負）。</p>
-                <div id="sim-falsify-list">
-                    <label class="sim-falsify-row"><input type="checkbox" checked> 若 GOOGL 相對 S&amp;P 500 落後 &gt;20% 且持續 3 個月，重新檢視是否敘事已失效</label>
-                    <label class="sim-falsify-row"><input type="checkbox" checked> 若季報營收 YoY 轉負（廣告景氣崩），重新檢視</label>
-                    <label class="sim-falsify-row"><input type="checkbox"> 若 AI 業務具體營收未在 2024 財報中出現，重新檢視</label>
-                    <label class="sim-falsify-row"><input type="checkbox"> 若 DOJ 反壟斷案裁定分拆搜尋業務，重新檢視</label>
-                </div>
-            </div>
-
-            <div class="decision-section">
-                <h3>📝 你的論點（一句話 · 為什麼投這個 %）</h3>
-                <textarea id="sim-thesis" rows="2" placeholder="例：Google 廣告基本盤穩、YouTube + Cloud 成長中、AI 威脅被過度定價、YE 2022 PE 18x 中期便宜區間"></textarea>
-            </div>
+            <p class="hint hint-mini">
+                💡 常見範圍 <b>5-25%</b>（單支股票不集中太多）· 0% = 觀察 · 100% = All-in（極少建議）
+            </p>
 
             <div class="btn-row">
-                <button id="btn-run-sim">▶ 揭曉結果（1M / 6M / 1Y / 至今）</button>
+                <button id="btn-start-game">🎮 開始遊戲 · 進入時間流</button>
             </div>
         </section>
 
-        <section class="panel reveal-panel" id="reveal-panel" hidden>
-            <h2>🎬 時間往前推 · 揭曉實際走勢</h2>
+        <section class="panel game-panel" id="game-panel" hidden>
+            <div class="game-header">
+                <h2 id="game-title">🎮 事件 <span id="game-step">1</span> / 13</h2>
+                <div class="game-progress">
+                    <div class="game-progress-bar" id="game-progress-bar"></div>
+                </div>
+            </div>
 
-            <div class="reveal-checkpoints" id="reveal-checkpoints"></div>
+            <div class="event-card" id="event-card">
+                <!-- populated by JS -->
+            </div>
 
-            <div class="reveal-chart">
-                <div class="chart-title">GOOGL 股價（2023-01-01 → 現在）· 標記重大事件</div>
-                <canvas id="sim-price-chart" width="900" height="280"></canvas>
-                <div class="chart-legend" id="sim-chart-legend"></div>
+            <div class="portfolio-panel">
+                <h3>💼 目前你的組合</h3>
+                <div id="portfolio-state">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+
+            <div class="decision-panel-live">
+                <h3>🎯 你要怎麼調整？</h3>
+                <div class="pos-adjust-row">
+                    <div class="pos-current">
+                        目前部位：<b id="pos-current-val">—</b>
+                    </div>
+                    <div class="pos-target">
+                        調整到：<input type="range" id="pos-target" min="0" max="100" step="5" value="20">
+                        <b id="pos-target-val">20%</b>
+                    </div>
+                </div>
+                <div class="preset-buttons">
+                    <button class="preset-btn preset-sell-all" data-preset="0">🚪 全部出清</button>
+                    <button class="preset-btn preset-sell" data-preset="-20">📉 減碼 20pp</button>
+                    <button class="preset-btn preset-hold" data-preset="0-delta">✋ 持平</button>
+                    <button class="preset-btn preset-buy" data-preset="+20">📈 加碼 20pp</button>
+                    <button class="preset-btn preset-all-in" data-preset="100">🚀 All-in</button>
+                </div>
+                <div class="pos-delta-preview" id="pos-delta-preview"></div>
+                <div class="btn-row">
+                    <button id="btn-confirm-decision">✅ 執行 · 進到下一個事件</button>
+                </div>
+            </div>
+
+            <div class="decision-log">
+                <h3>📋 你的決策紀錄</h3>
+                <table class="fund-table decision-log-table" id="decision-log-table">
+                    <tr><th>日期</th><th>事件</th><th>股價</th><th>調整</th><th>總資產</th></tr>
+                </table>
             </div>
         </section>
 
         <section class="panel postmortem-panel" id="postmortem-panel" hidden>
-            <h2>🔬 事後複盤</h2>
+            <h2>🔬 遊戲結束 · 事後複盤</h2>
             <div id="postmortem-body"></div>
         </section>
 
         <footer class="sim-footer">
-            <p>模型：<strong>歷史情境決策訓練</strong>·
+            <p>模型：<strong>歷史事件流決策訓練</strong>·
             <a href="./index.html">← 回估值分析器</a>·
             <a href="../index.html">← 回家族旅遊 PWA</a></p>
         </footer>
