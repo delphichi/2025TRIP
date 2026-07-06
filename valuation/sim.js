@@ -288,6 +288,9 @@
         prevPrice: null,
         decisions: [],
         initialPct: 20,
+        lastTargetPct: 0,        // 上次「主動 rebalance」的目標 %
+        lastTargetDate: null,    // 上次主動 rebalance 的日期
+        lastTargetPrice: null,   // 上次主動 rebalance 時的股價
     };
 
     function currentTotalValue() {
@@ -428,6 +431,9 @@
         game.prevPrice = null;
         game.currentEventIdx = 0;
         game.decisions = [];
+        game.lastTargetPct = initialPct;
+        game.lastTargetDate = game.startDate;
+        game.lastTargetPrice = game.startPrice;
 
         game.decisions.push({
             date: game.startDate,
@@ -500,6 +506,21 @@
         const totalRet = (total - game.base) / game.base;
         const totalRetCls = totalRet >= 0 ? 'delta-pos' : 'delta-neg';
 
+        // 部位漂移說明：目前 % vs 上次主動目標 %
+        const driftPp = posPct - game.lastTargetPct;
+        let driftNote = '';
+        if (Math.abs(driftPp) < 0.5) {
+            driftNote = `<div class="pf-drift">🎯 剛好在上次目標 ${game.lastTargetPct.toFixed(0)}%</div>`;
+        } else {
+            const priceChg = game.lastTargetPrice ? (game.currentPrice - game.lastTargetPrice) / game.lastTargetPrice : 0;
+            const priceChgTxt = (priceChg >= 0 ? '+' : '') + fmtPct(priceChg);
+            const driftCls = driftPp > 0 ? 'drift-up' : 'drift-down';
+            driftNote = `<div class="pf-drift ${driftCls}">
+                📐 上次調到 <b>${game.lastTargetPct.toFixed(0)}%</b>（${game.lastTargetDate}）· 之後股價 ${priceChgTxt} → 漂到 <b>${posPct.toFixed(0)}%</b>
+                <small>股數沒變、只是市值漂移</small>
+            </div>`;
+        }
+
         $('portfolio-state').innerHTML = `
             <div class="pf-grid">
                 <div class="pf-cell">
@@ -522,6 +543,7 @@
                     <div class="pf-sub">股票 / 總資產</div>
                 </div>
             </div>
+            ${driftNote}
         `;
 
         const posInt = Math.round(posPct / 5) * 5;
@@ -607,6 +629,7 @@
         if (Math.abs(targetPct - oldPct) <= HOLD_THRESHOLD_PP + 1e-6) {
             action = '✋ 持平 · 不做任何買賣';
             logNewPct = oldPct;
+            // 持平時 lastTargetPct 不變（保留上次主動決定的目標）
         } else {
             const total = currentTotalValue();
             let cappedTargetPct = targetPct;
@@ -618,6 +641,10 @@
             const result = rebalanceToTargetPct(cappedTargetPct);
             action = result.action;
             logNewPct = cappedTargetPct;
+            // 主動 rebalance · 更新 lastTargetPct
+            game.lastTargetPct = cappedTargetPct;
+            game.lastTargetDate = ev.date;
+            game.lastTargetPrice = game.currentPrice;
         }
 
         game.decisions.push({

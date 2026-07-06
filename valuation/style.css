@@ -1193,6 +1193,24 @@ textarea {
 .pf-sub { font-size: .78em; color: #6b7280; }
 .pf-sub.delta-pos, .pf-sub.delta-neg { font-weight: 600; }
 
+/* 部位漂移說明 · 讓玩家理解「目前 % vs 上次目標 %」的差異 */
+.pf-drift {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-left: 4px solid #9ca3af;
+    border-radius: 0 6px 6px 0;
+    font-size: .88em;
+    color: #4b5563;
+    line-height: 1.6;
+}
+.pf-drift b { color: #1f2937; font-family: ui-monospace, monospace; }
+.pf-drift small { display: block; font-size: .82em; color: #9ca3af; margin-top: 2px; }
+.pf-drift.drift-up { border-left-color: #059669; background: #ecfdf5; }
+.pf-drift.drift-up b { color: #065f46; }
+.pf-drift.drift-down { border-left-color: #dc2626; background: #fef2f2; }
+.pf-drift.drift-down b { color: #7f1d1d; }
+
 /* ---- Live decision panel ---- */
 .decision-panel-live {
     background: #fff;
