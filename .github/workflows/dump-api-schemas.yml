@@ -1,0 +1,65 @@
+name: dump-api-schemas
+
+# 目的：一次撈 FinMind + FMP 所有相關 dataset / endpoint 的實際欄位名，
+# 讓 valuation/simulator.js 可以用真的 field name 而不是猜。
+#
+# 前置：Repo → Settings → Secrets and variables → Actions 加兩個 secret：
+#   FINMIND_TOKEN  = 你的 FinMind API token
+#   FMP_API_KEY    = 你的 FMP API key
+#
+# 用法：Actions → dump-api-schemas → Run workflow → 可改 ticker → 跑完下載 artifact
+# 或看 job step summary（會直接 render 出來）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      tw_ticker:
+        description: '台股 ticker（FinMind 用，純數字）'
+        default: '2330'
+        required: false
+      us_ticker:
+        description: '美股 ticker（FMP 用，純字母）'
+        default: 'AAPL'
+        required: false
+      years:
+        description: '往回抓幾年（覆蓋損益 / 現金流的樣本量）'
+        default: '2'
+        required: false
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Dump FinMind + FMP schemas
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          TW_TICKER: ${{ inputs.tw_ticker }}
+          US_TICKER: ${{ inputs.us_ticker }}
+          YEARS: ${{ inputs.years }}
+        run: |
+          mkdir -p schema-dump
+          node .github/scripts/dump-schemas.mjs 2>&1 | tee schema-dump/full-report.md
+          echo "---"
+          echo "✅ Report at schema-dump/full-report.md"
+
+      - name: Add report to job summary
+        if: always()
+        run: |
+          echo "## 📊 Schema dump report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat schema-dump/full-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-dump-${{ inputs.tw_ticker }}-${{ inputs.us_ticker }}
+          path: schema-dump/
+          retention-days: 30
