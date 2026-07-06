@@ -88,10 +88,25 @@
                 免費會員 <b>300 次/小時</b>、贊助會員無限。
                 <br>
                 <b>用的 dataset：<code>TaiwanStockPER</code></b>（個股每日 PER / PBR）+ <code>TaiwanStockPrice</code>（最新股價）
-                + <code>TaiwanStockInfo</code>（公司名）。台股 ticker 直接用 4 碼數字（<b>2330</b>、<b>0050</b>），不加 .TW。
+                + <code>TaiwanStockInfo</code>（公司名）+ <code>TaiwanStockFinancialStatements</code>
+                + <code>TaiwanStockCashFlowsStatement</code> + <code>TaiwanStockInstitutionalInvestorsBuySell</code>。
+                台股 ticker 直接用 4 碼數字（<b>2330</b>、<b>0050</b>），不加 .TW。
                 <br>
                 <b>Token 只存 localStorage</b>。
             </p>
+            <div class="btn-row mode-finmind" id="debug-btn-row" hidden>
+                <button id="btn-debug-fields" class="btn-secondary">🔍 印出 FinMind 原始欄位（診斷）</button>
+            </div>
+        </section>
+
+        <section class="panel debug-panel" id="debug-panel" hidden>
+            <h2>🔍 FinMind 原始欄位診斷</h2>
+            <p class="hint">
+                打真的 API、把每個 dataset 回傳的所有 <code>type</code> 值 + <code>origin_name</code>（中文原名）+
+                sample raw row 印出來。用途：<b>驗證程式用的欄位名（<code>NetIncome</code>、<code>FreeCashFlow</code>...）
+                跟 FinMind 實際回傳的一致</b>——如果對不上，這裡會顯示真正該用的名字，回去改程式。
+            </p>
+            <div id="debug-output"></div>
         </section>
 
         <section class="panel query-panel" id="query-panel">
