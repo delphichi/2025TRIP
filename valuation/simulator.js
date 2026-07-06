@@ -53,15 +53,42 @@
             const rows = await fmpFetch(`/income-statement?symbol=${ticker}&period=quarter`, apiKey);
             if (!rows || rows.length === 0) return null;
             rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-            // dump 驗證 /stable/income-statement 沒有 grossProfitRatio / operatingIncomeRatio 欄位，
-            // 只有 raw grossProfit / operatingIncome / revenue → 程式自己算 margin
             const safeDiv = (num, den) => (num !== null && num !== undefined && den) ? num / den : null;
-            return processFundamentals(rows, {
+            const result = processFundamentals(rows, {
                 revenue: r => r.revenue,
                 eps: r => (r.eps !== null && r.eps !== undefined) ? r.eps : r.epsDiluted,
                 grossMargin:     r => safeDiv(r.grossProfit, r.revenue),
                 operatingMargin: r => safeDiv(r.operatingIncome, r.revenue),
             });
+
+            // 非營運項目佔稅前獲利比例 TTM · 揭露 GOOGL 這種控股公司特有 pumpage
+            // 例：GOOGL Q1 2026 OI&E $37.7B / 稅前 $77.4B = 49% · 其中 99% 是 Waymo/DeepMind
+            //     未實現利益（外部融資輪推高帳面公允價值）· 不會轉成現金流
+            // 正常公司 <10% · 20-40% 值得警告 · >40% 極端
+            if (result && rows.length >= 4) {
+                let nonOpSum = 0, preTaxSum = 0, valid = true;
+                for (let i = 0; i < 4; i++) {
+                    const r = rows[i];
+                    // FMP dump 驗證：nonOperatingIncomeExcludingInterest 是主欄位
+                    // totalOtherIncomeExpensesNet 是舊版名 · 有時被替代
+                    const nonOp = (r.nonOperatingIncomeExcludingInterest !== undefined && r.nonOperatingIncomeExcludingInterest !== null)
+                                ? r.nonOperatingIncomeExcludingInterest
+                                : (r.totalOtherIncomeExpensesNet !== undefined && r.totalOtherIncomeExpensesNet !== null)
+                                  ? r.totalOtherIncomeExpensesNet : null;
+                    const preTax = r.incomeBeforeTax;
+                    if (nonOp === null || preTax === null || preTax === undefined || !isFinite(nonOp) || !isFinite(preTax)) {
+                        valid = false; break;
+                    }
+                    nonOpSum += nonOp;
+                    preTaxSum += preTax;
+                }
+                if (valid && preTaxSum !== 0) {
+                    result.nonOpRatioTtm = nonOpSum / preTaxSum;
+                    result.nonOpTtm = nonOpSum;
+                    result.preTaxTtm = preTaxSum;
+                }
+            }
+            return result;
         } catch (e) {
             console.warn('FMP fundamentals fetch failed:', e.message);
             return null;
@@ -1052,6 +1079,20 @@
     }
 
     // ---------- Fundamentals table 渲染 ----------
+    // 非營運項目佔稅前獲利 TTM · 揭露 GOOGL 這種控股公司特有的非現金 pumpage
+    // GOOGL Q1 2026 案例：$36.9B Waymo 未實現利益佔 OI&E 99% · 佔稅前 49%
+    //   → 表面淨利 YoY +81% · 剔除後核心業務 YoY +26% · PEG 從 0.35 → 1.09
+    function renderNonOpBanner(fund) {
+        if (!fund || fund.nonOpRatioTtm === undefined || fund.nonOpRatioTtm === null) return '';
+        const pct = fund.nonOpRatioTtm * 100;
+        // 只在 |ratio| > 20% 時顯示 · 正常公司 <10% 不干擾
+        if (Math.abs(pct) < 20) return '';
+        const cls = Math.abs(pct) > 40 ? 'divergence-warn' : 'divergence-warn';
+        const severity = Math.abs(pct) > 40 ? '🚨 極端' : '⚠️';
+        const sign = pct > 0 ? '推高' : '壓低';
+        return `<div class="divergence-banner ${cls}">${severity} <b>非營運項目佔稅前獲利 ${pct.toFixed(0)}%</b>（近 4 季 TTM）——淨利被<b>非營運項目顯著${sign}</b>：常見來源包含<b>未實現投資利益</b>（例：Alphabet 對 Waymo/DeepMind/私募股權公允價值變動 · 外部融資輪推高帳面）· 一次性稅務利益 · 匯損 · 併購重估。<b>這些不轉成現金流</b>——想看核心業務真實成長率，得去 10-Q 的 <code>Other income (expense), net</code> 明細把它扣掉。<br><span class="hint-mini">💡 官方直接計算方式：核心稅前 = 稅前淨利 − OI&E 主要非經常項；核心 YoY = 用剔除後數字算。工具目前用 GAAP 表面數字算 PEG · 若這個比例大，PEG 分母會被膨脹、看起來假便宜。</span></div>`;
+    }
+
     function renderFundamentalsHtml(fund) {
         if (!fund) return '<p class="hint">⚠️ 這個資料源 or 標的沒抓到季度財報，成長性表隱藏。</p>';
 
@@ -1102,6 +1143,7 @@
                 <br>
                 <span class="hint-mini">📌 <b>找不到去年同季 prior（FMP 免費 tier 只給 5 季）</b>時 fallback 到 <b>QoQ</b>（跟前一季比），會多一個 <span class="mode-tag mode-qoq">Q/Q</span> 標記 · <b>QoQ 有季節性</b>（Q4 常天生 &gt; Q1，別當成長率讀）· QoQ 值不套紅綠色，只有 YoY 才用色調傳達方向。</span>
             </p>
+            ${renderNonOpBanner(fund)}
             <div class="fund-grid">
                 ${renderTable('💵 EPS <span class="acct-tag" title="美股走 GAAP diluted EPS / 台股 IFRS · 詳見 verdict 下方說明">GAAP</span>', fund.eps, false, v => v.toFixed(2))}
                 ${renderTable('💰 營收', fund.revenue, false, fmtRevenue)}
