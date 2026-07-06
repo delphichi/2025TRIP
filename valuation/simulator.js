@@ -584,7 +584,7 @@
         const cfHtml = renderCashFlowHtml(analysis.cashFlow);
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         const instHtml = renderInstitutionalHtml(analysis.institutional);
-        const marginHtml = renderMarginHtml(analysis.marginTW);
+        const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
         $('detail-box').innerHTML = cfHtml + fundHtml + instHtml + marginHtml + tableHtml;
 
         setStatus('success', `✅ 查到 ${ticker} 資料`);
@@ -1025,6 +1025,19 @@
         }
     }
 
+    // 台股股利（用來判斷 window 內是否除過股票股利 → 股本變動）
+    // 只在乎股票股利（StockEarningsDistribution > 0）——純現金股利不影響股本
+    async function fetchDividendTW(ticker, token) {
+        try {
+            const startDate = todayMinusYears(2);
+            const rows = await finMindFetch('TaiwanStockDividend', ticker, startDate, todayStr(), token);
+            return rows || [];
+        } catch (e) {
+            console.warn('FinMind dividend fetch failed:', e.message);
+            return [];
+        }
+    }
+
     // ---------- 解讀邏輯（層次 4 + 5） ----------
     function interpretDgs10(dgs10) {
         if (!dgs10 || dgs10.length < 60) return null;
@@ -1073,7 +1086,7 @@
             text: `VIX <b>${latest.toFixed(1)}</b>（15-30 區間），市場情緒正常。` };
     }
 
-    function interpretMargin(margin) {
+    function interpretMargin(margin, dividends) {
         if (!margin || margin.length < 60) return null;
         const sorted = margin.slice().sort((a, b) => a.date.localeCompare(b.date));
         const latest = sorted[sorted.length - 1];
@@ -1082,12 +1095,48 @@
         const delta = latest.marginBalance - past.marginBalance;
         const pct = delta / past.marginBalance;
         const fmt = n => Number(n).toLocaleString();
+
+        // ⚠️ 股本結構偵測：融資餘額 % 有可能不是散戶槓桿變化、而是股本技術性變動
+        // 兩個訊號：
+        // 1. 單日跳動 >15%（股票股利、減資、增資、分割都會這樣呈現）
+        // 2. FinMind 股利資料裡 window 內有「股票股利」除權日（StockEarningsDistribution > 0）
+        const windowRows = sorted.slice(-63);
+        const windowStart = windowRows[0].date;
+        const windowEnd = latest.date;
+        let biggestJump = 0, biggestJumpDate = null;
+        for (let i = 1; i < windowRows.length; i++) {
+            const prev = windowRows[i - 1].marginBalance;
+            const cur = windowRows[i].marginBalance;
+            if (!prev) continue;
+            const jump = (cur - prev) / prev;
+            if (Math.abs(jump) > Math.abs(biggestJump)) {
+                biggestJump = jump;
+                biggestJumpDate = windowRows[i].date;
+            }
+        }
+        const hasStepChange = Math.abs(biggestJump) > 0.15;
+
+        const stockDivEvents = (dividends || []).filter(d => {
+            const exDate = d.StockExDividendTradingDate;
+            if (!exDate || exDate === '') return false;
+            return exDate >= windowStart && exDate <= windowEnd && d.StockEarningsDistribution > 0;
+        });
+        const hasStockDivEvent = stockDivEvents.length > 0;
+
+        let caveat = '';
+        if (hasStepChange || hasStockDivEvent) {
+            const bits = [];
+            if (hasStepChange) bits.push(`<b>${biggestJumpDate}</b> 出現單日 <b>${(biggestJump*100).toFixed(0)}%</b> 跳動`);
+            if (hasStockDivEvent) bits.push(`除權日 <b>${stockDivEvents[0].StockExDividendTradingDate}</b> 發過股票股利`);
+            caveat = `<br><span class="margin-caveat">⚠️ <b>股本結構警訊</b>：${bits.join('、')}——這波變化<b>有部分可能是股本技術性因素</b>（除權股票股利 / 減資 / 增資 / 分割），不完全是散戶追高。到證交所公告查具體事件確認。</span>`;
+        }
+
         if (pct > 0.20) return { kind: 'warn',
-            text: `⚠️ 融資餘額近 3 個月 <b>+${(pct*100).toFixed(0)}%</b>（${fmt(past.marginBalance)} → ${fmt(latest.marginBalance)} 張）· 散戶槓桿追高中。反轉時融資斷頭骨牌會放大跌幅。<b>不是不能買，但這波上漲的燃料有一部分是散戶槓桿。</b>` };
+            text: `⚠️ 融資餘額近 3 個月 <b>+${(pct*100).toFixed(0)}%</b>（${fmt(past.marginBalance)} → ${fmt(latest.marginBalance)} 張）· 散戶槓桿追高中。反轉時融資斷頭骨牌會放大跌幅。<b>不是不能買，但這波上漲的燃料有一部分是散戶槓桿。</b>${caveat}` };
         if (pct < -0.15) return { kind: 'good',
-            text: `✅ 融資餘額近 3 個月 <b>${(pct*100).toFixed(0)}%</b>（${fmt(past.marginBalance)} → ${fmt(latest.marginBalance)} 張）· 散戶槓桿收斂，籌碼較穩定。若股價還在漲，多半是法人 / 大戶主導，這種上漲較健康。` };
+            text: `✅ 融資餘額近 3 個月 <b>${(pct*100).toFixed(0)}%</b>（${fmt(past.marginBalance)} → ${fmt(latest.marginBalance)} 張）· 散戶槓桿收斂，籌碼較穩定。若股價還在漲，多半是法人 / 大戶主導，這種上漲較健康。${caveat}` };
         return { kind: 'ok',
-            text: `融資餘額近 3 個月變化 ${(pct*100).toFixed(0)}%（${fmt(latest.marginBalance)} 張），籌碼結構穩定。` };
+            text: `融資餘額近 3 個月變化 ${(pct*100).toFixed(0)}%（${fmt(latest.marginBalance)} 張），籌碼結構穩定。${caveat}` };
     }
 
     // ---------- Sparkline util ----------
@@ -1201,9 +1250,9 @@
     }
 
     // ---------- Render 融資餘額（塞進 detail-box） ----------
-    function renderMarginHtml(margin) {
+    function renderMarginHtml(margin, dividends) {
         if (!margin || margin.length === 0) return '';
-        const note = interpretMargin(margin);
+        const note = interpretMargin(margin, dividends);
         const cls = note ? (note.kind === 'warn' ? 'divergence-warn' : note.kind === 'good' ? 'divergence-good' : 'divergence-ok') : 'divergence-ok';
         const banner = note ? `<div class="divergence-banner ${cls}">${note.text}</div>` : '';
         return `
@@ -1211,7 +1260,8 @@
             <p class="hint">
                 <b>融資餘額 = 散戶用信用擴張買進的張數</b>。餘額急升 + 股價新高 = 追高過熱，
                 反轉時斷頭骨牌會放大跌幅。餘額下降但股價還在漲 = 籌碼從散戶轉到法人 / 大戶。
-                <span class="hint-mini">FinMind <code>TaiwanStockMarginPurchaseShortSale</code> · 近 3 個月 vs 現在</span>
+                <span class="hint-mini">FinMind <code>TaiwanStockMarginPurchaseShortSale</code> · 近 3 個月 vs 現在。
+                自動偵測單日 &gt;15% 跳動 + 除權股票股利事件——這兩者會讓「張數變化」有一部分是股本技術性因素，不是純散戶追高。</span>
             </p>
             ${banner}
         `;
@@ -1384,16 +1434,18 @@
                 stockPromise = fetchStockData(ticker, fmpKeyForMacro, years);
             }
 
-            // 平行抓總體 / 匯率 / VIX / 融資（都 optional · 失敗回 null 不擋主流程）
-            const [data, macro, fx, vix, marginTW] = await Promise.all([
+            // 平行抓總體 / 匯率 / VIX / 融資 + 股利（都 optional · 失敗回 null 不擋主流程）
+            const [data, macro, fx, vix, marginTW, dividendsTW] = await Promise.all([
                 stockPromise,
                 fetchMacroFred(fredKey),
                 fetchForexUsdTwd(fmpKeyForMacro),
                 fetchVixHistory(fmpKeyForMacro),
                 (isFinmind && finmindTokenForMargin) ? fetchMarginTW(ticker, finmindTokenForMargin) : Promise.resolve(null),
+                (isFinmind && finmindTokenForMargin) ? fetchDividendTW(ticker, finmindTokenForMargin) : Promise.resolve([]),
             ]);
 
             data.marginTW = marginTW;
+            data.dividendsTW = dividendsTW;
             renderResult(data);
             renderMacroPanel(macro, fx, vix);
         } catch (e) {

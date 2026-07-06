@@ -474,6 +474,20 @@ textarea {
 .macro-status-line .src-ok   { color: var(--success); font-weight: 700; }
 .macro-status-line .src-warn { color: #b45309; font-weight: 700; }
 .macro-status-line .src-err  { color: var(--danger); font-weight: 700; }
+
+/* 融資餘額 · 股本結構警訊 */
+.margin-caveat {
+    display: block;
+    background: #fef3c7;
+    border-left: 3px solid var(--warning);
+    color: #78350f;
+    padding: 6px 10px;
+    margin-top: 8px;
+    border-radius: 0 4px 4px 0;
+    font-size: .9em;
+    line-height: 1.55;
+}
+.margin-caveat b { color: #78350f; }
 .macro-links {
     background: #fff;
     border: 1px dashed #fde68a;
