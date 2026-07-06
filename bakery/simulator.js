@@ -789,11 +789,33 @@
                 // 桌上麵包（會用下方 stats 邏輯畫）
                 const winY = tableY - 20, winH = 20, winX = b.x + 12, winW = b.w - 24;
                 this._drawShopBreadWindow(producer, winX, winY, winW, winH, false);
-                // 手寫招牌
+                // 傘上紙牌招牌（手寫紙板釘在傘桿）
+                const cardW = b.w * 0.7;
+                const cardH = 14;
+                const cardX = b.x + (b.w - cardW) / 2;
+                const cardY = b.y + 10;
+                // 紙板陰影
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                ctx.fillRect(cardX + 1, cardY + 1, cardW, cardH);
+                // 紙板本體（米黃）
+                ctx.fillStyle = '#fef3c7';
+                ctx.fillRect(cardX, cardY, cardW, cardH);
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(cardX, cardY, cardW, cardH);
+                // 手寫店型
+                ctx.font = `italic bold 10px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#7c2d12';
+                ctx.fillText(`🛒 路邊攤`, cardX + cardW / 2, cardY + cardH / 2);
+
+                // 下方招牌（店主名稱）
                 ctx.font = `italic 700 ${isPlayer ? 12 : 11}px sans-serif`;
                 ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
                 ctx.fillStyle = isPlayer ? '#f97316' : '#78350f';
-                const stallName = isPlayer ? `🛒 我的路邊攤` : `🛒 ${producer.label.replace(/^對手 /, '').replace(/\s·.*$/, '')}`;
+                const stallName = isPlayer ? `我的路邊攤` : producer.label.replace(/^對手 /, '').replace(/\s·.*$/, '');
                 ctx.fillText(stallName, b.x + b.w / 2, b.y + b.h + 4);
                 // 玩家箭頭
                 if (isPlayer) {
@@ -844,33 +866,8 @@
                     ctx.stroke();
                 }
             }
-            // 百貨專櫃 · 霓虹招牌（懸在屋頂上方）
-            if (neonSign) {
-                const nsW = b.w * 0.9;
-                const nsH = 14;
-                const nsX = b.x + (b.w - nsW) / 2;
-                const nsY = b.y - 10;
-                // 發光暈
-                const glowGrad = ctx.createRadialGradient(
-                    nsX + nsW / 2, nsY + nsH / 2, 2,
-                    nsX + nsW / 2, nsY + nsH / 2, nsW / 1.5
-                );
-                glowGrad.addColorStop(0, 'rgba(232, 121, 249, 0.6)');
-                glowGrad.addColorStop(1, 'rgba(232, 121, 249, 0)');
-                ctx.fillStyle = glowGrad;
-                ctx.fillRect(nsX - 20, nsY - 8, nsW + 40, nsH + 16);
-                // 招牌本體
-                ctx.fillStyle = '#701a75';
-                ctx.fillRect(nsX, nsY, nsW, nsH);
-                ctx.strokeStyle = '#f0abfc';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(nsX, nsY, nsW, nsH);
-                ctx.font = 'bold 9px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#fdf4ff';
-                ctx.fillText('★ BAKERY ★', nsX + nsW / 2, nsY + nsH / 2);
-            }
+            // 屋頂招牌 · 每個 tier 用不同材質配色寫店型
+            this._drawTierRoofSign(b, tier, neonSign);
 
             // 玩家店額外「你在這」箭頭
             if (isPlayer) {
@@ -988,6 +985,71 @@
                 ctx.font = '18px sans-serif';
                 ctx.fillText('🔥', b.x + b.w - 14, b.y + 4);
             }
+        }
+
+        // 屋頂招牌 · 每個 tier 用不同材質配色寫店型（讓玩家一眼認出）
+        _drawTierRoofSign(b, tier, neonGlow) {
+            const { ctx } = this;
+            const sW = b.w * 0.92;
+            const sH = 15;
+            const sX = b.x + (b.w - sW) / 2;
+            const sY = b.y - 8;
+
+            let bg, fg, border;
+            switch (tier.key) {
+                case 'cart':
+                    // 木牌 · 深棕釘住
+                    bg = '#78350f'; fg = '#fef3c7'; border = '#451a03';
+                    break;
+                case 'bakery':
+                    // 布招 · 紅底奶油字
+                    bg = '#b91c1c'; fg = '#fef3c7'; border = '#7c2d12';
+                    break;
+                case 'boutique':
+                    // 金屬招牌 · 金框深棕字
+                    bg = '#fde68a'; fg = '#7c2d12'; border = '#d97706';
+                    break;
+                case 'department':
+                    // 霓虹招牌
+                    bg = '#701a75'; fg = '#fdf4ff'; border = '#e879f9';
+                    break;
+                default:
+                    // fallback: 通用木牌
+                    bg = '#78350f'; fg = '#fef3c7'; border = '#451a03';
+            }
+
+            // 霓虹光暈（僅 department）
+            if (neonGlow) {
+                const glowGrad = ctx.createRadialGradient(
+                    sX + sW / 2, sY + sH / 2, 2,
+                    sX + sW / 2, sY + sH / 2, sW / 1.5
+                );
+                glowGrad.addColorStop(0, 'rgba(232, 121, 249, 0.6)');
+                glowGrad.addColorStop(1, 'rgba(232, 121, 249, 0)');
+                ctx.fillStyle = glowGrad;
+                ctx.fillRect(sX - 20, sY - 8, sW + 40, sH + 16);
+            }
+            // 招牌本體
+            ctx.fillStyle = bg;
+            ctx.fillRect(sX, sY, sW, sH);
+            ctx.strokeStyle = border;
+            ctx.lineWidth = tier.key === 'boutique' ? 2 : 1;
+            ctx.strokeRect(sX, sY, sW, sH);
+            // boutique 加金色內框（精緻感）
+            if (tier.key === 'boutique') {
+                ctx.strokeStyle = '#a16207';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(sX + 2, sY + 2, sW - 4, sH - 4);
+            }
+            // 店型文字
+            ctx.font = `bold 10px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = fg;
+            const signText = tier.key === 'department'
+                ? `★ ${tier.emoji} ${tier.name} ★`
+                : `${tier.emoji} ${tier.name}`;
+            ctx.fillText(signText, sX + sW / 2, sY + sH / 2);
         }
 
         // 路邊攤專用：畫桌面上的麵包（沒有窗、直接放在桌上）
