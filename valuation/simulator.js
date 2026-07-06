@@ -6,6 +6,100 @@
     const fmt = (n, d = 2) => (n === null || n === undefined || Number.isNaN(n)) ? '—' : Number(n).toFixed(d);
     const fmtPct = n => (n === null || n === undefined || Number.isNaN(n)) ? '—' : (n * 100).toFixed(0) + '%';
 
+    // ---------- FinMind API（台股）----------
+    // Base: https://api.finmindtrade.com/api/v4/data
+    // Auth: ?token=XXX
+    // 我們需要的 datasets：
+    // - TaiwanStockPER: 個股 PER、PBR 每日資料（含 dividend_yield）
+    // - TaiwanStockPrice: 股價（拿最新收盤）
+    // - TaiwanStockInfo: 公司名 / 產業（可選）
+    const FINMIND_BASE = 'https://api.finmindtrade.com/api/v4/data';
+
+    async function finMindFetch(dataset, dataId, startDate, endDate, token) {
+        const params = new URLSearchParams({ dataset, data_id: dataId, start_date: startDate, token });
+        if (endDate) params.append('end_date', endDate);
+        const url = `${FINMIND_BASE}?${params}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.status !== 200 && data.msg && data.msg !== 'success') {
+            throw new Error(`FinMind: ${data.msg}`);
+        }
+        return data.data || [];
+    }
+
+    function todayMinusYears(years) {
+        const now = new Date();
+        const past = new Date(now.getFullYear() - years, now.getMonth(), now.getDate());
+        return past.toISOString().substring(0, 10);
+    }
+    function todayStr() { return new Date().toISOString().substring(0, 10); }
+
+    // 從每日 PER/PBR array 建構出年度統計 + 全部日資料當歷史樣本
+    // 直方圖用「全部日資料」→ 樣本量比 FMP 年報大 250 倍、分佈更細
+    async function fetchTwStockData(rawTicker, token, years) {
+        setStatus('loading', `📡 抓 ${rawTicker} (FinMind) 資料中……`);
+        // 統一格式：去掉 .TW 後綴
+        const ticker = rawTicker.replace(/\.TW$/i, '').replace(/^tw/i, '').trim();
+        if (!/^\d+$/.test(ticker)) throw new Error(`FinMind 台股 ticker 必須是純數字（例：2330、0050），你輸入 "${ticker}"`);
+        const startDate = todayMinusYears(years);
+        const endDate = todayStr();
+        // 平行抓：PER 歷史 + 股價（近一週） + 公司資訊
+        const [perData, priceData, infoData] = await Promise.all([
+            finMindFetch('TaiwanStockPER', ticker, startDate, endDate, token),
+            finMindFetch('TaiwanStockPrice', ticker, todayMinusYears(0.05), endDate, token),   // 近 ~18 天內找最新
+            finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []),
+        ]);
+
+        if (!perData || perData.length === 0) throw new Error(`FinMind 找不到 ${ticker} 的 PER/PBR 資料（可能是新股或未收）`);
+
+        // 最新 PER / PBR = 最後一筆
+        const latest = perData[perData.length - 1];
+        const currentPE = latest.PER;
+        const currentPBR = latest.PBR;
+
+        // 最新股價：取 priceData 最後一筆 close
+        let price = null;
+        if (priceData && priceData.length > 0) {
+            price = priceData[priceData.length - 1].close;
+        }
+
+        // 公司名 & 產業
+        let name = ticker;
+        let sector = '';
+        if (infoData && infoData.length > 0) {
+            const info = infoData[infoData.length - 1];
+            name = info.stock_name || ticker;
+            sector = info.industry_category || '';
+        }
+
+        // 直方圖的樣本：每一天的 PER / PBR（過濾非數字）
+        // FMP 是「年度」樣本 5-20 筆，FinMind 是「每日」樣本 1000-5000 筆——分佈更細
+        const history = perData
+            .filter(r => r.PER !== null && isFinite(r.PER) && r.PER > 0)   // 濾掉負數 PER（虧損公司）+ 0
+            .map(r => ({
+                year: r.date ? r.date.substring(0, 4) : '?',
+                date: r.date,
+                pe: r.PER,
+                pbr: r.PBR,
+            }));
+
+        if (history.length < 30) throw new Error(`歷史樣本太少（只 ${history.length} 天），可能是新股`);
+
+        return {
+            ticker,
+            name,
+            price,
+            currentPE,
+            currentPBR,
+            marketCap: null,
+            history,
+            latestRatioDate: latest.date,
+            sector,
+            source: 'FinMind',
+        };
+    }
+
     // ---------- FMP API ----------
     // Financial Modeling Prep：新版 stable API（2024 改版，取代舊 /api/v3）
     // 端點格式改成 query param：/stable/{endpoint}?symbol=TICKER
@@ -268,7 +362,13 @@
         $('result-price').textContent = price !== null ? '$' + fmt(price, 2) : '—';
         $('result-pe').textContent = currentPE !== null && isFinite(currentPE) ? fmt(currentPE, 1) : '—';
         $('result-pbr').textContent = currentPBR !== null && isFinite(currentPBR) ? fmt(currentPBR, 2) : '—';
-        $('result-samples').textContent = `${history.length} 年（${history[0].year}-${history[history.length - 1].year}）`;
+        // 樣本：若 daily 顯示筆數 + 年份跨度；若 annual 顯示年數
+        if (history.length > 30) {
+            const yearSpan = `${history[0].year}-${history[history.length - 1].year}`;
+            $('result-samples').textContent = `${history.length} 筆 · ${yearSpan}`;
+        } else {
+            $('result-samples').textContent = `${history.length} 年（${history[0].year}-${history[history.length - 1].year}）`;
+        }
 
         // 分佈統計
         const peValues = history.map(h => h.pe).filter(v => v !== null && isFinite(v));
@@ -318,22 +418,44 @@
             平均 <span class="val">${fmt(pbrStats.mean, 2)}</span>
         `;
 
-        // Detail 表
-        let tableHtml = `
-            <h3>📋 歷年數據</h3>
-            <table>
-                <tr><th>年份</th><th>PE</th><th>PBR</th></tr>
-        `;
-        // 從新到舊列
-        history.slice().reverse().forEach(h => {
-            tableHtml += `
-                <tr>
+        // Detail 表：若樣本 > 30 筆（FinMind 每日資料），按年 groupby 顯示年度中位；否則直接列
+        let tableHtml = `<h3>📋 歷年數據</h3><table>`;
+        if (history.length > 30) {
+            // FinMind daily：按年 aggregate 顯示中位、min、max
+            tableHtml += '<tr><th>年份</th><th>PE 中位</th><th>PE min-max</th><th>PBR 中位</th></tr>';
+            const byYear = new Map();
+            history.forEach(h => {
+                if (!byYear.has(h.year)) byYear.set(h.year, { pe: [], pbr: [] });
+                byYear.get(h.year).pe.push(h.pe);
+                if (h.pbr !== null && isFinite(h.pbr)) byYear.get(h.year).pbr.push(h.pbr);
+            });
+            const yearsList = Array.from(byYear.keys()).sort().reverse();
+            yearsList.forEach(y => {
+                const g = byYear.get(y);
+                const peSorted = g.pe.slice().sort((a, b) => a - b);
+                const peMed = peSorted[Math.floor(peSorted.length / 2)];
+                const peMin = peSorted[0];
+                const peMax = peSorted[peSorted.length - 1];
+                const pbrSorted = g.pbr.slice().sort((a, b) => a - b);
+                const pbrMed = pbrSorted.length > 0 ? pbrSorted[Math.floor(pbrSorted.length / 2)] : null;
+                tableHtml += `<tr>
+                    <td>${y}（${g.pe.length} 筆）</td>
+                    <td>${fmt(peMed, 1)}</td>
+                    <td>${fmt(peMin, 1)} – ${fmt(peMax, 1)}</td>
+                    <td>${fmt(pbrMed, 2)}</td>
+                </tr>`;
+            });
+        } else {
+            // FMP annual：直接列
+            tableHtml += '<tr><th>年份</th><th>PE</th><th>PBR</th></tr>';
+            history.slice().reverse().forEach(h => {
+                tableHtml += `<tr>
                     <td>${h.year}</td>
                     <td>${fmt(h.pe, 1)}</td>
                     <td>${fmt(h.pbr, 2)}</td>
-                </tr>
-            `;
-        });
+                </tr>`;
+            });
+        }
         tableHtml += '</table>';
         if (latestRatioDate) {
             tableHtml += `<p class="hint">歷年 ratio 資料來自年報，最新一筆日期：<b>${latestRatioDate}</b>。若日期太舊（例如超過 1 年），當前 PE 用 quote 的 real-time 值（price / EPS-TTM），跟歷年可能有基準差異。</p>`;
@@ -352,15 +474,24 @@
 
     // ---------- Handlers ----------
     async function onQuery() {
-        const ticker = $('cfg-ticker').value.trim().toUpperCase();
+        const mode = $('cfg-mode').value;
+        const ticker = $('cfg-ticker').value.trim();
         if (!ticker) { setStatus('error', '⚠️ 請輸入 ticker'); return; }
-        const apiKey = $('cfg-api-key').value.trim();
-        if (!apiKey) { setStatus('error', '⚠️ 請先設定 FMP API key'); return; }
-        localStorage.setItem('fmp_api_key', apiKey);
         const years = parseInt($('cfg-years').value) || 10;
 
         try {
-            const data = await fetchStockData(ticker, apiKey, years);
+            let data;
+            if (mode === 'finmind') {
+                const token = $('cfg-finmind-token').value.trim();
+                if (!token) { setStatus('error', '⚠️ 請先設定 FinMind token'); return; }
+                localStorage.setItem('finmind_token', token);
+                data = await fetchTwStockData(ticker, token, years);
+            } else {
+                const apiKey = $('cfg-api-key').value.trim();
+                if (!apiKey) { setStatus('error', '⚠️ 請先設定 FMP API key'); return; }
+                localStorage.setItem('fmp_api_key', apiKey);
+                data = await fetchStockData(ticker.toUpperCase(), apiKey, years);
+            }
             renderResult(data);
         } catch (e) {
             setStatus('error', `❌ ${e.message}`);
@@ -414,17 +545,18 @@
 
     function onModeChange() {
         const mode = $('cfg-mode').value;
-        if (mode === 'api') {
-            $('query-panel').hidden = false;
-            $('manual-panel').hidden = true;
-            $('api-key-label').style.display = '';
-            $('api-hint').style.display = '';
-        } else {
-            $('query-panel').hidden = true;
-            $('manual-panel').hidden = false;
-            $('api-key-label').style.display = 'none';
-            $('api-hint').style.display = 'none';
-        }
+        const isManual = mode === 'manual';
+        const isFmp = mode === 'fmp';
+        const isFinmind = mode === 'finmind';
+
+        $('query-panel').hidden = isManual;
+        $('manual-panel').hidden = !isManual;
+        // 顯示 / 隱藏對應 API 的 key 欄位跟 hint
+        document.querySelectorAll('.mode-fmp').forEach(el => el.hidden = !isFmp);
+        document.querySelectorAll('.mode-finmind').forEach(el => el.hidden = !isFinmind);
+        // Ticker placeholder 依 mode 換
+        if (isFmp) $('cfg-ticker').placeholder = 'AAPL、TSLA、GOOGL（純字母代碼）';
+        else if (isFinmind) $('cfg-ticker').placeholder = '2330、0050、2454（4 碼數字，不加 .TW）';
     }
 
     function onClearKey() {
@@ -435,9 +567,11 @@
 
     // ---------- Init ----------
     function initUI() {
-        // 讀存的 API key
+        // 讀存的 API key / token
         const savedKey = localStorage.getItem('fmp_api_key');
         if (savedKey) $('cfg-api-key').value = savedKey;
+        const savedToken = localStorage.getItem('finmind_token');
+        if (savedToken) $('cfg-finmind-token').value = savedToken;
 
         $('cfg-mode').addEventListener('change', onModeChange);
         $('btn-query').addEventListener('click', onQuery);

@@ -37,22 +37,36 @@
             <div class="ctrl-grid">
                 <label>資料模式
                     <select id="cfg-mode">
-                        <option value="api" selected>🌐 API 模式（自動抓 FMP）</option>
+                        <option value="fmp" selected>🌐 FMP（美股 + 全球，新版 /stable/ API）</option>
+                        <option value="finmind">🇹🇼 FinMind（台股專用 · TaiwanStockPER）</option>
                         <option value="manual">✍️ 手貼模式（自己輸入數據）</option>
                     </select>
                 </label>
-                <label id="api-key-label">FMP API Key
+                <label id="api-key-label" class="mode-fmp">FMP API Key
                     <input type="text" id="cfg-api-key" placeholder="貼上你的 FMP key（會存 localStorage）">
                 </label>
+                <label id="finmind-token-label" class="mode-finmind" hidden>FinMind Token
+                    <input type="text" id="cfg-finmind-token" placeholder="貼上你的 FinMind token（會存 localStorage）">
+                </label>
             </div>
-            <p class="hint" id="api-hint">
+            <p class="hint mode-fmp" id="api-hint">
                 <b>如何拿 FMP 免費 key</b>：到
                 <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank">financialmodelingprep.com</a>
-                註冊免費帳號 → Dashboard 找 API key → 貼上來。免費額度 250 次/日，夠一般散戶用。
+                註冊免費帳號 → Dashboard 找 API key → 貼上來。免費額度 250 次/日。
                 <br>
-                <b>本工具用 FMP 新版 <code>/stable/</code> API</b>（2024 改版後的、非舊 <code>/api/v3/</code>），所以拿到新 key 就能用。
+                本工具用 FMP 新版 <code>/stable/</code> API（2024 改版後的）。
+                <b>Key 只存 localStorage，不會離開你的瀏覽器</b>。
+            </p>
+            <p class="hint mode-finmind" id="finmind-hint" hidden>
+                <b>如何拿 FinMind 免費 token</b>：到
+                <a href="https://finmindtrade.com/" target="_blank">finmindtrade.com</a>
+                註冊免費帳號 → 個人資料頁面複製 API Token → 貼上來。
+                免費會員 <b>300 次/小時</b>、贊助會員無限。
                 <br>
-                <b>Key 只存在你瀏覽器的 localStorage</b>，不會送到任何我的 server（我沒 server，這是純前端）。
+                <b>用的 dataset：<code>TaiwanStockPER</code></b>（個股每日 PER / PBR）+ <code>TaiwanStockPrice</code>（最新股價）
+                + <code>TaiwanStockInfo</code>（公司名）。台股 ticker 直接用 4 碼數字（<b>2330</b>、<b>0050</b>），不加 .TW。
+                <br>
+                <b>Token 只存 localStorage</b>。
             </p>
         </section>
 
@@ -60,7 +74,7 @@
             <h2>🔍 查詢公司</h2>
             <div class="ctrl-grid">
                 <label>Ticker 代號
-                    <input type="text" id="cfg-ticker" placeholder="AAPL、TSLA、2330.TW、0050.TW…" value="AAPL">
+                    <input type="text" id="cfg-ticker" placeholder="FMP: AAPL、TSLA / FinMind: 2330、0050" value="AAPL">
                 </label>
                 <label>歷史 PE 樣本要抓幾年
                     <select id="cfg-years">
