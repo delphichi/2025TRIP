@@ -116,26 +116,37 @@
         const rowByDate = new Map(rows.map(r => [r.date, r]));
         const N = Math.min(10, rows.length);
 
+        // 計算 delta 的共用函式（isRatio → pp，else → %）
+        const computeDelta = (val, priorVal, isRatio) => {
+            if (val === null || val === undefined || !isFinite(val)) return null;
+            if (priorVal === null || priorVal === undefined || !isFinite(priorVal) || priorVal === 0) return null;
+            return isRatio ? (val - priorVal) : (val - priorVal) / Math.abs(priorVal);
+        };
+
         const build = (getter, isRatio) => {
             const entries = [];
             for (let i = 0; i < N; i++) {
                 const cur = rows[i];
-                // 台積電這種 -03-31 準時的：exact date match 直接命中
-                // AAPL / Costco 這種財年結週六會漂移的：exact match 失敗、fallback 到 i+4 offset
-                let prior = rowByDate.get(yoyDate(cur.date));
-                if (!prior && rows[i + 4]) prior = rows[i + 4];
                 const val = getter(cur);
-                const priorVal = prior ? getter(prior) : null;
-                let yoy = null;
-                if (val !== null && val !== undefined && isFinite(val) &&
-                    priorVal !== null && priorVal !== undefined && isFinite(priorVal) && priorVal !== 0) {
-                    if (isRatio) {
-                        yoy = val - priorVal;   // pp
-                    } else {
-                        yoy = (val - priorVal) / Math.abs(priorVal);   // %
-                    }
+                let delta = null;
+                let mode = null;   // 'YoY' | 'QoQ' | null
+
+                // 優先 YoY：exact date match → i+4 offset（財年結週六漂移的美股）
+                let priorYoY = rowByDate.get(yoyDate(cur.date));
+                if (!priorYoY && rows[i + 4]) priorYoY = rows[i + 4];
+                if (priorYoY) {
+                    const d = computeDelta(val, getter(priorYoY), isRatio);
+                    if (d !== null) { delta = d; mode = 'YoY'; }
                 }
-                entries.push({ date: cur.date, value: val, yoy });
+
+                // Fallback QoQ：跟前一季比（i+1）· FMP 免費 tier 只給 5 季，
+                // 除了 top row 其他都 YoY 抓不到 → QoQ 替補、但明確標示有季節性
+                if (delta === null && rows[i + 1]) {
+                    const d = computeDelta(val, getter(rows[i + 1]), isRatio);
+                    if (d !== null) { delta = d; mode = 'QoQ'; }
+                }
+
+                entries.push({ date: cur.date, value: val, yoy: delta, mode });
             }
             return entries;
         };
@@ -734,20 +745,33 @@
     function processCashFlow(rows, getters) {
         const rowByDate = new Map(rows.map(r => [r.date, r]));
         const N = Math.min(10, rows.length);
+        const computeDelta = (val, priorVal) => {
+            if (val === null || !isFinite(val)) return null;
+            if (priorVal === null || !isFinite(priorVal) || priorVal === 0) return null;
+            return (val - priorVal) / Math.abs(priorVal);
+        };
         const build = (getter) => {
             const entries = [];
             for (let i = 0; i < N; i++) {
                 const cur = rows[i];
-                // 同 processFundamentals：財年結週六會漂移 → exact match fallback 到 i+4 offset
-                let prior = rowByDate.get(yoyDate(cur.date));
-                if (!prior && rows[i + 4]) prior = rows[i + 4];
                 const val = getter(cur);
-                const priorVal = prior ? getter(prior) : null;
-                let yoy = null;
-                if (val !== null && isFinite(val) && priorVal !== null && isFinite(priorVal) && priorVal !== 0) {
-                    yoy = (val - priorVal) / Math.abs(priorVal);
+                let delta = null, mode = null;
+
+                // 優先 YoY
+                let priorYoY = rowByDate.get(yoyDate(cur.date));
+                if (!priorYoY && rows[i + 4]) priorYoY = rows[i + 4];
+                if (priorYoY) {
+                    const d = computeDelta(val, getter(priorYoY));
+                    if (d !== null) { delta = d; mode = 'YoY'; }
                 }
-                entries.push({ date: cur.date, value: val, yoy });
+
+                // Fallback QoQ
+                if (delta === null && rows[i + 1]) {
+                    const d = computeDelta(val, getter(rows[i + 1]));
+                    if (d !== null) { delta = d; mode = 'QoQ'; }
+                }
+
+                entries.push({ date: cur.date, value: val, yoy: delta, mode });
             }
             return entries;
         };
@@ -757,8 +781,10 @@
 
         // 背離偵測：近 4 季 avg(NI YoY) vs avg(CF YoY)
         // 若 NI YoY > 15pp CF YoY → 獲利品質警訊
+        // ⚠️ 只用 mode === 'YoY' 的 entries · 不能把 QoQ 混進來（不同單位、有季節性）
+        // FMP 免費 tier 只有 5 季時，valid.length 通常 < 2 → 背離判讀直接 skip
         const avgYoY = arr => {
-            const valid = arr.filter(e => e.yoy !== null).map(e => e.yoy);
+            const valid = arr.filter(e => e.yoy !== null && e.mode === 'YoY').map(e => e.yoy);
             if (valid.length < 2) return null;
             return valid.reduce((s, v) => s + v, 0) / valid.length;
         };
@@ -827,22 +853,23 @@
         if (!hasAny) return '<p class="hint">⚠️ 這個標的的季度財報 API 回傳空值。</p>';
 
         const renderTable = (title, entries, isRatio, fmtVal) => {
-            let html = `<div class="fund-cell"><h4>${title}</h4><table class="fund-table"><tr><th>季度</th><th>值</th><th>YoY</th></tr>`;
+            let html = `<div class="fund-cell"><h4>${title}</h4><table class="fund-table"><tr><th>季度</th><th>值</th><th>YoY / QoQ</th></tr>`;
             entries.forEach(e => {
                 const dateStr = e.date || '—';
                 const valStr = (e.value !== null && isFinite(e.value)) ? fmtVal(e.value) : '—';
                 let yoyStr = '—', yoyCls = '';
                 if (e.yoy !== null && isFinite(e.yoy)) {
-                    if (isRatio) {
-                        // 比率型：yoy 是絕對百分點差
-                        const pp = e.yoy * 100;
-                        yoyStr = (pp > 0 ? '+' : '') + pp.toFixed(1) + ' pp';
-                    } else {
-                        // 絕對值型：yoy 是相對百分比
-                        const pct = e.yoy * 100;
-                        yoyStr = (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+                    const raw = e.yoy * 100;
+                    const sign = raw > 0 ? '+' : '';
+                    const numStr = isRatio ? `${sign}${raw.toFixed(1)} pp` : `${sign}${raw.toFixed(1)}%`;
+                    const tag = e.mode === 'QoQ'
+                        ? ` <span class="mode-tag mode-qoq" title="QoQ · 跟前一季比，有季節性（Q4 常天生 &gt; Q1），不能直接當成長率讀">Q/Q</span>`
+                        : '';
+                    yoyStr = numStr + tag;
+                    // QoQ 用中性色（不當成長率評價 pos/neg）· 只有 YoY 才 tag 紅綠
+                    if (e.mode === 'YoY') {
+                        yoyCls = e.yoy > 0.001 ? 'yoy-pos' : e.yoy < -0.001 ? 'yoy-neg' : '';
                     }
-                    yoyCls = e.yoy > 0.001 ? 'yoy-pos' : e.yoy < -0.001 ? 'yoy-neg' : '';
                 }
                 html += `<tr><td>${dateStr}</td><td>${valStr}</td><td class="${yoyCls}">${yoyStr}</td></tr>`;
             });
@@ -862,9 +889,10 @@
         return `
             <h3>📊 財報成長性（近 10 季 + YoY）</h3>
             <p class="hint">
-                YoY = 跟去年同一季比較。<b>絕對值型（EPS、營收）</b> YoY 用 % 表示；
-                <b>比率型（毛利率、營益率）</b> YoY 用 <b>pp（百分點）</b>表示。
+                YoY = 跟去年同一季比較。<b>絕對值型（EPS、營收）</b>用 % 表示；<b>比率型（毛利率、營益率）</b>用 <b>pp（百分點）</b>表示。
                 連續 4 季 YoY 都 &gt; 0 = 成長股訊號；連續 &lt; 0 = 衰退警訊。
+                <br>
+                <span class="hint-mini">📌 <b>找不到去年同季 prior（FMP 免費 tier 只給 5 季）</b>時 fallback 到 <b>QoQ</b>（跟前一季比），會多一個 <span class="mode-tag mode-qoq">Q/Q</span> 標記 · <b>QoQ 有季節性</b>（Q4 常天生 &gt; Q1，別當成長率讀）· QoQ 值不套紅綠色，只有 YoY 才用色調傳達方向。</span>
             </p>
             <div class="fund-grid">
                 ${renderTable('💵 EPS', fund.eps, false, v => v.toFixed(2))}
@@ -893,9 +921,13 @@
         const yoyCls = y => y === null ? '' : y > 0.001 ? 'yoy-pos' : y < -0.001 ? 'yoy-neg' : '';
 
         const renderCol = (title, entries) => {
-            let h = `<div class="fund-cell"><h4>${title}</h4><table class="fund-table"><tr><th>季度</th><th>值</th><th>YoY</th></tr>`;
+            let h = `<div class="fund-cell"><h4>${title}</h4><table class="fund-table"><tr><th>季度</th><th>值</th><th>YoY / QoQ</th></tr>`;
             entries.forEach(e => {
-                h += `<tr><td>${e.date || '—'}</td><td>${fmtNum(e.value)}</td><td class="${yoyCls(e.yoy)}">${fmtYoY(e.yoy)}</td></tr>`;
+                const tag = e.mode === 'QoQ'
+                    ? ` <span class="mode-tag mode-qoq" title="QoQ · 跟前一季比，有季節性">Q/Q</span>`
+                    : '';
+                const cls = e.mode === 'YoY' ? yoyCls(e.yoy) : '';   // QoQ 用中性色
+                h += `<tr><td>${e.date || '—'}</td><td>${fmtNum(e.value)}</td><td class="${cls}">${fmtYoY(e.yoy)}${tag}</td></tr>`;
             });
             h += '</table></div>';
             return h;
