@@ -982,20 +982,28 @@
         // 背離偵測：近 4 季 avg(NI YoY) vs avg(CF YoY)
         // 若 NI YoY > 15pp CF YoY → 獲利品質警訊
         // ⚠️ 只用 mode === 'YoY' 的 entries · 不能把 QoQ 混進來（不同單位、有季節性）
-        // FMP 免費 tier 只有 5 季時，valid.length 通常 < 2 → 背離判讀直接 skip
+        // FMP 免費 tier 只有 5 季 → 通常只 1 個 YoY prior · 之前門檻 2 直接 skip
+        //   → NVDA (NI +211% vs CF +84% = 127pp) · GOOGL (NI +81% vs CF +27% = 54pp)
+        //     這種 huge divergence 都被漏了 · 大問題
+        // 修法：門檻降至 1 · 但明確帶 sample size caveat · 使用者知道這是單季訊號不是趨勢
         const avgYoY = arr => {
             const valid = arr.filter(e => e.yoy !== null && e.mode === 'YoY').map(e => e.yoy);
-            if (valid.length < 2) return null;
-            return valid.reduce((s, v) => s + v, 0) / valid.length;
+            if (valid.length < 1) return { avg: null, n: 0 };
+            return { avg: valid.reduce((s, v) => s + v, 0) / valid.length, n: valid.length };
         };
         const niYoY = avgYoY(ni.slice(0, 4));
         const cfYoY = avgYoY(opCF.slice(0, 4));
         let divergence = null;
-        if (niYoY !== null && cfYoY !== null) {
-            const gap = niYoY - cfYoY;
-            if (gap > 0.15) divergence = { kind: 'warning', gap, msg: `⚠️ 近 4 季<b>淨利年增 ${(niYoY*100).toFixed(0)}% 但營運CF 年增 ${(cfYoY*100).toFixed(0)}%</b>——差 ${(gap*100).toFixed(0)}pp。可能是應收帳款膨脹 or 存貨堆積 or 認列時點差異，<b>獲利品質有疑慮</b>，回去看資產負債表確認。` };
-            else if (gap < -0.15) divergence = { kind: 'positive', gap, msg: `✅ 近 4 季<b>營運CF 年增 ${(cfYoY*100).toFixed(0)}% 高於淨利年增 ${(niYoY*100).toFixed(0)}%</b>——獲利品質紮實，現金比帳面更漂亮。` };
-            else divergence = { kind: 'ok', gap, msg: `✓ 淨利跟營運 CF 同向（差 ${(gap*100).toFixed(0)}pp），獲利品質沒問題。` };
+        if (niYoY.avg !== null && cfYoY.avg !== null) {
+            const gap = niYoY.avg - cfYoY.avg;
+            const minN = Math.min(niYoY.n, cfYoY.n);
+            const sampleCaveat = minN < 2
+                ? `<br><span class="hint-mini">⚠️ <b>僅 ${minN} 個 YoY 樣本</b>（FMP 免費 tier 5 季 → 只 1 個 YoY prior）· 這是<b>單季訊號不是趨勢</b>，觀察下一季再定論。</span>`
+                : '';
+            const period = minN < 2 ? '最新一季' : `近 ${minN} 季`;
+            if (gap > 0.15) divergence = { kind: 'warning', gap, msg: `⚠️ ${period}<b>淨利年增 ${(niYoY.avg*100).toFixed(0)}% 但營運CF 年增 ${(cfYoY.avg*100).toFixed(0)}%</b>——差 <b>${(gap*100).toFixed(0)}pp</b>。可能是應收帳款膨脹 / 存貨堆積 / 認列時點差異 / <b>非現金投資利益</b>（例：Alphabet 對 Waymo / DeepMind / 私募股權的未實現利益 · 一次性稅務利益 · 併購重估），<b>獲利品質有疑慮</b>。回去看資產負債表 + 8-K 一次性項目確認。${sampleCaveat}` };
+            else if (gap < -0.15) divergence = { kind: 'positive', gap, msg: `✅ ${period}<b>營運CF 年增 ${(cfYoY.avg*100).toFixed(0)}% 高於淨利年增 ${(niYoY.avg*100).toFixed(0)}%</b>——獲利品質紮實，現金比帳面更漂亮。${sampleCaveat}` };
+            else divergence = { kind: 'ok', gap, msg: `✓ 淨利跟營運 CF 同向（差 ${(gap*100).toFixed(0)}pp），獲利品質沒問題。${sampleCaveat}` };
         }
 
         return { operatingCF: opCF, freeCF: fCF, netIncome: ni, sbc, sbcRatioTtm, divergence };
