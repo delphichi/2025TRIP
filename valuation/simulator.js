@@ -52,13 +52,15 @@
         try {
             const rows = await fmpFetch(`/income-statement?symbol=${ticker}&period=quarter`, apiKey);
             if (!rows || rows.length === 0) return null;
-            // 新到舊排序
             rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            // dump 驗證 /stable/income-statement 沒有 grossProfitRatio / operatingIncomeRatio 欄位，
+            // 只有 raw grossProfit / operatingIncome / revenue → 程式自己算 margin
+            const safeDiv = (num, den) => (num !== null && num !== undefined && den) ? num / den : null;
             return processFundamentals(rows, {
                 revenue: r => r.revenue,
-                eps: r => r.eps,
-                grossMargin: r => r.grossProfitRatio,   // 已經是 0-1 ratio
-                operatingMargin: r => r.operatingIncomeRatio,
+                eps: r => (r.eps !== null && r.eps !== undefined) ? r.eps : r.epsDiluted,
+                grossMargin:     r => safeDiv(r.grossProfit, r.revenue),
+                operatingMargin: r => safeDiv(r.operatingIncome, r.revenue),
             });
         } catch (e) {
             console.warn('FMP fundamentals fetch failed:', e.message);
@@ -299,9 +301,10 @@
         // 反轉：改成舊到新方便繪圖
         sliced.reverse();
 
-        // 當前 PE：優先 quote.pe，其次 price / eps
+        // 當前 PE：quote → ratios[0]
+        // 不走 price/eps fallback —— 對 ADR（TSM 這種）price 是 USD、eps 是 TWD，除下去是垃圾
         let currentPE = pickField(q, 'pe', 'peRatio', 'priceToEarningsRatio');
-        if (!currentPE && q.price && q.eps) currentPE = q.price / q.eps;
+        if (!currentPE) currentPE = pickField(ratios[0] || {}, ...PE_FIELDS);
 
         // 當前 PBR：用最新一筆 ratio（ratios[0] 是最新的年報）
         let currentPBR = pickField(ratios[0] || {}, ...PBR_FIELDS);
