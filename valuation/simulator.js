@@ -989,13 +989,16 @@
             if (!fredLastError) fredLastError = e.message;
             return [];
         });
-        const [dgs10, dtwexbgs, fedfunds, t10y2y] = await Promise.all([
+        const [dgs10, dtwexbgs, fedfunds, t10y2y, cpi, hyspread, vix] = await Promise.all([
             capture(fredFetch('DGS10', apiKey, start)),
             capture(fredFetch('DTWEXBGS', apiKey, start)),
             capture(fredFetch('FEDFUNDS', apiKey, start)),
             capture(fredFetch('T10Y2Y', apiKey, start)),
+            capture(fredFetch('CPIAUCSL', apiKey, start)),
+            capture(fredFetch('BAMLH0A0HYM2', apiKey, start)),
+            capture(fredFetch('VIXCLS', apiKey, start)),
         ]);
-        return { dgs10, dtwexbgs, fedfunds, t10y2y };
+        return { dgs10, dtwexbgs, fedfunds, t10y2y, cpi, hyspread, vix };
     }
 
     // FMP 匯率（USD/TWD）——用 historical-price-eod/full
@@ -1015,8 +1018,9 @@
         }
     }
 
-    // FMP VIX（^VIX）——url-encode 成 %5EVIX
-    async function fetchVixHistory(apiKey) {
+    // VIX 有兩個來源，優先走 FRED VIXCLS（免費、免額度）
+    // 這個 function 只當 FMP fallback——FRED VIX 已從 fetchMacroFred 那邊拿了
+    async function fetchVixHistoryFmp(apiKey) {
         if (!apiKey) return null;
         try {
             const data = await fmpFetch('/historical-price-eod/full?symbol=%5EVIX', apiKey);
@@ -1079,10 +1083,57 @@
     function interpretT10y2y(t10y2y) {
         if (!t10y2y || t10y2y.length === 0) return null;
         const latest = t10y2y[t10y2y.length - 1].value;
+        // 檢查一年前是否倒掛過（就算現在解除，倒掛遺產效應歷史上會滯後 12-18 個月）
+        const idxYearAgo = Math.max(0, t10y2y.length - 252);
+        const yearAgoInverted = t10y2y[idxYearAgo] ? t10y2y[idxYearAgo].value < 0 : false;
         if (latest < 0) return { kind: 'warn',
-            text: `⚠️ 10Y-2Y 利差 <b>${latest.toFixed(2)}pp · 殖利率倒掛</b>。歷史上是衰退領先指標（提前 12-18 個月），不代表個股會跌，但總經風險升溫。` };
+            text: `⚠️ 10Y-2Y 利差 <b>${latest.toFixed(2)}pp · 殖利率倒掛</b>。歷史上是衰退領先指標（提前 12-18 個月），總經風險升溫。` };
+        if (yearAgoInverted) return { kind: 'ok',
+            text: `10Y-2Y 利差 <b>${latest.toFixed(2)}pp</b>（已解除倒掛）。<b>但過去 12 個月曾倒掛</b>——歷史上衰退往往在解除後才發生，不代表警報已過。` };
         return { kind: 'ok',
             text: `10Y-2Y 利差 ${latest.toFixed(2)}pp · 未倒掛。` };
+    }
+
+    // FEDFUNDS 一年變化：是升息 / 降息週期？
+    function interpretFedfunds(ff) {
+        if (!ff || ff.length < 12) return null;
+        const now = ff[ff.length - 1].value;
+        const idx = Math.max(0, ff.length - 13);
+        const yearAgo = ff[idx].value;
+        const delta = now - yearAgo;
+        if (delta < -0.5) return { kind: 'good',
+            text: `✅ FEDFUNDS 一年 <b>${yearAgo.toFixed(2)}% → ${now.toFixed(2)}%</b>（${delta.toFixed(2)}pp）· <b>降息週期中</b>——對高本益比股折現壓力降低。但要問「為什麼降」（軟著陸 vs 硬著陸擔憂）。` };
+        if (delta > 0.5) return { kind: 'warn',
+            text: `⚠️ FEDFUNDS 一年 <b>${yearAgo.toFixed(2)}% → ${now.toFixed(2)}%</b>（+${delta.toFixed(2)}pp）· <b>升息週期中</b>——估值收縮的總經逆風。` };
+        return { kind: 'ok',
+            text: `FEDFUNDS <b>${now.toFixed(2)}%</b> · 一年變化 ${delta.toFixed(2)}pp，維持水位。` };
+    }
+
+    // CPI 通膨 YoY（月頻，用 12 個月前對比）
+    function interpretCpi(cpi) {
+        if (!cpi || cpi.length < 13) return null;
+        const now = cpi[cpi.length - 1].value;
+        const yearAgo = cpi[cpi.length - 13].value;
+        const yoy = ((now - yearAgo) / yearAgo) * 100;
+        if (yoy > 3.5) return { kind: 'warn',
+            text: `⚠️ CPI YoY <b>+${yoy.toFixed(1)}%</b> · 通膨仍高於 Fed 目標（2%）—— <b>降息空間受限、實質利率仍緊</b>，對高成長股估值不利。` };
+        if (yoy < 2.0) return { kind: 'good',
+            text: `✅ CPI YoY <b>+${yoy.toFixed(1)}%</b> · 通膨低於 Fed 目標。降息空間打開、對成長股估值有利。` };
+        return { kind: 'ok',
+            text: `CPI YoY <b>+${yoy.toFixed(1)}%</b> · 接近 Fed 目標區間（2-3.5%）。` };
+    }
+
+    // 高收益債利差 BAMLH0A0HYM2：機構「真金白銀在定價的信用風險」
+    // < 3% = 極度樂觀 / 3-5% = 正常 / > 5% = 緊縮 / > 8% = 危機（08、20）
+    function interpretHyspread(hy) {
+        if (!hy || hy.length === 0) return null;
+        const latest = hy[hy.length - 1].value;
+        if (latest < 3.0) return { kind: 'warn',
+            text: `⚠️ 高收益債利差 <b>${latest.toFixed(2)}%</b> &lt; 3% · <b>市場對信用風險過度樂觀</b>。歷史上這種水位常在後續信用事件（利差擴大 → 股市回調）前出現——不是預測工具，只是背景警訊。` };
+        if (latest > 5.0) return { kind: 'warn',
+            text: `⚠️ 高收益債利差 <b>${latest.toFixed(2)}%</b> &gt; 5% · <b>信用緊縮訊號</b>。企業融資成本上升、機構在為經濟走弱定價。` };
+        return { kind: 'ok',
+            text: `高收益債利差 <b>${latest.toFixed(2)}%</b> · 3-5% 正常區間，市場風險偏好平衡。` };
     }
 
     function interpretFx(fx) {
@@ -1265,11 +1316,17 @@
         bindCell(macro && macro.t10y2y, 'macro-t10y2y-val', 'macro-t10y2y-spark', 'macro-t10y2y-note',
                  macro && interpretT10y2y(macro.t10y2y), v => v.toFixed(2) + ' pp', '#7c3aed', fredMissing);
         bindCell(macro && macro.fedfunds, 'macro-fedfunds-val', 'macro-fedfunds-spark', 'macro-fedfunds-note',
-                 null, v => v.toFixed(2) + '%', '#d97706', fredMissing);
+                 macro && interpretFedfunds(macro.fedfunds), v => v.toFixed(2) + '%', '#d97706', fredMissing);
+        bindCell(macro && macro.cpi, 'macro-cpi-val', 'macro-cpi-spark', 'macro-cpi-note',
+                 macro && interpretCpi(macro.cpi), v => v.toFixed(1), '#ea580c', fredMissing);
+        bindCell(macro && macro.hyspread, 'macro-hy-val', 'macro-hy-spark', 'macro-hy-note',
+                 macro && interpretHyspread(macro.hyspread), v => v.toFixed(2) + '%', '#7c2d12', fredMissing);
         bindCell(fx, 'macro-fx-val', 'macro-fx-spark', 'macro-fx-note',
                  interpretFx(fx), v => v.toFixed(3), '#0891b2', fmpMissing);
+        // VIX 現在優先 FRED，missing 訊息也對應改
+        const vixMissing = (macro && !macro.vix) || !macro ? '⚠️ 尚未取得資料。優先走 FRED VIXCLS（免額度），失敗才 fallback FMP。' : fmpMissing;
         bindCell(vix, 'macro-vix-val', 'macro-vix-spark', 'macro-vix-note',
-                 interpretVix(vix), v => v.toFixed(1), '#db2777', fmpMissing);
+                 interpretVix(vix), v => v.toFixed(1), '#db2777', vixMissing);
     }
 
     // ---------- Render 融資餘額（塞進 detail-box） ----------
@@ -1457,15 +1514,19 @@
                 stockPromise = fetchStockData(ticker, fmpKeyForMacro, years);
             }
 
-            // 平行抓總體 / 匯率 / VIX / 融資 + 股利（都 optional · 失敗回 null 不擋主流程）
-            const [data, macro, fx, vix, marginTW, dividendsTW] = await Promise.all([
+            // 平行抓總體 / 匯率 / 融資 + 股利（都 optional · 失敗回 null 不擋主流程）
+            // VIX 從 macro.vix（FRED VIXCLS）拿，FMP 只當 fallback
+            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW] = await Promise.all([
                 stockPromise,
                 fetchMacroFred(fredKey),
                 fetchForexUsdTwd(fmpKeyForMacro),
-                fetchVixHistory(fmpKeyForMacro),
+                fetchVixHistoryFmp(fmpKeyForMacro),
                 (isFinmind && finmindTokenForMargin) ? fetchMarginTW(ticker, finmindTokenForMargin) : Promise.resolve(null),
                 (isFinmind && finmindTokenForMargin) ? fetchDividendTW(ticker, finmindTokenForMargin) : Promise.resolve([]),
             ]);
+
+            // VIX 優先 FRED（免額度、更穩定）→ 失敗 fallback FMP
+            const vix = (macro && macro.vix && macro.vix.length) ? macro.vix : vixFmpFallback;
 
             data.marginTW = marginTW;
             data.dividendsTW = dividendsTW;
