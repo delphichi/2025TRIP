@@ -734,14 +734,15 @@
         if (latestRatioDate) {
             tableHtml += `<p class="hint">歷年 ratio 資料來自年報，最新一筆日期：<b>${latestRatioDate}</b>。若日期太舊（例如超過 1 年），當前 PE 用 quote 的 real-time 值（price / EPS-TTM），跟歷年可能有基準差異。</p>`;
         }
-        // 層次 2-5 表順序：ADR 折溢價（若適用）→ 現金流背離 → 財報成長性
-        //                → 法人買賣超 → 融資餘額 → 歷年 ratio
+        // 層次 1-5 表順序：Peer 比較（層次 1 相對）→ ADR 折溢價 → 現金流背離
+        //                → 財報成長性 → 法人買賣超 → 融資餘額 → 歷年 ratio
+        const peerHtml = renderPeerComparisonHtml(analysis);
         const adrHtml = renderAdrPremiumHtml(analysis, analysis.fxSeries);
         const cfHtml = renderCashFlowHtml(analysis.cashFlow);
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         const instHtml = renderInstitutionalHtml(analysis.institutional);
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
-        $('detail-box').innerHTML = adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml;
 
         setStatus('success', `✅ 查到 ${ticker} 資料`);
     }
@@ -1323,6 +1324,126 @@
             sharesShortPercentOfFloat: q.sharesShortPercentOfFloat,
             beta: q.beta,
         };
+    }
+
+    // ---------- Peer comparison（美股專用） ----------
+    // FMP /stock-peers 給同業 tickers → Yahoo v7 quote batch 一次拉全部
+    // 揭露「相對 peer 貴不貴」· 這比絕對 PE 更能回答 Howard Marks 的市場效率問題
+    async function fetchPeersComparison(usTicker, fmpKey) {
+        if (!fmpKey) return null;
+        try {
+            const peers = await fmpFetch(`/stock-peers?symbol=${usTicker}`, fmpKey);
+            if (!Array.isArray(peers) || peers.length === 0) return null;
+            // 取 6-8 家 · 加上自己 + SPY（大盤參考）· batch symbols 一次拉
+            const peerTickers = peers.slice(0, 7).map(p => p.symbol).filter(Boolean);
+            const symbols = [usTicker, ...peerTickers, 'SPY'].join(',');
+            const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`;
+            let data = null;
+            try { data = await fredRawFetch(url); } catch (_) {}
+            if (!data) {
+                for (const proxy of CORS_PROXIES) {
+                    try { data = await fredRawFetch(`${proxy}${encodeURIComponent(url)}`); break; }
+                    catch (_) { data = null; }
+                }
+            }
+            if (!data || !data.quoteResponse || !Array.isArray(data.quoteResponse.result)) return null;
+            const bySym = new Map();
+            data.quoteResponse.result.forEach(q => bySym.set(q.symbol, q));
+
+            const toRow = (sym, name) => {
+                const q = bySym.get(sym);
+                if (!q) return null;
+                const fwdGrowth = (q.epsForward && q.epsTrailingTwelveMonths && q.epsTrailingTwelveMonths > 0)
+                    ? ((q.epsForward - q.epsTrailingTwelveMonths) / q.epsTrailingTwelveMonths) * 100
+                    : null;
+                const fwdPeg = (q.forwardPE && fwdGrowth && fwdGrowth > 0) ? q.forwardPE / fwdGrowth : null;
+                return {
+                    symbol: sym, name: name || sym,
+                    trailingPE: q.trailingPE,
+                    forwardPE: q.forwardPE,
+                    fwdGrowth, fwdPeg,
+                };
+            };
+
+            const peerRows = peerTickers.map(t => {
+                const cfg = peers.find(p => p.symbol === t);
+                return toRow(t, cfg ? cfg.companyName : t);
+            }).filter(Boolean);
+            const spyRow = toRow('SPY', 'S&P 500');
+
+            // Peer group median（不含自己 · 不含 SPY）
+            const med = arr => {
+                const s = arr.filter(v => v !== null && v !== undefined && isFinite(v)).sort((a, b) => a - b);
+                return s.length ? s[Math.floor(s.length / 2)] : null;
+            };
+            const peerFwdPeMed = med(peerRows.map(p => p.forwardPE));
+            const peerFwdPegMed = med(peerRows.map(p => p.fwdPeg));
+            const peerTrailingPeMed = med(peerRows.map(p => p.trailingPE));
+
+            return { peerRows, spyRow, peerFwdPeMed, peerFwdPegMed, peerTrailingPeMed };
+        } catch (e) {
+            console.warn('Peer comparison failed:', e.message);
+            return null;
+        }
+    }
+
+    function renderPeerComparisonHtml(analysis) {
+        const p = analysis.peersComparison;
+        const yq = analysis.yahooQuote;
+        if (!p || !p.peerRows || !p.peerRows.length) return '';
+
+        const ticker = analysis.ticker;
+        const ownFwdPE = yq && yq.forwardPE;
+        const ownFwdGrowth = (yq && yq.epsForward && yq.epsTrailing && yq.epsTrailing > 0)
+            ? ((yq.epsForward - yq.epsTrailing) / yq.epsTrailing) * 100 : null;
+        const ownFwdPeg = (ownFwdPE && ownFwdGrowth && ownFwdGrowth > 0) ? ownFwdPE / ownFwdGrowth : null;
+        const ownTrailingPE = yq && yq.trailingPE;
+
+        const fmtN = v => (v !== null && v !== undefined && isFinite(v)) ? Number(v).toFixed(2) : '—';
+        const cell = v => `<td>${fmtN(v)}</td>`;
+
+        const ownRow = `<tr class="peer-self"><td><b>${ticker}</b>（自己）</td>${cell(ownTrailingPE)}${cell(ownFwdPE)}${cell(ownFwdGrowth)}${cell(ownFwdPeg)}</tr>`;
+        const peerRowsHtml = p.peerRows.map(r => `<tr><td>${r.symbol}${r.name && r.name !== r.symbol ? ' <small style="color:var(--muted)">'+r.name.slice(0,15)+'</small>' : ''}</td>${cell(r.trailingPE)}${cell(r.forwardPE)}${cell(r.fwdGrowth)}${cell(r.fwdPeg)}</tr>`).join('');
+        const peerMedRow = `<tr class="peer-summary"><td><b>Peer 中位</b></td>${cell(p.peerTrailingPeMed)}${cell(p.peerFwdPeMed)}<td>—</td>${cell(p.peerFwdPegMed)}</tr>`;
+        const spyRowHtml = p.spyRow ? `<tr class="peer-summary"><td><b>S&P 500 (SPY)</b></td>${cell(p.spyRow.trailingPE)}${cell(p.spyRow.forwardPE)}<td>—</td>${cell(p.spyRow.fwdPeg)}</tr>` : '';
+
+        // 判讀
+        const fwdPeVsPeer = (ownFwdPE && p.peerFwdPeMed) ? ownFwdPE / p.peerFwdPeMed : null;
+        const fwdPegVsPeer = (ownFwdPeg && p.peerFwdPegMed) ? ownFwdPeg / p.peerFwdPegMed : null;
+        const fwdPeVsSpy = (ownFwdPE && p.spyRow && p.spyRow.forwardPE) ? ownFwdPE / p.spyRow.forwardPE : null;
+        const bits = [];
+        if (fwdPeVsPeer) {
+            const cls = fwdPeVsPeer > 1.5 ? 'divergence-warn' : fwdPeVsPeer < 0.7 ? 'divergence-good' : 'divergence-ok';
+            const label = fwdPeVsPeer > 1.5 ? '⚠️ 遠貴於 peers' : fwdPeVsPeer < 0.7 ? '✅ 遠便宜於 peers' : '≈ 接近 peers';
+            bits.push(`<div class="divergence-banner ${cls}">Forward PE <b>${fwdPeVsPeer.toFixed(2)}×</b> peer 中位（${fmtN(ownFwdPE)} vs ${fmtN(p.peerFwdPeMed)}）· ${label}</div>`);
+        }
+        if (fwdPegVsPeer) {
+            const cls = fwdPegVsPeer > 1.5 ? 'divergence-warn' : fwdPegVsPeer < 0.7 ? 'divergence-good' : 'divergence-ok';
+            const label = fwdPegVsPeer > 1.5 ? '⚠️ 每單位成長付更多溢價' : fwdPegVsPeer < 0.7 ? '✅ 每單位成長付較少溢價' : '≈ 相似';
+            bits.push(`<div class="divergence-banner ${cls}">Forward PEG <b>${fwdPegVsPeer.toFixed(2)}×</b> peer 中位（${fmtN(ownFwdPeg)} vs ${fmtN(p.peerFwdPegMed)}）· ${label}<br><span class="hint-mini">關鍵洞察：如果你的論點是「AI 敘事會持續」，這個論點<b>不特別指向 ${ticker}</b> 是最划算的下注——同 peer 群裡 PEG 較低的公司，用同樣成長預期付更少估值溢價。</span></div>`);
+        }
+        if (fwdPeVsSpy) {
+            const label = fwdPeVsSpy > 2 ? `⚠️ ${fwdPeVsSpy.toFixed(1)}× 大盤` : fwdPeVsSpy < 0.7 ? '✅ 折價於大盤' : `${fwdPeVsSpy.toFixed(2)}× 大盤`;
+            bits.push(`<div class="divergence-banner divergence-ok">Forward PE <b>${label}</b>（${fmtN(ownFwdPE)} vs SPY ${fmtN(p.spyRow && p.spyRow.forwardPE)}）· 大盤是絕對貴便宜的基準線之一。</div>`);
+        }
+
+        return `
+            <h3>⚖️ Peer 比較 · 「相對貴便宜」（層次 1 · Howard Marks 市場效率）</h3>
+            <p class="hint">
+                絕對 PE 高不高只是問題的一半，另一半是「相對誰貴」。Peer 群來自 FMP <code>/stock-peers</code>，
+                Yahoo v7 quote 提供每家 Forward PE + EPS Forward。<b>Peer 中位</b>反映「同業共識定價」·
+                <b>SPY</b> 反映大盤基準。
+                <span class="hint-mini">⚠️ FMP peer 選擇未必完美（例：TSM peers 有 AMAT/AMKR 是設備 / 封測、不是純代工競爭）· 全部同業 PE 高也可能是<b>整個板塊泡沫</b>、不是「相對合理」。</span>
+            </p>
+            <table class="fund-table peer-table">
+                <tr><th>Ticker</th><th>Trailing PE</th><th>Forward PE</th><th>隱含成長%</th><th>Forward PEG</th></tr>
+                ${ownRow}
+                ${peerRowsHtml}
+                ${peerMedRow}
+                ${spyRowHtml}
+            </table>
+            ${bits.join('')}
+        `;
     }
 
     // VIX 有兩個來源，優先走 FRED VIXCLS（免費、免額度）
@@ -1958,7 +2079,7 @@
             // VIX 從 macro.vix（FRED VIXCLS）拿，FMP 只當 fallback
             // ADR counterpart：查 US 股時若命中 ADR_MAP、順便抓對應台股價（例：TSM → 2330）
             // Yahoo quote：只對美股抓 · 補 Forward PE + 短興趣
-            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote] = await Promise.all([
+            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote, peersComparison] = await Promise.all([
                 stockPromise,
                 fetchMacroFred(fredKey),
                 fetchForexUsdTwd(fmpKey),
@@ -1967,6 +2088,7 @@
                 (isFinmind && finmindToken) ? fetchDividendTW(ticker, finmindToken) : Promise.resolve([]),
                 (!isFinmind) ? fetchAdrCounterpart(ticker, finmindToken) : Promise.resolve(null),
                 (!isFinmind) ? fetchYahooQuote(ticker) : Promise.resolve(null),
+                (!isFinmind) ? fetchPeersComparison(ticker, fmpKey) : Promise.resolve(null),
             ]);
 
             // VIX 優先 FRED（免額度、更穩定）→ 失敗 fallback FMP
@@ -1977,6 +2099,7 @@
             data.adrCounterpart = adrCounterpart;
             data.fxSeries = fx;
             data.yahooQuote = yahooQuote;
+            data.peersComparison = peersComparison;
             renderResult(data);
             renderMacroPanel(macro, fx, vix);
         } catch (e) {

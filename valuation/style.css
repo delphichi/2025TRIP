@@ -323,6 +323,24 @@ textarea {
     cursor: help;
 }
 
+/* Peer 比較表 · 自己那行高亮 · peer 中位跟 SPY 底色不同 */
+.peer-table td { text-align: right; }
+.peer-table td:first-child { text-align: left; }
+.peer-table tr.peer-self td {
+    background: #fef3c7;
+    font-weight: 700;
+    color: #78350f;
+    border-top: 2px solid var(--warning);
+    border-bottom: 2px solid var(--warning);
+}
+.peer-table tr.peer-summary td {
+    background: #f0fdfa;
+    font-weight: 700;
+    color: var(--primary-dark);
+    border-top: 1px solid var(--primary);
+}
+.peer-table small { display: block; font-size: .8em; margin-top: 1px; }
+
 /* ADR 折溢價計算表 */
 .adr-calc {
     margin: 10px 0;
