@@ -626,12 +626,14 @@
         if (latestRatioDate) {
             tableHtml += `<p class="hint">歷年 ratio 資料來自年報，最新一筆日期：<b>${latestRatioDate}</b>。若日期太舊（例如超過 1 年），當前 PE 用 quote 的 real-time 值（price / EPS-TTM），跟歷年可能有基準差異。</p>`;
         }
-        // 層次 2-5 表順序：現金流背離 → 財報成長性 → 法人買賣超 → 融資餘額 → 歷年 ratio
+        // 層次 2-5 表順序：ADR 折溢價（若適用）→ 現金流背離 → 財報成長性
+        //                → 法人買賣超 → 融資餘額 → 歷年 ratio
+        const adrHtml = renderAdrPremiumHtml(analysis, analysis.fxSeries);
         const cfHtml = renderCashFlowHtml(analysis.cashFlow);
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         const instHtml = renderInstitutionalHtml(analysis.institutional);
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
-        $('detail-box').innerHTML = cfHtml + fundHtml + instHtml + marginHtml + tableHtml;
+        $('detail-box').innerHTML = adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml;
 
         setStatus('success', `✅ 查到 ${ticker} 資料`);
     }
@@ -1192,6 +1194,117 @@
         }
     }
 
+    // ---------- ADR 折溢價計算器（層次 4 · 資金結構訊號） ----------
+    // 公式：Premium = (ADR / ratio) / (localPrice / USDTWD) - 1
+    //     = 「ADR 每股 USD」 vs 「本地股價換算成 USD」的比較
+    // 正值 = ADR 貴（外資溢價還在）· 負值 = ADR 折價（罕見 · 本地過熱 or 資金流出美股）
+    const ADR_MAP = {
+        TSM:  { localTicker: '2330',    localSource: 'finmind', ratio: 5,
+                localName: '台積電',  localExchange: 'TWSE' },
+        // 未來擴充：BABA (1:8, 9988.HK) · NIO (1:1, 9866.HK) · JD · BIDU · etc.
+    };
+
+    async function fetchAdrCounterpart(usTicker, finmindToken) {
+        const config = ADR_MAP[(usTicker || '').toUpperCase()];
+        if (!config) return null;
+        if (config.localSource === 'finmind') {
+            if (!finmindToken) return { config, needToken: true };
+            try {
+                const priceData = await finMindFetch('TaiwanStockPrice', config.localTicker,
+                    todayMinusYears(0.05), todayStr(), finmindToken);
+                if (!priceData || priceData.length === 0) return { config };
+                const last = priceData[priceData.length - 1];
+                return { config, localPrice: last.close, localDate: last.date };
+            } catch (e) {
+                console.warn('ADR local price fetch failed:', e.message);
+                return { config, error: e.message };
+            }
+        }
+        return null;
+    }
+
+    function computeAdrPremium(adrPriceUsd, localPriceTwd, usdTwdRate, ratio) {
+        if (!adrPriceUsd || !localPriceTwd || !usdTwdRate || !ratio) return null;
+        const perShareUsd = adrPriceUsd / ratio;
+        const localInUsd = localPriceTwd / usdTwdRate;
+        return perShareUsd / localInUsd - 1;
+    }
+
+    function renderAdrPremiumHtml(analysis, fxSeries) {
+        const adr = analysis.adrCounterpart;
+        if (!adr) return '';
+        const cfg = adr.config;
+        const ticker = analysis.ticker;
+        const adrPrice = analysis.price;
+        const adrDate = analysis.latestRatioDate || 'US 最新交易日';
+
+        if (adr.needToken) {
+            return `
+                <h3>🔁 ADR 折溢價 · ${ticker} ↔ ${cfg.localName}（${cfg.localTicker}）</h3>
+                <p class="hint">偵測到 <b>${ticker}</b> 是 ADR、對應本地 <b>${cfg.localTicker} ${cfg.localName}</b>（1 ADR = ${cfg.ratio} 股）。
+                <br>要算折溢價需要 <b>FinMind token</b>（抓對應台股價）· 到「資料來源設定」貼進去、重跑一次即可看到即時折溢價 + 兩年歷史背景。</p>
+            `;
+        }
+        if (!adr.localPrice) {
+            return `<h3>🔁 ADR 折溢價</h3><p class="hint">找不到 ${cfg.localTicker} 台股資料。${adr.error || ''}</p>`;
+        }
+        if (!fxSeries || !fxSeries.length) {
+            return `<h3>🔁 ADR 折溢價</h3><p class="hint">需要 USD/TWD 匯率才能算折溢價 · 總體環境那塊 fx 沒抓到 · 開 F12 console 看細節。</p>`;
+        }
+        const usdTwd = fxSeries[fxSeries.length - 1].value;
+        const fxDate = fxSeries[fxSeries.length - 1].date;
+        const premium = computeAdrPremium(adrPrice, adr.localPrice, usdTwd, cfg.ratio);
+        if (premium === null) return `<h3>🔁 ADR 折溢價</h3><p class="hint">計算失敗（缺值）</p>`;
+
+        const perShareUsd = adrPrice / cfg.ratio;
+        const localInUsd = adr.localPrice / usdTwd;
+        const pct = premium * 100;
+        const kind = pct > 5 ? 'expensive' : pct < -5 ? 'cheap' : 'ok';
+        const kindCls = kind === 'expensive' ? 'divergence-warn' : kind === 'cheap' ? 'divergence-good' : 'divergence-ok';
+        const kindLabel = kind === 'expensive' ? '⚠️ ADR 溢價（外資買貴 / 本地便宜）'
+                        : kind === 'cheap' ? '✅ ADR 折價（本地追高 / ADR 便宜）'
+                        : '≈ 兩地平價';
+
+        // 相對 2026-05 彭博報導的 13.7% 歷史背景
+        const contextMsg = pct > 20
+            ? '<b>顯著高於</b> 2026-05 報導的 13.7%——外資溢價又拉開？or 樣本時間不同步？'
+            : pct > 15
+            ? '<b>略高於</b> 2026-05 的 13.7%——溢價回升 or 時間差落差。'
+            : pct > 10
+            ? '<b>與 2026-05 的 13.7% 相近</b>——外資溢價維持中。'
+            : pct > 5
+            ? '<b>低於 2026-05 的 13.7%</b>——本地資金持續追上，外資定價力弱化中。'
+            : pct > -5
+            ? '<b>兩地已接近平價</b>——外資溢價歷史消失。'
+            : '<b>ADR 折價</b>——罕見狀況（本地過熱 or 短期美股資金流出）。';
+
+        return `
+            <h3>🔁 ADR 折溢價 · ${ticker} ↔ ${cfg.localName}（${cfg.localTicker}）</h3>
+            <div class="divergence-banner ${kindCls}">${kindLabel} · <b>${pct > 0 ? '+' : ''}${pct.toFixed(2)}%</b></div>
+            <table class="fund-table adr-calc">
+                <tr><th>項目</th><th>值</th><th>備註</th></tr>
+                <tr><td>ADR ${ticker} 收盤</td><td>$${adrPrice.toFixed(2)}</td><td>${adrDate}</td></tr>
+                <tr><td>÷ 換算比例（1 ADR = ${cfg.ratio} 股）</td><td>$${perShareUsd.toFixed(2)} / 股</td><td>ADR 每股 USD</td></tr>
+                <tr><td>${cfg.localName} ${cfg.localTicker} 收盤</td><td>NT$${adr.localPrice.toFixed(1)}</td><td>${adr.localDate}</td></tr>
+                <tr><td>÷ USD/TWD 匯率</td><td>$${localInUsd.toFixed(2)} / 股</td><td>rate ${usdTwd.toFixed(3)} · ${fxDate}</td></tr>
+                <tr><td><b>折溢價 = ADR / TW − 1</b></td><td class="${pct > 0 ? 'yoy-pos' : 'yoy-neg'}"><b>${pct > 0 ? '+' : ''}${pct.toFixed(2)}%</b></td><td>${kindLabel}</td></tr>
+            </table>
+            <p class="hint">
+                <b>⚠️ 兩地報價時間不同步</b>：美股台股交易時段不重疊
+                （美股 UTC 14:30-21:00 · 台股 UTC 01:00-05:30）——這是 <b>「TSM 最近一次 US 收盤」vs「2330 最近一次 TW 收盤」</b>的價差，
+                <b>不是同一時刻的精確套利機會</b>。真實套利要看盤中同步報價 + 過戶成本 + 稅。
+            </p>
+            <p class="hint">
+                <b>📖 歷史背景（2026-05 彭博報導）</b>：TSM ADR 溢價 5 月平均 <b>13.7%</b>（<b>兩年新低</b>·此前一度 26%）·
+                連續第 5 個月下降。核心敘事：<b>台灣本地資金（AI 概念股熱潮 + 法規鬆綁允許本地基金提高國內股票配置）
+                正在追上並縮小過去外資主導定價的溢價空間</b>。
+                <br>${contextMsg}
+                <br><b>資金結構訊號</b>：溢價方向與速度本身就是觀察「誰在主導定價」的指標——不只是套利機會。
+                跟你查詢時看到的融資餘額（散戶槓桿）等本地情緒訊號合起來看，能交叉驗證資金流向。
+            </p>
+        `;
+    }
+
     // ---------- 解讀邏輯（層次 4 + 5） ----------
     function interpretDgs10(dgs10) {
         if (!dgs10 || dgs10.length < 60) return null;
@@ -1663,15 +1776,17 @@
                 stockPromise = fetchStockData(ticker, fmpKey, years);
             }
 
-            // 平行抓總體 / 匯率 / 融資 + 股利（都 optional · 失敗回 null 不擋主流程）
+            // 平行抓總體 / 匯率 / 融資 + 股利 + ADR counterpart（都 optional · 失敗回 null 不擋主流程）
             // VIX 從 macro.vix（FRED VIXCLS）拿，FMP 只當 fallback
-            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW] = await Promise.all([
+            // ADR counterpart：查 US 股時若命中 ADR_MAP、順便抓對應台股價（例：TSM → 2330）
+            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart] = await Promise.all([
                 stockPromise,
                 fetchMacroFred(fredKey),
                 fetchForexUsdTwd(fmpKey),
                 fetchVixHistoryFmp(fmpKey),
                 (isFinmind && finmindToken) ? fetchMarginTW(ticker, finmindToken) : Promise.resolve(null),
                 (isFinmind && finmindToken) ? fetchDividendTW(ticker, finmindToken) : Promise.resolve([]),
+                (!isFinmind) ? fetchAdrCounterpart(ticker, finmindToken) : Promise.resolve(null),
             ]);
 
             // VIX 優先 FRED（免額度、更穩定）→ 失敗 fallback FMP
@@ -1679,6 +1794,8 @@
 
             data.marginTW = marginTW;
             data.dividendsTW = dividendsTW;
+            data.adrCounterpart = adrCounterpart;
+            data.fxSeries = fx;
             renderResult(data);
             renderMacroPanel(macro, fx, vix);
         } catch (e) {

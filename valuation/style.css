@@ -307,6 +307,26 @@ textarea {
     border: 1px solid #93c5fd;
 }
 
+/* ADR 折溢價計算表 */
+.adr-calc {
+    margin: 10px 0;
+}
+.adr-calc th:first-child { text-align: left; }
+.adr-calc td:nth-child(2) {
+    text-align: right;
+    font-weight: 700;
+    color: var(--primary-dark);
+}
+.adr-calc td:nth-child(3) {
+    text-align: left;
+    color: var(--muted);
+    font-size: .9em;
+}
+.adr-calc tr:last-child td {
+    background: #f0fdfa;
+    border-top: 2px solid var(--primary);
+}
+
 /* 現金流背離 banner（層次 2） */
 .divergence-banner {
     margin: 10px 0;
