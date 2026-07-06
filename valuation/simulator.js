@@ -941,17 +941,39 @@
     // FRED（美聯儲 St. Louis Fed）free API：https://api.stlouisfed.org/fred/series/observations
     // Series id 常用：DGS10（10Y 公債殖利率）、T10Y2Y（10-2 利差）、FEDFUNDS（聯邦基金利率）、DTWEXBGS（美元廣義指數）
     const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
+    // FRED 不回 Access-Control-Allow-Origin → 瀏覽器直連會被 CORS 擋
+    // Fallback：allorigins.win 公開 CORS proxy
+    const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
+    // 全域錯誤帶到 UI，讓 status 顯示真正原因（不是空話「key 無效 or 網路失敗」）
+    let fredLastError = null;
+
+    async function fredRawFetch(url) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    }
 
     async function fredFetch(seriesId, apiKey, startDate) {
-        const url = `${FRED_BASE}?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
-        const res = await fetch(url);
-        if (!res.ok) {
-            if (res.status === 400) throw new Error(`FRED API key 無效 or series ${seriesId} 錯誤`);
-            throw new Error(`FRED HTTP ${res.status}`);
+        const params = `series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
+        const directUrl = `${FRED_BASE}?${params}`;
+        let data;
+        try {
+            data = await fredRawFetch(directUrl);
+        } catch (e) {
+            // 直連失敗（多半 CORS）→ 走 proxy
+            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(directUrl)}`;
+            try {
+                data = await fredRawFetch(proxyUrl);
+            } catch (e2) {
+                throw new Error(`直連 ${e.message} · proxy ${e2.message}`);
+            }
         }
-        const data = await res.json();
-        if (!data.observations) return [];
-        // FRED 對缺值標記為 '.'，過濾掉
+        // FRED API-level 錯誤（key 錯 / series 不存在）—— 這種會 wrap 在 HTTP 200 回傳裡
+        if (data && data.error_code) {
+            throw new Error(`FRED ${data.error_code}: ${data.error_message}`);
+        }
+        if (!data || !Array.isArray(data.observations)) return [];
         return data.observations
             .filter(o => o.value !== '.')
             .map(o => ({ date: o.date, value: parseFloat(o.value) }))
@@ -959,20 +981,21 @@
     }
 
     async function fetchMacroFred(apiKey) {
+        fredLastError = null;
         if (!apiKey) return null;
         const start = todayMinusYears(2);
-        try {
-            const [dgs10, dtwexbgs, fedfunds, t10y2y] = await Promise.all([
-                fredFetch('DGS10', apiKey, start).catch(() => []),
-                fredFetch('DTWEXBGS', apiKey, start).catch(() => []),
-                fredFetch('FEDFUNDS', apiKey, start).catch(() => []),
-                fredFetch('T10Y2Y', apiKey, start).catch(() => []),
-            ]);
-            return { dgs10, dtwexbgs, fedfunds, t10y2y };
-        } catch (e) {
-            console.warn('FRED fetch failed:', e.message);
-            return null;
-        }
+        // 每個 series 各自 catch——一個失敗不影響其他；把第一個錯誤存進 fredLastError 帶給 UI
+        const capture = p => p.catch(e => {
+            if (!fredLastError) fredLastError = e.message;
+            return [];
+        });
+        const [dgs10, dtwexbgs, fedfunds, t10y2y] = await Promise.all([
+            capture(fredFetch('DGS10', apiKey, start)),
+            capture(fredFetch('DTWEXBGS', apiKey, start)),
+            capture(fredFetch('FEDFUNDS', apiKey, start)),
+            capture(fredFetch('T10Y2Y', apiKey, start)),
+        ]);
+        return { dgs10, dtwexbgs, fedfunds, t10y2y };
     }
 
     // FMP 匯率（USD/TWD）——用 historical-price-eod/full
@@ -1205,7 +1228,7 @@
             const hasVix = vix && vix.length;
             const parts = [];
             parts.push(hasFred ? '<span class="src-ok">✅ FRED 利率</span>'
-                : fredKey ? '<span class="src-err">❌ FRED（key 無效 or 網路失敗）</span>'
+                : fredKey ? `<span class="src-err">❌ FRED${fredLastError ? '（' + fredLastError + '）' : '（未知錯誤）'}</span>`
                 : '<span class="src-warn">⚠️ FRED（設定區塊填 key 才會抓）</span>');
             parts.push(hasFx ? '<span class="src-ok">✅ USD/TWD 匯率</span>'
                 : fmpKey ? '<span class="src-warn">⚠️ USD/TWD（FMP 額度用完 or forex tier 不支援）</span>'
