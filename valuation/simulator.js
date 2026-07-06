@@ -579,6 +579,13 @@
         if (spreads.length) {
             bodyHtml += `<br><br>⚠️ <b>分佈離散度極大</b>：${spreads.join(' · ')}——歷史裡有異常年份（EPS 崩、加密泡沫、併購一次性事件），<b>中位數這個統計量被拉扁、百分位失去參考意義</b>。當前值的「相對位置」是跟一個異常放大的分佈比，不是跟「正常年份」比。<b>看絕對值</b>（例：PE 80.5 = 半導體週期股極端貴，跟自己歷史「相對便宜」無關）。`;
         }
+        // GAAP vs Non-GAAP 說明（美股獨有 · 台股 IFRS 財報沒這麼強烈的分裂）
+        // AMD / NVDA / TSLA / PLTR 高 SBC + 併購攤銷公司，Non-GAAP EPS 常是 GAAP 的 2-3×
+        // 使用者拿去對 Yahoo Finance / 券商研究 / 法說會的「Non-GAAP TTM PE」會發現對不上、不是 bug
+        const isFmpSource = analysis.source !== 'FinMind';
+        if (isFmpSource) {
+            bodyHtml += `<br><br><span class="hint-mini">📌 <b>會計基準：GAAP</b>——FMP 用 SEC 10-Q/K 的 diluted EPS 算。AMD / NVDA / TSLA / PLTR 這類<b>高 SBC（股票薪酬）+ 併購攤銷</b>的科技股，Non-GAAP EPS 常是 GAAP 的 2-3 倍 → <b>Non-GAAP PE 反而低很多</b>。管理層在法說會 / 公告用的、Yahoo Finance / 券商多半顯示的都是 Non-GAAP TTM PE，跟本工具算的<b>不會對得上、不是 bug</b>。想拿 Non-GAAP 對照請去公司 IR 的 earnings release / 8-K。</span>`;
+        }
         $('verdict-body').innerHTML = bodyHtml;
 
         // Charts
@@ -915,7 +922,7 @@
                 <span class="hint-mini">📌 <b>找不到去年同季 prior（FMP 免費 tier 只給 5 季）</b>時 fallback 到 <b>QoQ</b>（跟前一季比），會多一個 <span class="mode-tag mode-qoq">Q/Q</span> 標記 · <b>QoQ 有季節性</b>（Q4 常天生 &gt; Q1，別當成長率讀）· QoQ 值不套紅綠色，只有 YoY 才用色調傳達方向。</span>
             </p>
             <div class="fund-grid">
-                ${renderTable('💵 EPS', fund.eps, false, v => v.toFixed(2))}
+                ${renderTable('💵 EPS <span class="acct-tag" title="美股走 GAAP diluted EPS / 台股 IFRS · 詳見 verdict 下方說明">GAAP</span>', fund.eps, false, v => v.toFixed(2))}
                 ${renderTable('💰 營收', fund.revenue, false, fmtRevenue)}
                 ${renderTable('📈 毛利率', fund.grossMargin, true, v => (v * 100).toFixed(1) + '%')}
                 ${renderTable('📉 營益率', fund.operatingMargin, true, v => (v * 100).toFixed(1) + '%')}
