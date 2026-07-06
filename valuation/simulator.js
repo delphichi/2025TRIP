@@ -668,7 +668,30 @@
                 const k = pegKind(forwardPeg);
                 bits.push(`<b>Forward PEG ${forwardPeg.toFixed(2)}</b>（隱含 ${impliedFwdGrowth.toFixed(0)}% · <span style="color:var(--${k.cls})">${k.label}</span>）`);
             }
-            bodyHtml += `<br><br>🎯 <b>PEG（Peter Lynch）</b>：${bits.join(' · ')}<br><span class="hint-mini"><b>⚠️ PEG 的兩個死角</b>：(1) <b>假設成長率可線性延續</b>——對成長剛起飛的公司低估風險、對成熟公司高估回歸壓力；(2) <b>一次性大跳基期效應</b>——AMD 2025 淨利 +164% 主要是 2023 低基期，若把 164% 當「可持續成長率」算 PEG 會嚴重失真、看起來「便宜」但那不是穩定成長。要跟 3-5 年 CAGR + Layer 3 護城河判讀合起來讀。</span>`;
+            // 動態基期風險判讀：用近 3-4 季 QoQ 平均辨別「持續加速」vs「單季低基期反彈」
+            // - 若最新 YoY >100% 且近 3 季 QoQ 平均 >20% → 是加速趨勢（例：NVDA）· PEG 相對可信
+            // - 若最新 YoY >100% 但 QoQ 平均低 or 混亂 → 疑似低基期反彈（例：AMD 2024→2025 一次跳）
+            let baseSuspicion = '';
+            if (trailingGrowth !== null) {
+                const epsEntries = analysis.fundamentals && analysis.fundamentals.eps;
+                let qoqAvg = null;
+                if (epsEntries && epsEntries.length >= 3) {
+                    const qoqVals = epsEntries.slice(1, 4).filter(e => e.mode === 'QoQ' && e.yoy !== null && isFinite(e.yoy));
+                    if (qoqVals.length >= 2) {
+                        qoqAvg = qoqVals.reduce((s, e) => s + e.yoy, 0) / qoqVals.length * 100;
+                    }
+                }
+                if (trailingGrowth > 100 && qoqAvg !== null && qoqAvg > 20) {
+                    baseSuspicion = `<b>${ticker} 用 YoY +${trailingGrowth.toFixed(0)}% 算</b>——但近 3 季 QoQ 平均 <b>+${qoqAvg.toFixed(0)}%</b>，這是<b>持續加速</b>不是低基期反彈，PEG 的參考價值相對高（仍需對照 3-5 年 CAGR 確認能否延續）。`;
+                } else if (trailingGrowth > 100) {
+                    baseSuspicion = `⚠️ <b>${ticker} 用 YoY +${trailingGrowth.toFixed(0)}% 算</b>——這個成長率<b>異常高</b>，常見於<b>低基期反彈</b>（去年同季獲利極低而非結構性成長）。若基期正常化，PEG 會大幅上升、變得沒那麼便宜。務必對照 <b>3-5 年 CAGR</b> 判斷。`;
+                } else if (trailingGrowth > 50) {
+                    baseSuspicion = `${ticker} 用 YoY <b>+${trailingGrowth.toFixed(0)}%</b> 算 · 顯著成長率，可能加速中也可能週期回升——對照 3-5 年 CAGR 較穩。`;
+                } else if (trailingGrowth > 0) {
+                    baseSuspicion = `${ticker} 用 YoY <b>+${trailingGrowth.toFixed(0)}%</b> 算 · 溫和成長率，PEG 相對可信。`;
+                }
+            }
+            bodyHtml += `<br><br>🎯 <b>PEG（Peter Lynch）</b>：${bits.join(' · ')}<br><span class="hint-mini"><b>⚠️ PEG 的兩個死角</b>：(1) <b>假設成長率可線性延續</b>——對成長剛起飛的公司低估風險、對成熟公司高估回歸壓力；(2) <b>基期效應</b>——${baseSuspicion}</span>`;
         }
         // 美股短興趣（Yahoo）· Layer 5 情緒替補
         if (yq) {
