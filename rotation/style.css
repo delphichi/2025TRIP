@@ -182,6 +182,85 @@ body.radar-body {
 }
 .key-panel .hint-mini a { color: var(--primary); }
 
+/* ---- Ticker input panel · 讓玩家自訂 6 個代號 ---- */
+.ticker-input-panel { border-left-color: #059669; background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); }
+.ticker-input-panel h2 { color: #14532d; }
+
+.ticker-input-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+}
+@media (min-width: 700px) {
+    .ticker-input-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.ticker-input-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.ticker-input-label {
+    font-size: .8em;
+    color: #4b5563;
+    font-weight: 600;
+    padding-left: 2px;
+}
+.ticker-input {
+    padding: 8px 10px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-family: ui-monospace, monospace;
+    font-size: 1em;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: #fff;
+    color: #0f172a;
+}
+.ticker-input:focus {
+    outline: none;
+    border-color: #059669;
+    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+.ticker-benchmark-cell {
+    grid-column: 1 / -1;
+    max-width: 220px;
+}
+.ticker-benchmark-cell .ticker-input-label { color: #78350f; }
+.ticker-benchmark-cell .ticker-input {
+    border-color: #fbbf24;
+    background: #fefce8;
+}
+.ticker-benchmark-cell .ticker-input:focus {
+    border-color: #d97706;
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+}
+
+.btn-download {
+    background: #059669;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    flex: 1;
+}
+.btn-download:hover { background: #047857; }
+.btn-secondary-inline {
+    background: #fff;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: .9em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-secondary-inline:hover { background: #f9fafb; color: #374151; }
+
 /* ---- Control panel ---- */
 .control-panel { border-left-color: var(--accent); }
 .control-row {
