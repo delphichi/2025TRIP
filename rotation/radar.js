@@ -1464,9 +1464,22 @@
         });
 
         fmSave.addEventListener('click', async () => {
-            const v = fmInput.value.trim();
+            const raw = fmInput.value;
+            // 移除所有空白/換行 · JWT 是單行純 ASCII · 沒 space
+            const v = raw.replace(/\s/g, '');
             if (!v) { alert('FinMind token 不能空白'); return; }
-            if (v.length < 20 && !confirm(`FinMind token 只有 ${v.length} 字元（通常 200+）· 確定？`)) return;
+            // 防護：貼到中文（可能是錯誤訊息或說明文字）
+            if (/[一-鿿]/.test(v)) {
+                alert('看起來貼進了中文字 · JWT token 應該是純 ASCII\n\n請去 FinMind 網站複製真正的 token（一長串 eyJ... 開頭的字串）');
+                return;
+            }
+            // 防護：太長（可能貼到整段錯誤訊息 + token）
+            if (v.length > 1000) {
+                alert(`貼的內容太長（${v.length} 字元 · 通常 200-300）· 你可能貼到錯的東西了`);
+                return;
+            }
+            // 防護：太短
+            if (v.length < 100 && !confirm(`Token 只有 ${v.length} 字元（通常 200+）· 確定？`)) return;
             statusEl.innerHTML = `⏳ 驗證 FinMind token（2330 近 7 日）…`;
             fmSave.disabled = true;
             let ok = false, error = '', rows = 0;
