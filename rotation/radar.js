@@ -330,6 +330,21 @@
 
             const y = ret - spyRet;
 
+            // 上漲量 vs 下跌量 比例（過去 VOL_WINDOW 天）
+            // 收紅 K（today.close > yesterday.close）該天的量算「買方主導」
+            // 收黑 K 該天的量算「賣方主導」
+            // buyRatio > 0.6 = 資金明顯流入 · < 0.4 = 資金明顯流出
+            let upVol = 0, downVol = 0;
+            for (let j = i - VOL_WINDOW + 1; j <= i; j++) {
+                if (j <= 0) continue;
+                const dayVol = series[j].volume;
+                if (series[j].close > series[j - 1].close) upVol += dayVol;
+                else if (series[j].close < series[j - 1].close) downVol += dayVol;
+                // 平盤（close == prev close）中性 · 不計入
+            }
+            const totalDirVol = upVol + downVol;
+            const buyRatio = totalDirVol > 0 ? upVol / totalDirVol : 0.5;
+
             out.push({
                 date: cur.date,
                 x, y,
@@ -340,6 +355,7 @@
                 dollarVol: cur.close * cur.volume,
                 ret10d: ret,
                 spyRet10d: spyRet,
+                buyRatio,         // 資金流向：0-1 · 0.5 = 平衡
             });
         }
         return out;
@@ -414,9 +430,21 @@
         };
     }
 
-    // 對每個 ticker 跑 3 種偵測 · 收集在該日期附近的訊號
+    // (4) 買量占比 · 抓「20 日上漲量比例明顯高於 60%」的 —— 資金真的在買
+    //     這是最直接的「資金進場」訊號 · 不用靠 X×Y 交叉推斷
+    function detectStrongBuying(seriesUpToNow) {
+        if (seriesUpToNow.length < 1) return null;
+        const cur = seriesUpToNow[seriesUpToNow.length - 1];
+        if (cur.buyRatio === undefined) return null;
+        return {
+            buyRatio: cur.buyRatio,
+            strong: cur.buyRatio >= 0.6,
+        };
+    }
+
+    // 對每個 ticker 跑 4 種偵測 · 收集在該日期附近的訊號
     function runSignalDetectors(currentDate) {
-        const signals = { transitions: [], accelerating: [], volumeLeading: [] };
+        const signals = { transitions: [], accelerating: [], volumeLeading: [], buying: [] };
         for (const t of TICKERS) {
             if (!state.metrics[t]) continue;
             const idx = state.metrics[t].findIndex(m => m.date === currentDate);
@@ -431,6 +459,9 @@
 
             const vlead = detectVolumeLeading(series, 5);
             if (vlead && vlead.signal) signals.volumeLeading.push({ t, ...vlead });
+
+            const buying = detectStrongBuying(series);
+            if (buying && buying.strong) signals.buying.push({ t, ...buying });
         }
         return signals;
     }
@@ -1019,6 +1050,18 @@
                 .join('');
         }
 
+        // 資金明顯流入（buyRatio ≥ 60%）
+        const bEl = $('signal-buying');
+        if (signals.buying.length === 0) {
+            bEl.innerHTML = `<div class="signal-empty">目前沒偵測到明顯買方主導</div>`;
+        } else {
+            bEl.innerHTML = signals.buying
+                .sort((a, b) => b.buyRatio - a.buyRatio)
+                .slice(0, 5)
+                .map(s => chip(s.t, `20 日買量占比 <b>${(s.buyRatio * 100).toFixed(0)}%</b>${s.buyRatio >= 0.7 ? '（超強）' : ''}<br><small>買方主導 · 資金確認流入</small>`))
+                .join('');
+        }
+
         // Solo click delegation
         $('signals-panel').onclick = (e) => {
             const el = e.target.closest('[data-solo]');
@@ -1174,6 +1217,15 @@
             const rangeCls = rangeRet === null ? '' : (rangeRet >= 0 ? 'val-pos' : 'val-neg');
             const rangeTxt = rangeRet === null ? '—' : `${rangeRet >= 0 ? '+' : ''}${fmtPct(rangeRet)}`;
             const rangeTitle = rangeStartDate ? `${rangeStartDate} → ${currentDate}` : '';
+            // 資金流：買量占比 → 直觀方向 + 顏色
+            const br = m.buyRatio;
+            let brArrow, brCls;
+            if (br >= 0.6) { brArrow = '▲'; brCls = 'val-pos'; }
+            else if (br <= 0.4) { brArrow = '▼'; brCls = 'val-neg'; }
+            else { brArrow = '●'; brCls = 'val-neutral'; }
+            const brTxt = `${brArrow} ${(br * 100).toFixed(0)}%`;
+            const brTitle = `過去 20 天：上漲日成交量 / (上漲+下跌日成交量) · > 60% 資金明顯流入 · < 40% 明顯流出`;
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="tk-dot" style="background:${info.color}"></span> <b>${t}</b></td>
@@ -1183,6 +1235,7 @@
                 <td class="${retCls}">${m.ret10d >= 0 ? '+' : ''}${fmtPct(m.ret10d)}</td>
                 <td class="${relCls}">${m.y >= 0 ? '+' : ''}${fmtPct(m.y)}</td>
                 <td>${fmt(m.x, 2)}x</td>
+                <td class="${brCls}" title="${brTitle}">${brTxt}</td>
                 <td class="${q.cls}"><b>${q.emoji} ${q.name}</b></td>
             `;
             tbody.appendChild(tr);
@@ -1231,6 +1284,12 @@
                         return `<div class="tt-row">🏁 區間累計 <b>${rr >= 0 ? '+' : ''}${fmtPct(rr)}</b><br><small>${start.date} → ${hit.metric.date}</small></div>`;
                     })()}
                     <div class="tt-row">📊 量比 <b>${fmt(hit.metric.x, 2)}x</b>（近5日/20日均量）</div>
+                    <div class="tt-row">💰 資金流 <b>${(() => {
+                        const br = hit.metric.buyRatio;
+                        if (br >= 0.6) return `▲ ${(br * 100).toFixed(0)}% 買方主導`;
+                        if (br <= 0.4) return `▼ ${(br * 100).toFixed(0)}% 賣方主導`;
+                        return `● ${(br * 100).toFixed(0)}% 平衡`;
+                    })()}</b><br><small>20 日上漲量占比</small></div>
                     <div class="tt-row">📈 10日報酬 ${retSign}${fmtPct(hit.metric.ret10d)}</div>
                     <div class="tt-row">🎯 相對基準 ${relSign}${fmtPct(hit.metric.y)}</div>
                     <div class="tt-quad ${q.cls}">${q.emoji} <b>${q.name}</b></div>
