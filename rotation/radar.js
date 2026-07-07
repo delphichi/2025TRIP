@@ -353,6 +353,89 @@
     }
 
     // ==========================================
+    // 轉折候選名單偵測器（4 種訊號）
+    // 目的：不預測 · 只是把「機率上比較可能發生轉折」的標的挑出來
+    // ==========================================
+
+    // (1) 象限轉換偵測 · 抓「近 N 天內剛跨過中線」的標的
+    //     真正想要的路徑：❄冷門 → ⚠量價背離 → 🚀主升段
+    function detectQuadrantTransition(seriesUpToNow, lookback = 5) {
+        if (seriesUpToNow.length < 2) return null;
+        const recent = seriesUpToNow.slice(-Math.min(lookback + 1, seriesUpToNow.length));
+        for (let i = recent.length - 1; i >= 1; i--) {
+            const prev = quadrantOf(recent[i - 1].x, recent[i - 1].y);
+            const cur = quadrantOf(recent[i].x, recent[i].y);
+            if (prev.key !== cur.key) {
+                return {
+                    date: recent[i].date,
+                    from: prev,
+                    to: cur,
+                    daysAgo: recent.length - 1 - i,
+                    // 特別標記「往右上」的轉換（bl→tl、bl→tr、tl→tr、br→tr）
+                    positive: (
+                        (prev.key === 'bl' && (cur.key === 'tl' || cur.key === 'tr' || cur.key === 'br')) ||
+                        (prev.key === 'tl' && cur.key === 'tr') ||
+                        (prev.key === 'br' && cur.key === 'tr')
+                    ),
+                };
+            }
+        }
+        return null;
+    }
+
+    // (2) 動能加速度 · 近 5 日 Y 斜率 vs 前 5 日 Y 斜率
+    //     抓「還沒到主升段 · 但往上加速中」的股（市場還沒完全反映）
+    function computeAcceleration(seriesUpToNow) {
+        if (seriesUpToNow.length < 10) return null;
+        const recent5 = seriesUpToNow.slice(-5);
+        const prior5 = seriesUpToNow.slice(-10, -5);
+        const recentSlope = (recent5[recent5.length - 1].y - recent5[0].y) / 5;
+        const priorSlope = (prior5[prior5.length - 1].y - prior5[0].y) / 5;
+        return {
+            recentSlope,
+            priorSlope,
+            // 加速：近 5 日斜率為正 · 且比前 5 日更陡
+            accelerating: recentSlope > priorSlope && recentSlope > 0.001,
+        };
+    }
+
+    // (3) 量能領先價格 · X 大幅上升但 Y 還沒明顯反應（起漲前兆）
+    //     smart money 先進場布局 · 價格還沒被推動
+    function detectVolumeLeading(seriesUpToNow, lookback = 5) {
+        if (seriesUpToNow.length < lookback) return null;
+        const recent = seriesUpToNow.slice(-lookback);
+        const xTrend = recent[recent.length - 1].x - recent[0].x;
+        const yTrend = recent[recent.length - 1].y - recent[0].y;
+        return {
+            xTrend, yTrend,
+            volumeSurging: xTrend > 0.3,           // 5 日內量比 +0.3 以上
+            priceStillFlat: Math.abs(yTrend) < 0.02, // Y 變化 < 2%
+            signal: xTrend > 0.3 && Math.abs(yTrend) < 0.02,
+        };
+    }
+
+    // 對每個 ticker 跑 3 種偵測 · 收集在該日期附近的訊號
+    function runSignalDetectors(currentDate) {
+        const signals = { transitions: [], accelerating: [], volumeLeading: [] };
+        for (const t of TICKERS) {
+            if (!state.metrics[t]) continue;
+            const idx = state.metrics[t].findIndex(m => m.date === currentDate);
+            if (idx < 0) continue;
+            const series = state.metrics[t].slice(0, idx + 1);
+
+            const trans = detectQuadrantTransition(series, 5);
+            if (trans && trans.positive) signals.transitions.push({ t, ...trans });
+
+            const accel = computeAcceleration(series);
+            if (accel && accel.accelerating) signals.accelerating.push({ t, ...accel });
+
+            const vlead = detectVolumeLeading(series, 5);
+            if (vlead && vlead.signal) signals.volumeLeading.push({ t, ...vlead });
+        }
+        return signals;
+    }
+
+    // ==========================================
     // State
     // ==========================================
     const state = {
@@ -799,31 +882,43 @@
             if (curMetricIdx < 0) continue;
 
             // Trail: 從你選的日期區間起頭一路畫到 currentIdx（progressive reveal）
-            // 舊：只保留 TRAIL_LEN=12 天尾巴 · 3 個月區間裡看起來很短
             const trail = series.slice(0, curMetricIdx + 1);
 
-            // Draw trail as fading line · 舊點淡但保底 0.15 alpha 讓整條可見
-            ctx.strokeStyle = info.color;
-            ctx.lineWidth = 1.5;
+            // 每段移動距離（軸空間）· 快 = 粗黑 · 慢 = 細淡
+            // Y 軸放大 15 倍讓量級對齊 X 軸（X ~0.5 spread · Y ~0.03 spread）
+            const segSpeeds = [];
             for (let i = 1; i < trail.length; i++) {
-                const t = trail.length > 1 ? i / (trail.length - 1) : 1;   // 0..1
-                ctx.globalAlpha = Math.max(0.15, t * 0.75);
+                const dx = trail[i].x - trail[i - 1].x;
+                const dy = (trail[i].y - trail[i - 1].y) * 15;
+                segSpeeds.push(Math.sqrt(dx * dx + dy * dy));
+            }
+            const maxSpeed = segSpeeds.length ? Math.max(...segSpeeds, 0.05) : 1;
+
+            for (let i = 1; i < trail.length; i++) {
+                const timeFade = trail.length > 1 ? i / (trail.length - 1) : 1;   // 舊 → 新
+                const speedNorm = Math.min(1, segSpeeds[i - 1] / maxSpeed);        // 0..1
+                // 線寬：慢 = 1 · 快 = 3.5 · 依 speedNorm 內插
+                ctx.lineWidth = 1 + speedNorm * 2.5;
+                // Alpha：時間新鮮度 × 速度加權 · 保底 0.15
+                ctx.globalAlpha = Math.max(0.15, timeFade * 0.4 + speedNorm * 0.5);
+                ctx.strokeStyle = info.color;
                 ctx.beginPath();
                 ctx.moveTo(xFor(trail[i - 1].x), yFor(trail[i - 1].y));
                 ctx.lineTo(xFor(trail[i].x), yFor(trail[i].y));
                 ctx.stroke();
             }
-            // Draw fading dots along trail（每 3 天一個 dot · 避免太密）
+            // Draw fading dots along trail（每 N 天一個 · 避免太密）
             const dotStep = Math.max(1, Math.floor(trail.length / 25));
             for (let i = 0; i < trail.length - 1; i += dotStep) {
                 const t = trail.length > 1 ? i / (trail.length - 1) : 1;
                 ctx.globalAlpha = Math.max(0.20, t * 0.65);
                 ctx.fillStyle = info.color;
                 ctx.beginPath();
-                ctx.arc(xFor(trail[i].x), yFor(trail[i].y), 2.5, 0, Math.PI * 2);
+                ctx.arc(xFor(trail[i].x), yFor(trail[i].y), 2, 0, Math.PI * 2);
                 ctx.fill();
             }
             ctx.globalAlpha = 1;
+            ctx.lineWidth = 1.5;
 
             // Current bubble
             const cur = trail[trail.length - 1];
@@ -863,8 +958,72 @@
         $('day-slider').value = state.currentIdx;
 
         renderSnapshotTable();
+        renderSignalsPanel();
         renderVerifyPanel();
         renderSpyRawPanel();
+    }
+
+    function renderSignalsPanel() {
+        const currentDate = state.dates[state.currentIdx];
+        const signals = runSignalDetectors(currentDate);
+        const solo = (t) => {
+            state.visibleTickers = new Set([t]);
+            updateChipStates();
+            renderFrame();
+        };
+        const info = t => TICKER_INFO[t];
+        const chip = (t, extra) => {
+            const c = info(t) ? info(t).color : '#666';
+            const nm = info(t) ? info(t).name : t;
+            return `<div class="signal-item" data-solo="${t}">
+                <span class="signal-dot" style="background:${c}"></span>
+                <div class="signal-body">
+                    <div class="signal-ticker"><b>${t}</b> <small>${nm.replace(t + ' · ', '')}</small></div>
+                    <div class="signal-detail">${extra}</div>
+                </div>
+            </div>`;
+        };
+
+        // 轉換
+        const tEl = $('signal-transitions');
+        if (signals.transitions.length === 0) {
+            tEl.innerHTML = `<div class="signal-empty">近 5 天沒偵測到象限轉換</div>`;
+        } else {
+            tEl.innerHTML = signals.transitions
+                .sort((a, b) => a.daysAgo - b.daysAgo)
+                .map(s => chip(s.t, `${s.from.emoji} <b>${s.from.name}</b> → ${s.to.emoji} <b>${s.to.name}</b><br><small>${s.daysAgo === 0 ? '今天' : s.daysAgo + ' 天前'} · ${s.date}</small>`))
+                .join('');
+        }
+
+        // 加速
+        const aEl = $('signal-accelerating');
+        if (signals.accelerating.length === 0) {
+            aEl.innerHTML = `<div class="signal-empty">目前沒偵測到明顯加速</div>`;
+        } else {
+            aEl.innerHTML = signals.accelerating
+                .sort((a, b) => (b.recentSlope - b.priorSlope) - (a.recentSlope - a.priorSlope))
+                .slice(0, 5)
+                .map(s => chip(s.t, `近5日 <b>${(s.recentSlope * 100).toFixed(2)}%/日</b> vs 前5日 ${(s.priorSlope * 100).toFixed(2)}%/日<br><small>斜率加大 ${((s.recentSlope - s.priorSlope) * 100).toFixed(2)}pp</small>`))
+                .join('');
+        }
+
+        // 量先動
+        const vEl = $('signal-vlead');
+        if (signals.volumeLeading.length === 0) {
+            vEl.innerHTML = `<div class="signal-empty">目前沒偵測到量先動、價未動</div>`;
+        } else {
+            vEl.innerHTML = signals.volumeLeading
+                .sort((a, b) => b.xTrend - a.xTrend)
+                .slice(0, 5)
+                .map(s => chip(s.t, `X <b>+${s.xTrend.toFixed(2)}</b>（量比放大）· Y ${(s.yTrend * 100 >= 0 ? '+' : '') + (s.yTrend * 100).toFixed(2)}%（幾乎沒動）<br><small>近 5 日 · 起漲前兆型</small>`))
+                .join('');
+        }
+
+        // Solo click delegation
+        $('signals-panel').onclick = (e) => {
+            const el = e.target.closest('[data-solo]');
+            if (el) solo(el.dataset.solo);
+        };
     }
 
     // 驗證面板：每個 ticker 顯示當日的原始收盤/成交量 + 20日均量計算 + 10日報酬計算
