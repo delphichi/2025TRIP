@@ -141,7 +141,8 @@
         playTimer: null,
         speedMs: 400,
         maxDollarVol: 1,
-        axisRanges: null,   // {xMin, xMax, yMin, yMax}
+        axisRanges: null,
+        visibleTickers: new Set(TICKERS),   // 哪些 ticker 目前要顯示
     };
 
     // ==========================================
@@ -482,6 +483,7 @@
         const bubblePositions = [];   // for hit detection
 
         for (const t of TICKERS) {
+            if (!state.visibleTickers.has(t)) continue;   // 被隱藏的類股跳過
             const info = TICKER_INFO[t];
             const series = state.metrics[t].filter(m => state.dates.includes(m.date));
             const curMetricIdx = series.findIndex(m => m.date === currentDate);
@@ -757,6 +759,65 @@
             if (state.playing) {
                 stopPlay();
                 startPlay();
+            }
+        });
+
+        // 類股 chip · 點單個 toggle · 全部/全隱藏 按鈕
+        initTickerChips();
+    }
+
+    function initTickerChips() {
+        const chipRow = $('ticker-chips');
+        // 插在「全部」「全隱藏」後面的位置 · 每個 ticker 一顆 chip
+        TICKERS.forEach(t => {
+            const info = TICKER_INFO[t];
+            const btn = document.createElement('button');
+            btn.className = 'chip active';
+            btn.dataset.ticker = t;
+            btn.innerHTML = `<span class="chip-dot" style="background:${info.color}"></span> ${t} · ${info.name}`;
+            btn.style.borderColor = info.color;
+            chipRow.appendChild(btn);
+        });
+        chipRow.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const ticker = btn.dataset.ticker;
+            if (action === 'all') {
+                state.visibleTickers = new Set(TICKERS);
+            } else if (action === 'clear') {
+                state.visibleTickers = new Set();
+            } else if (ticker) {
+                // Ctrl / Cmd click 是 toggle · 純點是「只看這條」
+                if (e.ctrlKey || e.metaKey) {
+                    if (state.visibleTickers.has(ticker)) state.visibleTickers.delete(ticker);
+                    else state.visibleTickers.add(ticker);
+                } else {
+                    // 若已經是 solo · 再點回全部
+                    if (state.visibleTickers.size === 1 && state.visibleTickers.has(ticker)) {
+                        state.visibleTickers = new Set(TICKERS);
+                    } else {
+                        state.visibleTickers = new Set([ticker]);
+                    }
+                }
+            }
+            updateChipStates();
+            renderFrame();
+        });
+        updateChipStates();
+    }
+
+    function updateChipStates() {
+        const chipRow = $('ticker-chips');
+        chipRow.querySelectorAll('button').forEach(btn => {
+            const action = btn.dataset.action;
+            const ticker = btn.dataset.ticker;
+            if (action === 'all') {
+                btn.classList.toggle('active', state.visibleTickers.size === TICKERS.length);
+            } else if (action === 'clear') {
+                btn.classList.toggle('active', state.visibleTickers.size === 0);
+            } else if (ticker) {
+                btn.classList.toggle('active', state.visibleTickers.has(ticker));
             }
         });
     }
