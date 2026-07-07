@@ -1,0 +1,20 @@
+{
+    "name": "poisonous-comic",
+    "version": "0.1.0",
+    "private": true,
+    "description": "毒雞湯漫畫產生器 · 反轉句式文案 + 固定 SVG 零件組裝 · Phase 1（文案生成）",
+    "type": "module",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node --watch server.js",
+        "test:caption": "node test/test-captions.mjs"
+    },
+    "dependencies": {
+        "@anthropic-ai/sdk": "^0.32.1",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.1"
+    },
+    "engines": {
+        "node": ">=20"
+    }
+}
