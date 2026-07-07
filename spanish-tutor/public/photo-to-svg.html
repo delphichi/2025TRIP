@@ -419,6 +419,38 @@
                 // 渲染 SVG · 已 server 端 sanitize · 這裡 innerHTML 直接放
                 lastSvg = data.svg;
                 $svgResult.innerHTML = data.svg;
+                // Claude 通常只給 viewBox 沒給 width/height · 塞進 div 會塌陷 · 這裡強制注入
+                const svgEl = $svgResult.querySelector('svg');
+                if (svgEl) {
+                    if (!svgEl.getAttribute('width'))  svgEl.setAttribute('width', '400');
+                    if (!svgEl.getAttribute('height')) svgEl.setAttribute('height', '400');
+                    svgEl.style.maxWidth = '100%';
+                    svgEl.style.height = 'auto';
+                    svgEl.style.display = 'block';
+                    svgEl.style.background = 'white';
+                    svgEl.style.borderRadius = '6px';
+                }
+                // 保底 fallback：若 SVG 元素高度仍然 0 · 用 data URL img 再顯示一次
+                setTimeout(() => {
+                    const rect = svgEl?.getBoundingClientRect();
+                    if (!rect || rect.height < 5) {
+                        console.warn('inline SVG collapsed · falling back to data URL img');
+                        const b64 = btoa(unescape(encodeURIComponent(data.svg)));
+                        $svgResult.innerHTML = `
+                            <img src="data:image/svg+xml;base64,${b64}"
+                                 alt="Generated SVG"
+                                 style="max-width:100%;max-height:400px;display:block;background:white;border-radius:6px">
+                            <div style="font-size:.75em;color:#94a3b8;margin-top:4px">↑ inline SVG 塌陷 · 改用 data URL 顯示</div>
+                        `;
+                    }
+                }, 100);
+                // 附「查看 SVG 原始碼」details · 除錯用
+                $svgResult.insertAdjacentHTML('beforeend', `
+                    <details style="margin-top:10px;font-size:.85em">
+                        <summary style="cursor:pointer;color:#0369a1">🔍 查看 SVG 原始碼（${data.svg.length} 字元）</summary>
+                        <pre style="background:#f1f5f9;padding:8px;border-radius:6px;overflow-x:auto;font-size:.8em;max-height:200px">${escape(data.svg)}</pre>
+                    </details>
+                `);
 
                 // Meta 資訊
                 const truncBadge = data.truncated
