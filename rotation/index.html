@@ -66,6 +66,11 @@
         </section>
 
         <section class="panel chart-panel">
+            <div class="ticker-chip-row" id="ticker-chips">
+                <button class="chip chip-all active" data-action="all">👁 全部</button>
+                <button class="chip chip-clear" data-action="clear">🚫 全隱藏</button>
+                <span class="chip-hint">點類股切換 · 點一支<b>單看</b>那條 · 全部/全隱藏一鍵重置</span>
+            </div>
             <canvas id="radar-canvas" width="900" height="640"></canvas>
             <div id="tooltip" class="radar-tooltip" hidden></div>
         </section>
