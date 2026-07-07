@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📸 照片轉 SVG 藝術版 · Phase 7</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; padding: 20px 10px 24px; }
+        header h1 { margin: 0; font-size: 1.8em; color: #075985; }
+        header .subtitle { margin: 6px 0 0; color: #0369a1; font-size: .95em; }
+        header .phase-tag {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            background: #0ea5e9;
+            color: #fff;
+            border-radius: 999px;
+            font-size: .8em;
+            font-weight: 600;
+        }
+        header .nav-back {
+            display: inline-block;
+            margin-top: 8px;
+            margin-left: 10px;
+            padding: 3px 10px;
+            background: #fff;
+            color: #0369a1;
+            border: 1px solid #7dd3fc;
+            border-radius: 999px;
+            font-size: .8em;
+            text-decoration: none;
+        }
+        .panel {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            margin: 14px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+        .intro-banner {
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: .95em;
+            color: #78350f;
+            line-height: 1.7;
+        }
+        .intro-banner b { color: #92400e; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            color: #0369a1;
+            margin-bottom: 6px;
+            font-size: .95em;
+        }
+        .file-input-wrap {
+            border: 2px dashed #7dd3fc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            background: #f0f9ff;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .file-input-wrap:hover { border-color: #0284c7; background: #e0f2fe; }
+        .file-input-wrap.has-file { border-color: #059669; background: #ecfdf5; }
+        .file-input-wrap input[type="file"] { display: none; }
+        .file-input-wrap .prompt-text { color: #0c4a6e; font-size: 1em; }
+        .file-input-wrap .file-info { color: #065f46; font-weight: 700; margin-top: 6px; }
+        select, .style-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #bae6fd;
+            border-radius: 8px;
+            font-size: 1em;
+            background: #fff;
+            font-family: inherit;
+        }
+        .style-hint {
+            font-size: .85em;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .preview-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 14px;
+        }
+        @media (max-width: 700px) {
+            .preview-row { grid-template-columns: 1fr; }
+        }
+        .preview-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-box .box-label {
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 8px;
+            font-size: .9em;
+            width: 100%;
+            text-align: center;
+        }
+        .preview-box img, .preview-box svg {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 6px;
+        }
+        .preview-box .empty-hint {
+            color: #94a3b8;
+            font-style: italic;
+            font-size: .9em;
+        }
+
+        .btn-primary {
+            background: #0ea5e9;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+            width: 100%;
+        }
+        .btn-primary:hover:not(:disabled) { background: #0284c7; }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #0369a1;
+            justify-content: center;
+        }
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: #0ea5e9;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes pulse {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+
+        .meta-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed #e5e7eb;
+        }
+        .badge {
+            padding: 3px 8px;
+            background: #f1f5f9;
+            border-radius: 5px;
+            font-family: ui-monospace, monospace;
+            font-size: .82em;
+            color: #334155;
+        }
+        .badge.ok { background: #dcfce7; color: #166534; }
+        .badge.warn { background: #fef3c7; color: #92400e; }
+        .badge.err { background: #fee2e2; color: #991b1b; }
+        .badge.cost { background: #fef3c7; color: #78350f; font-weight: 700; }
+
+        .error-box {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: #7f1d1d;
+        }
+        .warning-list {
+            background: #fef3c7;
+            border-left: 3px solid #f59e0b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: .88em;
+            color: #78350f;
+        }
+        .warning-list ul { margin: 2px 0 0 20px; padding: 0; }
+        .download-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .download-row button {
+            padding: 6px 12px;
+            border: 1px solid #94a3b8;
+            background: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #475569;
+            font-size: .88em;
+        }
+        .download-row button:hover { background: #f1f5f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📸 照片轉 SVG 藝術版</h1>
+            <div class="subtitle">上傳照片 · AI 用 Claude 視覺能力生成風格化 SVG</div>
+            <div class="phase-tag">Phase 7 · 完整 Harness 防護</div>
+            <a href="/" class="nav-back">← 回西班牙文老師</a>
+        </header>
+
+        <section class="panel">
+            <div class="intro-banner">
+                📸 上傳照片 · AI 會畫出簡化的風格化 SVG 版本——<b>這不是精確複製 · 是藝術化的線條詮釋 · 細節會被簡化。</b>
+                適合<b>單一主體、輪廓清楚</b>的照片（人像、物品）· 效果比複雜背景/多主體的照片更好。
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="form-group">
+                <label for="file-input">1. 選張照片（JPG / PNG / WebP · 上限 5MB）</label>
+                <label class="file-input-wrap" id="file-drop">
+                    <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp">
+                    <div class="prompt-text">🖼️ 點這裡選檔案 · 或拖進來</div>
+                    <div class="file-info" id="file-info" hidden></div>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label for="style-select">2. 選擇藝術風格</label>
+                <select id="style-select" class="style-select">
+                    <option value="minimal_icon">🥇 極簡圖示（推薦 · 便宜 · CP 值最高）</option>
+                    <option value="sketch">✏️ 線條素描（單色鉛筆風）</option>
+                    <option value="silhouette">⚫ 剪影風格（實心黑影）</option>
+                    <option value="geometric">🎨 幾何色塊（low-poly · 藝術性最強 · 貴 3×）</option>
+                </select>
+                <div class="style-hint" id="style-hint">預估成本：NT$0.15-0.30 · 依圖片大小</div>
+            </div>
+
+            <div class="form-group">
+                <button class="btn-primary" id="btn-generate" disabled>🎨 生成 SVG</button>
+            </div>
+
+            <div id="error-slot"></div>
+        </section>
+
+        <section class="panel" id="preview-panel" hidden>
+            <div class="preview-row">
+                <div class="preview-box">
+                    <div class="box-label">📷 原圖</div>
+                    <div id="original-preview"></div>
+                </div>
+                <div class="preview-box">
+                    <div class="box-label">🎨 生成的 SVG</div>
+                    <div id="svg-result">
+                        <div class="empty-hint">按上方生成鈕開始</div>
+                    </div>
+                </div>
+            </div>
+            <div class="meta-row" id="meta-row" hidden></div>
+            <div id="safety-warnings"></div>
+            <div class="download-row" id="download-row" hidden>
+                <button id="btn-download-svg">💾 下載 SVG</button>
+                <button id="btn-copy-svg">📋 複製 SVG 原始碼</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const $fileInput = document.getElementById('file-input');
+        const $fileDrop = document.getElementById('file-drop');
+        const $fileInfo = document.getElementById('file-info');
+        const $style = document.getElementById('style-select');
+        const $styleHint = document.getElementById('style-hint');
+        const $btn = document.getElementById('btn-generate');
+        const $errorSlot = document.getElementById('error-slot');
+        const $previewPanel = document.getElementById('preview-panel');
+        const $original = document.getElementById('original-preview');
+        const $svgResult = document.getElementById('svg-result');
+        const $metaRow = document.getElementById('meta-row');
+        const $safetyWarnings = document.getElementById('safety-warnings');
+        const $downloadRow = document.getElementById('download-row');
+
+        let currentFile = null;
+        let currentBase64 = null;
+        let lastSvg = null;
+
+        function updateStyleHint() {
+            const est = {
+                sketch: 'NT$0.10-0.20',
+                silhouette: 'NT$0.10-0.20',
+                minimal_icon: 'NT$0.10-0.20',
+                geometric: 'NT$0.40-0.80 · 貴 3-4× · 藝術性最強',
+            };
+            $styleHint.textContent = `預估成本：${est[$style.value]}`;
+        }
+        $style.addEventListener('change', updateStyleHint);
+        updateStyleHint();
+
+        // 拖曳支援
+        ['dragover', 'dragenter'].forEach(evt => {
+            $fileDrop.addEventListener(evt, e => {
+                e.preventDefault();
+                $fileDrop.style.background = '#dbeafe';
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            $fileDrop.addEventListener(evt, e => {
+                e.preventDefault();
+                $fileDrop.style.background = '';
+            });
+        });
+        $fileDrop.addEventListener('drop', e => {
+            e.preventDefault();
+            const f = e.dataTransfer.files[0];
+            if (f) handleFile(f);
+        });
+
+        $fileInput.addEventListener('change', e => {
+            const f = e.target.files[0];
+            if (f) handleFile(f);
+        });
+
+        function handleFile(file) {
+            currentFile = file;
+            $btn.disabled = true;
+
+            // 客戶端預檢（server 也會查一次）
+            if (file.size > 5 * 1024 * 1024) {
+                showError(`圖片過大（${(file.size / 1024 / 1024).toFixed(2)} MB）· 上限 5 MB`);
+                return;
+            }
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                showError(`不支援的格式（${file.type}）· 只接受 JPG / PNG / WebP`);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                currentBase64 = e.target.result.replace(/^data:image\/[a-z]+;base64,/, '');
+                $fileDrop.classList.add('has-file');
+                $fileInfo.hidden = false;
+                $fileInfo.innerHTML = `✅ ${escape(file.name)} · ${(file.size / 1024).toFixed(1)} KB`;
+                $btn.disabled = false;
+                clearError();
+
+                // 預覽原圖
+                $previewPanel.hidden = false;
+                $original.innerHTML = `<img src="${e.target.result}" alt="原圖">`;
+                $svgResult.innerHTML = '<div class="empty-hint">按上方生成鈕開始</div>';
+                $metaRow.hidden = true;
+                $safetyWarnings.innerHTML = '';
+                $downloadRow.hidden = true;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        $btn.addEventListener('click', async () => {
+            if (!currentBase64 || !currentFile) {
+                showError('請先選圖');
+                return;
+            }
+            $btn.disabled = true;
+            $btn.textContent = '⏳ 生成中……';
+            $svgResult.innerHTML = `
+                <div class="loading">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <span>Claude 正在看圖畫 SVG……</span>
+                </div>`;
+            $metaRow.hidden = true;
+            $safetyWarnings.innerHTML = '';
+            $downloadRow.hidden = true;
+            clearError();
+
+            try {
+                const res = await fetch('/api/svg-generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageBase64: currentBase64,
+                        mimeType: currentFile.type,
+                        style: $style.value,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    $svgResult.innerHTML = '<div class="empty-hint">❌ 生成失敗</div>';
+                    showError(`${escape(data.error || res.statusText)}${data.stage ? ` · 階段: ${data.stage}` : ''}`);
+                    return;
+                }
+
+                // 渲染 SVG · 已 server 端 sanitize · 這裡 innerHTML 直接放
+                lastSvg = data.svg;
+                $svgResult.innerHTML = data.svg;
+
+                // Meta 資訊
+                const truncBadge = data.truncated
+                    ? '<span class="badge err">🚨 max_tokens 截斷</span>'
+                    : '<span class="badge ok">✅ end_turn</span>';
+                $metaRow.innerHTML = `
+                    ${truncBadge}
+                    <span class="badge">風格: ${escape(data.styleLabel)}</span>
+                    <span class="badge">in: ${data.usage.input_tokens} tok</span>
+                    <span class="badge">out: ${data.usage.output_tokens} tok</span>
+                    <span class="badge cost">💰 NT$${data.cost.twd.toFixed(4)}</span>
+                    <span class="badge">${(data.elapsedMs / 1000).toFixed(1)}s</span>
+                    <span class="badge">SVG ${data.safety.svgLength} 字元</span>
+                `;
+                $metaRow.hidden = false;
+
+                // Safety 警告（如果有）
+                const warnings = [];
+                if (data.inputCheck?.warnings) warnings.push(...data.inputCheck.warnings.map(w => `[輸入] ${w}`));
+                if (data.safety?.warnings) warnings.push(...data.safety.warnings.map(w => `[SVG 清洗] ${w}`));
+                if (warnings.length) {
+                    $safetyWarnings.innerHTML = `
+                        <div class="warning-list">
+                            <b>🛡️ Harness 記錄</b>
+                            <ul>${warnings.map(w => `<li>${escape(w)}</li>`).join('')}</ul>
+                        </div>`;
+                }
+
+                $downloadRow.hidden = false;
+            } catch (e) {
+                showError(`網路錯誤：${escape(e.message)}`);
+                $svgResult.innerHTML = '<div class="empty-hint">❌ 生成失敗</div>';
+            } finally {
+                $btn.disabled = !currentBase64;
+                $btn.textContent = '🎨 生成 SVG';
+            }
+        });
+
+        document.getElementById('btn-download-svg').addEventListener('click', () => {
+            if (!lastSvg) return;
+            const blob = new Blob([lastSvg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `art-${$style.value}-${Date.now()}.svg`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('btn-copy-svg').addEventListener('click', async () => {
+            if (!lastSvg) return;
+            try {
+                await navigator.clipboard.writeText(lastSvg);
+                const b = document.getElementById('btn-copy-svg');
+                const orig = b.textContent;
+                b.textContent = '✅ 已複製';
+                setTimeout(() => b.textContent = orig, 1500);
+            } catch (e) {
+                alert('複製失敗：' + e.message);
+            }
+        });
+
+        function showError(msg) {
+            $errorSlot.innerHTML = `<div class="error-box">❌ ${msg}</div>`;
+        }
+        function clearError() {
+            $errorSlot.innerHTML = '';
+        }
+        function escape(s) {
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+            }[c]));
+        }
+    </script>
+</body>
+</html>

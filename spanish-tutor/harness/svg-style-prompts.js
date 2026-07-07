@@ -47,6 +47,8 @@ export function buildSvgPrompt(styleKey) {
         '- SVG 尺寸建議 viewBox="0 0 400 400"',
         '- 不使用 <script> / on* event 屬性 / 外部 xlink:href（會被 Harness 拒絕）',
         '- 保持路徑精簡 · 總長度控制在 15000 字元以內',
+        '- **避免重複元素**：不要輸出兩個相同位置、相同尺寸的 shape（例如兩個同 cx/cy/r 的 circle）· 每個元素都要有獨立意義',
+        '- 座標保持在 viewBox 內 · 不要超出 400×400 邊界',
     ].join('\n');
 }
 

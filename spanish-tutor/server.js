@@ -26,6 +26,10 @@ import {
     CONTEXT_LIMITS,
 } from './harness/context-manager.js';
 import { getDictMeta } from './tools/dictionary-lookup.js';
+import { validateImageUpload } from './harness/image-input-filter.js';
+import { sanitizeSvgOutput, extractSvgFromResponse, SvgSafetyError } from './harness/svg-safety-check.js';
+import { STYLE_PROMPTS, buildSvgPrompt, AVAILABLE_STYLES } from './harness/svg-style-prompts.js';
+import { SVG_LIMITS } from './harness/svg-limits.js';
 
 dotenv.config();
 
@@ -226,6 +230,127 @@ app.post('/api/chat-multi-agent', async (req, res) => {
 });
 
 /**
+ * POST /api/svg-generate · Phase 7 · 照片 → 風格化 SVG
+ * body: { imageBase64: string, mimeType: string, style: string }
+ * flow: image-input-filter → Claude vision API → svg-safety-check
+ *
+ * 用專用的 express.json({limit:'8mb'}) middleware · 因為圖片 base64 會很大
+ */
+app.post('/api/svg-generate', express.json({ limit: '8mb' }), async (req, res) => {
+    const { imageBase64, mimeType, style } = req.body || {};
+
+    // === 基本參數檢查 ===
+    if (typeof imageBase64 !== 'string' || !imageBase64.length) {
+        return res.status(400).json({ error: 'imageBase64 必須是非空字串' });
+    }
+    if (!AVAILABLE_STYLES.includes(style)) {
+        return res.status(400).json({
+            error: `style 必須是 ${AVAILABLE_STYLES.join(' / ')} 之一 · 收到 ${style}`,
+        });
+    }
+
+    // === Phase 1 · 輸入驗證 ===
+    let imageBuffer;
+    try {
+        imageBuffer = Buffer.from(imageBase64, 'base64');
+    } catch (e) {
+        return res.status(400).json({ error: '無法解 base64 · 內容格式錯' });
+    }
+    const inputCheck = validateImageUpload(imageBuffer, mimeType);
+    if (!inputCheck.valid) {
+        return res.status(400).json({ error: inputCheck.error, stage: 'input-filter' });
+    }
+
+    const started = Date.now();
+    const style_meta = STYLE_PROMPTS[style];
+    const prompt = buildSvgPrompt(style);
+
+    // === Claude 呼叫 · timeout 用 AbortController ===
+    const abortCtrl = new AbortController();
+    const timer = setTimeout(() => abortCtrl.abort(new Error('SVG generation timeout')), SVG_LIMITS.TIMEOUT_MS);
+    let response;
+    try {
+        response = await client.messages.create({
+            model: MODEL,
+            max_tokens: SVG_LIMITS.MAX_OUTPUT_TOKENS,
+            messages: [{
+                role: 'user',
+                content: [
+                    { type: 'image', source: { type: 'base64', media_type: inputCheck.realMime, data: imageBase64 } },
+                    { type: 'text', text: prompt },
+                ],
+            }],
+        }, { signal: abortCtrl.signal });
+    } catch (e) {
+        clearTimeout(timer);
+        if (e.name === 'AbortError' || /abort/i.test(e.message || '')) {
+            return res.status(504).json({ error: `SVG 生成超時（${SVG_LIMITS.TIMEOUT_MS}ms）`, stage: 'timeout' });
+        }
+        console.error('SVG API error:', e.status, e.message);
+        let hint = '';
+        if (e.status === 401) hint = ' · API key 無效';
+        else if (e.status === 400) hint = ' · 圖片格式可能有問題';
+        else if (e.status === 429) hint = ' · rate limit';
+        else if (e.status === 529) hint = ' · Anthropic 過載';
+        return res.status(500).json({ error: (e.message || 'Claude API 失敗') + hint, stage: 'api' });
+    }
+    clearTimeout(timer);
+
+    // === 抽出 SVG ===
+    const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    const svgRaw = extractSvgFromResponse(rawText);
+    if (!svgRaw) {
+        return res.status(500).json({
+            error: 'Claude 回應中找不到 <svg> 標籤',
+            stage: 'extract',
+            rawPreview: rawText.slice(0, 300),
+        });
+    }
+
+    // === Phase 2 · 輸出安全過濾 ===
+    let sanitized, safetyWarnings;
+    try {
+        const result = sanitizeSvgOutput(svgRaw);
+        sanitized = result.cleaned;
+        safetyWarnings = result.warnings;
+    } catch (e) {
+        if (e instanceof SvgSafetyError) {
+            return res.status(500).json({
+                error: `SVG 安全檢查失敗：${e.message}`,
+                code: e.code,
+                stage: 'safety-check',
+                svgPreview: svgRaw.slice(0, 300),
+            });
+        }
+        throw e;
+    }
+
+    // === 成本計算 ===
+    const cost = calcCost(response.model, response.usage);
+
+    res.json({
+        svg: sanitized,
+        style,
+        styleLabel: style_meta.label,
+        stopReason: response.stop_reason,
+        truncated: response.stop_reason === 'max_tokens',
+        usage: response.usage,
+        cost,
+        elapsedMs: Date.now() - started,
+        model: response.model,
+        inputCheck: {
+            realMime: inputCheck.realMime,
+            size: inputCheck.size,
+            warnings: inputCheck.warnings,
+        },
+        safety: {
+            warnings: safetyWarnings.length ? safetyWarnings : null,
+            svgLength: sanitized.length,
+        },
+    });
+});
+
+/**
  * GET /api/session/:id · 讀 session 狀態
  * DELETE /api/session/:id · 清 session（開新對話）
  */
@@ -249,7 +374,9 @@ app.get('/api/health', (_req, res) => {
         multiAgentLimits: MULTI_AGENT_LIMITS,
         contextLimits: CONTEXT_LIMITS,
         dictionary: getDictMeta(),
-        phase: 'phase-5-real-dict',
+        svgLimits: SVG_LIMITS,
+        svgStyles: AVAILABLE_STYLES,
+        phase: 'phase-7-photo-to-svg',
         hasKey: !!process.env.ANTHROPIC_API_KEY,
         routes: [
             '/api/chat-simple', '/api/chat-agent', '/api/chat-multi-agent',
@@ -260,7 +387,7 @@ app.get('/api/health', (_req, res) => {
 
 app.listen(PORT, () => {
     console.log('');
-    console.log('🇪🇸 Spanish tutor · Phase 5（真字典 · Wiktionary/Kaikki）');
+    console.log('🇪🇸 Spanish tutor · Phase 7（照片→SVG · 完整 harness）');
     console.log(`   URL:   http://localhost:${PORT}`);
     console.log(`   Model: ${MODEL}`);
     console.log(`   Max tokens: ${MAX_TOKENS}`);
