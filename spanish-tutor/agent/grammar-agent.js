@@ -14,7 +14,7 @@ import { calcCost } from '../harness/cost-tracker.js';
 const TOOLS = [
     {
         name: 'grammar_rule_lookup',
-        description: '查西班牙文文法規則。可查主題：subjuntivo, preterito, imperfecto, ser-estar, por-para, imperativo。',
+        description: '查西班牙文文法規則。可查主題：subjuntivo（虛擬式）· preterito（簡單過去式）· imperfecto（未完成過去式）· ser-estar（兩個「是」）· por-para（兩個介系詞）· imperativo（命令式）· gustar（反向主詞句型 · 涵蓋 gustar/encantar/interesar/doler 等）',
         input_schema: {
             type: 'object',
             properties: {

@@ -41,7 +41,8 @@ const TOOLS = [
         description: '查西班牙文文法規則。' +
                      '使用者問「XX 文法怎麼用」「XX 跟 YY 的差別」「XX 什麼時候用」時使用。' +
                      '可查主題：subjuntivo（虛擬式）、preterito（簡單過去式）、imperfecto（未完成過去式）、' +
-                     'ser-estar（兩個「是」）、por-para（兩個介系詞）、imperativo（命令式）。',
+                     'ser-estar（兩個「是」）、por-para（兩個介系詞）、imperativo（命令式）、' +
+                     'gustar（反向主詞句型 · 涵蓋 gustar/encantar/interesar/doler）。',
         input_schema: {
             type: 'object',
             properties: {
