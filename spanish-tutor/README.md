@@ -1,9 +1,6 @@
-# 🇪🇸 西班牙文學習助手 · Phase 0
+# 🇪🇸 西班牙文學習助手
 
-用中文問 · 老師用**西班牙文 + 中文對照**回答。
-
-目前是階段 0：純文字問答 · **沒有**工具、多智能體、Harness 過濾。
-先確認 API 串接、伺服器、前端顯示都通再往後推進。
+用中文問 · 老師用**西班牙文 + 中文對照**回答 · 完整 5 階段 AI Agent 架構。
 
 ## 快速起動
 
@@ -25,51 +22,90 @@ npm run dev
 
 打開 http://localhost:3000
 
-## 測試
+## 字典擴充（Phase 5）
 
-用網頁點 preset 或用 curl：
+Baseline 內建 51 個常用字（手工整理）· 執行以下命令從 Kaikki.org（Wiktionary 結構化資料 · CC-BY-SA）拉真字典：
 
 ```bash
-curl -X POST http://localhost:3000/api/chat-simple \
-  -H "Content-Type: application/json" \
-  -d '{"message":"怎麼說我想學西班牙文？"}'
+# 拉 5000 字 · 跟 baseline 合併（保留手工 notes）
+npm run fetch-dict
+
+# 拉 10000 字
+npm run fetch-dict:top10k
+
+# 強制重下 · 不用快取
+npm run fetch-dict:fresh
 ```
 
-## 架構（現況 + 未來）
+第一次會下載 ~30-50MB · 家裡 wifi 幾分鐘。結果寫入 `tools/data/spanish-dictionary.json`。重啟 server 就會看到「字典來源: Kaikki...」。
+
+## 五階段架構
+
+```
+Phase 0 · 純文字問答            server.js · /api/chat-simple
+Phase 1 · ReAct 循環 + 假工具    agent/planner-agent.js
+Phase 2 · Harness 防護層        harness/{limits,guard,cost-tracker,output-filter}.js
+Phase 3 · 多智能體協作          agent/{multi-agent-planner,grammar-agent,example-agent}.js
+Phase 4 · 對話記憶 + 自動摘要    harness/context-manager.js
+Phase 5 · 真字典（Wiktionary）  tools/data/spanish-dictionary.json + scripts/fetch-dictionary.mjs
+```
+
+## 檔案樹
 
 ```
 spanish-tutor/
-├── server.js              — Express + Anthropic SDK · /api/chat-simple 路由
-├── public/index.html       — 前端 · textarea + preset + 雙語樣式渲染
+├── server.js                        — Express + Anthropic SDK · 3 個 chat route + session mgmt
+├── public/index.html                — 前端 · 三模式（simple/agent/multi-agent）· session panel
 ├── agent/
-│   ├── planner-agent.js    — [Phase 1] ReAct 循環
-│   ├── grammar-agent.js    — [Phase 3] 文法子 agent · 獨立上下文
-│   └── example-agent.js    — [Phase 3] 例句子 agent · 獨立上下文
+│   ├── planner-agent.js             — Phase 2 · 單一 agent + 兩工具（ReAct）
+│   ├── grammar-agent.js             — Phase 3 · 文法助教（單一工具）
+│   ├── example-agent.js             — Phase 3 · 例句助教（單一工具）
+│   └── multi-agent-planner.js       — Phase 3 · 協調者 · 平行派任務給助教
 ├── tools/
-│   ├── dictionary-lookup.js    — [Phase 1] 字典查詢
-│   └── grammar-rule-lookup.js  — [Phase 1] 文法規則查詢
-└── harness/
-    ├── input-filter.js         — [Phase 2] 輸入過濾 · 攔提示詞注入
-    ├── output-filter.js        — [Phase 2] 輸出格式驗證 · 錯誤重試
-    ├── spanish-format-rules.js — [Phase 2] 用代碼卡死西文格式
-    └── context-manager.js      — [Phase 4] 對話歷史壓縮
+│   ├── dictionary-lookup.js         — Phase 5 · 從 JSON 載入 · 重音無關比對
+│   ├── grammar-rule-lookup.js       — 假文法規則庫 · 6 主題
+│   └── data/
+│       └── spanish-dictionary.json  — 51 baseline · fetch 後擴至 5000+
+├── harness/
+│   ├── limits.js                    — Phase 2 · 硬性上限 + 定價表
+│   ├── guard.js                     — Phase 2 · 執行時看門狗 + 悲觀預估
+│   ├── cost-tracker.js              — Phase 2 · usage → NT$
+│   ├── output-filter.js             — Phase 2.1 · 資料來源標記（found:false 保底）
+│   └── context-manager.js           — Phase 4 · session store + 自動摘要
+└── scripts/
+    └── fetch-dictionary.mjs         — Phase 5 · Kaikki 下載+過濾腳本
 ```
+
+## 三種對話模式
+
+| 模式 | 端點 | 用途 | 每次成本（估） |
+|------|------|------|-------|
+| 💬 Simple | `/api/chat-simple` | 純文字對話 · 對照組 | NT$0.01-0.05 |
+| 🤖 Agent | `/api/chat-agent` | 單一 agent + 兩工具（ReAct） | NT$0.3-1.0 |
+| 👥 Multi | `/api/chat-multi-agent` | 三層架構 · Planner + 2 助教平行 | NT$1.0-3.0 |
+
+三模式都共享 session（對話記憶）· 都會被 Harness 全數防護（token cap / timeout / 截斷偵測 / 未驗證來源標記）。
+
+## Harness 防護總覽
+
+| 防護 | 檔案 | 效果 |
+|------|------|------|
+| Token 硬上限 | limits.js + guard.js | 單次 agent 上限 5000 tok（Phase 2）· Planner 8000 tok（Phase 3.1）· 全部 20000 tok（總合） |
+| Timeout | guard.js | 30s（單）/ 60s（多）· 用 AbortSignal |
+| 悲觀預估攔截 | guard.js（3.1） | 事前算「這輪最壞情況」· 免得單 call 拉爆 |
+| 截斷檢測 | *-agent.js（3.2） | stop_reason=max_tokens 立刻標紅 · 前端跳 banner |
+| 資料來源標記 | output-filter.js | found:false 自動加「未驗證」提醒 |
+| 對話記憶 | context-manager.js | Session in-memory · TTL 1hr |
+| 自動摘要 | context-manager.js | >15000 tok 呼叫 Claude 壓老訊息 |
 
 ## 成本控制
 
-- 模型：`claude-sonnet-4-6`（若你帳號沒開通 · 在 `server.js` 換 `claude-sonnet-5` 之類的）
-- `max_tokens: 300` · 單次回覆上限約 NT$0.6
-- 單一問題 · 沒有對話歷史 · 不會累積成本
-- 前端有 `input.length > 1000` 攔截
+- 模型：`claude-sonnet-4-6`
+- Session 累計顯示在前端 · 一眼看每個對話花多少
+- Aggregate cap 保證單題最貴 NT$3 上限
 
-## 已知限制（Phase 0 刻意不做）
+## 已知限制
 
-- ❌ 沒有對話記憶（下一輪 phase 4 加）
-- ❌ 沒有字典查詢（下一輪 phase 1 假工具 → phase 4 真工具）
-- ❌ 沒有防注入（下一輪 phase 2 加）
-- ❌ 沒有格式強制修復（下一輪 phase 2 加）
-- ❌ 沒有多智能體協作（下一輪 phase 3 加）
-
-## 下一步
-
-跑通 Phase 0 → 進 Phase 1（`agent/planner-agent.js` + 假工具的 ReAct 循環）
+- Session 存 in-memory · 重啟就沒（Phase 6 可加 SQLite）
+- Kaikki 資料的中文意思偏少（Wiktionary 主要英文）· 老師 agent 讀懂沒問題但顯示會有英文
+- 字典結果可能有雜訊字（例如古文、方言）· 用 `--top` 控制數量能過濾

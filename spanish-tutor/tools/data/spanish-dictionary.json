@@ -1,0 +1,522 @@
+{
+  "meta": {
+    "version": "1.0-baseline",
+    "source": "hand-curated (Phase 5 baseline · 執行 npm run fetch-dict 可擴充至 5000+)",
+    "wordCount": 51,
+    "generatedAt": "2026-07-07",
+    "notes": "This is a small starter dictionary. Run scripts/fetch-dictionary.mjs to download and integrate Kaikki.org Wiktionary data."
+  },
+  "words": {
+    "querer": {
+      "pos": "動詞（不規則現在式）",
+      "meaning": "想要、愛",
+      "conjugations": {
+        "presente": "quiero / quieres / quiere / queremos / queréis / quieren",
+        "preterito": "quise / quisiste / quiso / quisimos / quisisteis / quisieron"
+      },
+      "examples": [
+        "Quiero un café.（我想要一杯咖啡。）",
+        "Te quiero.（我愛你。）",
+        "Quiero aprender español.（我想學西班牙文。）"
+      ],
+      "notes": "「Te quiero」通常對家人、朋友、伴侶 · 比「Te amo」情感較廣。"
+    },
+    "aprender": {
+      "pos": "動詞（規則 -er）",
+      "meaning": "學習",
+      "conjugations": {
+        "presente": "aprendo / aprendes / aprende / aprendemos / aprendéis / aprenden"
+      },
+      "examples": [
+        "Aprendo español.（我學西班牙文。）",
+        "Aprender es divertido.（學習很有趣。）"
+      ],
+      "notes": "常見句型「aprender a + 原形動詞」= 學做某事"
+    },
+    "ser": {
+      "pos": "動詞（不規則現在式）· 「是」（本質性）",
+      "meaning": "是（表達身分、國籍、職業、本質特性）",
+      "conjugations": {
+        "presente": "soy / eres / es / somos / sois / son"
+      },
+      "examples": [
+        "Soy taiwanés.（我是台灣人。）",
+        "Ella es doctora.（她是醫生。）"
+      ],
+      "notes": "與 estar 差別：ser = 本質不變、estar = 狀態暫時。用 grammar_rule_lookup(\"ser-estar\") 查詳細。"
+    },
+    "estar": {
+      "pos": "動詞（不規則現在式）· 「是/在」（狀態性）",
+      "meaning": "是、在（表達位置、狀態、感受）",
+      "conjugations": {
+        "presente": "estoy / estás / está / estamos / estáis / están"
+      },
+      "examples": [
+        "Estoy cansado.（我累了。）",
+        "Madrid está en España.（馬德里在西班牙。）"
+      ],
+      "notes": "與 ser 差別：estar 用於暫時狀態、位置。"
+    },
+    "hablar": {
+      "pos": "動詞（規則 -ar）",
+      "meaning": "說、談話",
+      "conjugations": {
+        "presente": "hablo / hablas / habla / hablamos / habláis / hablan"
+      },
+      "examples": [
+        "¿Hablas español?（你會說西班牙文嗎？）",
+        "Habla más despacio, por favor.（請說慢一點。）"
+      ]
+    },
+    "comer": {
+      "pos": "動詞（規則 -er）",
+      "meaning": "吃",
+      "conjugations": {
+        "presente": "como / comes / come / comemos / coméis / comen"
+      },
+      "examples": [
+        "¿Qué quieres comer?（你想吃什麼？）",
+        "Comemos a las dos.（我們兩點吃飯。）"
+      ]
+    },
+    "tener": {
+      "pos": "動詞（不規則現在式）",
+      "meaning": "有、擁有",
+      "conjugations": {
+        "presente": "tengo / tienes / tiene / tenemos / tenéis / tienen"
+      },
+      "examples": [
+        "Tengo 25 años.（我 25 歲。）",
+        "Tengo hambre.（我餓了。）"
+      ],
+      "notes": "常用片語：tener + 名詞 表達生理/情緒 · 例如 tener frío/calor/miedo/sueño"
+    },
+    "ir": {
+      "pos": "動詞（極不規則）",
+      "meaning": "去",
+      "conjugations": {
+        "presente": "voy / vas / va / vamos / vais / van"
+      },
+      "examples": [
+        "Voy a casa.（我要回家。）",
+        "Vamos a estudiar.（我們要去學習/我們準備學習。）"
+      ],
+      "notes": "「ir a + 原形」表達不久後的未來 · 相當於英文 be going to。"
+    },
+    "hacer": {
+      "pos": "動詞（不規則現在式）",
+      "meaning": "做、製作",
+      "conjugations": {
+        "presente": "hago / haces / hace / hacemos / hacéis / hacen"
+      },
+      "examples": [
+        "¿Qué haces?（你在做什麼？）",
+        "Hace calor hoy.（今天很熱。）"
+      ],
+      "notes": "天氣句型「Hace + calor/frío/sol/viento」= 天氣如何"
+    },
+    "esperar": {
+      "pos": "動詞（規則 -ar）",
+      "meaning": "希望、期待、等待",
+      "conjugations": {
+        "presente": "espero / esperas / espera / esperamos / esperáis / esperan",
+        "subjuntivo": "espere / esperes / espere / esperemos / esperéis / esperen"
+      },
+      "examples": [
+        "Espero que estés bien.（希望你一切安好。· 後接虛擬式）",
+        "Te espero en la estación.（我在車站等你。）"
+      ],
+      "notes": "同時表達「希望」與「等待」· 是虛擬式最常見的觸發動詞之一。"
+    },
+    "ojalá": {
+      "pos": "感嘆詞 / 副詞（源自阿拉伯文）",
+      "meaning": "但願、希望",
+      "examples": [
+        "Ojalá llueva mañana.（希望明天下雨。· 後接虛擬式）",
+        "Ojalá pudieras venir.（真希望你能來。）"
+      ],
+      "notes": "虛擬式的強觸發詞 · 後面幾乎一定接虛擬式 · 可加或不加 que。"
+    },
+    "dudar": {
+      "pos": "動詞（規則 -ar）",
+      "meaning": "懷疑、質疑",
+      "conjugations": {
+        "presente": "dudo / dudas / duda / dudamos / dudáis / dudan"
+      },
+      "examples": [
+        "Dudo que sea verdad.（我懷疑這是真的。· 後接虛擬式）",
+        "No dudo que viene.（我不懷疑他會來 · 用直述式）"
+      ],
+      "notes": "dudar que 觸發虛擬式；否定的 no dudar que 反而觸發直述式。"
+    },
+    "poder": {
+      "pos": "動詞（不規則 · e→ue 詞根變化）",
+      "meaning": "能、可以",
+      "conjugations": {
+        "presente": "puedo / puedes / puede / podemos / podéis / pueden",
+        "subjuntivo": "pueda / puedas / pueda / podamos / podáis / puedan",
+        "preterito": "pude / pudiste / pudo / pudimos / pudisteis / pudieron"
+      },
+      "examples": [
+        "¿Puedes ayudarme?（你可以幫我嗎？）",
+        "Ojalá puedas venir.（希望你能來。· 虛擬式）"
+      ],
+      "notes": "poder + 原形動詞 = 表達能力或許可。"
+    },
+    "venir": {
+      "pos": "動詞（不規則 · 詞根 ven-/vien-/veng-）",
+      "meaning": "來",
+      "conjugations": {
+        "presente": "vengo / vienes / viene / venimos / venís / vienen",
+        "subjuntivo": "venga / vengas / venga / vengamos / vengáis / vengan",
+        "preterito": "vine / viniste / vino / vinimos / vinisteis / vinieron"
+      },
+      "examples": [
+        "Ven aquí.（過來這裡。· 命令式）",
+        "Quiero que vengas.（我要你來。· 虛擬式）"
+      ],
+      "notes": "venir 的 yo 型是 vengo · 虛擬式從這個 -o 去掉推：venga / vengas。"
+    },
+    "decir": {
+      "pos": "動詞（不規則）",
+      "meaning": "說、告訴",
+      "conjugations": {
+        "presente": "digo / dices / dice / decimos / decís / dicen",
+        "preterito": "dije / dijiste / dijo / dijimos / dijisteis / dijeron"
+      },
+      "examples": [
+        "¿Qué dices?（你說什麼？）",
+        "Él dice la verdad.（他說實話。）"
+      ],
+      "notes": "yo 型 digo 完全不規則 · 要背。"
+    },
+    "saber": {
+      "pos": "動詞（不規則）",
+      "meaning": "知道（事實、資訊）",
+      "conjugations": {
+        "presente": "sé / sabes / sabe / sabemos / sabéis / saben"
+      },
+      "examples": [
+        "No sé.（我不知道。）",
+        "¿Sabes hablar español?（你會說西班牙文嗎？）"
+      ],
+      "notes": "saber vs conocer：saber = 知道事實、會做某事；conocer = 認識人、熟悉地方。"
+    },
+    "ver": {
+      "pos": "動詞（不規則）",
+      "meaning": "看見、看",
+      "conjugations": {
+        "presente": "veo / ves / ve / vemos / veis / ven"
+      },
+      "examples": [
+        "Te veo mañana.（明天見。）",
+        "¿Ves la televisión?（你在看電視嗎？）"
+      ]
+    },
+    "dar": {
+      "pos": "動詞（不規則）",
+      "meaning": "給",
+      "conjugations": {
+        "presente": "doy / das / da / damos / dais / dan"
+      },
+      "examples": [
+        "Me da igual.（我無所謂。）",
+        "Te doy un abrazo.（給你一個擁抱。）"
+      ],
+      "notes": "常用片語「dar + 名詞」形成慣用語 · 例如 dar miedo（讓人害怕）。"
+    },
+    "gustar": {
+      "pos": "動詞（規則 -ar · 特殊句型）",
+      "meaning": "使某人喜歡（=「令人愉快」）",
+      "conjugations": {
+        "presente": "me gusta / te gusta / le gusta / nos gusta / os gusta / les gusta"
+      },
+      "examples": [
+        "Me gusta el café.（我喜歡咖啡。字面：咖啡令我愉快）",
+        "Me gustan los perros.（我喜歡狗。複數要用 gustan）",
+        "¿Te gusta bailar?（你喜歡跳舞嗎？）"
+      ],
+      "notes": "初學者最大陷阱：gustar 的主詞是「被喜歡的東西」· 不是「喜歡的人」。單數用 gusta · 複數用 gustan。"
+    },
+    "vivir": {
+      "pos": "動詞（規則 -ir）",
+      "meaning": "住、生活",
+      "conjugations": {
+        "presente": "vivo / vives / vive / vivimos / vivís / viven"
+      },
+      "examples": [
+        "Vivo en Taipei.（我住台北。）",
+        "¿Dónde vives?（你住哪裡？）"
+      ]
+    },
+    "trabajar": {
+      "pos": "動詞（規則 -ar）",
+      "meaning": "工作",
+      "conjugations": {
+        "presente": "trabajo / trabajas / trabaja / trabajamos / trabajáis / trabajan"
+      },
+      "examples": [
+        "Trabajo en una empresa.（我在一家公司工作。）",
+        "¿Dónde trabajas?（你在哪裡工作？）"
+      ]
+    },
+    "estudiar": {
+      "pos": "動詞（規則 -ar）",
+      "meaning": "學習、讀書",
+      "conjugations": {
+        "presente": "estudio / estudias / estudia / estudiamos / estudiáis / estudian"
+      },
+      "examples": [
+        "Estudio español.（我學西班牙文。）",
+        "Estudio en la universidad.（我在大學讀書。）"
+      ]
+    },
+    "necesitar": {
+      "pos": "動詞（規則 -ar）",
+      "meaning": "需要",
+      "conjugations": {
+        "presente": "necesito / necesitas / necesita / necesitamos / necesitáis / necesitan"
+      },
+      "examples": [
+        "Necesito ayuda.（我需要幫助。）",
+        "Necesitamos hablar.（我們需要談談。）"
+      ]
+    },
+    "pensar": {
+      "pos": "動詞（不規則 · e→ie 詞根變化）",
+      "meaning": "想、認為",
+      "conjugations": {
+        "presente": "pienso / piensas / piensa / pensamos / pensáis / piensan"
+      },
+      "examples": [
+        "Pienso que sí.（我認為是的。）",
+        "¿En qué piensas?（你在想什麼？）"
+      ],
+      "notes": "nosotros/vosotros 保留原 e · 其他人稱 e→ie。這是 stem-changing 動詞的典型模式。"
+    },
+    "casa": {
+      "pos": "名詞（陰性）",
+      "meaning": "房子、家",
+      "examples": [
+        "Mi casa es tu casa.（我的家就是你的家。）",
+        "Vamos a casa.（我們回家吧。）"
+      ],
+      "notes": "「a casa」= 回家（無介系詞冠詞）· 「en casa」= 在家。"
+    },
+    "agua": {
+      "pos": "名詞（陰性 · 但用 el/un）",
+      "meaning": "水",
+      "examples": [
+        "El agua está fría.（水是冷的。）",
+        "Un vaso de agua, por favor.（一杯水 · 謝謝。）"
+      ],
+      "notes": "特殊規則：陰性但以重音 a 開頭 · 單數用陽性冠詞 el/un 避免母音衝突；形容詞仍用陰性形（agua fría）。"
+    },
+    "tiempo": {
+      "pos": "名詞（陽性）",
+      "meaning": "時間、天氣",
+      "examples": [
+        "No tengo tiempo.（我沒時間。）",
+        "¿Qué tiempo hace?（天氣如何？）"
+      ],
+      "notes": "同時表達「時間」和「天氣」· 語意由上下文決定。"
+    },
+    "día": {
+      "pos": "名詞（陽性 · 例外）",
+      "meaning": "日子、白天",
+      "examples": [
+        "Buenos días.（早安。）",
+        "Todos los días estudio.（我每天讀書。）"
+      ],
+      "notes": "以 -a 結尾但陽性（希臘語源例外）· 用 el día。"
+    },
+    "año": {
+      "pos": "名詞（陽性）",
+      "meaning": "年",
+      "examples": [
+        "Tengo 25 años.（我 25 歲。）",
+        "El año pasado viajé a España.（去年我去了西班牙。）"
+      ],
+      "notes": "西班牙文年齡用「tener + 數字 + años」· 不是「ser」。"
+    },
+    "amigo": {
+      "pos": "名詞（陽性 · 陰性作 amiga）",
+      "meaning": "朋友",
+      "examples": [
+        "Es mi amigo.（他是我朋友。）",
+        "Tengo muchos amigos.（我有很多朋友。）"
+      ]
+    },
+    "comida": {
+      "pos": "名詞（陰性）",
+      "meaning": "食物、一餐",
+      "examples": [
+        "La comida está lista.（飯好了。）",
+        "Me gusta la comida española.（我喜歡西班牙菜。）"
+      ]
+    },
+    "bueno": {
+      "pos": "形容詞（陰性 buena）",
+      "meaning": "好的",
+      "examples": [
+        "Es un buen libro.（這是一本好書。· 陽性單數在名詞前 bueno → buen）",
+        "La comida es buena.（食物很好吃。）"
+      ],
+      "notes": "陽性單數在名詞前縮成 buen（apocopation）· 例如 buen día（好日子）。"
+    },
+    "grande": {
+      "pos": "形容詞（不分陰陽性）",
+      "meaning": "大的",
+      "examples": [
+        "Es un país grande.（這是個大國家。）",
+        "Es un gran hombre.（他是個偉大的人。· 名詞前縮成 gran · 意思變「偉大」）"
+      ],
+      "notes": "grande 名詞前縮成 gran · 且意思從「大」變成「偉大」· 是意義位置差。"
+    },
+    "muy": {
+      "pos": "副詞",
+      "meaning": "很、非常",
+      "examples": [
+        "Muy bien.（很好。）",
+        "Estoy muy cansado.（我很累。）"
+      ],
+      "notes": "muy 修飾形容詞/副詞 · mucho 修飾名詞或當動詞副詞。"
+    },
+    "también": {
+      "pos": "副詞",
+      "meaning": "也",
+      "examples": [
+        "Yo también.（我也是。）",
+        "Me gusta el café y también el té.（我喜歡咖啡 · 也喜歡茶。）"
+      ]
+    },
+    "porque": {
+      "pos": "連接詞",
+      "meaning": "因為",
+      "examples": [
+        "Estudio porque quiero aprender.（我讀書是因為我想學習。）"
+      ],
+      "notes": "porque（連接詞）vs por qué（為什麼 · 疑問）vs porqué（名詞 · 原因）· 三個都要分。"
+    },
+    "pero": {
+      "pos": "連接詞",
+      "meaning": "但是",
+      "examples": [
+        "Quiero ir, pero no puedo.（我想去 · 但我不能。）"
+      ],
+      "notes": "pero vs sino：pero 加補充/相反 · sino 是「而是」（用於否定句後）。"
+    },
+    "por favor": {
+      "pos": "慣用語",
+      "meaning": "請、拜託",
+      "examples": [
+        "Un café, por favor.（一杯咖啡 · 謝謝。）",
+        "Habla más despacio, por favor.（請說慢一點。）"
+      ]
+    },
+    "gracias": {
+      "pos": "感嘆詞 / 名詞（陰性複數）",
+      "meaning": "謝謝",
+      "examples": [
+        "Muchas gracias.（非常感謝。）",
+        "Gracias por tu ayuda.（謝謝你的幫忙。）"
+      ]
+    },
+    "de nada": {
+      "pos": "慣用語",
+      "meaning": "不客氣（回應 gracias）",
+      "examples": [
+        "— Gracias. — De nada.（謝謝 · 不客氣。）"
+      ]
+    },
+    "lo siento": {
+      "pos": "慣用語",
+      "meaning": "對不起（表達遺憾）",
+      "examples": [
+        "Lo siento mucho.（我非常抱歉。）"
+      ],
+      "notes": "lo siento vs perdón：lo siento 較深的遺憾；perdón 較輕的請求原諒（例如擠過人群）。"
+    },
+    "hola": {
+      "pos": "感嘆詞",
+      "meaning": "你好、嗨",
+      "examples": [
+        "¡Hola! ¿Cómo estás?（嗨！你好嗎？）"
+      ],
+      "notes": "最基本的問候 · 一天任何時間都可用。"
+    },
+    "buenos días": {
+      "pos": "慣用語",
+      "meaning": "早安",
+      "examples": [
+        "¡Buenos días! ¿Cómo estás?（早安！你好嗎？）"
+      ],
+      "notes": "中午前用。中午到晚上前用 buenas tardes、晚上用 buenas noches。"
+    },
+    "cuándo": {
+      "pos": "疑問副詞",
+      "meaning": "什麼時候",
+      "examples": [
+        "¿Cuándo llegas?（你什麼時候到？）"
+      ],
+      "notes": "cuándo（疑問 · 有重音）vs cuando（連接詞 · 無重音）· 差一個符號意思不同。"
+    },
+    "dónde": {
+      "pos": "疑問副詞",
+      "meaning": "哪裡",
+      "examples": [
+        "¿Dónde vives?（你住哪裡？）"
+      ]
+    },
+    "cómo": {
+      "pos": "疑問副詞",
+      "meaning": "如何、怎麼",
+      "examples": [
+        "¿Cómo estás?（你好嗎？）",
+        "¿Cómo se dice \"hello\" en español?（英文 hello 西班牙文怎麼說？）"
+      ]
+    },
+    "qué": {
+      "pos": "疑問代名詞",
+      "meaning": "什麼",
+      "examples": [
+        "¿Qué es esto?（這是什麼？）",
+        "¿Qué haces?（你在做什麼？）"
+      ],
+      "notes": "qué（疑問 · 有重音）vs que（連接詞/關係代名詞 · 無重音）。"
+    },
+    "quién": {
+      "pos": "疑問代名詞",
+      "meaning": "誰",
+      "examples": [
+        "¿Quién eres?（你是誰？）",
+        "¿Con quién hablas?（你在跟誰說話？）"
+      ]
+    },
+    "mucho": {
+      "pos": "形容詞 / 副詞（陰性 mucha · 複數 muchos/muchas）",
+      "meaning": "很多",
+      "examples": [
+        "Tengo mucho trabajo.（我有很多工作。）",
+        "Te quiero mucho.（我很愛你。· 副詞用法）"
+      ],
+      "notes": "mucho 修飾名詞要配合性數；當副詞（我 verb 很多）不變。"
+    },
+    "sí": {
+      "pos": "副詞 / 感嘆詞",
+      "meaning": "是、對",
+      "examples": [
+        "Sí, claro.（是的 · 當然。）"
+      ],
+      "notes": "sí（有重音 · 「是」）vs si（無重音 · 「如果」）· 差一個符號。"
+    },
+    "no": {
+      "pos": "副詞 / 感嘆詞",
+      "meaning": "不、沒",
+      "examples": [
+        "No sé.（我不知道。）",
+        "No, gracias.（不 · 謝謝。）"
+      ]
+    }
+  }
+}
