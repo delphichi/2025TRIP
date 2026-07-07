@@ -907,7 +907,78 @@
     // ==========================================
     // Init
     // ==========================================
+    function initKeyPanel() {
+        const input = $('fmp-key-input');
+        const statusEl = $('key-status');
+        const btnSave = $('btn-save-key');
+        const btnClear = $('btn-clear-key');
+
+        function mask(k) {
+            if (!k) return '';
+            if (k.length < 8) return k[0] + '••••';
+            return k.slice(0, 4) + '••••' + k.slice(-4);
+        }
+
+        function refreshStatus() {
+            const k = getFmpKey();
+            if (k) {
+                statusEl.innerHTML = `✅ 已儲存 · <code>${mask(k)}</code>（${k.length} chars）· 載入時優先用 FMP`;
+                statusEl.className = 'key-status key-status-ok';
+                input.placeholder = '換一把新 key（會覆蓋舊的）';
+                btnClear.hidden = false;
+            } else {
+                statusEl.innerHTML = `⚠ 沒 key · 目前用 Yahoo（透過 CORS proxy · 有時 throttle）`;
+                statusEl.className = 'key-status key-status-warn';
+                input.placeholder = '貼上你的 FMP key';
+                btnClear.hidden = true;
+            }
+        }
+
+        btnSave.addEventListener('click', () => {
+            const v = input.value.trim();
+            if (!v) {
+                alert('key 不能空白');
+                return;
+            }
+            if (v.length < 20) {
+                if (!confirm(`這個 key 只有 ${v.length} 字元 · FMP key 通常 32+ 字元。確定要存？`)) return;
+            }
+            localStorage.setItem('fmp_api_key', v);
+            input.value = '';
+            refreshStatus();
+            // 存完直接重載資料（用新 key）
+            reloadData();
+        });
+
+        btnClear.addEventListener('click', () => {
+            if (!confirm('確定清除 FMP key？之後只用 Yahoo。')) return;
+            localStorage.removeItem('fmp_api_key');
+            input.value = '';
+            refreshStatus();
+            reloadData();
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') btnSave.click();
+        });
+
+        refreshStatus();
+    }
+
+    function reloadData() {
+        // 重置狀態 · 停止播放 · 重跑載入
+        stopPlay();
+        state.metrics = {};
+        state.rawSeries = {};
+        state.dates = [];
+        state.currentIdx = 0;
+        state.dataSources = { FMP: 0, Yahoo: 0 };
+        $('day-slider').disabled = true;
+        loadAllData();
+    }
+
     function init() {
+        initKeyPanel();
         initControls();
         initTooltip();
         // 頁面一載入就先畫 loading placeholder · 玩家不會看到白畫面
