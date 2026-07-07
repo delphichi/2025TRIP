@@ -412,7 +412,15 @@
                 const data = await res.json();
                 if (!res.ok) {
                     $svgResult.innerHTML = '<div class="empty-hint">❌ 生成失敗</div>';
-                    showError(`${escape(data.error || res.statusText)}${data.stage ? ` · 階段: ${data.stage}` : ''}`);
+                    let errHtml = `${escape(data.error || res.statusText)}${data.stage ? ` · 階段: ${data.stage}` : ''}`;
+                    // 若是 extract 階段失敗 · 顯示 Claude 實際回應 · 幫助 debug
+                    if (data.rawPreview) {
+                        errHtml += `<details style="margin-top:8px"><summary style="cursor:pointer">🔍 Claude 實際回應（前 300 字）</summary><pre style="background:#fff;padding:8px;border-radius:4px;font-size:.85em;white-space:pre-wrap;margin-top:6px">${escape(data.rawPreview)}</pre></details>`;
+                    }
+                    if (data.svgPreview) {
+                        errHtml += `<details style="margin-top:8px"><summary style="cursor:pointer">🔍 攔截前的 SVG（前 300 字）</summary><pre style="background:#fff;padding:8px;border-radius:4px;font-size:.85em;white-space:pre-wrap;margin-top:6px">${escape(data.svgPreview)}</pre></details>`;
+                    }
+                    showError(errHtml);
                     return;
                 }
 
