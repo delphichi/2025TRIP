@@ -20,11 +20,17 @@
         XLI: { name: '工業',       color: '#6b7280' },
     };
 
-    // CORS proxies · fallback chain（跟 valuation/simulator.js 同一組）
+    // 資料源：FMP 為主（有 key 才用）· 失敗 fallback Yahoo（靠 CORS proxy）
+    const FMP_BASE = 'https://financialmodelingprep.com/stable';
     const CORS_PROXIES = [
         'https://api.allorigins.win/raw?url=',
         'https://corsproxy.io/?url=',
     ];
+
+    function getFmpKey() {
+        // 跟 valuation 工具共用 · 用戶不用重輸入
+        return localStorage.getItem('fmp_api_key') || '';
+    }
 
     // ==========================================
     // helpers
@@ -72,6 +78,51 @@
             close: closes[i],
             volume: volumes[i],
         })).filter(d => d.close !== null && isFinite(d.close) && d.volume);
+    }
+
+    // FMP · /stable/historical-price-eod/full · 直接支援 CORS · 需要 api key
+    async function fetchFmp(ticker, daysBack, apikey) {
+        const to = new Date();
+        const from = new Date(to.getTime() - daysBack * 86400 * 1000);
+        const fromStr = from.toISOString().slice(0, 10);
+        const toStr = to.toISOString().slice(0, 10);
+        const url = `${FMP_BASE}/historical-price-eod/full?symbol=${ticker}&from=${fromStr}&to=${toStr}&apikey=${apikey}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+            if (res.status === 401) throw new Error('FMP key 無效');
+            if (res.status === 403) throw new Error('FMP endpoint 需付費 tier');
+            if (res.status === 429) throw new Error('FMP 免費額度用完（250/日）');
+            throw new Error(`FMP HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        // FMP /stable 回傳可能是 array 直接、或 { symbol, historical: [...] }
+        let rows;
+        if (Array.isArray(data)) rows = data;
+        else if (data && Array.isArray(data.historical)) rows = data.historical;
+        else throw new Error('FMP 回傳格式異常');
+        // FMP 是新到舊 · 反過來變舊到新
+        rows.sort((a, b) => a.date.localeCompare(b.date));
+        return rows.map(r => ({
+            date: r.date,
+            close: r.adjClose !== undefined && r.adjClose !== null ? r.adjClose : r.close,
+            volume: r.volume,
+        })).filter(d => d.close !== null && isFinite(d.close) && d.volume);
+    }
+
+    // 統一入口：有 FMP key 先試 FMP · 失敗才 fallback Yahoo
+    // 回傳 { data, source } · source 是 'FMP' 或 'Yahoo'
+    async function fetchTicker(ticker, daysBack) {
+        const key = getFmpKey();
+        if (key) {
+            try {
+                const data = await fetchFmp(ticker, daysBack, key);
+                if (data && data.length > 10) return { data, source: 'FMP' };
+            } catch (e) {
+                console.warn(`FMP fail for ${ticker}: ${e.message} · falling back to Yahoo`);
+            }
+        }
+        const data = await fetchYahoo(ticker, daysBack);
+        return { data, source: 'Yahoo' };
     }
 
     // ==========================================
@@ -143,6 +194,7 @@
         maxDollarVol: 1,
         axisRanges: null,
         visibleTickers: new Set(TICKERS),   // 哪些 ticker 目前要顯示
+        dataSources: { FMP: 0, Yahoo: 0 },  // 各資料源抓了幾檔
     };
 
     // ==========================================
@@ -163,20 +215,24 @@
         updateLoadStatus(status, 0, all.length, all[0]);
 
         const results = {};
+        const sourceCounts = { FMP: 0, Yahoo: 0 };
         // 順序抓 · 避免 proxy 併發 throttle
         for (const t of all) {
             drawLoadingPlaceholder(Object.keys(results).length, all.length, t);
             updateLoadStatus(status, Object.keys(results).length, all.length, t);
             try {
-                results[t] = await fetchYahoo(t, daysBack);
+                const { data, source } = await fetchTicker(t, daysBack);
+                results[t] = data;
+                sourceCounts[source] = (sourceCounts[source] || 0) + 1;
             } catch (e) {
                 console.error(`Failed to fetch ${t}:`, e);
                 drawErrorPlaceholder(t, e.message);
-                status.innerHTML = `❌ <b>${t}</b> 抓取失敗：${e.message}<br>Yahoo proxy 有時 throttle · 過幾秒重整試試`;
+                status.innerHTML = `❌ <b>${t}</b> 抓取失敗：${e.message}<br>過幾秒重整試試 · 或去 <a href="../valuation/index.html">估值分析器</a> 檢查 FMP key`;
                 btnPlay.textContent = '▶ 播放';
                 return;
             }
         }
+        state.dataSources = sourceCounts;
         // All fetched
         drawLoadingPlaceholder(all.length, all.length, '計算中');
         updateLoadStatus(status, all.length, all.length, '計算中');
@@ -219,7 +275,11 @@
         slider.value = state.currentIdx;
         slider.disabled = false;
 
-        status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）· 按 <b>▶ 播放</b> 看資金流向`;
+        const srcParts = [];
+        if (state.dataSources.FMP > 0) srcParts.push(`FMP × ${state.dataSources.FMP}`);
+        if (state.dataSources.Yahoo > 0) srcParts.push(`Yahoo × ${state.dataSources.Yahoo}`);
+        const srcTag = srcParts.join(' + ');
+        status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）· 資料源 <b>${srcTag}</b> · 按 <b>▶ 播放</b> 看資金流向`;
 
         const btnPlay = $('btn-play');
         btnPlay.disabled = false;
