@@ -130,14 +130,20 @@
             console.error(`FMP ${ticker} 格式異常:`, data);
             throw new Error('FMP 回傳格式異常 · F12 看 console');
         }
-        console.log(`✅ FMP ${ticker}: ${rows.length} rows`);
         // FMP 是新到舊 · 反過來變舊到新
         rows.sort((a, b) => a.date.localeCompare(b.date));
-        return rows.map(r => ({
+        // /light 只有 date + price + volume · /full 有 adjClose + close + volume
+        // 全部接收 · 優先順序 adjClose > close > price
+        const mapped = rows.map(r => ({
             date: r.date,
-            close: r.adjClose !== undefined && r.adjClose !== null ? r.adjClose : r.close,
-            volume: r.volume,
-        })).filter(d => d.close !== null && isFinite(d.close) && d.volume);
+            close: r.adjClose ?? r.close ?? r.price ?? null,
+            volume: r.volume ?? r.unadjustedVolume ?? 0,
+        })).filter(d => d.close !== null && isFinite(d.close) && d.volume > 0);
+        console.log(`✅ FMP ${ticker}: ${mapped.length} rows（raw ${rows.length}）`);
+        if (mapped.length === 0 && rows.length > 0) {
+            console.warn(`FMP ${ticker} 回傳 ${rows.length} 筆但 filter 後 0 · 欄位 sample:`, rows[0]);
+        }
+        return mapped;
     }
 
     // 快速驗證 FMP key 是否有效 · 打一個輕量 endpoint（單一 ticker 5 天資料）
