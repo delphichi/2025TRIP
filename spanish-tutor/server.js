@@ -16,6 +16,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runLearningAgent, MAX_ITERATIONS } from './agent/planner-agent.js';
 
 dotenv.config();
 
@@ -107,13 +108,55 @@ app.post('/api/chat-simple', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/chat-agent · Phase 1
+ * body: { message: string }
+ * response: { finalText, trace, iterations, totalUsage, done, elapsedMs }
+ *
+ * ReAct 循環 · Claude 可自主決定要不要呼叫 dictionary_lookup / grammar_rule_lookup
+ */
+app.post('/api/chat-agent', async (req, res) => {
+    const { message } = req.body || {};
+    if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'message 必須是非空字串' });
+    }
+    if (message.length > 1000) {
+        return res.status(400).json({ error: '單次問題不要超過 1000 字' });
+    }
+
+    const started = Date.now();
+    try {
+        const result = await runLearningAgent({
+            client,
+            model: MODEL,
+            userQuestion: message,
+            conversationHistory: [],   // Phase 1 還沒接對話記憶 · phase 4 加
+        });
+        res.json({
+            ...result,
+            elapsedMs: Date.now() - started,
+            model: MODEL,
+        });
+    } catch (e) {
+        console.error('Agent error:', e.status, e.message);
+        let hint = '';
+        if (e.status === 401) hint = ' · API key 無效';
+        else if (e.status === 404) hint = ` · 模型 ${MODEL} 找不到 · 改用 claude-sonnet-5`;
+        else if (e.status === 429) hint = ' · rate limit / 額度用完';
+        else if (e.status === 529) hint = ' · Anthropic 過載 · 稍後再試';
+        res.status(500).json({ error: (e.message || 'Agent 失敗') + hint });
+    }
+});
+
 app.get('/api/health', (_req, res) => {
     res.json({
         ok: true,
         model: MODEL,
-        maxTokens: MAX_TOKENS,
-        phase: 'phase-0-simple-chat',
+        maxTokensSimple: MAX_TOKENS,
+        maxIterationsAgent: MAX_ITERATIONS,
+        phase: 'phase-1-react-loop',
         hasKey: !!process.env.ANTHROPIC_API_KEY,
+        routes: ['/api/chat-simple', '/api/chat-agent'],
     });
 });
 

@@ -194,6 +194,104 @@
             border-radius: 3px;
             font-family: ui-monospace, monospace;
         }
+
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .mode-opt {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #fafafa;
+            font-size: .92em;
+            transition: all 0.15s;
+        }
+        .mode-opt input { margin-right: 6px; }
+        .mode-opt:has(input:checked) {
+            border-color: #dc2626;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+        }
+
+        .trace-panel { border-left: 4px solid #6366f1; }
+        .trace-panel summary { cursor: pointer; list-style: none; padding: 0; }
+        .trace-panel summary::-webkit-details-marker { display: none; }
+        .trace-panel summary::before {
+            content: '▶ ';
+            color: #6366f1;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        .trace-panel details[open] summary::before { content: '▼ '; }
+
+        .trace-step {
+            margin-top: 12px;
+            padding: 10px 12px;
+            background: #f5f3ff;
+            border-radius: 8px;
+            border-left: 3px solid #6366f1;
+        }
+        .trace-step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: .88em;
+            font-weight: 600;
+            color: #4338ca;
+            margin-bottom: 6px;
+        }
+        .trace-step-header .badge {
+            font-size: .75em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #fff;
+            color: #4338ca;
+        }
+        .trace-tool-call {
+            margin: 6px 0;
+            padding: 8px 10px;
+            background: #fff;
+            border: 1px solid #ddd6fe;
+            border-radius: 6px;
+            font-family: ui-monospace, monospace;
+            font-size: .85em;
+        }
+        .trace-tool-call .tool-name {
+            color: #7c2d12;
+            font-weight: 700;
+        }
+        .trace-tool-call .tool-input {
+            color: #4b5563;
+            margin-left: 8px;
+        }
+        .trace-tool-result {
+            margin-top: 4px;
+            padding: 6px 8px;
+            background: #f9fafb;
+            border-left: 2px solid #10b981;
+            border-radius: 4px;
+            font-size: .82em;
+            color: #374151;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .trace-tool-result pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .trace-thinking {
+            font-style: italic;
+            color: #6b7280;
+            font-size: .88em;
+            padding: 4px 8px;
+        }
     </style>
 </head>
 <body>
@@ -202,10 +300,21 @@
         <header>
             <h1>🇪🇸 西班牙文學習助手</h1>
             <div class="subtitle">用中文問 · 老師用<b>西班牙文 + 中文對照</b>回答</div>
-            <div class="phase-tag">Phase 0 · 純文字問答（無工具、無多智能體）</div>
+            <div class="phase-tag">Phase 1 · ReAct 循環 + 假工具</div>
         </header>
 
         <section class="panel input-panel">
+            <div class="mode-toggle">
+                <label class="mode-opt">
+                    <input type="radio" name="mode" value="simple" checked>
+                    <span>💬 <b>Simple</b> · 純文字（省成本 · 對照組）</span>
+                </label>
+                <label class="mode-opt">
+                    <input type="radio" name="mode" value="agent">
+                    <span>🤖 <b>Agent</b> · ReAct + 工具（貴一點 · 有 tool trace）</span>
+                </label>
+            </div>
+
             <textarea id="input" placeholder="用中文問任何西班牙文相關問題……
 例如：怎麼說「我想學西班牙文」？
 或：quiero 這個字怎麼用？"></textarea>
@@ -218,7 +327,9 @@
                 <button class="preset-btn" data-msg="怎麼說「早安」？">怎麼說「早安」？</button>
                 <button class="preset-btn" data-msg="quiero 這個字怎麼用？">quiero 怎麼用？</button>
                 <button class="preset-btn" data-msg="ser 和 estar 有什麼不同？">ser vs estar</button>
-                <button class="preset-btn" data-msg="請教我 5 個常用打招呼的西文短句">5 個打招呼短句</button>
+                <button class="preset-btn" data-msg="虛擬式什麼時候用？">虛擬式什麼時候用？</button>
+                <button class="preset-btn" data-msg="por 和 para 的差別">por vs para</button>
+                <button class="preset-btn" data-msg="請用虛擬式造 3 個表達願望的句子">虛擬式造句</button>
             </div>
         </section>
 
@@ -227,6 +338,13 @@
                 <div class="empty">👆 提問後 · 老師的回答會顯示在這裡</div>
             </div>
             <div class="response-meta" id="response-meta" hidden></div>
+        </section>
+
+        <section class="panel trace-panel" id="trace-panel" hidden>
+            <details>
+                <summary><h2 style="display:inline;margin:0;font-size:1em">🔍 Tool Trace（agent 的思考+工具呼叫過程）</h2></summary>
+                <div id="trace-body"></div>
+            </details>
         </section>
 
         <footer>
@@ -258,27 +376,37 @@
 
         $btn.addEventListener('click', send);
 
+        const $tracePanel = document.getElementById('trace-panel');
+        const $traceBody = document.getElementById('trace-body');
+
+        function currentMode() {
+            return document.querySelector('input[name=mode]:checked').value;
+        }
+
         async function send() {
             const message = $input.value.trim();
             if (!message) {
                 $input.focus();
                 return;
             }
+            const mode = currentMode();
+            const endpoint = mode === 'agent' ? '/api/chat-agent' : '/api/chat-simple';
 
             $btn.disabled = true;
-            $btn.textContent = '⏳ 老師思考中……';
+            $btn.textContent = mode === 'agent' ? '⏳ Agent 思考中……' : '⏳ 老師思考中……';
             $response.innerHTML = `
                 <div class="loading">
                     <div class="loading-dot"></div>
                     <div class="loading-dot"></div>
                     <div class="loading-dot"></div>
-                    <span>老師正在準備雙語回答……</span>
+                    <span>${mode === 'agent' ? 'Agent 正在判斷要不要查工具……' : '老師正在準備雙語回答……'}</span>
                 </div>`;
             $meta.hidden = true;
+            $tracePanel.hidden = true;
 
             const t0 = performance.now();
             try {
-                const res = await fetch('/api/chat-simple', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message }),
@@ -290,25 +418,73 @@
                     return;
                 }
 
-                $response.innerHTML = renderBilingual(data.text);
-                const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
-                const stopCls = data.stopReason === 'end_turn' ? 'ok'
-                              : data.stopReason === 'max_tokens' ? 'warn'
-                              : 'err';
-                $meta.innerHTML = `
-                    <span class="badge ${stopCls}">stop: ${data.stopReason}</span>
-                    <span class="badge">in: ${data.usage.input_tokens} tok</span>
-                    <span class="badge">out: ${data.usage.output_tokens} tok</span>
-                    <span class="badge">${elapsedTxt}s</span>
-                    <span class="badge">${data.model || '—'}</span>
-                `;
-                $meta.hidden = false;
+                if (mode === 'agent') {
+                    renderAgentResponse(data, t0);
+                } else {
+                    renderSimpleResponse(data, t0);
+                }
             } catch (e) {
                 $response.innerHTML = `<div class="error">❌ 網路錯誤：${escape(e.message)}</div>`;
             } finally {
                 $btn.disabled = false;
                 $btn.textContent = '📤 送出提問';
             }
+        }
+
+        function renderSimpleResponse(data, t0) {
+            $response.innerHTML = renderBilingual(data.text);
+            const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
+            const stopCls = data.stopReason === 'end_turn' ? 'ok'
+                          : data.stopReason === 'max_tokens' ? 'warn' : 'err';
+            $meta.innerHTML = `
+                <span class="badge ${stopCls}">stop: ${data.stopReason}</span>
+                <span class="badge">in: ${data.usage.input_tokens} tok</span>
+                <span class="badge">out: ${data.usage.output_tokens} tok</span>
+                <span class="badge">${elapsedTxt}s</span>
+                <span class="badge">${data.model || '—'}</span>
+            `;
+            $meta.hidden = false;
+        }
+
+        function renderAgentResponse(data, t0) {
+            $response.innerHTML = renderBilingual(data.finalText);
+            const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
+            const doneCls = data.done ? 'ok' : 'err';
+            const doneText = data.done ? '✅ 完成' : '⚠ 超過 max iterations';
+            const totalToolCalls = (data.trace || []).reduce((s, step) => s + (step.toolCalls?.length || 0), 0);
+            $meta.innerHTML = `
+                <span class="badge ${doneCls}">${doneText}</span>
+                <span class="badge">iters: ${data.iterations}</span>
+                <span class="badge">tool calls: ${totalToolCalls}</span>
+                <span class="badge">in: ${data.totalUsage.input_tokens} tok</span>
+                <span class="badge">out: ${data.totalUsage.output_tokens} tok</span>
+                <span class="badge">${elapsedTxt}s</span>
+                <span class="badge">${data.model || '—'}</span>
+            `;
+            $meta.hidden = false;
+
+            // Render trace
+            $traceBody.innerHTML = (data.trace || []).map(step => `
+                <div class="trace-step">
+                    <div class="trace-step-header">
+                        <span>🔄 Step ${step.step}</span>
+                        <span class="badge">stop: ${step.stopReason} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
+                    </div>
+                    ${step.thinking ? `<div class="trace-thinking">💭 「${escape(step.thinking)}」</div>` : ''}
+                    ${(step.toolCalls || []).map((tc, i) => {
+                        const result = (step.toolResults || [])[i];
+                        return `
+                            <div class="trace-tool-call">
+                                <span class="tool-name">🔧 ${tc.name}(</span><span class="tool-input">${escape(JSON.stringify(tc.input))}</span><span class="tool-name">)</span>
+                                ${result ? `
+                                    <div class="trace-tool-result"><pre>${escape(typeof result.content === 'object' ? JSON.stringify(result.content, null, 2) : result.content)}</pre></div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `).join('');
+            $tracePanel.hidden = false;
         }
 
         // 把 Claude 的雙語回覆做簡單樣式：西文行加粗紅色、中文正常
