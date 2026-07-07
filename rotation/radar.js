@@ -210,29 +210,61 @@
         const daysBack = DISPLAY_DAYS + VOL_WINDOW + 20;
         const all = [BENCHMARK, ...TICKERS];
 
-        // Canvas 上直接畫 loading placeholder · 玩家不會盯著空白
-        drawLoadingPlaceholder(0, all.length, all[0]);
-        updateLoadStatus(status, 0, all.length, all[0]);
+        // 有 FMP key 就平行抓（FMP 支援 300/分）· 沒 key 就 sequential（Yahoo proxy 會 throttle）
+        const hasKey = !!getFmpKey();
+        const startTime = performance.now();
+        let elapsedTimer = null;
+        function updateElapsed() {
+            const secs = ((performance.now() - startTime) / 1000).toFixed(1);
+            const el = $('elapsed-secs');
+            if (el) el.textContent = secs + 's';
+        }
+        elapsedTimer = setInterval(updateElapsed, 100);
+
+        drawLoadingPlaceholder(0, all.length, all[0], hasKey ? '平行' : '順序');
+        updateLoadStatus(status, 0, all.length, all[0], hasKey ? '平行載入' : '順序載入');
 
         const results = {};
         const sourceCounts = { FMP: 0, Yahoo: 0 };
-        // 順序抓 · 避免 proxy 併發 throttle
-        for (const t of all) {
-            drawLoadingPlaceholder(Object.keys(results).length, all.length, t);
-            updateLoadStatus(status, Object.keys(results).length, all.length, t);
-            try {
-                const { data, source } = await fetchTicker(t, daysBack);
-                results[t] = data;
-                sourceCounts[source] = (sourceCounts[source] || 0) + 1;
-            } catch (e) {
-                console.error(`Failed to fetch ${t}:`, e);
-                drawErrorPlaceholder(t, e.message);
-                status.innerHTML = `❌ <b>${t}</b> 抓取失敗：${e.message}<br>過幾秒重整試試 · 或去 <a href="../valuation/index.html">估值分析器</a> 檢查 FMP key`;
-                btnPlay.textContent = '▶ 播放';
-                return;
+
+        try {
+            if (hasKey) {
+                // 平行載入 · 全部一次 fire · Promise.all 等最慢那個
+                let doneCount = 0;
+                const promises = all.map(async t => {
+                    const { data, source } = await fetchTicker(t, daysBack);
+                    doneCount += 1;
+                    drawLoadingPlaceholder(doneCount, all.length, t, '平行');
+                    updateLoadStatus(status, doneCount, all.length, t, '平行載入');
+                    return { t, data, source };
+                });
+                const settled = await Promise.all(promises);
+                for (const s of settled) {
+                    results[s.t] = s.data;
+                    sourceCounts[s.source] = (sourceCounts[s.source] || 0) + 1;
+                }
+            } else {
+                // 順序載入（Yahoo proxy · 併發會 throttle）
+                for (const t of all) {
+                    drawLoadingPlaceholder(Object.keys(results).length, all.length, t, '順序');
+                    updateLoadStatus(status, Object.keys(results).length, all.length, t, '順序載入');
+                    const { data, source } = await fetchTicker(t, daysBack);
+                    results[t] = data;
+                    sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+                }
             }
+        } catch (e) {
+            clearInterval(elapsedTimer);
+            console.error(`Failed to fetch:`, e);
+            drawErrorPlaceholder('資料', e.message);
+            status.innerHTML = `❌ 抓取失敗：${e.message}<br>過幾秒重整試試 · 或去 <a href="../valuation/index.html">估值分析器</a> 檢查 FMP key`;
+            btnPlay.textContent = '▶ 播放';
+            return;
         }
+        clearInterval(elapsedTimer);
+        const totalMs = performance.now() - startTime;
         state.dataSources = sourceCounts;
+        state.loadElapsedMs = totalMs;
         // All fetched
         drawLoadingPlaceholder(all.length, all.length, '計算中');
         updateLoadStatus(status, all.length, all.length, '計算中');
@@ -279,7 +311,8 @@
         if (state.dataSources.FMP > 0) srcParts.push(`FMP × ${state.dataSources.FMP}`);
         if (state.dataSources.Yahoo > 0) srcParts.push(`Yahoo × ${state.dataSources.Yahoo}`);
         const srcTag = srcParts.join(' + ');
-        status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）· 資料源 <b>${srcTag}</b> · 按 <b>▶ 播放</b> 看資金流向`;
+        const elapsedTxt = (state.loadElapsedMs / 1000).toFixed(1);
+        status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）· 資料源 <b>${srcTag}</b> · 載入 <b>${elapsedTxt}s</b> · 按 <b>▶ 播放</b> 看資金流向`;
 
         const btnPlay = $('btn-play');
         btnPlay.disabled = false;
@@ -288,13 +321,13 @@
         renderFrame();
     }
 
-    function updateLoadStatus(status, done, total, curTicker) {
+    function updateLoadStatus(status, done, total, curTicker, mode) {
         const pct = Math.floor((done / total) * 100);
         status.innerHTML = `
             <div class="load-progress-wrap">
                 <div class="load-progress-label">
-                    📡 正在下載 ${done < total ? `<b>${curTicker}</b> 歷史資料` : '計算輪動指標'}……
-                    <span class="load-progress-count">${done} / ${total}</span>
+                    📡 ${mode || ''} · ${done < total ? `<b>${curTicker}</b> 歷史資料` : '計算輪動指標'}……
+                    <span class="load-progress-count">${done} / ${total} · <span id="elapsed-secs">0.0s</span></span>
                 </div>
                 <div class="load-progress-bar-outer">
                     <div class="load-progress-bar-inner" style="width: ${pct}%"></div>
@@ -303,7 +336,7 @@
         `;
     }
 
-    function drawLoadingPlaceholder(done, total, curTicker) {
+    function drawLoadingPlaceholder(done, total, curTicker, mode) {
         const canvas = $('radar-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -351,7 +384,8 @@
         // 中字：當前狀態
         ctx.fillStyle = '#475569';
         ctx.font = '16px sans-serif';
-        const label = done < total ? `${curTicker}（${done + 1} / ${total}）` : `計算輪動指標中……`;
+        const modeTag = mode ? `[${mode}] ` : '';
+        const label = done < total ? `${modeTag}${curTicker}（${done} / ${total} 完成）` : `計算輪動指標中……`;
         ctx.fillText(label, w / 2, h / 2 - 10);
 
         // 進度條
@@ -375,7 +409,12 @@
         // 提示
         ctx.fillStyle = '#94a3b8';
         ctx.font = '12px sans-serif';
-        ctx.fillText('（透過 Yahoo Finance · 首次載入約 5-15 秒）', w / 2, barY + barH + 45);
+        const hint = mode === '平行'
+            ? '（FMP 平行載入 · 預期 1-3 秒）'
+            : mode === '順序'
+              ? '（Yahoo 順序載入 · 預期 5-15 秒 · 存 FMP key 會變快）'
+              : '（首次載入約 3-15 秒）';
+        ctx.fillText(hint, w / 2, barY + barH + 45);
     }
 
     function drawErrorPlaceholder(ticker, msg) {
