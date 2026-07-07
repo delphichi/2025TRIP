@@ -14,6 +14,7 @@ import { grammarRuleLookup } from '../tools/grammar-rule-lookup.js';
 import { HarnessGuard } from '../harness/guard.js';
 import { HARNESS_LIMITS } from '../harness/limits.js';
 import { calcCost } from '../harness/cost-tracker.js';
+import { annotateSourceReliability } from '../harness/output-filter.js';
 
 const TOOLS = [
     {
@@ -88,7 +89,10 @@ Quiero aprender español.
 ## 重要規則
 
 - **不要在最終回覆中提到「我查了字典/規則庫」這種內部細節** · 直接呈現答案
-- 若工具查不到（found: false）· 直接跟使用者說「這個字/主題我目前資料庫沒有 · 可以問其他常用字」· 不要瞎編
+- **found:false 的處理（重要）**：
+  - 你可以根據語言知識補充內容 · 但**必須**在該內容附近明確標示：例如「⚠️ esperar 未在字典驗證 · 以下說明基於一般語言知識 · 建議額外查證」
+  - 不要用跟已驗證資料相同的自信語氣呈現 · 使用者要能一眼看出「哪部分經過查證、哪部分沒有」
+  - 若整個回答的核心（例如使用者問的目標字）都 found:false · 應優先提醒使用者這個字未收錄 · 再補充可用的語言知識
 - 保持簡潔 · 核心回答 3-5 句 · 加逐詞說明或例句
 - 純西班牙文 + 中文 · 不要英文`;
 
@@ -168,9 +172,17 @@ export async function runLearningAgent({ client, model, userQuestion, conversati
 
         // === 沒 tool call = 結束 ===
         if (toolUseBlocks.length === 0) {
+            const rawText = textBlocks.map(b => b.text).join('\n');
+            const filtered = annotateSourceReliability(rawText, trace);
             return {
                 done: true,
-                finalText: textBlocks.map(b => b.text).join('\n'),
+                finalText: filtered.text,
+                rawText,
+                sourceReliability: {
+                    hasUnverified: filtered.hasUnverified,
+                    unverifiedWords: filtered.unverifiedWords,
+                    unverifiedTopics: filtered.unverifiedTopics,
+                },
                 trace,
                 iterations: i + 1,
                 totalUsage,

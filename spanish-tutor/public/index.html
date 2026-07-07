@@ -195,6 +195,24 @@
             font-family: ui-monospace, monospace;
         }
 
+        .unverified-banner {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+        .unverified-title {
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 6px;
+            font-size: .95em;
+        }
+        .unverified-body {
+            color: #78350f;
+            font-size: .9em;
+            line-height: 1.55;
+        }
         .badge.cost {
             background: #fef3c7;
             color: #78350f;
@@ -475,7 +493,21 @@
         }
 
         function renderAgentResponse(data, t0) {
-            $response.innerHTML = renderBilingual(data.finalText);
+            let html = renderBilingual(data.finalText);
+            const sr = data.sourceReliability;
+            if (sr && sr.hasUnverified) {
+                const parts = [];
+                if (sr.unverifiedWords?.length) parts.push(`單字：${sr.unverifiedWords.map(escape).join('、')}`);
+                if (sr.unverifiedTopics?.length) parts.push(`文法：${sr.unverifiedTopics.map(escape).join('、')}`);
+                html = `<div class="unverified-banner">
+                    <div class="unverified-title">⚠️ 未驗證來源</div>
+                    <div class="unverified-body">
+                        以下內容部分來自 AI 語言知識補充 · 不在字典/規則庫裡：<br>
+                        ${parts.join('<br>')}
+                    </div>
+                </div>` + html;
+            }
+            $response.innerHTML = html;
             const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
             const blocked = data.blocked === true;
             const doneCls = data.done ? 'ok' : (blocked ? 'err' : 'warn');
