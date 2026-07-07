@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>資金輪動雷達 · 產業 / 個股象限判讀</title>
+    <title>資金輪動雷達 · 產業龍頭個股象限判讀</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -40,12 +40,15 @@
                 </div>
             </div>
             <p class="hint hint-mini">
-                📍 <b>目前 MVP</b>：6 個 SPDR 類股 ETF（XLK 科技、XLC 通訊、XLF 金融、XLE 能源、XLV 醫療、XLI 工業）·
+                📍 <b>目前 MVP</b>：6 支產業龍頭個股（<b>NVDA</b> 科技、<b>META</b> 通訊、<b>JPM</b> 金融、<b>XOM</b> 能源、<b>UNH</b> 醫療、<b>CAT</b> 工業）·
                 最近 3 個月資料 · 相對基準 SPY · <b>拉時間軸看資金流向</b>。
             </p>
             <p class="hint hint-mini">
-                🔌 <b>資料源</b>：優先用 FMP（有存在 <a href="../valuation/index.html">估值分析器</a> 的 API key 就自動用）·
-                沒 key 或 FMP 掛掉就 fallback Yahoo · <b>下方 status 會秀實際用了哪個</b>。
+                🎯 <b>為什麼用龍頭而不是類股 ETF</b>：FMP 免費 tier 沒 SPDR ETF（付費授權）· 而龍頭個股跟 sector ETF 相關性 0.8+ · 資金流向趨勢一致。
+                個股訊號還比 ETF 平均更<b>不會被稀釋</b>——你看到「NVDA 資金爆量」比「XLK 資金爆量」更早、更清楚。
+            </p>
+            <p class="hint hint-mini">
+                🔌 <b>資料源</b>：FMP（自動讀 <a href="../valuation/index.html">估值分析器</a> 存的 key）· 沒 key 就 fallback Yahoo · <b>下方 status 會秀實際用了哪個</b>。
             </p>
         </section>
 
@@ -87,7 +90,7 @@
             <div class="ticker-chip-row" id="ticker-chips">
                 <button class="chip chip-all active" data-action="all">👁 全部</button>
                 <button class="chip chip-clear" data-action="clear">🚫 全隱藏</button>
-                <span class="chip-hint">點類股切換 · 點一支<b>單看</b>那條 · 全部/全隱藏一鍵重置</span>
+                <span class="chip-hint">點個股切換 · 點一支<b>單看</b>那條 · 全部/全隱藏一鍵重置</span>
             </div>
             <canvas id="radar-canvas" width="900" height="640"></canvas>
             <div id="tooltip" class="radar-tooltip" hidden></div>
@@ -99,7 +102,7 @@
                 <thead>
                     <tr>
                         <th>標的</th>
-                        <th>類股</th>
+                        <th>產業</th>
                         <th>價格</th>
                         <th>10日報酬</th>
                         <th>vs SPY</th>
