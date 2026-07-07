@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🇪🇸 西班牙文學習助手 · Phase 0</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+            background: linear-gradient(135deg, #fef3c7 0%, #fee2e2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            padding: 20px 10px 24px;
+        }
+        header h1 { margin: 0; font-size: 1.8em; color: #7f1d1d; }
+        header .subtitle {
+            margin: 6px 0 0;
+            color: #78350f;
+            font-size: .95em;
+        }
+        header .phase-tag {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            background: #fbbf24;
+            color: #78350f;
+            border-radius: 999px;
+            font-size: .8em;
+            font-weight: 600;
+        }
+
+        .panel {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            margin: 14px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .input-panel textarea {
+            width: 100%;
+            min-height: 90px;
+            padding: 12px 14px;
+            border: 2px solid #fecaca;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .input-panel textarea:focus {
+            border-color: #dc2626;
+        }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 12px;
+        }
+        .btn-send {
+            background: #dc2626;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-send:hover:not(:disabled) { background: #b91c1c; }
+        .btn-send:disabled {
+            background: #94a3b8;
+            cursor: wait;
+        }
+        .hint {
+            font-size: .85em;
+            color: #6b7280;
+            margin-left: auto;
+        }
+        .hint kbd {
+            padding: 2px 6px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-family: ui-monospace, monospace;
+            font-size: .9em;
+        }
+
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            padding: 5px 10px;
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 999px;
+            font-size: .82em;
+            color: #78350f;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .preset-btn:hover { background: #fde68a; }
+
+        .response-panel { border-left: 4px solid #dc2626; }
+        .response-content {
+            white-space: pre-wrap;
+            line-height: 1.85;
+            font-size: 1.05em;
+        }
+        .response-content .es-line {
+            font-weight: 600;
+            color: #7f1d1d;
+        }
+        .response-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed #e5e7eb;
+            font-size: .82em;
+            color: #6b7280;
+            font-family: ui-monospace, monospace;
+        }
+        .response-meta .badge {
+            padding: 2px 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        .response-meta .badge.ok { background: #d1fae5; color: #065f46; }
+        .response-meta .badge.warn { background: #fef3c7; color: #78350f; }
+        .response-meta .badge.err { background: #fee2e2; color: #7f1d1d; }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #78350f;
+        }
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: #dc2626;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes pulse {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+
+        .empty {
+            color: #9ca3af;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px 10px;
+            color: #6b7280;
+            font-size: .85em;
+        }
+        footer code {
+            background: rgba(255, 255, 255, 0.5);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: ui-monospace, monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>🇪🇸 西班牙文學習助手</h1>
+            <div class="subtitle">用中文問 · 老師用<b>西班牙文 + 中文對照</b>回答</div>
+            <div class="phase-tag">Phase 0 · 純文字問答（無工具、無多智能體）</div>
+        </header>
+
+        <section class="panel input-panel">
+            <textarea id="input" placeholder="用中文問任何西班牙文相關問題……
+例如：怎麼說「我想學西班牙文」？
+或：quiero 這個字怎麼用？"></textarea>
+            <div class="btn-row">
+                <button id="btn-send" class="btn-send">📤 送出提問</button>
+                <span class="hint"><kbd>Cmd/Ctrl</kbd> + <kbd>Enter</kbd> 快送</span>
+            </div>
+            <div class="presets">
+                <span style="font-size:.85em;color:#6b7280;margin-right:4px">試試：</span>
+                <button class="preset-btn" data-msg="怎麼說「早安」？">怎麼說「早安」？</button>
+                <button class="preset-btn" data-msg="quiero 這個字怎麼用？">quiero 怎麼用？</button>
+                <button class="preset-btn" data-msg="ser 和 estar 有什麼不同？">ser vs estar</button>
+                <button class="preset-btn" data-msg="請教我 5 個常用打招呼的西文短句">5 個打招呼短句</button>
+            </div>
+        </section>
+
+        <section class="panel response-panel" id="response-panel">
+            <div class="response-content" id="response">
+                <div class="empty">👆 提問後 · 老師的回答會顯示在這裡</div>
+            </div>
+            <div class="response-meta" id="response-meta" hidden></div>
+        </section>
+
+        <footer>
+            <p>階段 0 目標：確認 API 串接、伺服器架構、前端顯示都通。</p>
+            <p><code>POST /api/chat-simple</code> · model <code>claude-sonnet-4-6</code> · max_tokens <code>300</code></p>
+        </footer>
+    </div>
+
+    <script>
+        const $input = document.getElementById('input');
+        const $btn = document.getElementById('btn-send');
+        const $response = document.getElementById('response');
+        const $meta = document.getElementById('response-meta');
+
+        // Preset 按鈕
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                $input.value = btn.dataset.msg;
+                $input.focus();
+            });
+        });
+
+        // Cmd/Ctrl + Enter 送出
+        $input.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                send();
+            }
+        });
+
+        $btn.addEventListener('click', send);
+
+        async function send() {
+            const message = $input.value.trim();
+            if (!message) {
+                $input.focus();
+                return;
+            }
+
+            $btn.disabled = true;
+            $btn.textContent = '⏳ 老師思考中……';
+            $response.innerHTML = `
+                <div class="loading">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <span>老師正在準備雙語回答……</span>
+                </div>`;
+            $meta.hidden = true;
+
+            const t0 = performance.now();
+            try {
+                const res = await fetch('/api/chat-simple', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message }),
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    $response.innerHTML = `<div class="error">❌ ${escape(data.error || res.statusText)}</div>`;
+                    return;
+                }
+
+                $response.innerHTML = renderBilingual(data.text);
+                const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
+                const stopCls = data.stopReason === 'end_turn' ? 'ok'
+                              : data.stopReason === 'max_tokens' ? 'warn'
+                              : 'err';
+                $meta.innerHTML = `
+                    <span class="badge ${stopCls}">stop: ${data.stopReason}</span>
+                    <span class="badge">in: ${data.usage.input_tokens} tok</span>
+                    <span class="badge">out: ${data.usage.output_tokens} tok</span>
+                    <span class="badge">${elapsedTxt}s</span>
+                    <span class="badge">${data.model || '—'}</span>
+                `;
+                $meta.hidden = false;
+            } catch (e) {
+                $response.innerHTML = `<div class="error">❌ 網路錯誤：${escape(e.message)}</div>`;
+            } finally {
+                $btn.disabled = false;
+                $btn.textContent = '📤 送出提問';
+            }
+        }
+
+        // 把 Claude 的雙語回覆做簡單樣式：西文行加粗紅色、中文正常
+        function renderBilingual(text) {
+            const escaped = escape(text);
+            const lines = escaped.split('\n').map(line => {
+                // 括號包起來的中文翻譯 · 淡色
+                if (/^[（(].*[)）]\s*$/.test(line.trim())) {
+                    return `<span style="color:#78350f">${line}</span>`;
+                }
+                // 西文行（含 ñ / 重音 / ¿ ¡）· 加粗紅
+                if (/[áéíóúñ¿¡ÁÉÍÓÚÑ]|[a-zA-Z]{4,}/.test(line) && !/^[- •]/.test(line.trim())) {
+                    return `<span class="es-line">${line}</span>`;
+                }
+                return line;
+            });
+            return lines.join('\n');
+        }
+
+        function escape(s) {
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+            }[c]));
+        }
+    </script>
+
+</body>
+</html>
