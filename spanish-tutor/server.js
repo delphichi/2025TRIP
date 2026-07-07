@@ -17,7 +17,8 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runLearningAgent, MAX_ITERATIONS } from './agent/planner-agent.js';
-import { HARNESS_LIMITS } from './harness/limits.js';
+import { runMultiAgent } from './agent/multi-agent-planner.js';
+import { HARNESS_LIMITS, MULTI_AGENT_LIMITS } from './harness/limits.js';
 import { calcCost } from './harness/cost-tracker.js';
 
 dotenv.config();
@@ -151,6 +152,41 @@ app.post('/api/chat-agent', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/chat-multi-agent · Phase 3
+ * Planner + Grammar 助教 + Example 助教 · 三層架構 · 平行執行
+ */
+app.post('/api/chat-multi-agent', async (req, res) => {
+    const { message } = req.body || {};
+    if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'message 必須是非空字串' });
+    }
+    if (message.length > 1000) {
+        return res.status(400).json({ error: '單次問題不要超過 1000 字' });
+    }
+
+    const started = Date.now();
+    try {
+        const result = await runMultiAgent({
+            client, model: MODEL, userQuestion: message,
+            conversationHistory: [],
+        });
+        res.json({
+            ...result,
+            elapsedMs: Date.now() - started,
+            model: MODEL,
+        });
+    } catch (e) {
+        console.error('Multi-agent error:', e.status, e.message);
+        let hint = '';
+        if (e.status === 401) hint = ' · API key 無效';
+        else if (e.status === 404) hint = ` · 模型 ${MODEL} 找不到`;
+        else if (e.status === 429) hint = ' · rate limit / 額度用完';
+        else if (e.status === 529) hint = ' · Anthropic 過載';
+        res.status(500).json({ error: (e.message || 'Multi-agent 失敗') + hint });
+    }
+});
+
 app.get('/api/health', (_req, res) => {
     res.json({
         ok: true,
@@ -158,15 +194,16 @@ app.get('/api/health', (_req, res) => {
         maxTokensSimple: MAX_TOKENS,
         maxIterationsAgent: MAX_ITERATIONS,
         harnessLimits: HARNESS_LIMITS,
-        phase: 'phase-2-harness',
+        multiAgentLimits: MULTI_AGENT_LIMITS,
+        phase: 'phase-3-multi-agent',
         hasKey: !!process.env.ANTHROPIC_API_KEY,
-        routes: ['/api/chat-simple', '/api/chat-agent'],
+        routes: ['/api/chat-simple', '/api/chat-agent', '/api/chat-multi-agent'],
     });
 });
 
 app.listen(PORT, () => {
     console.log('');
-    console.log('🇪🇸 Spanish tutor · Phase 2（Harness 防護層）');
+    console.log('🇪🇸 Spanish tutor · Phase 3（多智能體協作）');
     console.log(`   URL:   http://localhost:${PORT}`);
     console.log(`   Model: ${MODEL}`);
     console.log(`   Max tokens: ${MAX_TOKENS}`);

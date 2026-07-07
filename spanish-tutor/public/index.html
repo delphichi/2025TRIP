@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🇪🇸 西班牙文學習助手 · Phase 2</title>
+    <title>🇪🇸 西班牙文學習助手 · Phase 3</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <style>
         * { box-sizing: border-box; }
@@ -195,6 +195,37 @@
             font-family: ui-monospace, monospace;
         }
 
+        .sub-agent-panel {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #fdf4ff;
+            border: 1px solid #d8b4fe;
+            border-radius: 6px;
+        }
+        .sub-agent-panel summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #6b21a8;
+            font-size: .88em;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            list-style: none;
+        }
+        .sub-agent-panel summary::-webkit-details-marker { display: none; }
+        .sub-agent-panel summary::before {
+            content: '▶ ';
+            color: #a855f7;
+        }
+        .sub-agent-panel[open] summary::before { content: '▼ '; }
+        .sub-agent-final {
+            margin-top: 6px;
+            padding: 6px 8px;
+            background: #f5f3ff;
+            border-radius: 4px;
+        }
+
         .unverified-banner {
             background: #fef3c7;
             border: 2px solid #f59e0b;
@@ -344,18 +375,22 @@
         <header>
             <h1>🇪🇸 西班牙文學習助手</h1>
             <div class="subtitle">用中文問 · 老師用<b>西班牙文 + 中文對照</b>回答</div>
-            <div class="phase-tag">Phase 2 · Harness 防護層（$ + timeout + cap）</div>
+            <div class="phase-tag">Phase 3 · 多智能體協作（Planner + Grammar + Example）</div>
         </header>
 
         <section class="panel input-panel">
             <div class="mode-toggle">
                 <label class="mode-opt">
                     <input type="radio" name="mode" value="simple" checked>
-                    <span>💬 <b>Simple</b> · 純文字（省成本 · 對照組）</span>
+                    <span>💬 <b>Simple</b> · 純文字（省 $）</span>
                 </label>
                 <label class="mode-opt">
                     <input type="radio" name="mode" value="agent">
-                    <span>🤖 <b>Agent</b> · ReAct + 工具（貴一點 · 有 tool trace）</span>
+                    <span>🤖 <b>Agent</b> · 單一 agent + 兩工具（Phase 2）</span>
+                </label>
+                <label class="mode-opt">
+                    <input type="radio" name="mode" value="multi-agent">
+                    <span>👥 <b>Multi</b> · Planner + 2 助教平行協作（Phase 3）</span>
                 </label>
             </div>
 
@@ -374,6 +409,8 @@
                 <button class="preset-btn" data-msg="虛擬式什麼時候用？">虛擬式什麼時候用？</button>
                 <button class="preset-btn" data-msg="por 和 para 的差別">por vs para</button>
                 <button class="preset-btn" data-msg="請用虛擬式造 3 個表達願望的句子">虛擬式造句</button>
+                <button class="preset-btn" data-msg="解釋 ser vs estar 並各造 3 個例句">ser/estar + 造句（Multi 最佳）</button>
+                <button class="preset-btn" data-msg="解釋 por vs para 並用兩者各造 2 個例句">por/para + 造句（Multi 最佳）</button>
             </div>
         </section>
 
@@ -434,16 +471,24 @@
                 return;
             }
             const mode = currentMode();
-            const endpoint = mode === 'agent' ? '/api/chat-agent' : '/api/chat-simple';
+            const endpoint = mode === 'multi-agent' ? '/api/chat-multi-agent'
+                           : mode === 'agent' ? '/api/chat-agent'
+                           : '/api/chat-simple';
 
             $btn.disabled = true;
-            $btn.textContent = mode === 'agent' ? '⏳ Agent 思考中……' : '⏳ 老師思考中……';
+            const btnLabel = mode === 'multi-agent' ? '⏳ 三個 agent 協作中……'
+                           : mode === 'agent' ? '⏳ Agent 思考中……'
+                           : '⏳ 老師思考中……';
+            $btn.textContent = btnLabel;
+            const loadingLabel = mode === 'multi-agent' ? 'Planner 派任務給 grammar / example 助教……'
+                               : mode === 'agent' ? 'Agent 正在判斷要不要查工具……'
+                               : '老師正在準備雙語回答……';
             $response.innerHTML = `
                 <div class="loading">
                     <div class="loading-dot"></div>
                     <div class="loading-dot"></div>
                     <div class="loading-dot"></div>
-                    <span>${mode === 'agent' ? 'Agent 正在判斷要不要查工具……' : '老師正在準備雙語回答……'}</span>
+                    <span>${loadingLabel}</span>
                 </div>`;
             $meta.hidden = true;
             $tracePanel.hidden = true;
@@ -462,7 +507,9 @@
                     return;
                 }
 
-                if (mode === 'agent') {
+                if (mode === 'multi-agent') {
+                    renderMultiAgentResponse(data, t0);
+                } else if (mode === 'agent') {
                     renderAgentResponse(data, t0);
                 } else {
                     renderSimpleResponse(data, t0);
@@ -570,6 +617,151 @@
                 </div>
             `).join('');
             $tracePanel.hidden = false;
+        }
+
+        function renderMultiAgentResponse(data, t0) {
+            let html = renderBilingual(data.finalText);
+            const sr = data.sourceReliability;
+            if (sr && sr.hasUnverified) {
+                const parts = [];
+                if (sr.unverifiedWords?.length) parts.push(`單字：${sr.unverifiedWords.map(escape).join('、')}`);
+                if (sr.unverifiedTopics?.length) parts.push(`文法：${sr.unverifiedTopics.map(escape).join('、')}`);
+                html = `<div class="unverified-banner">
+                    <div class="unverified-title">⚠️ 未驗證來源（來自助教查詢）</div>
+                    <div class="unverified-body">${parts.join('<br>')}</div>
+                </div>` + html;
+            }
+            $response.innerHTML = html;
+
+            const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
+            const blocked = data.blocked === true;
+            const doneCls = data.done ? 'ok' : (blocked ? 'err' : 'warn');
+            const doneText = data.done ? '✅ 完成'
+                           : blocked ? `⛔ Harness 攔截 · ${data.blockCode || 'BLOCKED'}`
+                           : '⚠ 未完成';
+            const cost = data.cost;
+            const delegations = (data.plannerTrace || []).reduce((s, step) => s + (step.delegations?.length || 0), 0);
+            const subAgentCount = (data.subAgentTraces || []).length;
+
+            const capOf = (used, limit, unit = '') => {
+                const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                const cls = pct >= 90 ? 'err' : pct >= 60 ? 'warn' : 'ok';
+                return `<span class="badge ${cls}">${used}${unit}/${limit}${unit}</span>`;
+            };
+
+            let metaHTML = `
+                <span class="badge ${doneCls}">${doneText}</span>
+                <span class="badge">planner iters: ${data.iterations}</span>
+                <span class="badge">delegations: ${delegations}</span>
+                <span class="badge">sub-agents run: ${subAgentCount}</span>
+                <span class="badge">in: ${data.totalUsage.input_tokens} tok</span>
+                <span class="badge">out: ${data.totalUsage.output_tokens} tok</span>
+                ${cost ? `<span class="badge cost">💰 NT$${cost.twd.toFixed(4)}</span>` : ''}
+                <span class="badge">${elapsedTxt}s</span>
+                <span class="badge">${data.model || '—'}</span>
+            `;
+
+            // Aggregate Harness
+            const aggH = data.harness?.aggregate;
+            if (aggH && aggH.limits) {
+                metaHTML += `
+                    <div class="harness-row">
+                        <span class="harness-label">🛡️ Aggregate Harness</span>
+                        ${capOf(aggH.totalTokens, aggH.limits.MAX_TOTAL_TOKENS, ' tok')}
+                        ${capOf(aggH.elapsedMs, aggH.limits.TIMEOUT_MS, 'ms')}
+                        ${aggH.violations && aggH.violations.length
+                          ? `<span class="badge err">⛔ ${aggH.violations.map(v => v.code).join(', ')}</span>`
+                          : '<span class="badge ok">✓ 在上限內</span>'}
+                    </div>
+                `;
+            }
+            // Planner Harness
+            const plnH = data.harness?.planner;
+            if (plnH && plnH.limits) {
+                metaHTML += `
+                    <div class="harness-row" style="background:#eff6ff;border-color:#93c5fd">
+                        <span class="harness-label" style="color:#1e40af">🎯 Planner Guard</span>
+                        ${capOf(plnH.totalTokens, plnH.limits.MAX_TOTAL_TOKENS, ' tok')}
+                        ${capOf(plnH.toolCallCount, plnH.limits.MAX_TOOL_CALLS)}
+                        ${capOf(plnH.iterations, plnH.limits.MAX_ITERATIONS, ' iter')}
+                    </div>
+                `;
+            }
+
+            $meta.innerHTML = metaHTML;
+            $meta.hidden = false;
+
+            // Trace: 每個 planner step + 巢狀 sub-agent trace
+            const plannerTrace = data.plannerTrace || [];
+            const subTraces = data.subAgentTraces || [];
+            const subByStep = {};
+            for (const sub of subTraces) {
+                (subByStep[sub.plannerStep] = subByStep[sub.plannerStep] || []).push(sub);
+            }
+
+            $traceBody.innerHTML = plannerTrace.map(step => `
+                <div class="trace-step" style="border-left-color:#3b82f6;background:#eff6ff">
+                    <div class="trace-step-header" style="color:#1e40af">
+                        <span>🎯 Planner Step ${step.step}</span>
+                        <span class="badge">stop: ${step.stopReason} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
+                    </div>
+                    ${step.thinking ? `<div class="trace-thinking">💭 「${escape(step.thinking)}」</div>` : ''}
+                    ${(step.delegations || []).map((d, i) => {
+                        const sub = (subByStep[step.step] || [])[i];
+                        return `
+                            <div class="trace-tool-call">
+                                <span class="tool-name">👥 ${d.specialist}(</span><span class="tool-input">${escape(JSON.stringify(d.task))}</span><span class="tool-name">)</span>
+                                ${sub ? renderSubAgentTrace(sub) : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `).join('');
+            $tracePanel.hidden = false;
+        }
+
+        function renderSubAgentTrace(sub) {
+            const specialist = sub.specialist === 'consult_grammar_specialist' ? '📚 Grammar 助教' : '✍️ Example 助教';
+            const subH = sub.result.harness;
+            const usage = sub.result.usage || { input_tokens: 0, output_tokens: 0 };
+            const cost = sub.result.cost;
+            const doneBadge = sub.result.done
+                ? '<span class="badge ok">✅ 助教完成</span>'
+                : `<span class="badge err">⛔ ${sub.result.blockCode || '失敗'}</span>`;
+
+            const innerSteps = (sub.result.trace || []).map(step => `
+                <div class="trace-step" style="margin:6px 0;padding:6px 8px;background:#fff;border-left-color:#a855f7;font-size:.85em">
+                    <div class="trace-step-header" style="color:#7e22ce">
+                        <span>🔄 ${specialist} Step ${step.step}</span>
+                        <span class="badge">stop: ${step.stopReason} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
+                    </div>
+                    ${step.thinking ? `<div class="trace-thinking">💭 「${escape(step.thinking)}」</div>` : ''}
+                    ${(step.toolCalls || []).map((tc, i) => {
+                        const result = (step.toolResults || [])[i];
+                        return `
+                            <div class="trace-tool-call">
+                                <span class="tool-name">🔧 ${tc.name}(</span><span class="tool-input">${escape(JSON.stringify(tc.input))}</span><span class="tool-name">)</span>
+                                ${result ? `<div class="trace-tool-result"><pre>${escape(typeof result.content === 'object' ? JSON.stringify(result.content, null, 2) : result.content)}</pre></div>` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `).join('');
+
+            return `
+                <details class="sub-agent-panel" open>
+                    <summary>
+                        ${specialist} · ${doneBadge}
+                        <span class="badge">in ${usage.input_tokens} · out ${usage.output_tokens}</span>
+                        ${cost ? `<span class="badge cost">NT$${cost.twd.toFixed(4)}</span>` : ''}
+                    </summary>
+                    ${innerSteps}
+                    <div class="sub-agent-final">
+                        <div style="font-weight:600;font-size:.85em;color:#374151;margin-bottom:4px">📮 助教回覆給 Planner：</div>
+                        <pre style="margin:0;white-space:pre-wrap;font-size:.85em;background:#f9fafb;padding:6px 8px;border-radius:4px">${escape(sub.result.finalText || '(無)')}</pre>
+                    </div>
+                </details>
+            `;
         }
 
         // 把 Claude 的雙語回覆做簡單樣式：西文行加粗紅色、中文正常
