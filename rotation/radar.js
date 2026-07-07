@@ -134,6 +134,7 @@
     // ==========================================
     const state = {
         metrics: {},        // ticker → array of {date, x, y, ...}
+        rawSeries: {},      // ticker → full raw series [{date, close, volume}]（給驗證面板用）
         dates: [],          // sorted array of dates that are common across all tickers
         currentIdx: 0,
         playing: false,
@@ -171,6 +172,9 @@
             status.textContent = '❌ SPY 資料不足';
             return;
         }
+
+        // 保留原始資料給驗證面板
+        state.rawSeries = results;
 
         // Compute metrics per ticker
         for (const t of TICKERS) {
@@ -416,6 +420,117 @@
         $('day-slider').value = state.currentIdx;
 
         renderSnapshotTable();
+        renderVerifyPanel();
+        renderSpyRawPanel();
+    }
+
+    // 驗證面板：每個 ticker 顯示當日的原始收盤/成交量 + 20日均量計算 + 10日報酬計算
+    // 目標是讓玩家能眼睛對照 Yahoo Finance 網站確認資料源可信
+    function renderVerifyPanel() {
+        const el = $('verify-body');
+        if (!el) return;
+        const currentDate = state.dates[state.currentIdx];
+        const spy = state.rawSeries[BENCHMARK];
+        if (!spy) return;
+
+        const spyIdxByDate = new Map(spy.map((d, i) => [d.date, i]));
+        const spyIdx = spyIdxByDate.get(currentDate);
+        if (spyIdx === undefined) return;
+        const spyToday = spy[spyIdx];
+        const spy10dAgoRaw = spy[spyIdx - MOM_WINDOW];
+
+        let html = `<div class="verify-day">📅 <b>${currentDate}</b> · SPY 收盤 $${fmt(spyToday.close, 2)}`;
+        if (spy10dAgoRaw) {
+            const spy10dRet = (spyToday.close - spy10dAgoRaw.close) / spy10dAgoRaw.close;
+            html += ` · 10 日前（${spy10dAgoRaw.date}）$${fmt(spy10dAgoRaw.close, 2)} → 10 日累積 ${spy10dRet >= 0 ? '+' : ''}${fmtPct(spy10dRet, 2)}`;
+        }
+        html += `</div>`;
+
+        html += `<div class="verify-grid">`;
+        for (const t of TICKERS) {
+            const raw = state.rawSeries[t];
+            const info = TICKER_INFO[t];
+            const rawIdxByDate = new Map(raw.map((d, i) => [d.date, i]));
+            const rawIdx = rawIdxByDate.get(currentDate);
+            if (rawIdx === undefined) continue;
+            const today = raw[rawIdx];
+            const tenDAgo = raw[rawIdx - MOM_WINDOW];
+            // 20-day avg volume: raw[rawIdx-20 ... rawIdx-1]
+            let volSum = 0;
+            const volSamples = [];
+            for (let j = rawIdx - VOL_WINDOW; j < rawIdx; j++) {
+                if (j >= 0 && raw[j]) {
+                    volSum += raw[j].volume;
+                    volSamples.push(raw[j].volume);
+                }
+            }
+            const avgVol = volSum / volSamples.length;
+            const x = today.volume / avgVol;
+            const ret10 = tenDAgo ? (today.close - tenDAgo.close) / tenDAgo.close : null;
+            const spyRet10 = spy10dAgoRaw ? (spyToday.close - spy10dAgoRaw.close) / spy10dAgoRaw.close : null;
+            const y = (ret10 !== null && spyRet10 !== null) ? ret10 - spyRet10 : null;
+
+            const q = (x !== null && y !== null) ? quadrantOf(x, y) : { emoji: '—', name: '—', cls: '' };
+
+            html += `
+                <div class="verify-card">
+                    <div class="verify-head" style="border-left-color: ${info.color}">
+                        <b>${t}</b> · ${info.name}
+                        <span class="verify-q ${q.cls}">${q.emoji} ${q.name}</span>
+                    </div>
+                    <div class="verify-row">
+                        <span class="vk">今日收盤</span> $${fmt(today.close, 2)}
+                        &nbsp;·&nbsp; <span class="vk">今日成交量</span> ${fmtVol(today.volume)}
+                    </div>
+                    <div class="verify-row">
+                        <span class="vk">20 日均量</span>
+                        <code>Σ vol[${rawIdx - VOL_WINDOW}..${rawIdx - 1}] / ${VOL_WINDOW} = ${fmtVol(avgVol)}</code>
+                    </div>
+                    <div class="verify-row verify-calc">
+                        <b>X = ${fmtVol(today.volume)} / ${fmtVol(avgVol)} = <span class="calc-out">${fmt(x, 3)}x</span></b>
+                    </div>
+                    ${tenDAgo ? `
+                        <div class="verify-row">
+                            <span class="vk">10 日前收盤</span>（${tenDAgo.date}）$${fmt(tenDAgo.close, 2)}
+                        </div>
+                        <div class="verify-row">
+                            <span class="vk">10 日報酬</span>
+                            <code>(${fmt(today.close, 2)} - ${fmt(tenDAgo.close, 2)}) / ${fmt(tenDAgo.close, 2)} = ${ret10 >= 0 ? '+' : ''}${fmtPct(ret10, 2)}</code>
+                        </div>
+                        <div class="verify-row verify-calc">
+                            <b>Y = ${ret10 >= 0 ? '+' : ''}${fmtPct(ret10, 2)} - (${spyRet10 >= 0 ? '+' : ''}${fmtPct(spyRet10, 2)}) = <span class="calc-out">${y >= 0 ? '+' : ''}${fmtPct(y, 2)}</span></b>
+                        </div>
+                    ` : '<div class="verify-row">（10 日前無資料）</div>'}
+                </div>
+            `;
+        }
+        html += `</div>`;
+        el.innerHTML = html;
+    }
+
+    // SPY 完整原始資料面板（最新 30 天）· 讓玩家能對照 Yahoo Finance 網站
+    function renderSpyRawPanel() {
+        const el = $('spy-raw-body');
+        if (!el) return;
+        const spy = state.rawSeries[BENCHMARK];
+        if (!spy) return;
+        const recent = spy.slice(-30);
+        let html = `
+            <div class="hint hint-mini">
+                比對 <a href="https://finance.yahoo.com/quote/SPY/history" target="_blank" rel="noopener">Yahoo Finance SPY History</a> —— 收盤價 + 成交量對得起來就代表整組資料源可信。
+            </div>
+            <table class="fund-table spy-raw-table">
+                <thead>
+                    <tr><th>日期</th><th>收盤（分割/股息調整後）</th><th>成交量</th></tr>
+                </thead>
+                <tbody>
+        `;
+        for (let i = recent.length - 1; i >= 0; i--) {
+            const d = recent[i];
+            html += `<tr><td>${d.date}</td><td>$${fmt(d.close, 2)}</td><td>${fmtVol(d.volume)}</td></tr>`;
+        }
+        html += `</tbody></table>`;
+        el.innerHTML = html;
     }
 
     function renderSnapshotTable() {
