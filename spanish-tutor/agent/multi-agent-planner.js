@@ -110,12 +110,16 @@ export async function runMultiAgent({ client, model, userQuestion, conversationH
     let subAgentUsage = { input_tokens: 0, output_tokens: 0 };
 
     for (let i = 0; i < MULTI_AGENT_LIMITS.PLANNER_MAX_ITERATIONS; i++) {
-        const preCheck = plannerGuard.checkBeforeNextStep();
+        // 悲觀估計：這輪最多可能吃 input（messages 累積）+ output（max_tokens）
+        const messageBytesEstimate = JSON.stringify(messages).length / 3;  // 粗估 1 token ≈ 3 字元
+        const pessimisticNext = Math.ceil(messageBytesEstimate) + MULTI_AGENT_LIMITS.PLANNER_MAX_PER_STEP_TOKENS;
+
+        const preCheck = plannerGuard.checkBeforeNextStep({ pessimisticNextStepTokens: pessimisticNext });
         if (preCheck.block) return buildBlocked({
             plannerTrace, subAgentTraces, plannerUsage, subAgentUsage,
             plannerGuard, aggregateGuard, model, block: preCheck,
         });
-        const aggCheck = aggregateGuard.checkBeforeNextStep();
+        const aggCheck = aggregateGuard.checkBeforeNextStep({ pessimisticNextStepTokens: pessimisticNext });
         if (aggCheck.block) return buildBlocked({
             plannerTrace, subAgentTraces, plannerUsage, subAgentUsage,
             plannerGuard, aggregateGuard, model,
@@ -130,7 +134,7 @@ export async function runMultiAgent({ client, model, userQuestion, conversationH
         try {
             response = await client.messages.create({
                 model,
-                max_tokens: MULTI_AGENT_LIMITS.MAX_PER_STEP_TOKENS,
+                max_tokens: MULTI_AGENT_LIMITS.PLANNER_MAX_PER_STEP_TOKENS,
                 system: PLANNER_SYSTEM_PROMPT,
                 tools: PLANNER_TOOLS,
                 messages,

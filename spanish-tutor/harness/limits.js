@@ -34,13 +34,19 @@ export const USD_TO_TWD = 32;
  * · Aggregate cap 是「總合上限」· 任何一層都會查
  */
 export const MULTI_AGENT_LIMITS = {
-    PLANNER_MAX_TOKENS: 3000,
+    // Planner 是整合者 · 要吃兩個助教的完整輸出 · 上限比 sub-agent 大
+    PLANNER_MAX_TOKENS: 8000,           // 3000 → 8000（實測 synthesis 需要 6000+）
     PLANNER_MAX_ITERATIONS: 4,
-    PLANNER_MAX_DELEGATIONS: 4,    // Planner 最多派幾次任務
+    PLANNER_MAX_DELEGATIONS: 4,
+    PLANNER_MAX_PER_STEP_TOKENS: 2048,  // 1024 → 2048（防最終整合被 max_tokens 截斷）
+    // Sub-agent 職責單純 · 上限維持
     SUB_AGENT_MAX_TOKENS: 3000,
     SUB_AGENT_MAX_ITERATIONS: 4,
     SUB_AGENT_MAX_TOOL_CALLS: 4,
-    AGGREGATE_MAX_TOKENS: 15_000,  // 全部加起來上限 · 防燒穿
-    TIMEOUT_MS: 60_000,             // 多輪較慢 · 一分鐘
+    SUB_AGENT_MAX_PER_STEP_TOKENS: 1024,
+    // 總合上限 · 最後防線
+    AGGREGATE_MAX_TOKENS: 20_000,        // 15000 → 20000（配合 planner 提高）
+    TIMEOUT_MS: 60_000,
+    // 相容欄位 · 給沒特別區分的地方（例如 grammar/example 都是 sub）
     MAX_PER_STEP_TOKENS: 1024,
 };
