@@ -49,6 +49,20 @@
             </p>
         </section>
 
+        <section class="panel key-panel">
+            <div class="key-row">
+                <label for="fmp-key-input" class="key-label">🔑 FMP API Key</label>
+                <input type="password" id="fmp-key-input" placeholder="貼上你的 FMP key" autocomplete="off">
+                <button id="btn-save-key" class="btn-save-key">儲存 + 重載</button>
+                <button id="btn-clear-key" class="btn-clear-key">清除 · 用 Yahoo</button>
+            </div>
+            <div class="key-status" id="key-status">🔍 檢查中……</div>
+            <p class="hint hint-mini">
+                💡 存在 <code>localStorage.fmp_api_key</code> · 跟 <a href="../valuation/index.html">估值分析器</a> 共用 · 兩邊任何一邊改都會同步。
+                免費 tier 250 req/日 · 這裡 7 req/次載入。<a href="https://site.financialmodelingprep.com/developer" target="_blank" rel="noopener">申請免費 key →</a>
+            </p>
+        </section>
+
         <section class="panel control-panel">
             <div class="control-row">
                 <button id="btn-play" class="btn-play">▶ 播放</button>

@@ -99,6 +99,89 @@ body.radar-body {
 .qcell.q-bl { border-left-color: #6b7280; background: #f3f4f6; }
 .qcell.q-bl .qcell-title { color: #374151; }
 
+/* ---- FMP Key panel ---- */
+.key-panel { border-left-color: #7c3aed; }
+.key-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.key-label {
+    font-weight: 700;
+    color: #4c1d95;
+    min-width: 100px;
+    font-size: .95em;
+}
+#fmp-key-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: ui-monospace, monospace;
+    font-size: .88em;
+}
+#fmp-key-input:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15);
+}
+.btn-save-key {
+    background: #7c3aed;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: .88em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-save-key:hover { background: #6d28d9; }
+.btn-clear-key {
+    background: #fff;
+    color: #6b7280;
+    border: 1px solid #cbd5e1;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: .88em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-clear-key:hover { background: #f3f4f6; color: #dc2626; border-color: #fca5a5; }
+
+.key-status {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: .88em;
+    margin: 6px 0 4px;
+}
+.key-status code {
+    font-family: ui-monospace, monospace;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 1px 6px;
+    border-radius: 3px;
+}
+.key-status-ok {
+    background: #ecfdf5;
+    color: #065f46;
+    border-left: 3px solid #10b981;
+}
+.key-status-warn {
+    background: #fef3c7;
+    color: #78350f;
+    border-left: 3px solid #f59e0b;
+}
+.key-panel .hint-mini code {
+    font-family: ui-monospace, monospace;
+    background: #f3f4f6;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #374151;
+}
+.key-panel .hint-mini a { color: var(--primary); }
+
 /* ---- Control panel ---- */
 .control-panel { border-left-color: var(--accent); }
 .control-row {
