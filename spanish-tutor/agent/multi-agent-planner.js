@@ -175,8 +175,29 @@ export async function runMultiAgent({ client, model, userQuestion, conversationH
             // 掃 sub-agent trace 抓 found:false 訊息（可能是之前輪次）
             const collected = collectUnverifiedFromSubAgents(subAgentTraces);
             const filtered = annotateSourceReliability(rawText, collected.pseudoTrace);
+
+            // === 截斷檢測 · 三種來源 ===
+            const truncationWarnings = [];
+            if (response.stop_reason === 'max_tokens') {
+                truncationWarnings.push({
+                    source: 'planner',
+                    reason: `Planner 最終整合被 max_tokens 截斷（output=${response.usage.output_tokens} tok · 上限 ${MULTI_AGENT_LIMITS.PLANNER_MAX_PER_STEP_TOKENS}）· 使用者看到的答案不完整`,
+                });
+            }
+            for (const sub of subAgentTraces) {
+                if (sub.result.truncated) {
+                    truncationWarnings.push({
+                        source: sub.specialist,
+                        reason: sub.result.truncationReason,
+                    });
+                }
+            }
+            const anyTruncated = truncationWarnings.length > 0;
+
             return {
                 done: true,
+                truncated: anyTruncated,
+                truncationWarnings,
                 finalText: filtered.text,
                 rawText,
                 sourceReliability: {
