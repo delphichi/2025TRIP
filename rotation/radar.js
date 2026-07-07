@@ -58,7 +58,11 @@
             try {
                 const res = await fetch(attempts[i], { signal: controller.signal });
                 clearTimeout(t);
-                if (res.ok) return await res.json();
+                if (res.ok) {
+                    const data = await res.json();
+                    if (i > 0) console.log(`✅ Yahoo via ${labels[i]} 成功`);   // 成功也留痕跡
+                    return data;
+                }
                 console.warn(`Yahoo ${labels[i]} HTTP ${res.status}`);
             } catch (e) {
                 clearTimeout(t);
@@ -159,6 +163,7 @@
             }
         }
         const data = await fetchYahoo(ticker, daysBack);
+        console.log(`✅ Yahoo ${ticker}: ${data.length} rows（FMP fallback）`);
         return { data, source: 'Yahoo' };
     }
 
