@@ -1,16 +1,19 @@
 /**
- * Planner Agent · Phase 1 · ReAct 循環
+ * Planner Agent · Phase 2 · ReAct 循環 + Harness 防護
  * -----------------------------------------
  * 給 Claude 兩個工具（dictionary_lookup + grammar_rule_lookup）
  * 每輪：
+ *   0. Harness Guard 檢查（token / timeout / 呼叫數）· 違規 → 立刻中斷
  *   1. 送 messages 給 Claude
  *   2. 若回覆包含 tool_use · 執行工具、把結果 append 回 messages · 繼續
  *   3. 若回覆只有 text · 結束
- * 硬 cap max_iterations = 6（Harness 攔截無限循環）
  */
 
 import { dictionaryLookup } from '../tools/dictionary-lookup.js';
 import { grammarRuleLookup } from '../tools/grammar-rule-lookup.js';
+import { HarnessGuard } from '../harness/guard.js';
+import { HARNESS_LIMITS } from '../harness/limits.js';
+import { calcCost } from '../harness/cost-tracker.js';
 
 const TOOLS = [
     {
@@ -89,7 +92,8 @@ Quiero aprender español.
 - 保持簡潔 · 核心回答 3-5 句 · 加逐詞說明或例句
 - 純西班牙文 + 中文 · 不要英文`;
 
-export const MAX_ITERATIONS = 6;
+// 對外導出常量 · 讓 server 的 /health 顯示
+export const MAX_ITERATIONS = HARNESS_LIMITS.MAX_ITERATIONS;
 
 /**
  * @param {object} client · Anthropic SDK client
@@ -98,27 +102,57 @@ export const MAX_ITERATIONS = 6;
  * @param {Array} conversationHistory · [{ role, content }, ...]
  */
 export async function runLearningAgent({ client, model, userQuestion, conversationHistory = [] }) {
+    const guard = new HarnessGuard();
     const messages = [...conversationHistory, { role: 'user', content: userQuestion }];
     const trace = [];
     let totalUsage = { input_tokens: 0, output_tokens: 0 };
 
-    for (let i = 0; i < MAX_ITERATIONS; i++) {
-        const response = await client.messages.create({
-            model,
-            max_tokens: 1024,
-            system: AGENT_SYSTEM_PROMPT,
-            tools: TOOLS,
-            messages,
-        });
+    for (let i = 0; i < HARNESS_LIMITS.MAX_ITERATIONS; i++) {
+        // === Harness 檢查（送 Claude 之前）===
+        const preCheck = guard.checkBeforeNextStep();
+        if (preCheck.block) {
+            return buildBlockedResult({
+                guard, trace, totalUsage, model,
+                blockReason: preCheck.reason,
+                blockCode: preCheck.code,
+            });
+        }
 
-        // 累計 usage
+        guard.recordIteration();
+
+        // === 呼叫 Claude · 帶 AbortSignal ===
+        const { signal, clear } = guard.getAbortController();
+        let response;
+        try {
+            response = await client.messages.create({
+                model,
+                max_tokens: HARNESS_LIMITS.MAX_PER_STEP_TOKENS,
+                system: AGENT_SYSTEM_PROMPT,
+                tools: TOOLS,
+                messages,
+            }, { signal });
+        } catch (e) {
+            clear();
+            // AbortError = timeout · 其他錯誤丟出
+            if (e.name === 'AbortError' || /aborted|abort/i.test(e.message || '')) {
+                return buildBlockedResult({
+                    guard, trace, totalUsage, model,
+                    blockReason: `Harness timeout · ${HARNESS_LIMITS.TIMEOUT_MS}ms 內未完成 · agent 中斷`,
+                    blockCode: 'TIMEOUT',
+                });
+            }
+            throw e;
+        }
+        clear();
+
+        // === 累計 usage ===
+        guard.recordUsage(response.usage);
         totalUsage.input_tokens += response.usage.input_tokens;
         totalUsage.output_tokens += response.usage.output_tokens;
 
         const textBlocks = response.content.filter(b => b.type === 'text');
         const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
 
-        // 每一步都留 trace 給前端 debug
         trace.push({
             step: i + 1,
             stopReason: response.stop_reason,
@@ -128,9 +162,11 @@ export async function runLearningAgent({ client, model, userQuestion, conversati
                 input: t.input,
             })),
             usage: response.usage,
+            costSoFar: calcCost(model, totalUsage),
+            harnessSnapshot: guard.snapshot(),
         });
 
-        // 沒 tool call = 結束
+        // === 沒 tool call = 結束 ===
         if (toolUseBlocks.length === 0) {
             return {
                 done: true,
@@ -138,14 +174,29 @@ export async function runLearningAgent({ client, model, userQuestion, conversati
                 trace,
                 iterations: i + 1,
                 totalUsage,
+                cost: calcCost(model, totalUsage),
+                harness: guard.snapshot(),
                 stopReason: response.stop_reason,
             };
         }
 
-        // 把 assistant 的完整回覆（含 tool_use blocks）加入 messages
+        // === 記錄 tool call 數量 · 檢查有沒有超上限 ===
+        guard.recordToolCalls(toolUseBlocks.length);
+        const postToolCheck = guard.checkBeforeNextStep();
+        if (postToolCheck.block) {
+            // Agent 想再呼叫工具 · 但已超上限 · 立刻中斷
+            trace[trace.length - 1].harnessSnapshot = guard.snapshot();
+            return buildBlockedResult({
+                guard, trace, totalUsage, model,
+                blockReason: postToolCheck.reason,
+                blockCode: postToolCheck.code,
+            });
+        }
+
+        // 把 assistant 的完整回覆加入 messages
         messages.push({ role: 'assistant', content: response.content });
 
-        // 執行所有 tool_use · 平行也可以 · 先順序
+        // === 執行 tool_use ===
         const toolResults = [];
         for (const toolUse of toolUseBlocks) {
             let result;
@@ -166,24 +217,34 @@ export async function runLearningAgent({ client, model, userQuestion, conversati
                 content: result,
             });
         }
-        // 把 tool_result 記在 trace 最後一步
         trace[trace.length - 1].toolResults = toolResults.map(tr => ({
             tool_use_id: tr.tool_use_id,
             content: safeParse(tr.content),
         }));
 
-        // 把工具結果餵回 Claude · 繼續下一輪
         messages.push({ role: 'user', content: toolResults });
     }
 
-    // 超過 max iterations
+    // 超過 max iterations · 走 Harness 中斷
+    return buildBlockedResult({
+        guard, trace, totalUsage, model,
+        blockReason: `超過最大迭代次數（${HARNESS_LIMITS.MAX_ITERATIONS}）· agent 可能陷入無限循環`,
+        blockCode: 'ITERATION_CAP',
+    });
+}
+
+function buildBlockedResult({ guard, trace, totalUsage, model, blockReason, blockCode }) {
     return {
         done: false,
-        error: `超過最大迭代次數（${MAX_ITERATIONS}）· agent 可能陷入無限循環`,
-        finalText: '（agent 無法完成 · 請重問或簡化問題）',
+        blocked: true,
+        blockCode,
+        error: blockReason,
+        finalText: `⛔ Harness 攔截：${blockReason}\n（agent 未完成 · 請重問或簡化問題）`,
         trace,
-        iterations: MAX_ITERATIONS,
+        iterations: guard.iterations,
         totalUsage,
+        cost: calcCost(model, totalUsage),
+        harness: guard.snapshot(),
     };
 }
 

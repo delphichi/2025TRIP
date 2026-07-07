@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🇪🇸 西班牙文學習助手 · Phase 0</title>
+    <title>🇪🇸 西班牙文學習助手 · Phase 2</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <style>
         * { box-sizing: border-box; }
@@ -195,6 +195,32 @@
             font-family: ui-monospace, monospace;
         }
 
+        .badge.cost {
+            background: #fef3c7;
+            color: #78350f;
+            font-weight: 700;
+        }
+        .harness-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #f0fdf4;
+            border: 1px dashed #86efac;
+            border-radius: 8px;
+        }
+        .harness-label {
+            font-size: .85em;
+            font-weight: 700;
+            color: #166534;
+            margin-right: 4px;
+        }
+        .badge.ok { background: #dcfce7; color: #166534; }
+        .badge.warn { background: #fef3c7; color: #92400e; }
+        .badge.err { background: #fee2e2; color: #991b1b; }
+
         .mode-toggle {
             display: flex;
             gap: 10px;
@@ -300,7 +326,7 @@
         <header>
             <h1>🇪🇸 西班牙文學習助手</h1>
             <div class="subtitle">用中文問 · 老師用<b>西班牙文 + 中文對照</b>回答</div>
-            <div class="phase-tag">Phase 1 · ReAct 循環 + 假工具</div>
+            <div class="phase-tag">Phase 2 · Harness 防護層（$ + timeout + cap）</div>
         </header>
 
         <section class="panel input-panel">
@@ -436,10 +462,12 @@
             const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
             const stopCls = data.stopReason === 'end_turn' ? 'ok'
                           : data.stopReason === 'max_tokens' ? 'warn' : 'err';
+            const cost = data.cost;
             $meta.innerHTML = `
                 <span class="badge ${stopCls}">stop: ${data.stopReason}</span>
                 <span class="badge">in: ${data.usage.input_tokens} tok</span>
                 <span class="badge">out: ${data.usage.output_tokens} tok</span>
+                ${cost ? `<span class="badge cost">💰 NT$${cost.twd.toFixed(4)}</span>` : ''}
                 <span class="badge">${elapsedTxt}s</span>
                 <span class="badge">${data.model || '—'}</span>
             `;
@@ -449,18 +477,43 @@
         function renderAgentResponse(data, t0) {
             $response.innerHTML = renderBilingual(data.finalText);
             const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
-            const doneCls = data.done ? 'ok' : 'err';
-            const doneText = data.done ? '✅ 完成' : '⚠ 超過 max iterations';
+            const blocked = data.blocked === true;
+            const doneCls = data.done ? 'ok' : (blocked ? 'err' : 'warn');
+            const doneText = data.done ? '✅ 完成'
+                           : blocked ? `⛔ Harness 攔截 · ${data.blockCode || 'BLOCKED'}`
+                           : '⚠ 未完成';
             const totalToolCalls = (data.trace || []).reduce((s, step) => s + (step.toolCalls?.length || 0), 0);
+            const cost = data.cost;
+            const h = data.harness;
+            const capOf = (used, limit, unit = '') => {
+                const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                const cls = pct >= 90 ? 'err' : pct >= 60 ? 'warn' : 'ok';
+                return `<span class="badge ${cls}">${used}${unit}/${limit}${unit}</span>`;
+            };
             $meta.innerHTML = `
                 <span class="badge ${doneCls}">${doneText}</span>
                 <span class="badge">iters: ${data.iterations}</span>
                 <span class="badge">tool calls: ${totalToolCalls}</span>
                 <span class="badge">in: ${data.totalUsage.input_tokens} tok</span>
                 <span class="badge">out: ${data.totalUsage.output_tokens} tok</span>
+                ${cost ? `<span class="badge cost">💰 NT$${cost.twd.toFixed(4)}</span>` : ''}
                 <span class="badge">${elapsedTxt}s</span>
                 <span class="badge">${data.model || '—'}</span>
             `;
+            if (h && h.limits) {
+                $meta.innerHTML += `
+                    <div class="harness-row">
+                        <span class="harness-label">🛡️ Harness</span>
+                        ${capOf(h.totalTokens, h.limits.MAX_TOTAL_TOKENS, ' tok')}
+                        ${capOf(h.toolCallCount, h.limits.MAX_TOOL_CALLS)}
+                        ${capOf(h.iterations, h.limits.MAX_ITERATIONS, ' iter')}
+                        ${capOf(h.elapsedMs, h.limits.TIMEOUT_MS, 'ms')}
+                        ${h.violations && h.violations.length
+                          ? `<span class="badge err">⛔ ${h.violations.map(v => v.code).join(', ')}</span>`
+                          : '<span class="badge ok">✓ 全數在上限內</span>'}
+                    </div>
+                `;
+            }
             $meta.hidden = false;
 
             // Render trace
