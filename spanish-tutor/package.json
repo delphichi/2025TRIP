@@ -9,7 +9,12 @@
         "dev": "node --watch server.js",
         "fetch-dict": "node scripts/fetch-dictionary.mjs --merge",
         "fetch-dict:top10k": "node scripts/fetch-dictionary.mjs --top=10000 --merge",
-        "fetch-dict:fresh": "node scripts/fetch-dictionary.mjs --no-cache"
+        "fetch-dict:fresh": "node scripts/fetch-dictionary.mjs --no-cache",
+        "test:svg-image": "node test/create-sample-png.mjs",
+        "test:svg": "node test/test-svg-generation.js",
+        "test:svg:geometric": "node test/test-svg-generation.js geometric",
+        "test:svg:minimal": "node test/test-svg-generation.js minimal_icon",
+        "test:svg:silhouette": "node test/test-svg-generation.js silhouette"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.32.1",
