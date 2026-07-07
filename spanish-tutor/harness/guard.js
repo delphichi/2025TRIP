@@ -40,9 +40,12 @@ export class HarnessGuard {
 
     /**
      * 每輪 ReAct 之前呼叫
+     * @param {object} [opts]
+     * @param {number} [opts.pessimisticNextStepTokens] 悲觀估計「這輪還可能吃多少 token」
+     *   若總量 + 這個估計 > 上限 · 提前攔截（避免單一 call 就把總量拉爆）
      * @returns {{ block: false } | { block: true, reason: string, code: string }}
      */
-    checkBeforeNextStep() {
+    checkBeforeNextStep(opts = {}) {
         const e = this.elapsed();
         if (e > this.limits.TIMEOUT_MS) {
             const v = {
@@ -56,6 +59,15 @@ export class HarnessGuard {
             const v = {
                 code: 'TOKEN_CAP',
                 reason: `累計 tokens ${this.totalTokens} > 上限 ${this.limits.MAX_TOTAL_TOKENS} · agent 中斷`,
+            };
+            this.violations.push(v);
+            return { block: true, ...v };
+        }
+        const est = opts.pessimisticNextStepTokens || 0;
+        if (est > 0 && this.totalTokens + est > this.limits.MAX_TOTAL_TOKENS) {
+            const v = {
+                code: 'TOKEN_CAP_PROJECTED',
+                reason: `已用 ${this.totalTokens} + 這輪估計 ${est} > 上限 ${this.limits.MAX_TOTAL_TOKENS} · 提前中斷防單步爆量`,
             };
             this.violations.push(v);
             return { block: true, ...v };
