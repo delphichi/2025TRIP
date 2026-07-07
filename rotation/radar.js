@@ -4,24 +4,39 @@
     // ==========================================
     // Config
     // ==========================================
-    // 產業龍頭個股（FMP 免費 tier 全支援 · 免 CORS proxy · 訊號比 ETF 平均更清晰）
-    // SPDR 類股 ETF（XLK/XLC 等）在 FMP 免費 tier 是「Special Endpoint」需付費升級 ·
-    // 龍頭個股跟 sector ETF 相關性 0.8+ · 資金流向趨勢一致
-    const TICKERS = ['NVDA', 'META', 'JPM', 'XOM', 'UNH', 'HON'];
-    const BENCHMARK = 'SPY';
+    // TICKERS + BENCHMARK 現在由 UI 輸入決定 · localStorage 記住上次選擇
+    // 預設 6 支產業龍頭 · SPY 當基準
+    const DEFAULT_TICKERS = ['NVDA', 'META', 'JPM', 'XOM', 'UNH', 'DE'];
+    const DEFAULT_BENCHMARK = 'SPY';
+    let TICKERS = [...DEFAULT_TICKERS];
+    let BENCHMARK = DEFAULT_BENCHMARK;
     const VOL_WINDOW = 20;    // 20 日均量
     const MOM_WINDOW = 10;    // 10 日累積報酬
     const DISPLAY_DAYS = 63;  // ~3 個月交易日
     const TRAIL_LEN = 12;     // 尾巴保留幾天
 
-    const TICKER_INFO = {
-        NVDA: { name: '科技 · NVIDIA',      color: '#3b82f6', sector: '科技' },
-        META: { name: '通訊 · Meta',        color: '#8b5cf6', sector: '通訊服務' },
-        JPM:  { name: '金融 · 摩根大通',    color: '#10b981', sector: '金融' },
-        XOM:  { name: '能源 · Exxon',       color: '#f59e0b', sector: '能源' },
-        UNH:  { name: '醫療 · UnitedHealth', color: '#ef4444', sector: '醫療' },
-        HON:  { name: '工業 · Honeywell',   color: '#6b7280', sector: '工業' },
+    // 色盤：依 slot 索引指派 · 自訂 ticker 也會拿到獨立顏色
+    const COLOR_PALETTE = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6b7280', '#ec4899', '#14b8a6'];
+    // 常見 ticker 的中文別名（若不在這 · 就用 ticker 本身當名稱）
+    const KNOWN_TICKERS = {
+        SPY: 'S&P 500 ETF', QQQ: 'Nasdaq 100 ETF', DIA: '道瓊 ETF', IWM: '小型股 ETF',
+        NVDA: 'NVIDIA', META: 'Meta', JPM: '摩根大通', XOM: 'Exxon', UNH: 'UnitedHealth',
+        DE: 'Deere', HON: 'Honeywell', CAT: 'Caterpillar', GE: 'GE', RTX: 'Raytheon', UNP: 'Union Pacific',
+        AAPL: 'Apple', MSFT: 'Microsoft', GOOGL: 'Alphabet', AMZN: 'Amazon', TSLA: 'Tesla',
+        AMD: 'AMD', TSM: '台積電 ADR', NFLX: 'Netflix', DIS: '迪士尼', BA: 'Boeing',
+        XLK: '科技 ETF', XLC: '通訊 ETF', XLF: '金融 ETF', XLE: '能源 ETF', XLV: '醫療 ETF', XLI: '工業 ETF',
     };
+    // 由 buildTickerInfo() 動態產生 · 每次下載時重建
+    let TICKER_INFO = {};
+    function buildTickerInfo() {
+        TICKER_INFO = {};
+        TICKERS.forEach((t, i) => {
+            const name = KNOWN_TICKERS[t] ? `${t} · ${KNOWN_TICKERS[t]}` : t;
+            const sector = KNOWN_TICKERS[t] || t;
+            TICKER_INFO[t] = { name, sector, color: COLOR_PALETTE[i % COLOR_PALETTE.length] };
+        });
+    }
+    buildTickerInfo();
 
     // 資料源：FMP 為主（有 key 才用）· 失敗 fallback Yahoo（靠 CORS proxy）
     const FMP_BASE = 'https://financialmodelingprep.com/stable';
@@ -1112,13 +1127,140 @@
         loadAllData();
     }
 
+    function loadSavedTickers() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('rotation_tickers') || 'null');
+            if (saved && Array.isArray(saved.tickers) && saved.tickers.length === 6) {
+                TICKERS = saved.tickers.map(t => String(t).toUpperCase());
+                BENCHMARK = String(saved.benchmark || 'SPY').toUpperCase();
+                buildTickerInfo();
+                state.visibleTickers = new Set(TICKERS);
+                return true;
+            }
+        } catch (_) {}
+        return false;
+    }
+
+    function initTickerInputs() {
+        // 從 localStorage 讀上次的選擇 · 沒有就用預設
+        for (let i = 0; i < 6; i++) $(`ticker-${i + 1}`).value = TICKERS[i] || DEFAULT_TICKERS[i];
+        $('ticker-benchmark').value = BENCHMARK;
+
+        const collectTickers = () => {
+            const t = [];
+            for (let i = 1; i <= 6; i++) {
+                const v = $(`ticker-${i}`).value.trim().toUpperCase();
+                if (v) t.push(v);
+            }
+            const b = $('ticker-benchmark').value.trim().toUpperCase() || 'SPY';
+            return { tickers: t, benchmark: b };
+        };
+
+        $('btn-download').addEventListener('click', () => {
+            const { tickers, benchmark } = collectTickers();
+            if (tickers.length < 2) {
+                alert('至少要 2 個代號才能比較');
+                return;
+            }
+            if (new Set(tickers).size !== tickers.length) {
+                alert('代號有重複 · 每個只能出現一次');
+                return;
+            }
+            // 更新 global TICKERS + BENCHMARK · 重建 TICKER_INFO
+            TICKERS = tickers;
+            BENCHMARK = benchmark;
+            buildTickerInfo();
+            // 存 localStorage
+            localStorage.setItem('rotation_tickers', JSON.stringify({ tickers, benchmark }));
+            // 重置狀態 + 重建 chip · 開始載入
+            state.visibleTickers = new Set(TICKERS);
+            state.metrics = {};
+            state.rawSeries = {};
+            state.dates = [];
+            state.currentIdx = 0;
+            state.dataSources = { FMP: 0, Yahoo: 0 };
+            state.activeTickers = [];
+            state.failedTickers = [];
+            rebuildTickerChips();
+            drawLoadingPlaceholder(0, TICKERS.length + 1, BENCHMARK);
+            loadAllData();
+        });
+
+        $('btn-reset-defaults').addEventListener('click', () => {
+            for (let i = 0; i < 6; i++) $(`ticker-${i + 1}`).value = DEFAULT_TICKERS[i];
+            $('ticker-benchmark').value = DEFAULT_BENCHMARK;
+        });
+
+        // Enter 鍵在任一輸入框都能觸發下載
+        document.querySelectorAll('.ticker-input').forEach(inp => {
+            inp.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') $('btn-download').click();
+            });
+        });
+    }
+
+    function rebuildTickerChips() {
+        const chipRow = $('ticker-chips');
+        // 清掉舊 chip（保留「全部」「全隱藏」）
+        chipRow.querySelectorAll('button[data-ticker]').forEach(el => el.remove());
+        TICKERS.forEach(t => {
+            const info = TICKER_INFO[t];
+            const btn = document.createElement('button');
+            btn.className = 'chip active';
+            btn.dataset.ticker = t;
+            btn.innerHTML = `<span class="chip-dot" style="background:${info.color}"></span> ${t}`;
+            btn.style.borderColor = info.color;
+            chipRow.appendChild(btn);
+        });
+        updateChipStates();
+    }
+
+    function drawWaitingPlaceholder() {
+        const canvas = $('radar-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth || canvas.width;
+        const h = canvas.clientHeight || canvas.height;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(w / 2, 20);
+        ctx.lineTo(w / 2, h - 20);
+        ctx.moveTo(20, h / 2);
+        ctx.lineTo(w - 20, h / 2);
+        ctx.stroke();
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👆 上方填入 6 個代號', w / 2, h / 2 - 20);
+        ctx.font = '15px sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('按「📡 下載 · 開始分析」才會抓資料', w / 2, h / 2 + 12);
+        ctx.font = '13px sans-serif';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText('（4 象限雷達會在資料下載後畫出來）', w / 2, h / 2 + 40);
+    }
+
     function init() {
+        loadSavedTickers();   // 早點讀 · initControls 建 chip 時已是使用者選的 ticker
         initKeyPanel();
         initControls();
         initTooltip();
-        // 頁面一載入就先畫 loading placeholder · 玩家不會看到白畫面
-        drawLoadingPlaceholder(0, TICKERS.length + 1, BENCHMARK);
-        loadAllData();
+        initTickerInputs();
+        // 不自動抓資料 · 等使用者按下載
+        drawWaitingPlaceholder();
+        const btnPlay = $('btn-play');
+        btnPlay.disabled = true;
+        btnPlay.textContent = '⏳ 等下載';
+        $('load-status').innerHTML = `💡 上方填入 6 個代號 · 按 <b>📡 下載 · 開始分析</b> 才會抓資料`;
     }
 
     if (document.readyState === 'loading') {

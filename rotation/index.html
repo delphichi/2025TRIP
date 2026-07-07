@@ -66,6 +66,49 @@
             </p>
         </section>
 
+        <section class="panel ticker-input-panel">
+            <h2>📥 選你想追蹤的 6 個代號</h2>
+            <p class="hint hint-mini">
+                💡 隨意填入 6 個美股 ticker（產業龍頭 · ETF · 熱門股都可）· 按下方按鈕才開始下載。
+                <b>基準</b> 是相對報酬的分母（預設 SPY 大盤 · 也可換 QQQ 只比 Nasdaq）。
+                你的選擇會存 localStorage · 下次自動填回。
+            </p>
+            <div class="ticker-input-grid">
+                <label class="ticker-input-cell">
+                    <span class="ticker-input-label">#1</span>
+                    <input type="text" class="ticker-input" id="ticker-1" value="NVDA" maxlength="10" autocomplete="off" spellcheck="false">
+                </label>
+                <label class="ticker-input-cell">
+                    <span class="ticker-input-label">#2</span>
+                    <input type="text" class="ticker-input" id="ticker-2" value="META" maxlength="10" autocomplete="off" spellcheck="false">
+                </label>
+                <label class="ticker-input-cell">
+                    <span class="ticker-input-label">#3</span>
+                    <input type="text" class="ticker-input" id="ticker-3" value="JPM" maxlength="10" autocomplete="off" spellcheck="false">
+                </label>
+                <label class="ticker-input-cell">
+                    <span class="ticker-input-label">#4</span>
+                    <input type="text" class="ticker-input" id="ticker-4" value="XOM" maxlength="10" autocomplete="off" spellcheck="false">
+                </label>
+                <label class="ticker-input-cell">
+                    <span class="ticker-input-label">#5</span>
+                    <input type="text" class="ticker-input" id="ticker-5" value="UNH" maxlength="10" autocomplete="off" spellcheck="false">
+                </label>
+                <label class="ticker-input-cell">
+                    <span class="ticker-input-label">#6</span>
+                    <input type="text" class="ticker-input" id="ticker-6" value="DE" maxlength="10" autocomplete="off" spellcheck="false">
+                </label>
+                <label class="ticker-input-cell ticker-benchmark-cell">
+                    <span class="ticker-input-label">🎯 基準</span>
+                    <input type="text" class="ticker-input" id="ticker-benchmark" value="SPY" maxlength="10" autocomplete="off" spellcheck="false">
+                </label>
+            </div>
+            <div class="btn-row">
+                <button id="btn-download" class="btn-download">📡 下載 · 開始分析</button>
+                <button id="btn-reset-defaults" class="btn-secondary-inline">↺ 恢復預設</button>
+            </div>
+        </section>
+
         <section class="panel control-panel">
             <div class="control-row">
                 <button id="btn-play" class="btn-play">▶ 播放</button>
