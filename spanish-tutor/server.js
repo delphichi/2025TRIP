@@ -20,6 +20,11 @@ import { runLearningAgent, MAX_ITERATIONS } from './agent/planner-agent.js';
 import { runMultiAgent } from './agent/multi-agent-planner.js';
 import { HARNESS_LIMITS, MULTI_AGENT_LIMITS } from './harness/limits.js';
 import { calcCost } from './harness/cost-tracker.js';
+import {
+    getOrCreateSession, deleteSession, sessionSnapshot,
+    summarizeIfNeeded, buildHistoryForAgent, appendExchange,
+    CONTEXT_LIMITS,
+} from './harness/context-manager.js';
 
 dotenv.config();
 
@@ -69,7 +74,7 @@ Quiero aprender español.
  * response: { text, usage, stopReason, model }
  */
 app.post('/api/chat-simple', async (req, res) => {
-    const { message } = req.body || {};
+    const { message, sessionId } = req.body || {};
 
     if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'message 必須是非空字串' });
@@ -78,13 +83,21 @@ app.post('/api/chat-simple', async (req, res) => {
         return res.status(400).json({ error: '單次問題不要超過 1000 字' });
     }
 
+    const session = getOrCreateSession(sessionId);
     const started = Date.now();
     try {
+        // === 若 context 過大 · 先摘要 ===
+        const summaryResult = await summarizeIfNeeded(client, MODEL, session);
+
+        // === 組出歷史 · 帶前情提要（若有）===
+        const history = buildHistoryForAgent(session);
+        const messages = [...history, { role: 'user', content: message }];
+
         const response = await client.messages.create({
             model: MODEL,
             max_tokens: MAX_TOKENS,
             system: SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: message }],
+            messages,
         });
 
         const text = response.content
@@ -92,13 +105,19 @@ app.post('/api/chat-simple', async (req, res) => {
             .map(b => b.text)
             .join('\n');
 
+        const cost = calcCost(response.model, response.usage);
+        appendExchange(session, message, text, 'simple', response.usage, cost.twd);
+
         res.json({
             text,
             usage: response.usage,
-            cost: calcCost(response.model, response.usage),
+            cost,
             stopReason: response.stop_reason,
             model: response.model,
             elapsedMs: Date.now() - started,
+            sessionId: session.id,
+            session: sessionSnapshot(session),
+            summarization: summaryResult.summarized ? summaryResult : null,
         });
     } catch (e) {
         console.error('Claude API error:', e.status, e.message);
@@ -120,7 +139,7 @@ app.post('/api/chat-simple', async (req, res) => {
  * ReAct 循環 · Claude 可自主決定要不要呼叫 dictionary_lookup / grammar_rule_lookup
  */
 app.post('/api/chat-agent', async (req, res) => {
-    const { message } = req.body || {};
+    const { message, sessionId } = req.body || {};
     if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'message 必須是非空字串' });
     }
@@ -128,18 +147,27 @@ app.post('/api/chat-agent', async (req, res) => {
         return res.status(400).json({ error: '單次問題不要超過 1000 字' });
     }
 
+    const session = getOrCreateSession(sessionId);
     const started = Date.now();
     try {
+        const summaryResult = await summarizeIfNeeded(client, MODEL, session);
+        const history = buildHistoryForAgent(session);
         const result = await runLearningAgent({
             client,
             model: MODEL,
             userQuestion: message,
-            conversationHistory: [],   // Phase 1 還沒接對話記憶 · phase 4 加
+            conversationHistory: history,
         });
+        if (result.finalText) {
+            appendExchange(session, message, result.finalText, 'agent', result.totalUsage, result.cost?.twd || 0);
+        }
         res.json({
             ...result,
             elapsedMs: Date.now() - started,
             model: MODEL,
+            sessionId: session.id,
+            session: sessionSnapshot(session),
+            summarization: summaryResult.summarized ? summaryResult : null,
         });
     } catch (e) {
         console.error('Agent error:', e.status, e.message);
@@ -157,7 +185,7 @@ app.post('/api/chat-agent', async (req, res) => {
  * Planner + Grammar 助教 + Example 助教 · 三層架構 · 平行執行
  */
 app.post('/api/chat-multi-agent', async (req, res) => {
-    const { message } = req.body || {};
+    const { message, sessionId } = req.body || {};
     if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'message 必須是非空字串' });
     }
@@ -165,16 +193,25 @@ app.post('/api/chat-multi-agent', async (req, res) => {
         return res.status(400).json({ error: '單次問題不要超過 1000 字' });
     }
 
+    const session = getOrCreateSession(sessionId);
     const started = Date.now();
     try {
+        const summaryResult = await summarizeIfNeeded(client, MODEL, session);
+        const history = buildHistoryForAgent(session);
         const result = await runMultiAgent({
             client, model: MODEL, userQuestion: message,
-            conversationHistory: [],
+            conversationHistory: history,
         });
+        if (result.finalText) {
+            appendExchange(session, message, result.finalText, 'multi-agent', result.totalUsage, result.cost?.twd || 0);
+        }
         res.json({
             ...result,
             elapsedMs: Date.now() - started,
             model: MODEL,
+            sessionId: session.id,
+            session: sessionSnapshot(session),
+            summarization: summaryResult.summarized ? summaryResult : null,
         });
     } catch (e) {
         console.error('Multi-agent error:', e.status, e.message);
@@ -187,6 +224,20 @@ app.post('/api/chat-multi-agent', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/session/:id · 讀 session 狀態
+ * DELETE /api/session/:id · 清 session（開新對話）
+ */
+app.get('/api/session/:id', (req, res) => {
+    const session = getOrCreateSession(req.params.id);
+    res.json({ ok: true, session: sessionSnapshot(session), messages: session.messages });
+});
+
+app.delete('/api/session/:id', (req, res) => {
+    const existed = deleteSession(req.params.id);
+    res.json({ ok: true, existed });
+});
+
 app.get('/api/health', (_req, res) => {
     res.json({
         ok: true,
@@ -195,15 +246,19 @@ app.get('/api/health', (_req, res) => {
         maxIterationsAgent: MAX_ITERATIONS,
         harnessLimits: HARNESS_LIMITS,
         multiAgentLimits: MULTI_AGENT_LIMITS,
-        phase: 'phase-3-multi-agent',
+        contextLimits: CONTEXT_LIMITS,
+        phase: 'phase-4-context',
         hasKey: !!process.env.ANTHROPIC_API_KEY,
-        routes: ['/api/chat-simple', '/api/chat-agent', '/api/chat-multi-agent'],
+        routes: [
+            '/api/chat-simple', '/api/chat-agent', '/api/chat-multi-agent',
+            '/api/session/:id (GET/DELETE)',
+        ],
     });
 });
 
 app.listen(PORT, () => {
     console.log('');
-    console.log('🇪🇸 Spanish tutor · Phase 3（多智能體協作）');
+    console.log('🇪🇸 Spanish tutor · Phase 4（對話記憶 + 自動摘要）');
     console.log(`   URL:   http://localhost:${PORT}`);
     console.log(`   Model: ${MODEL}`);
     console.log(`   Max tokens: ${MAX_TOKENS}`);
