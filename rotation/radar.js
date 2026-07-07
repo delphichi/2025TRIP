@@ -1467,11 +1467,17 @@
             const v = fmInput.value.trim();
             if (!v) { alert('FinMind token 不能空白'); return; }
             if (v.length < 20 && !confirm(`FinMind token 只有 ${v.length} 字元（通常 200+）· 確定？`)) return;
-            statusEl.innerHTML = `⏳ 驗證 FinMind token（2330 5 日）…`;
+            statusEl.innerHTML = `⏳ 驗證 FinMind token（2330 近 7 日）…`;
             fmSave.disabled = true;
             let ok = false, error = '', rows = 0;
             try {
-                const data = await fetchFinMind('2330', 7, v);
+                // Bug fix: fetchFinMind 需要 (ticker, fromStr, toStr, token) 4 個參數
+                // 之前寫成 fetchFinMind('2330', 7, v) · 導致：
+                //   fromStr=7（應是日期字串）· toStr=v（token 被誤傳為日期）· token=undefined
+                const now = new Date();
+                const toStr = now.toISOString().slice(0, 10);
+                const fromStr = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+                const data = await fetchFinMind('2330', fromStr, toStr, v);
                 ok = true;
                 rows = data.length;
             } catch (e) {
