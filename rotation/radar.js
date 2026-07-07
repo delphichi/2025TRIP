@@ -47,17 +47,22 @@
     };
 
     async function fetchViaProxy(url) {
-        try {
-            const res = await fetch(url);
-            if (res.ok) return await res.json();
-        } catch (_) {}
-        for (const p of CORS_PROXIES) {
+        const attempts = [url, ...CORS_PROXIES.map(p => `${p}${encodeURIComponent(url)}`)];
+        const labels = ['直連', ...CORS_PROXIES.map((p, i) => `proxy${i + 1}`)];
+        for (let i = 0; i < attempts.length; i++) {
+            const controller = new AbortController();
+            const t = setTimeout(() => controller.abort(), 12000);
             try {
-                const res = await fetch(`${p}${encodeURIComponent(url)}`);
+                const res = await fetch(attempts[i], { signal: controller.signal });
+                clearTimeout(t);
                 if (res.ok) return await res.json();
-            } catch (_) {}
+                console.warn(`Yahoo ${labels[i]} HTTP ${res.status}`);
+            } catch (e) {
+                clearTimeout(t);
+                console.warn(`Yahoo ${labels[i]} 失敗:`, e.message);
+            }
         }
-        throw new Error('直連 + 兩個 proxy 都失敗');
+        throw new Error('直連 + 兩個 proxy 都失敗 · F12 看 console');
     }
 
     async function fetchYahoo(ticker, daysBack) {
@@ -80,26 +85,43 @@
         })).filter(d => d.close !== null && isFinite(d.close) && d.volume);
     }
 
-    // FMP · /stable/historical-price-eod/full · 直接支援 CORS · 需要 api key
+    // FMP · /stable/historical-price-eod/full · 直接支援 CORS · 需要 api key · 加 15s timeout
     async function fetchFmp(ticker, daysBack, apikey) {
         const to = new Date();
         const from = new Date(to.getTime() - daysBack * 86400 * 1000);
         const fromStr = from.toISOString().slice(0, 10);
         const toStr = to.toISOString().slice(0, 10);
         const url = `${FMP_BASE}/historical-price-eod/full?symbol=${ticker}&from=${fromStr}&to=${toStr}&apikey=${apikey}`;
-        const res = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        let res;
+        try {
+            res = await fetch(url, { signal: controller.signal });
+        } catch (e) {
+            if (e.name === 'AbortError') throw new Error('FMP 15 秒超時');
+            throw new Error(`FMP 網路錯誤: ${e.message}`);
+        } finally {
+            clearTimeout(timeoutId);
+        }
         if (!res.ok) {
-            if (res.status === 401) throw new Error('FMP key 無效');
-            if (res.status === 403) throw new Error('FMP endpoint 需付費 tier');
-            if (res.status === 429) throw new Error('FMP 免費額度用完（250/日）');
-            throw new Error(`FMP HTTP ${res.status}`);
+            let bodyText = '';
+            try { bodyText = (await res.text()).slice(0, 200); } catch (_) {}
+            console.error(`FMP ${ticker} HTTP ${res.status}:`, bodyText);
+            if (res.status === 401) throw new Error('FMP key 無效（401）');
+            if (res.status === 403) throw new Error('FMP endpoint 需付費 tier（403）');
+            if (res.status === 429) throw new Error('FMP 免費額度用完（429 · 250/日）');
+            throw new Error(`FMP HTTP ${res.status}: ${bodyText.slice(0, 80)}`);
         }
         const data = await res.json();
         // FMP /stable 回傳可能是 array 直接、或 { symbol, historical: [...] }
         let rows;
         if (Array.isArray(data)) rows = data;
         else if (data && Array.isArray(data.historical)) rows = data.historical;
-        else throw new Error('FMP 回傳格式異常');
+        else {
+            console.error(`FMP ${ticker} 格式異常:`, data);
+            throw new Error('FMP 回傳格式異常 · F12 看 console');
+        }
+        console.log(`✅ FMP ${ticker}: ${rows.length} rows`);
         // FMP 是新到舊 · 反過來變舊到新
         rows.sort((a, b) => a.date.localeCompare(b.date));
         return rows.map(r => ({
@@ -107,6 +129,16 @@
             close: r.adjClose !== undefined && r.adjClose !== null ? r.adjClose : r.close,
             volume: r.volume,
         })).filter(d => d.close !== null && isFinite(d.close) && d.volume);
+    }
+
+    // 快速驗證 FMP key 是否有效 · 打一個輕量 endpoint（單一 ticker 5 天資料）
+    async function verifyFmpKey(apikey) {
+        try {
+            const rows = await fetchFmp('SPY', 5, apikey);
+            return { ok: true, rows: rows.length };
+        } catch (e) {
+            return { ok: false, error: e.message };
+        }
     }
 
     // 統一入口：有 FMP key 先試 FMP · 失敗才 fallback Yahoo
@@ -973,7 +1005,7 @@
             }
         }
 
-        btnSave.addEventListener('click', () => {
+        btnSave.addEventListener('click', async () => {
             const v = input.value.trim();
             if (!v) {
                 alert('key 不能空白');
@@ -982,6 +1014,19 @@
             if (v.length < 20) {
                 if (!confirm(`這個 key 只有 ${v.length} 字元 · FMP key 通常 32+ 字元。確定要存？`)) return;
             }
+            // 存之前先驗證 · 15s 內若無法連通就當作失敗
+            statusEl.innerHTML = `⏳ 驗證 key 中……（打 FMP SPY 5 日資料 · 最多 15s）`;
+            statusEl.className = 'key-status key-status-warn';
+            btnSave.disabled = true;
+            const verify = await verifyFmpKey(v);
+            btnSave.disabled = false;
+            if (!verify.ok) {
+                statusEl.innerHTML = `❌ Key 驗證失敗: ${verify.error} · <b>沒儲存</b> · F12 → console 看細節`;
+                statusEl.className = 'key-status key-status-warn';
+                console.error('FMP key verify failed:', verify.error);
+                return;
+            }
+            console.log(`✅ FMP key 驗證通過（SPY 5 日 = ${verify.rows} rows）· 存入 localStorage`);
             localStorage.setItem('fmp_api_key', v);
             input.value = '';
             refreshStatus();
