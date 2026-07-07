@@ -85,13 +85,15 @@
         })).filter(d => d.close !== null && isFinite(d.close) && d.volume);
     }
 
-    // FMP · /stable/historical-price-eod/full · 直接支援 CORS · 需要 api key · 加 15s timeout
+    // FMP · /stable/historical-price-eod/light · 免費 tier 對 SPDR 類股 ETF 也支援
+    // (原本的 /full 免費 tier 對 XLK/XLC/etc 會 402 · Premium Query Parameter Special Endpoint)
+    // light 回傳 date + price + volume 剛好夠我算 X/Y 兩軸
     async function fetchFmp(ticker, daysBack, apikey) {
         const to = new Date();
         const from = new Date(to.getTime() - daysBack * 86400 * 1000);
         const fromStr = from.toISOString().slice(0, 10);
         const toStr = to.toISOString().slice(0, 10);
-        const url = `${FMP_BASE}/historical-price-eod/full?symbol=${ticker}&from=${fromStr}&to=${toStr}&apikey=${apikey}`;
+        const url = `${FMP_BASE}/historical-price-eod/light?symbol=${ticker}&from=${fromStr}&to=${toStr}&apikey=${apikey}`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
         let res;
