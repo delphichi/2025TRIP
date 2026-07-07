@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☠️ 毒雞湯漫畫產生器 · Phase 2</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+            background: linear-gradient(135deg, #f5f2ec 0%, #e8ede4 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; padding: 20px 10px 24px; }
+        header h1 { margin: 0; font-size: 1.9em; color: #3f4d3a; }
+        header .subtitle { margin: 6px 0 0; color: #6b7a63; font-size: .95em; }
+        header .phase-tag {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            background: #7a9a78;
+            color: #fff;
+            border-radius: 999px;
+            font-size: .8em;
+            font-weight: 600;
+        }
+        .panel {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            margin: 14px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .form-row label {
+            font-weight: 700;
+            color: #3f4d3a;
+            font-size: .9em;
+        }
+        input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border: 2px solid #c4d0be;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        input[type="text"]:focus { outline: none; border-color: #7a9a78; }
+        select {
+            padding: 10px 14px;
+            border: 2px solid #c4d0be;
+            border-radius: 8px;
+            font-size: .95em;
+            background: #fff;
+            cursor: pointer;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-primary { background: #7a9a78; color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: #5f8560; }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+        .btn-secondary { background: #fff; color: #7a9a78; border: 2px solid #7a9a78; }
+        .btn-secondary:hover:not(:disabled) { background: #f0f5ee; }
+
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .preset-btn {
+            padding: 5px 10px;
+            background: #f0f5ee;
+            border: 1px solid #a8c0a6;
+            border-radius: 999px;
+            font-size: .85em;
+            color: #3f4d3a;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .preset-btn:hover { background: #d8e5d5; }
+
+        .caption-card {
+            background: linear-gradient(180deg, #fef9e6 0%, #f7f2d8 100%);
+            border: 2px solid #e0d8a8;
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin: 12px 0;
+            position: relative;
+        }
+        .caption-card .caption-role {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #d4c76a;
+            color: #5a4d1a;
+            border-radius: 4px;
+            font-size: .78em;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .caption-card .caption-role.punch { background: #a68a3d; color: #fff; }
+        .caption-line {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #3f2a0a;
+            line-height: 1.4;
+        }
+        .caption-meta {
+            font-size: .8em;
+            color: #7a6a3a;
+            margin-top: 4px;
+        }
+
+        .comic-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 14px;
+        }
+        @media (max-width: 700px) {
+            .comic-container { grid-template-columns: 1fr; }
+        }
+        .comic-panel {
+            background: #fff;
+            border: 3px solid #3f4d3a;
+            border-radius: 10px;
+            padding: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .comic-panel .panel-caption {
+            font-size: 1.15em;
+            font-weight: 700;
+            color: #2a2a2a;
+            text-align: center;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            font-family: "Noto Sans TC", sans-serif;
+        }
+        .comic-panel .svg-wrapper {
+            width: 100%;
+            max-height: 400px;
+            display: flex;
+            justify-content: center;
+        }
+        .comic-panel .svg-wrapper svg {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+        }
+        .comic-panel .scene-info {
+            margin-top: 6px;
+            font-size: .78em;
+            color: #6b7280;
+            font-family: ui-monospace, monospace;
+            text-align: center;
+            padding-top: 6px;
+            border-top: 1px dashed #d1d5db;
+        }
+
+        .meta-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed #e5e7eb;
+        }
+        .badge {
+            padding: 3px 8px;
+            background: #f1f5f9;
+            border-radius: 5px;
+            font-family: ui-monospace, monospace;
+            font-size: .82em;
+            color: #334155;
+        }
+        .badge.cost { background: #fef3c7; color: #78350f; font-weight: 700; }
+        .badge.ok { background: #dcfce7; color: #166534; }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #3f4d3a;
+            justify-content: center;
+            padding: 20px;
+        }
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: #7a9a78;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes pulse { 0%, 60%, 100% { opacity: 0.3; } 30% { opacity: 1; } }
+
+        .error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+        }
+        .empty {
+            color: #9ca3af;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+        .breakdown-row {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            font-size: .82em;
+            color: #475569;
+            font-family: ui-monospace, monospace;
+        }
+        .info-banner {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #075985;
+            font-size: .88em;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>☠️ 毒雞湯漫畫產生器</h1>
+            <div class="subtitle">輸入主題 → 生成兩段式毒雞湯 → 選一句畫成漫畫</div>
+            <div class="phase-tag">Phase 2 · SVG 零件庫組裝</div>
+        </header>
+
+        <section class="panel">
+            <div class="info-banner">
+                <b>💡 這系統的哲學：</b>AI 只負責「選菜單」（分類 pose / expression / background）·
+                SVG 零件是固定寫死的字串 · 角色一致性 100% 有保證。
+            </div>
+
+            <div class="form-row">
+                <label for="theme">主題</label>
+                <input type="text" id="theme" placeholder="例如：賺錢與花錢、年輕與變老" maxlength="30">
+                <label>
+                    <select id="style">
+                        <option value="contrast">對比句式</option>
+                        <option value="progressive">遞進句式</option>
+                    </select>
+                </label>
+                <button class="btn btn-primary" id="btn-generate">📝 生成毒雞湯</button>
+            </div>
+            <div class="presets">
+                <span style="font-size:.85em;color:#6b7280;margin-right:4px">試試：</span>
+                <button class="preset-btn" data-theme="賺錢與花錢">賺錢與花錢</button>
+                <button class="preset-btn" data-theme="工作與生活">工作與生活</button>
+                <button class="preset-btn" data-theme="年輕與變老">年輕與變老</button>
+                <button class="preset-btn" data-theme="得到與失去">得到與失去</button>
+                <button class="preset-btn" data-theme="愛情">愛情</button>
+                <button class="preset-btn" data-theme="朋友">朋友</button>
+                <button class="preset-btn" data-theme="努力">努力</button>
+            </div>
+            <div id="error-slot"></div>
+        </section>
+
+        <section class="panel" id="caption-panel" hidden>
+            <h3 style="margin:0 0 10px;color:#3f4d3a">📝 生成的文案</h3>
+            <div id="captions"></div>
+            <div style="margin-top:12px;text-align:center">
+                <button class="btn btn-primary" id="btn-draw">🎨 用這組文案畫漫畫</button>
+                <button class="btn btn-secondary" id="btn-regenerate" style="margin-left:8px">🔄 換一組</button>
+            </div>
+            <div id="caption-meta" class="meta-row" hidden></div>
+        </section>
+
+        <section class="panel" id="comic-panel-wrapper" hidden>
+            <h3 style="margin:0 0 10px;color:#3f4d3a">🎨 漫畫成品</h3>
+            <div id="comic-container" class="comic-container"></div>
+            <div id="comic-meta" class="meta-row" hidden></div>
+            <div id="comic-breakdown" class="breakdown-row" hidden></div>
+        </section>
+    </div>
+
+    <script>
+        const $theme = document.getElementById('theme');
+        const $style = document.getElementById('style');
+        const $btnGen = document.getElementById('btn-generate');
+        const $btnDraw = document.getElementById('btn-draw');
+        const $btnRegen = document.getElementById('btn-regenerate');
+        const $errSlot = document.getElementById('error-slot');
+        const $captionPanel = document.getElementById('caption-panel');
+        const $captions = document.getElementById('captions');
+        const $captionMeta = document.getElementById('caption-meta');
+        const $comicPanel = document.getElementById('comic-panel-wrapper');
+        const $comicContainer = document.getElementById('comic-container');
+        const $comicMeta = document.getElementById('comic-meta');
+        const $comicBreakdown = document.getElementById('comic-breakdown');
+
+        let currentCaptions = null;
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                $theme.value = btn.dataset.theme;
+                $theme.focus();
+            });
+        });
+
+        $btnGen.addEventListener('click', generateCaption);
+        $btnRegen.addEventListener('click', generateCaption);
+
+        async function generateCaption() {
+            const theme = $theme.value.trim();
+            if (!theme) {
+                showError('請輸入主題');
+                $theme.focus();
+                return;
+            }
+            $btnGen.disabled = true;
+            $btnRegen.disabled = true;
+            $btnGen.textContent = '⏳ 生成中……';
+            clearError();
+            $captions.innerHTML = `
+                <div class="loading">
+                    <div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>
+                    <span>Claude 正在寫毒雞湯……</span>
+                </div>`;
+            $captionPanel.hidden = false;
+            $comicPanel.hidden = true;
+
+            try {
+                const res = await fetch('/api/generate-caption', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme, style: $style.value }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showError(data.error || res.statusText);
+                    $captions.innerHTML = '';
+                    return;
+                }
+                currentCaptions = { line1: data.line1, line2: data.line2 };
+                renderCaptions(data);
+            } catch (e) {
+                showError(`網路錯誤：${e.message}`);
+                $captions.innerHTML = '';
+            } finally {
+                $btnGen.disabled = false;
+                $btnRegen.disabled = false;
+                $btnGen.textContent = '📝 生成毒雞湯';
+            }
+        }
+
+        function renderCaptions(data) {
+            $captions.innerHTML = `
+                <div class="caption-card">
+                    <span class="caption-role">前段 · 鋪陳</span>
+                    <div class="caption-line">「${escape(data.line1)}」</div>
+                    <div class="caption-meta">${data.line1Chars} 字 · ${data.style === 'contrast' ? '對比句式' : '遞進句式'}</div>
+                </div>
+                <div class="caption-card">
+                    <span class="caption-role punch">後段 · 昇華</span>
+                    <div class="caption-line">「${escape(data.line2)}」</div>
+                    <div class="caption-meta">${data.line2Chars} 字</div>
+                </div>
+            `;
+            $captionMeta.innerHTML = `
+                <span class="badge ok">✅ 完成</span>
+                <span class="badge">in: ${data.usage.input_tokens} tok</span>
+                <span class="badge">out: ${data.usage.output_tokens} tok</span>
+                <span class="badge cost">💰 NT$${data.cost.twd.toFixed(4)}</span>
+                <span class="badge">${(data.elapsedMs / 1000).toFixed(1)}s</span>
+                ${data.attempt > 1 ? `<span class="badge">retry ${data.attempt - 1}x</span>` : ''}
+            `;
+            $captionMeta.hidden = false;
+        }
+
+        $btnDraw.addEventListener('click', async () => {
+            if (!currentCaptions) {
+                showError('請先生成文案');
+                return;
+            }
+            $btnDraw.disabled = true;
+            $btnDraw.textContent = '⏳ 畫中……';
+            clearError();
+            $comicPanel.hidden = false;
+            $comicContainer.innerHTML = `
+                <div class="loading" style="grid-column:span 2">
+                    <div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>
+                    <span>Claude 正在判斷場景 · 程式正在組裝 SVG……</span>
+                </div>`;
+            $comicMeta.hidden = true;
+            $comicBreakdown.hidden = true;
+
+            try {
+                const res = await fetch('/api/compose-comic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ captions: currentCaptions, style: $style.value }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showError(data.error || res.statusText);
+                    $comicContainer.innerHTML = '';
+                    return;
+                }
+                renderComic(data);
+            } catch (e) {
+                showError(`網路錯誤：${e.message}`);
+                $comicContainer.innerHTML = '';
+            } finally {
+                $btnDraw.disabled = false;
+                $btnDraw.textContent = '🎨 用這組文案畫漫畫';
+            }
+        });
+
+        function renderComic(data) {
+            $comicContainer.innerHTML = `
+                <div class="comic-panel">
+                    <div class="panel-caption">「${escape(data.line1)}」</div>
+                    <div class="svg-wrapper">${data.panel1.svg}</div>
+                    <div class="scene-info">
+                        pose: ${data.panel1.scene.pose} ·
+                        expr: ${data.panel1.scene.expression} ·
+                        bg: ${data.panel1.scene.background}
+                    </div>
+                </div>
+                <div class="comic-panel">
+                    <div class="panel-caption">「${escape(data.line2)}」</div>
+                    <div class="svg-wrapper">${data.panel2.svg}</div>
+                    <div class="scene-info">
+                        pose: ${data.panel2.scene.pose} ·
+                        expr: ${data.panel2.scene.expression} ·
+                        bg: ${data.panel2.scene.background}
+                    </div>
+                </div>
+            `;
+
+            $comicMeta.innerHTML = `
+                <span class="badge ok">✅ 完成</span>
+                <span class="badge">API 呼叫: ${data.breakdown.caption.twd > 0 ? '3' : '2'} 次</span>
+                <span class="badge">組裝 SVG: 0 次 API</span>
+                <span class="badge cost">💰 NT$${data.totalCostTWD.toFixed(4)}</span>
+                <span class="badge">${(data.elapsedMs / 1000).toFixed(1)}s</span>
+            `;
+            $comicMeta.hidden = false;
+
+            $comicBreakdown.innerHTML = `
+                <b>成本細分：</b>
+                caption gen NT$${data.breakdown.caption.twd.toFixed(4)} +
+                scene parse×2 NT$${(data.breakdown.scene1.twd + data.breakdown.scene2.twd).toFixed(4)} +
+                <b>composer NT$0（純本地 · 零 API）</b>
+            `;
+            $comicBreakdown.hidden = false;
+        }
+
+        function showError(msg) {
+            $errSlot.innerHTML = `<div class="error">❌ ${escape(msg)}</div>`;
+        }
+        function clearError() {
+            $errSlot.innerHTML = '';
+        }
+        function escape(s) {
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+            }[c]));
+        }
+    </script>
+</body>
+</html>
