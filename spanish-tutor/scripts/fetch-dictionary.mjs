@@ -35,10 +35,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = path.join(__dirname, '..', 'tools', 'data', 'spanish-dictionary.json');
 const CACHE_PATH = path.join(__dirname, '..', 'tools', 'data', '.kaikki-spanish.jsonl');
 
-// Kaikki 提供多種切片：完整版 300MB · non-inflected 30MB · 這裡用小的
-const KAIKKI_URL = 'https://kaikki.org/dictionary/downloads/es/es-extract.jsonl.gz';
-// 備援：直接 uncompressed jsonl
-const KAIKKI_URL_FALLBACK = 'https://kaikki.org/dictionary/Spanish/kaikki.org-dictionary-Spanish-non-inflected.jsonl';
+// 用「英文 Wiktionary 對 Spanish 語言的 extract」· 不是「西文 Wiktionary 收所有語言」
+// 這樣拿到的每一條 entry 都是解釋一個西班牙文字的意思 · 沒混雜英文字
+const KAIKKI_URL = 'https://kaikki.org/dictionary/Spanish/kaikki.org-dictionary-Spanish-non-inflected.jsonl';
+const KAIKKI_URL_FALLBACK = 'https://kaikki.org/dictionary/Spanish/kaikki.org-dictionary-Spanish.jsonl';
 
 // --- CLI 參數 ---
 const args = Object.fromEntries(
@@ -147,18 +147,36 @@ async function processJsonl(inputPath, topN) {
     const words = {};
     let processed = 0;
     let kept = 0;
+    let skippedNonSpanish = 0;
+    let skippedNoMeaning = 0;
 
     for await (const line of rl) {
         if (kept >= topN) break;
         processed++;
-        if (processed % 5000 === 0) process.stdout.write(`\r   處理 ${processed} 條 · 保留 ${kept}`);
+        if (processed % 5000 === 0) {
+            process.stdout.write(`\r   處理 ${processed} 條 · 保留 ${kept} · 跳過非西 ${skippedNonSpanish}`);
+        }
         try {
             const entry = JSON.parse(line);
             if (!entry.word || !entry.pos || !entry.senses?.length) continue;
+
+            // === 防禦性語言過濾 ===
+            // Kaikki 有些 dump 混雜多語 · 這裡確保只留 Spanish
+            const lang = entry.lang || entry.lang_code;
+            if (lang && lang !== 'Spanish' && lang !== 'es') {
+                skippedNonSpanish++;
+                continue;
+            }
+            // 進一步排除純英文字 · 例如 dog / cat / mouse（詞源可能是 English loan）
+            if (/^[a-z]+$/.test(entry.word) && (entry.etymology_text || '').includes('English')) {
+                skippedNonSpanish++;
+                continue;
+            }
+
             if (words[entry.word]) continue;
 
             const meaning = extractMeaning(entry.senses);
-            if (!meaning) continue;
+            if (!meaning) { skippedNoMeaning++; continue; }
 
             const record = {
                 pos: mapPOS(entry.pos),
@@ -174,7 +192,7 @@ async function processJsonl(inputPath, topN) {
             kept++;
         } catch { /* skip malformed */ }
     }
-    console.log(`\n✓ 處理完成：讀 ${processed} 條 · 保留 ${kept} 個字`);
+    console.log(`\n✓ 處理完成：讀 ${processed} 條 · 保留 ${kept} · 跳非西 ${skippedNonSpanish} · 跳無意 ${skippedNoMeaning}`);
     return words;
 }
 
@@ -202,17 +220,33 @@ async function main() {
 
     // 合併（可選）
     let finalWords = newWords;
+    let mergeStats = { keptHandCurated: 0, addedFromKaikki: 0, kaikkiOverlappedByHand: 0 };
     if (MERGE && fs.existsSync(OUTPUT_PATH)) {
         console.log('\n🔀 合併 baseline（保留手工 notes）...');
         const existing = JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf8'));
         finalWords = { ...newWords };
+        mergeStats.addedFromKaikki = Object.keys(newWords).length;
+
         for (const [k, v] of Object.entries(existing.words || {})) {
-            if (v.source && v.source !== 'wiktionary-via-kaikki') {
-                // 手工資料優先 · 但補上從 Kaikki 拿到的例句/變化
+            // === 關鍵修正 ===
+            // 之前判斷條件 `v.source && v.source !== 'wiktionary-via-kaikki'`
+            // 若 baseline 沒 source 欄位 · v.source=undefined → false · 整個 for 跳過 · baseline 全失
+            // 現在改為：只要不是 Kaikki 產出的 · 一律視為手工 · 保留
+            const isKaikkiOrigin = v.source === 'wiktionary-via-kaikki';
+            if (!isKaikkiOrigin) {
                 const fromKaikki = newWords[k];
-                finalWords[k] = fromKaikki ? { ...fromKaikki, ...v } : v;
+                if (fromKaikki) {
+                    // Kaikki 有這字 · 但手工版更好 · 保留手工欄位 · 只從 Kaikki 借例句/變化
+                    finalWords[k] = { ...fromKaikki, ...v };
+                    mergeStats.kaikkiOverlappedByHand++;
+                } else {
+                    // Kaikki 沒這字（例如 gustar 因 top-N 沒選到）· 保留手工版
+                    finalWords[k] = v;
+                }
+                mergeStats.keptHandCurated++;
             }
         }
+        console.log(`   ✓ 手工保留 ${mergeStats.keptHandCurated} · Kaikki 新增 ${mergeStats.addedFromKaikki} · 重疊 ${mergeStats.kaikkiOverlappedByHand}`);
     }
 
     // 寫檔

@@ -106,6 +106,38 @@ const RULES = {
         common_mistakes: '記憶法：por = 「因為/透過」· para = 「為了/朝向」',
     },
 
+    'gustar': {
+        name: 'Gustar 型動詞 · 反向主詞句型',
+        summary: 'gustar 及類似動詞（encantar/interesar/molestar 等）· 主詞是「被喜歡的東西」· 不是「喜歡的人」· 動詞跟事物變化',
+        rules: {
+            'core': '中文「我喜歡咖啡」→ 西文邏輯「咖啡令我愉快」· 主詞是咖啡 · 我是間接受詞',
+            'agreement': '單數 → gusta · 複數 → gustan · 動詞原形 → gusta',
+            'pronoun': '間接受詞代名詞：me / te / le / nos / os / les（我/你/他她您/我們/你們/他們）',
+            'emphasis': '可加「a + 人」強調對象：A ella le gusta el café.',
+        },
+        formation: {
+            'singular': 'Me gusta el café.（我喜歡咖啡。· el café 單數 → gusta）',
+            'plural':   'Me gustan los perros.（我喜歡狗。· los perros 複數 → gustan）',
+            'infinitive': 'Me gusta bailar.（我喜歡跳舞。· 原形視為單數 → gusta）',
+        },
+        similar_verbs: [
+            'encantar（超喜歡）',
+            'interesar（讓…感興趣）',
+            'molestar（讓…困擾）',
+            'doler（讓…痛 · Me duele la cabeza）',
+            'faltar（缺 · Me faltan dos euros）',
+            'parecer（覺得 · Me parece bien）',
+        ],
+        examples: [
+            'Me gusta el café.（我喜歡咖啡。）',
+            'Me gustan los libros.（我喜歡書。· 複數）',
+            '¿Te gusta bailar?（你喜歡跳舞嗎？· 原形）',
+            'A ella le gustan las películas.（她喜歡電影。· 強調對象）',
+            'Me encanta este restaurante.（我超愛這家餐廳。· encantar 同型）',
+        ],
+        common_mistakes: '最大陷阱：× Yo gusto el café · ○ Me gusta el café。動詞永遠跟「被喜歡的東西」變 · 不跟人。',
+    },
+
     'imperativo': {
         name: '命令式（Imperativo）',
         summary: '對他人下指令、要求、建議',
@@ -137,7 +169,8 @@ export function grammarRuleLookup(input) {
         .replace(/subjunctive|subjuntivo|virtual/g, 'subjuntivo')
         .replace(/ser\s*(vs|and|y)\s*estar|ser-estar|ser_estar/g, 'ser-estar')
         .replace(/por\s*(vs|and|y)\s*para|por-para|por_para/g, 'por-para')
-        .replace(/imperative|命令/g, 'imperativo');
+        .replace(/imperative|命令/g, 'imperativo')
+        .replace(/gustar-type|reverse-subject|verbo-gustar|喜歡型/g, 'gustar');
 
     const rule = RULES[key];
     if (!rule) {

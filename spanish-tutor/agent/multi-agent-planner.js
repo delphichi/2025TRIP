@@ -25,8 +25,8 @@ import { annotateSourceReliability, collectUnverifiedLookups } from '../harness/
 const PLANNER_TOOLS = [
     {
         name: 'consult_grammar_specialist',
-        description: '諮詢文法規則專家 · 給文法主題 slug（例如 subjuntivo, ser-estar, por-para, preterito, imperfecto, imperativo）· 專家回文法說明。' +
-                     '使用者問「XX 文法怎麼用」「XX 跟 YY 的差別」時派這個專家。',
+        description: '諮詢文法規則專家 · 給文法主題 slug（例如 subjuntivo, ser-estar, por-para, preterito, imperfecto, imperativo, gustar）· 專家回文法說明。' +
+                     '使用者問「XX 文法怎麼用」「XX 跟 YY 的差別」「gustar 怎麼用」等特殊句型時派這個專家。',
         input_schema: {
             type: 'object',
             properties: {
