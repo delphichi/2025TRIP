@@ -54,24 +54,30 @@
 
         <section class="panel key-panel">
             <div class="key-row">
-                <label for="fmp-key-input" class="key-label">🔑 FMP API Key</label>
-                <input type="password" id="fmp-key-input" placeholder="貼上你的 FMP key" autocomplete="off">
-                <button id="btn-save-key" class="btn-save-key">儲存 + 重載</button>
-                <button id="btn-clear-key" class="btn-clear-key">清除 · 用 Yahoo</button>
+                <label for="fmp-key-input" class="key-label">🇺🇸 FMP Key（美股）</label>
+                <input type="password" id="fmp-key-input" placeholder="貼 FMP key（美股用）" autocomplete="off">
+                <button id="btn-save-key" class="btn-save-key">💾 儲存</button>
+                <button id="btn-clear-key" class="btn-clear-key">🗑 清除</button>
             </div>
-            <div class="key-status" id="key-status">🔍 讀 localStorage 中……（若一直卡在這行 · 表示 JS 沒載到 · F12 看 console）</div>
+            <div class="key-row">
+                <label for="finmind-token-input" class="key-label">🇹🇼 FinMind Token（台股）</label>
+                <input type="password" id="finmind-token-input" placeholder="貼 FinMind token（台股用）" autocomplete="off">
+                <button id="btn-save-finmind" class="btn-save-key">💾 儲存</button>
+                <button id="btn-clear-finmind" class="btn-clear-key">🗑 清除</button>
+            </div>
+            <div class="key-status" id="key-status">🔍 讀 localStorage 中……</div>
             <p class="hint hint-mini">
-                💡 存在 <code>localStorage.fmp_api_key</code> · 跟 <a href="../valuation/index.html">估值分析器</a> 共用 · 兩邊任何一邊改都會同步。
-                免費 tier 250 req/日 · 這裡 7 req/次載入。<a href="https://site.financialmodelingprep.com/developer" target="_blank" rel="noopener">申請免費 key →</a>
+                💡 <b>純數字 ticker</b>（2330 · 0050 · 2454）走 FinMind · <b>字母 ticker</b>（NVDA · SPY）走 FMP。兩個 key 都跟
+                <a href="../valuation/index.html">估值分析器</a> 共用 · localStorage key 分別 <code>fmp_api_key</code> / <code>finmind_token</code>。
+                <a href="https://site.financialmodelingprep.com/developer" target="_blank" rel="noopener">申請 FMP →</a> · <a href="https://finmindtrade.com/analysis/#/data/api" target="_blank" rel="noopener">申請 FinMind →</a>
             </p>
         </section>
 
         <section class="panel ticker-input-panel">
             <h2>📥 選你想追蹤的 6 個代號</h2>
             <p class="hint hint-mini">
-                💡 隨意填入 6 個美股 ticker（產業龍頭 · ETF · 熱門股都可）· 按下方按鈕才開始下載。
-                <b>基準</b> 是相對報酬的分母（預設 SPY 大盤 · 也可換 QQQ 只比 Nasdaq）。
-                你的選擇會存 localStorage · 下次自動填回。
+                💡 <b>純數字</b>（2330 · 0050 · 2454）走 FinMind 抓台股 · <b>字母</b>（NVDA · SPY）走 FMP 抓美股 · 混填也可以。
+                <b>基準</b> 預設 SPY（美股）· 全部填台股時建議改 <b>0050</b>。你的選擇會存 localStorage。
             </p>
             <div class="ticker-input-grid">
                 <label class="ticker-input-cell">

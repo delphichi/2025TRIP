@@ -38,17 +38,19 @@
     }
     buildTickerInfo();
 
-    // 資料源：FMP 為主（有 key 才用）· 失敗 fallback Yahoo（靠 CORS proxy）
+    // 資料源：字母 ticker → FMP（美股）· 數字 ticker → FinMind（台股）· fallback Yahoo
     const FMP_BASE = 'https://financialmodelingprep.com/stable';
+    const FINMIND_BASE = 'https://api.finmindtrade.com/api/v4/data';
     const CORS_PROXIES = [
         'https://api.allorigins.win/raw?url=',
         'https://corsproxy.io/?url=',
     ];
 
-    function getFmpKey() {
-        // 跟 valuation 工具共用 · 用戶不用重輸入
-        return localStorage.getItem('fmp_api_key') || '';
-    }
+    function getFmpKey() { return localStorage.getItem('fmp_api_key') || ''; }
+    function getFinMindToken() { return localStorage.getItem('finmind_token') || ''; }
+
+    // 純數字 ticker 判定台股（"2330"、"0050"）· 字母 ticker 判定美股（"NVDA"、"SPY"）
+    function isTwTicker(t) { return /^\d+$/.test(t); }
 
     // ==========================================
     // helpers
@@ -171,9 +173,76 @@
         }
     }
 
-    // 統一入口：有 FMP key 先試 FMP · 失敗才 fallback Yahoo
-    // 回傳 { data, source } · source 是 'FMP' 或 'Yahoo'
+    // FinMind · TaiwanStockPrice · 台股 EOD · 直連 CORS · 需要 token
+    async function fetchFinMind(ticker, daysBack, token) {
+        const to = new Date();
+        const from = new Date(to.getTime() - daysBack * 86400 * 1000);
+        const fromStr = from.toISOString().slice(0, 10);
+        const toStr = to.toISOString().slice(0, 10);
+        const params = new URLSearchParams({
+            dataset: 'TaiwanStockPrice',
+            data_id: ticker,
+            start_date: fromStr,
+            end_date: toStr,
+            token,
+        });
+        const url = `${FINMIND_BASE}?${params}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        let res;
+        try {
+            res = await fetch(url, { signal: controller.signal });
+        } catch (e) {
+            if (e.name === 'AbortError') throw new Error('FinMind 15s 超時');
+            throw new Error(`FinMind 網路錯誤: ${e.message}`);
+        } finally {
+            clearTimeout(timeoutId);
+        }
+        if (!res.ok) {
+            let body = '';
+            try { body = (await res.text()).slice(0, 200); } catch (_) {}
+            console.error(`FinMind ${ticker} HTTP ${res.status}:`, body);
+            throw new Error(`FinMind HTTP ${res.status}: ${body.slice(0, 80)}`);
+        }
+        const data = await res.json();
+        if (data.msg && data.msg !== 'success' && data.status !== 200) {
+            throw new Error(`FinMind: ${data.msg}`);
+        }
+        const rows = data.data || [];
+        // FinMind 是舊到新 · 直接對齊
+        const mapped = rows.map(r => ({
+            date: r.date,
+            close: r.close,
+            volume: r.Trading_Volume,
+        })).filter(d => d.close !== null && isFinite(d.close) && d.volume > 0);
+        console.log(`✅ FinMind ${ticker}: ${mapped.length} rows（raw ${rows.length}）`);
+        return mapped;
+    }
+
+    // 統一入口：依 ticker 型別路由
+    //   純數字（2330）→ FinMind · 失敗才 fallback Yahoo
+    //   字母（NVDA）→ FMP · 失敗才 fallback Yahoo
+    // 回傳 { data, source } · source 是 'FMP' / 'FinMind' / 'Yahoo'
     async function fetchTicker(ticker, daysBack) {
+        if (isTwTicker(ticker)) {
+            const token = getFinMindToken();
+            if (token) {
+                try {
+                    const data = await fetchFinMind(ticker, daysBack, token);
+                    if (data && data.length > 10) return { data, source: 'FinMind' };
+                } catch (e) {
+                    console.warn(`FinMind fail for ${ticker}: ${e.message} · falling back to Yahoo`);
+                }
+            } else {
+                console.warn(`⚠ ${ticker} 是台股 · 但沒 FinMind token · fallback Yahoo`);
+            }
+            // Yahoo 也支援台股 · 用 X.TW / X.TWO 後綴
+            const yTicker = /^00/.test(ticker) ? `${ticker}.TW` : `${ticker}.TW`;
+            const data = await fetchYahoo(yTicker, daysBack);
+            console.log(`✅ Yahoo ${yTicker}: ${data.length} rows（fallback）`);
+            return { data, source: 'Yahoo' };
+        }
+        // 字母 ticker · 走 FMP
         const key = getFmpKey();
         if (key) {
             try {
@@ -184,7 +253,7 @@
             }
         }
         const data = await fetchYahoo(ticker, daysBack);
-        console.log(`✅ Yahoo ${ticker}: ${data.length} rows（FMP fallback）`);
+        console.log(`✅ Yahoo ${ticker}: ${data.length} rows（fallback）`);
         return { data, source: 'Yahoo' };
     }
 
@@ -257,7 +326,7 @@
         maxDollarVol: 1,
         axisRanges: null,
         visibleTickers: new Set(TICKERS),   // 哪些 ticker 目前要顯示
-        dataSources: { FMP: 0, Yahoo: 0 },  // 各資料源抓了幾檔
+        dataSources: { FMP: 0, FinMind: 0, Yahoo: 0 },  // 各資料源抓了幾檔
         activeTickers: [],                  // 成功抓到的 ticker（失敗的排除）
         failedTickers: [],                  // 失敗的 ticker + 錯誤訊息
     };
@@ -290,7 +359,7 @@
         updateLoadStatus(status, 0, all.length, all[0], hasKey ? '平行載入' : '順序載入');
 
         const results = {};
-        const sourceCounts = { FMP: 0, Yahoo: 0 };
+        const sourceCounts = { FMP: 0, FinMind: 0, Yahoo: 0 };
 
         const failedTickers = [];
         try {
@@ -399,6 +468,7 @@
 
         const srcParts = [];
         if (state.dataSources.FMP > 0) srcParts.push(`FMP × ${state.dataSources.FMP}`);
+        if (state.dataSources.FinMind > 0) srcParts.push(`FinMind × ${state.dataSources.FinMind}`);
         if (state.dataSources.Yahoo > 0) srcParts.push(`Yahoo × ${state.dataSources.Yahoo}`);
         const srcTag = srcParts.join(' + ');
         const elapsedTxt = (state.loadElapsedMs / 1000).toFixed(1);
@@ -1044,73 +1114,97 @@
     // ==========================================
     // Init
     // ==========================================
-    function initKeyPanel() {
-        const input = $('fmp-key-input');
-        const statusEl = $('key-status');
-        const btnSave = $('btn-save-key');
-        const btnClear = $('btn-clear-key');
+    function mask(k) {
+        if (!k) return '';
+        if (k.length < 8) return k[0] + '••••';
+        return k.slice(0, 4) + '••••' + k.slice(-4);
+    }
 
-        function mask(k) {
-            if (!k) return '';
-            if (k.length < 8) return k[0] + '••••';
-            return k.slice(0, 4) + '••••' + k.slice(-4);
-        }
+    function initKeyPanel() {
+        const fmpInput = $('fmp-key-input');
+        const fmpSave = $('btn-save-key');
+        const fmpClear = $('btn-clear-key');
+        const fmInput = $('finmind-token-input');
+        const fmSave = $('btn-save-finmind');
+        const fmClear = $('btn-clear-finmind');
+        const statusEl = $('key-status');
 
         function refreshStatus() {
-            const k = getFmpKey();
-            if (k) {
-                statusEl.innerHTML = `✅ 已儲存 · <code>${mask(k)}</code>（${k.length} chars）· 載入時優先用 FMP`;
-                statusEl.className = 'key-status key-status-ok';
-                input.placeholder = '換一把新 key（會覆蓋舊的）';
-                btnClear.hidden = false;
-            } else {
-                statusEl.innerHTML = `⚠ 沒 key · 目前用 Yahoo（透過 CORS proxy · 有時 throttle）`;
-                statusEl.className = 'key-status key-status-warn';
-                input.placeholder = '貼上你的 FMP key';
-                btnClear.hidden = true;
-            }
+            const fmpK = getFmpKey();
+            const fmT = getFinMindToken();
+            const parts = [];
+            if (fmpK) parts.push(`🇺🇸 FMP <code>${mask(fmpK)}</code>（${fmpK.length}）`);
+            else parts.push(`🇺🇸 FMP <b>未設</b>`);
+            if (fmT) parts.push(`🇹🇼 FinMind <code>${mask(fmT)}</code>（${fmT.length}）`);
+            else parts.push(`🇹🇼 FinMind <b>未設</b>`);
+            const okBoth = fmpK && fmT;
+            statusEl.innerHTML = `${okBoth ? '✅' : '⚠'} ${parts.join(' · ')}`;
+            statusEl.className = 'key-status ' + (okBoth ? 'key-status-ok' : 'key-status-warn');
+            fmpInput.placeholder = fmpK ? '換一把 FMP key（會覆蓋）' : '貼 FMP key（美股用）';
+            fmInput.placeholder = fmT ? '換一把 FinMind token（會覆蓋）' : '貼 FinMind token（台股用）';
+            fmpClear.hidden = !fmpK;
+            fmClear.hidden = !fmT;
         }
 
-        btnSave.addEventListener('click', async () => {
-            const v = input.value.trim();
-            if (!v) {
-                alert('key 不能空白');
-                return;
-            }
-            if (v.length < 20) {
-                if (!confirm(`這個 key 只有 ${v.length} 字元 · FMP key 通常 32+ 字元。確定要存？`)) return;
-            }
-            // 存之前先驗證 · 15s 內若無法連通就當作失敗
-            statusEl.innerHTML = `⏳ 驗證 key 中……（打 FMP SPY 5 日資料 · 最多 15s）`;
-            statusEl.className = 'key-status key-status-warn';
-            btnSave.disabled = true;
+        fmpSave.addEventListener('click', async () => {
+            const v = fmpInput.value.trim();
+            if (!v) { alert('FMP key 不能空白'); return; }
+            if (v.length < 20 && !confirm(`FMP key 只有 ${v.length} 字元（通常 32+）· 確定？`)) return;
+            statusEl.innerHTML = `⏳ 驗證 FMP key（SPY 5 日）…`;
+            fmpSave.disabled = true;
             const verify = await verifyFmpKey(v);
-            btnSave.disabled = false;
+            fmpSave.disabled = false;
             if (!verify.ok) {
-                statusEl.innerHTML = `❌ Key 驗證失敗: ${verify.error} · <b>沒儲存</b> · F12 → console 看細節`;
+                statusEl.innerHTML = `❌ FMP key 失敗: ${verify.error} · 沒儲存`;
                 statusEl.className = 'key-status key-status-warn';
-                console.error('FMP key verify failed:', verify.error);
                 return;
             }
-            console.log(`✅ FMP key 驗證通過（SPY 5 日 = ${verify.rows} rows）· 存入 localStorage`);
+            console.log(`✅ FMP key 驗證通過 · 存 localStorage`);
             localStorage.setItem('fmp_api_key', v);
-            input.value = '';
+            fmpInput.value = '';
             refreshStatus();
-            // 存完直接重載資料（用新 key）
-            reloadData();
         });
 
-        btnClear.addEventListener('click', () => {
-            if (!confirm('確定清除 FMP key？之後只用 Yahoo。')) return;
+        fmSave.addEventListener('click', async () => {
+            const v = fmInput.value.trim();
+            if (!v) { alert('FinMind token 不能空白'); return; }
+            if (v.length < 20 && !confirm(`FinMind token 只有 ${v.length} 字元（通常 200+）· 確定？`)) return;
+            statusEl.innerHTML = `⏳ 驗證 FinMind token（2330 5 日）…`;
+            fmSave.disabled = true;
+            let ok = false, error = '', rows = 0;
+            try {
+                const data = await fetchFinMind('2330', 7, v);
+                ok = true;
+                rows = data.length;
+            } catch (e) {
+                error = e.message;
+            }
+            fmSave.disabled = false;
+            if (!ok) {
+                statusEl.innerHTML = `❌ FinMind token 失敗: ${error} · 沒儲存`;
+                statusEl.className = 'key-status key-status-warn';
+                return;
+            }
+            console.log(`✅ FinMind token 驗證通過（2330 = ${rows} rows）· 存 localStorage`);
+            localStorage.setItem('finmind_token', v);
+            fmInput.value = '';
+            refreshStatus();
+        });
+
+        fmpClear.addEventListener('click', () => {
+            if (!confirm('清除 FMP key？美股將 fallback Yahoo。')) return;
             localStorage.removeItem('fmp_api_key');
-            input.value = '';
             refreshStatus();
-            reloadData();
         });
 
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') btnSave.click();
+        fmClear.addEventListener('click', () => {
+            if (!confirm('清除 FinMind token？台股將 fallback Yahoo。')) return;
+            localStorage.removeItem('finmind_token');
+            refreshStatus();
         });
+
+        fmpInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') fmpSave.click(); });
+        fmInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') fmSave.click(); });
 
         refreshStatus();
     }
@@ -1122,7 +1216,7 @@
         state.rawSeries = {};
         state.dates = [];
         state.currentIdx = 0;
-        state.dataSources = { FMP: 0, Yahoo: 0 };
+        state.dataSources = { FMP: 0, FinMind: 0, Yahoo: 0 };
         $('day-slider').disabled = true;
         loadAllData();
     }
@@ -1156,6 +1250,24 @@
             return { tickers: t, benchmark: b };
         };
 
+        // 依 ticker 型別自動建議 benchmark
+        function autoSuggestBenchmark() {
+            const inputs = [];
+            for (let i = 1; i <= 6; i++) {
+                const v = $(`ticker-${i}`).value.trim().toUpperCase();
+                if (v) inputs.push(v);
+            }
+            const twCount = inputs.filter(isTwTicker).length;
+            const suggested = twCount > inputs.length / 2 ? '0050' : 'SPY';
+            const cur = $('ticker-benchmark').value.trim().toUpperCase();
+            if (cur === 'SPY' || cur === '0050') {
+                $('ticker-benchmark').value = suggested;
+            }
+        }
+        for (let i = 1; i <= 6; i++) {
+            $(`ticker-${i}`).addEventListener('blur', autoSuggestBenchmark);
+        }
+
         $('btn-download').addEventListener('click', () => {
             const { tickers, benchmark } = collectTickers();
             if (tickers.length < 2) {
@@ -1165,6 +1277,15 @@
             if (new Set(tickers).size !== tickers.length) {
                 alert('代號有重複 · 每個只能出現一次');
                 return;
+            }
+            // 台股 ticker 沒 FinMind token 時警告
+            const twTickers = tickers.filter(isTwTicker);
+            if (twTickers.length > 0 && !getFinMindToken()) {
+                if (!confirm(`你填了 ${twTickers.length} 支台股（${twTickers.join(', ')}）但沒設 FinMind token · 會 fallback Yahoo（不穩）· 繼續？`)) return;
+            }
+            const usTickers = tickers.filter(t => !isTwTicker(t));
+            if ((usTickers.length > 0 || !isTwTicker(benchmark)) && !getFmpKey()) {
+                if (!confirm(`你填了 ${usTickers.length} 支美股但沒設 FMP key · 會 fallback Yahoo · 繼續？`)) return;
             }
             // 更新 global TICKERS + BENCHMARK · 重建 TICKER_INFO
             TICKERS = tickers;
@@ -1178,7 +1299,7 @@
             state.rawSeries = {};
             state.dates = [];
             state.currentIdx = 0;
-            state.dataSources = { FMP: 0, Yahoo: 0 };
+            state.dataSources = { FMP: 0, FinMind: 0, Yahoo: 0 };
             state.activeTickers = [];
             state.failedTickers = [];
             rebuildTickerChips();
