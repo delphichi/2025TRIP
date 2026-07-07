@@ -346,7 +346,6 @@
         const elapsedTxt = (state.loadElapsedMs / 1000).toFixed(1);
         status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）· 資料源 <b>${srcTag}</b> · 載入 <b>${elapsedTxt}s</b> · 按 <b>▶ 播放</b> 看資金流向`;
 
-        const btnPlay = $('btn-play');
         btnPlay.disabled = false;
         btnPlay.textContent = '▶ 播放';
 
