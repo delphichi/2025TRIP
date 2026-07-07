@@ -251,6 +251,110 @@ td.q-tl { background: #fef3c7; color: #78350f; }
 td.q-br { background: #fef2f2; color: #7f1d1d; }
 td.q-bl { background: #f3f4f6; color: #374151; }
 
+/* ---- 資料驗證面板 · 秀原始數字 + 計算過程 ---- */
+.verify-panel { border-left-color: #94a3b8; }
+.verify-panel summary { cursor: pointer; list-style: none; }
+.verify-panel summary::-webkit-details-marker { display: none; }
+.verify-panel summary::before {
+    content: '▶ ';
+    color: #94a3b8;
+    transition: transform 0.15s;
+    display: inline-block;
+    margin-right: 4px;
+}
+.verify-panel details[open] summary::before { content: '▼ '; }
+.verify-panel h2 {
+    display: inline-block;
+    margin: 0;
+    font-size: 1.05em;
+}
+
+.verify-day {
+    padding: 8px 12px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: .92em;
+    color: #334155;
+}
+.verify-day b { color: #0f172a; font-family: ui-monospace, monospace; }
+
+.verify-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+@media (min-width: 900px) {
+    .verify-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.verify-card {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: .87em;
+}
+.verify-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0 4px 8px;
+    border-left: 3px solid #cbd5e1;
+    margin-bottom: 6px;
+    font-size: 1.05em;
+}
+.verify-q {
+    font-size: .82em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #f3f4f6;
+}
+.verify-q.q-tr { background: #ecfdf5; color: #065f46; }
+.verify-q.q-tl { background: #fef3c7; color: #78350f; }
+.verify-q.q-br { background: #fef2f2; color: #7f1d1d; }
+.verify-q.q-bl { background: #f3f4f6; color: #374151; }
+
+.verify-row { padding: 2px 0; line-height: 1.6; }
+.verify-row .vk {
+    color: #6b7280;
+    font-size: .88em;
+    margin-right: 4px;
+}
+.verify-row code {
+    font-family: ui-monospace, monospace;
+    font-size: .88em;
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #334155;
+}
+.verify-calc {
+    background: #fef3c7;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+.calc-out {
+    color: #b45309;
+    font-family: ui-monospace, monospace;
+    font-size: 1.05em;
+}
+
+.spy-raw-table {
+    margin-top: 8px;
+    font-size: .85em;
+}
+.spy-raw-table td:first-child {
+    font-family: ui-monospace, monospace;
+    color: #4b5563;
+}
+.spy-raw-table td:nth-child(2), .spy-raw-table td:nth-child(3) {
+    font-family: ui-monospace, monospace;
+    text-align: right;
+}
+.verify-panel a { color: var(--primary); }
+
 /* ---- Footer ---- */
 .radar-footer {
     text-align: center;

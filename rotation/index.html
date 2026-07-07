@@ -88,6 +88,31 @@
             </table>
         </section>
 
+        <section class="panel verify-panel">
+            <details>
+                <summary><h2 style="display:inline">🔍 資料驗證 · 原始數字 + 計算過程</h2></summary>
+                <p class="hint hint-mini">
+                    每一列展開該標的當日的「原始數字 → 計算 → X/Y 值」· <b>你可以用 Yahoo Finance 網站對照確認</b>抓的收盤、成交量對不對、10日報酬算得對不對。
+                </p>
+                <div id="verify-body">
+                    <div class="load-status">📡 資料還沒抓完 · 等一下……</div>
+                </div>
+            </details>
+        </section>
+
+        <section class="panel verify-panel">
+            <details>
+                <summary><h2 style="display:inline">📥 SPY 基準 · 完整歷史資料</h2></summary>
+                <p class="hint hint-mini">
+                    這是抓到的 SPY 每日收盤 + 成交量原始資料（最新 30 天） · <b>可以直接跟 Yahoo Finance 的 SPY 歷史頁對比</b>。
+                    如果這裡的數字跟 Yahoo 一致、代表其他 6 檔的資料源也是可信的。
+                </p>
+                <div id="spy-raw-body">
+                    <div class="load-status">📡 資料還沒抓完 · 等一下……</div>
+                </div>
+            </details>
+        </section>
+
         <footer class="radar-footer">
             <p>資料源：Yahoo Finance ·
             <a href="../valuation/index.html">← 估值分析器</a> ·
