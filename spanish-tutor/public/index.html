@@ -85,6 +85,104 @@
             background: #94a3b8;
             cursor: wait;
         }
+        .btn-stt {
+            background: #fff;
+            color: #b91c1c;
+            border: 2px solid #fecaca;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: .95em;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-stt:hover:not(:disabled) {
+            background: #fef2f2;
+            border-color: #ef4444;
+        }
+        .btn-stt.recording {
+            background: #dc2626;
+            color: #fff;
+            animation: pulse-red 1s infinite;
+        }
+        .btn-stt:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+        @keyframes pulse-red {
+            0%, 100% { background: #dc2626; }
+            50% { background: #f87171; }
+        }
+        .stt-status {
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            color: #78350f;
+            font-size: .88em;
+        }
+        .stt-status.err { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+
+        .tts-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 8px 10px;
+            margin-bottom: 12px;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            font-size: .88em;
+        }
+        .tts-label { font-weight: 700; color: #0369a1; }
+        .tts-bar button {
+            padding: 4px 10px;
+            background: #fff;
+            border: 1px solid #7dd3fc;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #0c4a6e;
+            font-size: .88em;
+        }
+        .tts-bar button:hover:not(:disabled) { background: #e0f2fe; }
+        .tts-bar button:disabled { opacity: .4; cursor: not-allowed; }
+        .tts-bar select {
+            padding: 4px 8px;
+            border: 1px solid #7dd3fc;
+            border-radius: 5px;
+            background: #fff;
+            font-size: .85em;
+            max-width: 220px;
+        }
+        .tts-speed {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #0c4a6e;
+        }
+        .tts-speed input[type="range"] {
+            width: 80px;
+        }
+        .tts-hint {
+            color: #64748b;
+            font-size: .82em;
+            margin-left: auto;
+        }
+        /* 讓西班牙文行 hover 時視覺提示可點擊 */
+        .response-content .es-line {
+            cursor: pointer;
+            border-bottom: 1px dashed transparent;
+            transition: all .15s;
+        }
+        .response-content .es-line:hover {
+            border-bottom-color: #dc2626;
+            background: #fef3c7;
+        }
+        .response-content .es-line.speaking {
+            background: #fde68a;
+            border-bottom-color: #d97706;
+        }
         .hint {
             font-size: .85em;
             color: #6b7280;
@@ -560,8 +658,10 @@
 或：quiero 這個字怎麼用？"></textarea>
             <div class="btn-row">
                 <button id="btn-send" class="btn-send">📤 送出提問</button>
+                <button id="btn-stt" class="btn-stt" title="按下開始用嘴巴說西班牙文">🎤 開口說</button>
                 <span class="hint"><kbd>Cmd/Ctrl</kbd> + <kbd>Enter</kbd> 快送</span>
             </div>
+            <div id="stt-status" class="stt-status" hidden></div>
             <div class="presets">
                 <span style="font-size:.85em;color:#6b7280;margin-right:4px">試試：</span>
                 <button class="preset-btn" data-msg="怎麼說「早安」？">怎麼說「早安」？</button>
@@ -576,6 +676,17 @@
         </section>
 
         <section class="panel response-panel" id="response-panel">
+            <div class="tts-bar" id="tts-bar" hidden>
+                <span class="tts-label">🔊 唸給我聽：</span>
+                <button id="tts-play-all" title="按序唸所有西班牙文行">▶ 播全部</button>
+                <button id="tts-stop" title="停止" disabled>⏹ 停止</button>
+                <select id="tts-voice" title="語音選擇"></select>
+                <label class="tts-speed">
+                    速度 <input type="range" id="tts-rate" min="0.5" max="1.5" step="0.05" value="0.85">
+                    <span id="tts-rate-val">0.85×</span>
+                </label>
+                <span class="tts-hint">💡 點西班牙文行也可以單獨唸</span>
+            </div>
             <div class="response-content" id="response">
                 <div class="empty">👆 提問後 · 老師的回答會顯示在這裡</div>
             </div>
@@ -1108,6 +1219,271 @@
             return String(s).replace(/[&<>"']/g, c => ({
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
             }[c]));
+        }
+
+        // ============================================================
+        // TTS · Text-to-Speech · Web Speech API · 免費 · 純瀏覽器
+        // ============================================================
+        const TTS_KEY = 'spanishTutor:tts';
+        const $ttsBar = document.getElementById('tts-bar');
+        const $ttsPlayAll = document.getElementById('tts-play-all');
+        const $ttsStop = document.getElementById('tts-stop');
+        const $ttsVoice = document.getElementById('tts-voice');
+        const $ttsRate = document.getElementById('tts-rate');
+        const $ttsRateVal = document.getElementById('tts-rate-val');
+
+        let TTS_VOICES = [];
+        let TTS_SELECTED = null;
+        let TTS_QUEUE = [];
+        let TTS_CURRENT_ELEMENT = null;
+
+        function loadTTSPrefs() {
+            try { return JSON.parse(localStorage.getItem(TTS_KEY) || '{}'); }
+            catch { return {}; }
+        }
+        function saveTTSPrefs(p) { localStorage.setItem(TTS_KEY, JSON.stringify(p)); }
+
+        function initTTSVoices() {
+            if (!('speechSynthesis' in window)) {
+                $ttsBar.innerHTML = '<span style="color:#991b1b">⚠️ 這個瀏覽器沒有 Speech Synthesis API · 請用 Chrome / Edge / Safari</span>';
+                return;
+            }
+            const voices = speechSynthesis.getVoices();
+            TTS_VOICES = voices.filter(v => v.lang.startsWith('es'));
+            const prefs = loadTTSPrefs();
+            $ttsVoice.innerHTML = '';
+            if (TTS_VOICES.length === 0) {
+                $ttsVoice.innerHTML = '<option>⚠️ 系統沒安裝西班牙文語音包</option>';
+                $ttsVoice.disabled = true;
+                $ttsPlayAll.disabled = true;
+                return;
+            }
+            // 排序：先 es-ES，再 es-MX，再其他
+            TTS_VOICES.sort((a, b) => {
+                const rank = v => v.lang === 'es-ES' ? 0 : v.lang === 'es-MX' ? 1 : 2;
+                return rank(a) - rank(b);
+            });
+            for (const v of TTS_VOICES) {
+                const opt = document.createElement('option');
+                opt.value = v.name;
+                opt.textContent = `${v.name} (${v.lang})${v.default ? ' · 系統預設' : ''}`;
+                $ttsVoice.appendChild(opt);
+            }
+            const preferred = prefs.voice && TTS_VOICES.find(v => v.name === prefs.voice);
+            TTS_SELECTED = preferred || TTS_VOICES[0];
+            $ttsVoice.value = TTS_SELECTED.name;
+            if (prefs.rate) {
+                $ttsRate.value = prefs.rate;
+                $ttsRateVal.textContent = Number(prefs.rate).toFixed(2) + '×';
+            }
+        }
+
+        // 語音列表非同步載入 · Chrome 需要監聽 onvoiceschanged
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = initTTSVoices;
+            initTTSVoices();
+        }
+
+        $ttsVoice.addEventListener('change', () => {
+            TTS_SELECTED = TTS_VOICES.find(v => v.name === $ttsVoice.value);
+            const prefs = loadTTSPrefs();
+            saveTTSPrefs({ ...prefs, voice: TTS_SELECTED?.name });
+        });
+        $ttsRate.addEventListener('input', () => {
+            const r = Number($ttsRate.value);
+            $ttsRateVal.textContent = r.toFixed(2) + '×';
+            const prefs = loadTTSPrefs();
+            saveTTSPrefs({ ...prefs, rate: r });
+        });
+
+        function stripBilingualChinese(text) {
+            // 移除括號內中文（西班牙文行常帶「（中文翻譯）」）
+            return text
+                .replace(/[（(][^)）]*[)）]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function speak(text, element) {
+            if (!('speechSynthesis' in window) || !TTS_SELECTED) return;
+            const clean = stripBilingualChinese(text);
+            if (!clean) return;
+            const utter = new SpeechSynthesisUtterance(clean);
+            utter.voice = TTS_SELECTED;
+            utter.lang = TTS_SELECTED.lang;
+            utter.rate = Number($ttsRate.value) || 0.85;
+            utter.pitch = 1.0;
+            if (element) {
+                utter.onstart = () => {
+                    TTS_CURRENT_ELEMENT?.classList.remove('speaking');
+                    TTS_CURRENT_ELEMENT = element;
+                    element.classList.add('speaking');
+                };
+                utter.onend = () => {
+                    element.classList.remove('speaking');
+                    if (TTS_CURRENT_ELEMENT === element) TTS_CURRENT_ELEMENT = null;
+                };
+                utter.onerror = utter.onend;
+            }
+            $ttsStop.disabled = false;
+            speechSynthesis.speak(utter);
+        }
+
+        function collectSpanishLines() {
+            const $response = document.getElementById('response');
+            // 抓所有 .es-line 或含西班牙特殊字的 <strong>/<b>
+            const nodes = $response.querySelectorAll('.es-line, strong, b, em');
+            const seen = new Set();
+            const result = [];
+            for (const n of nodes) {
+                const txt = n.textContent.trim();
+                if (!txt || seen.has(txt)) continue;
+                // 至少要有西班牙特殊字 · 或看起來像西班牙句子（多個字母字）
+                if (/[áéíóúñ¿¡]/i.test(txt) || (/^[a-zA-Z\s.,¿?¡!'-áéíóúñÁÉÍÓÚÑ]{4,}$/.test(txt) && !/^[A-Za-z]+$/.test(txt.replace(/\s/g, '')))) {
+                    seen.add(txt);
+                    result.push({ text: txt, element: n });
+                }
+            }
+            return result;
+        }
+
+        $ttsPlayAll.addEventListener('click', () => {
+            speechSynthesis.cancel();
+            const lines = collectSpanishLines();
+            if (!lines.length) {
+                alert('回覆裡沒有明顯的西班牙文行可唸 · 試著點單一行 · 或問一個需要西班牙文回答的問題');
+                return;
+            }
+            $ttsStop.disabled = false;
+            // 依序 speak · 每個 utterance 的 onend 觸發下一個
+            let i = 0;
+            const speakNext = () => {
+                if (i >= lines.length) { $ttsStop.disabled = true; return; }
+                const { text, element } = lines[i++];
+                const clean = stripBilingualChinese(text);
+                if (!clean) return speakNext();
+                const utter = new SpeechSynthesisUtterance(clean);
+                utter.voice = TTS_SELECTED;
+                utter.lang = TTS_SELECTED.lang;
+                utter.rate = Number($ttsRate.value) || 0.85;
+                utter.onstart = () => {
+                    TTS_CURRENT_ELEMENT?.classList.remove('speaking');
+                    TTS_CURRENT_ELEMENT = element;
+                    element.classList.add('speaking');
+                };
+                utter.onend = () => {
+                    element.classList.remove('speaking');
+                    speakNext();
+                };
+                utter.onerror = utter.onend;
+                speechSynthesis.speak(utter);
+            };
+            speakNext();
+        });
+
+        $ttsStop.addEventListener('click', () => {
+            speechSynthesis.cancel();
+            TTS_CURRENT_ELEMENT?.classList.remove('speaking');
+            TTS_CURRENT_ELEMENT = null;
+            $ttsStop.disabled = true;
+        });
+
+        // 點西班牙文行單獨唸
+        document.getElementById('response').addEventListener('click', (e) => {
+            const t = e.target.closest('.es-line, strong, b');
+            if (!t) return;
+            const txt = t.textContent.trim();
+            if (!txt) return;
+            if (!/[áéíóúñ¿¡]/i.test(txt) && txt.length < 4) return;
+            speechSynthesis.cancel();
+            speak(txt, t);
+        });
+
+        // 送出時 · 若有回覆 · 顯示 TTS bar
+        const _origRenderSimple = renderSimpleResponse;
+        renderSimpleResponse = function(data, t0) {
+            _origRenderSimple(data, t0);
+            $ttsBar.hidden = false;
+        };
+        const _origRenderAgent = renderAgentResponse;
+        renderAgentResponse = function(data, t0) {
+            _origRenderAgent(data, t0);
+            $ttsBar.hidden = false;
+        };
+        const _origRenderMulti = renderMultiAgentResponse;
+        renderMultiAgentResponse = function(data, t0) {
+            _origRenderMulti(data, t0);
+            $ttsBar.hidden = false;
+        };
+
+        // ============================================================
+        // STT · Speech-to-Text · 用嘴巴說西班牙文 · 填入輸入框
+        // ============================================================
+        const $stt = document.getElementById('btn-stt');
+        const $sttStatus = document.getElementById('stt-status');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            $stt.disabled = true;
+            $stt.title = '此瀏覽器不支援語音辨識 · 建議 Chrome / Edge';
+            $stt.textContent = '🎤 (不支援)';
+        } else {
+            let recognition = null;
+            let isRecording = false;
+
+            $stt.addEventListener('click', () => {
+                if (isRecording) {
+                    recognition?.stop();
+                    return;
+                }
+                recognition = new SpeechRecognition();
+                recognition.lang = 'es-ES';
+                recognition.interimResults = true;
+                recognition.continuous = false;
+                recognition.maxAlternatives = 1;
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    $stt.classList.add('recording');
+                    $stt.textContent = '🔴 錄音中…（再按停止）';
+                    $sttStatus.hidden = false;
+                    $sttStatus.classList.remove('err');
+                    $sttStatus.innerHTML = '🎤 請說西班牙文 · 停下來會自動送出到輸入框';
+                };
+
+                let interimText = '';
+                recognition.onresult = (event) => {
+                    let finalText = '';
+                    interimText = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const t = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) finalText += t;
+                        else interimText += t;
+                    }
+                    $sttStatus.innerHTML = `🎤 <b>${escape(interimText || finalText)}</b>`;
+                    if (finalText) {
+                        const cur = $input.value ? $input.value + ' ' : '';
+                        $input.value = cur + finalText.trim();
+                    }
+                };
+
+                recognition.onerror = (e) => {
+                    $sttStatus.classList.add('err');
+                    $sttStatus.innerHTML = `❌ 錯誤：${escape(e.error || 'unknown')}${e.error === 'not-allowed' ? ' · 檢查瀏覽器麥克風權限' : ''}`;
+                };
+
+                recognition.onend = () => {
+                    isRecording = false;
+                    $stt.classList.remove('recording');
+                    $stt.textContent = '🎤 開口說';
+                    if (!$sttStatus.classList.contains('err')) {
+                        $sttStatus.innerHTML = '✓ 已停止 · 你也可以再按 🎤 加更多';
+                        setTimeout(() => { if (!isRecording) $sttStatus.hidden = true; }, 3000);
+                    }
+                };
+
+                recognition.start();
+            });
         }
     </script>
 
