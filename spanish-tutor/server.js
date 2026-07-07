@@ -17,6 +17,8 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runLearningAgent, MAX_ITERATIONS } from './agent/planner-agent.js';
+import { HARNESS_LIMITS } from './harness/limits.js';
+import { calcCost } from './harness/cost-tracker.js';
 
 dotenv.config();
 
@@ -92,6 +94,7 @@ app.post('/api/chat-simple', async (req, res) => {
         res.json({
             text,
             usage: response.usage,
+            cost: calcCost(response.model, response.usage),
             stopReason: response.stop_reason,
             model: response.model,
             elapsedMs: Date.now() - started,
@@ -154,7 +157,8 @@ app.get('/api/health', (_req, res) => {
         model: MODEL,
         maxTokensSimple: MAX_TOKENS,
         maxIterationsAgent: MAX_ITERATIONS,
-        phase: 'phase-1-react-loop',
+        harnessLimits: HARNESS_LIMITS,
+        phase: 'phase-2-harness',
         hasKey: !!process.env.ANTHROPIC_API_KEY,
         routes: ['/api/chat-simple', '/api/chat-agent'],
     });
@@ -162,7 +166,7 @@ app.get('/api/health', (_req, res) => {
 
 app.listen(PORT, () => {
     console.log('');
-    console.log('🇪🇸 Spanish tutor · Phase 0（純文字問答）');
+    console.log('🇪🇸 Spanish tutor · Phase 2（Harness 防護層）');
     console.log(`   URL:   http://localhost:${PORT}`);
     console.log(`   Model: ${MODEL}`);
     console.log(`   Max tokens: ${MAX_TOKENS}`);
