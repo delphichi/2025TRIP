@@ -109,6 +109,23 @@
                     <input type="text" class="ticker-input" id="ticker-benchmark" value="SPY" maxlength="10" autocomplete="off" spellcheck="false">
                 </label>
             </div>
+            <div class="date-range-row">
+                <label class="date-range-cell">
+                    <span class="ticker-input-label">📅 起始日期</span>
+                    <input type="date" class="date-input" id="date-start">
+                </label>
+                <label class="date-range-cell">
+                    <span class="ticker-input-label">📅 結束日期</span>
+                    <input type="date" class="date-input" id="date-end">
+                </label>
+                <div class="date-presets">
+                    <button class="date-preset-btn" data-months="1">1M</button>
+                    <button class="date-preset-btn" data-months="3">3M</button>
+                    <button class="date-preset-btn" data-months="6">6M</button>
+                    <button class="date-preset-btn" data-months="12">1Y</button>
+                    <button class="date-preset-btn" data-ytd="1">YTD</button>
+                </div>
+            </div>
             <div class="btn-row">
                 <button id="btn-download" class="btn-download">📡 下載 · 開始分析</button>
                 <button id="btn-reset-defaults" class="btn-secondary-inline">↺ 恢復預設</button>
