@@ -137,6 +137,73 @@ const DICT = {
         ],
         notes: '中午前用。中午到晚上前用 buenas tardes、晚上用 buenas noches。',
     },
+    esperar: {
+        pos: '動詞（規則 -ar）',
+        meaning: '希望、期待、等待',
+        conjugations: {
+            presente: 'espero / esperas / espera / esperamos / esperáis / esperan',
+            subjuntivo: 'espere / esperes / espere / esperemos / esperéis / esperen',
+        },
+        examples: [
+            'Espero que estés bien.（希望你一切安好。· 後接虛擬式）',
+            'Te espero en la estación.（我在車站等你。· 後接直述式）',
+            'Espero verte pronto.（希望很快見到你。· 同主詞用不定詞）',
+        ],
+        notes: '同時表達「希望」與「等待」· 語意由上下文決定 · 是虛擬式最常見的觸發動詞之一。',
+    },
+    ojalá: {
+        pos: '感嘆詞 / 副詞（源自阿拉伯文 wa šā llāh · 「若真主願意」）',
+        meaning: '但願、希望',
+        conjugations: null,
+        examples: [
+            'Ojalá llueva mañana.（希望明天下雨。· 後直接接虛擬式 · 不加 que）',
+            'Ojalá pudieras venir.（真希望你能來。· 過去虛擬式表較不可能）',
+            'Ojalá que sí.（希望是。· 加 que 也可以 · 較口語）',
+        ],
+        notes: 'ojalá 是虛擬式最重要的觸發詞之一 · 後面幾乎一定接虛擬式 · 表達強烈願望 · 可加或不加 que。',
+    },
+    dudar: {
+        pos: '動詞（規則 -ar）',
+        meaning: '懷疑、質疑',
+        conjugations: {
+            presente: 'dudo / dudas / duda / dudamos / dudáis / dudan',
+        },
+        examples: [
+            'Dudo que sea verdad.（我懷疑這是真的。· 後接虛擬式）',
+            'No dudo que viene.（我不懷疑他會來 · 用直述式 · 因為 no dudar = 確信）',
+        ],
+        notes: 'dudar que 表達不確定 · 觸發虛擬式；否定的 no dudar que 反而觸發直述式（因語意反轉為肯定）。',
+    },
+    poder: {
+        pos: '動詞（不規則 · e→ue 詞根變化）',
+        meaning: '能、可以',
+        conjugations: {
+            presente: 'puedo / puedes / puede / podemos / podéis / pueden',
+            subjuntivo: 'pueda / puedas / pueda / podamos / podáis / puedan',
+            preterito: 'pude / pudiste / pudo / pudimos / pudisteis / pudieron',
+        },
+        examples: [
+            '¿Puedes ayudarme?（你可以幫我嗎？）',
+            'Ojalá puedas venir.（希望你能來。· 虛擬式）',
+            'No puedo dormir.（我睡不著。）',
+        ],
+        notes: 'poder + 原形動詞 = 表達能力或許可 · 高頻搭配「Quiero que puedas...」用虛擬式。',
+    },
+    venir: {
+        pos: '動詞（不規則 · 詞根 ven-/vien-/veng-）',
+        meaning: '來',
+        conjugations: {
+            presente: 'vengo / vienes / viene / venimos / venís / vienen',
+            subjuntivo: 'venga / vengas / venga / vengamos / vengáis / vengan',
+            preterito: 'vine / viniste / vino / vinimos / vinisteis / vinieron',
+        },
+        examples: [
+            'Ven aquí.（過來這裡。· 命令式）',
+            'Quiero que vengas.（我要你來。· 虛擬式）',
+            'Vengo de Taiwán.（我來自台灣。）',
+        ],
+        notes: 'venir 的 yo 型是 vengo · 虛擬式就從這個 -o 去掉推：venga / vengas...',
+    },
 };
 
 /**
@@ -150,7 +217,8 @@ export function dictionaryLookup(input) {
         return JSON.stringify({
             found: false,
             word,
-            message: `「${word}」不在假字典裡（Phase 1 只有 12 個常用字：querer, aprender, ser, estar, hablar, comer, tener, ir, hacer, hola, gracias, buenos días）· 之後 Phase 4 會接真 API`,
+            message: `「${word}」不在假字典裡（目前收錄 ${Object.keys(DICT).length} 個字：${Object.keys(DICT).join(', ')}）· 之後 Phase 4 會接真 API`,
+            available_words: Object.keys(DICT),
         });
     }
     return JSON.stringify({
