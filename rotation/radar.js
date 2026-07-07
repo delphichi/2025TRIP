@@ -1001,11 +1001,26 @@
             const q = quadrantOf(m.x, m.y);
             const retCls = m.ret10d >= 0 ? 'val-pos' : 'val-neg';
             const relCls = m.y >= 0 ? 'val-pos' : 'val-neg';
+            // 區間累計報酬：RANGE_FROM 那天的收盤 → 目前時間軸位置的收盤
+            const raw = state.rawSeries[t];
+            let rangeRet = null;
+            let rangeStartDate = null;
+            if (raw) {
+                const startRow = raw.find(r => r.date >= RANGE_FROM);
+                if (startRow) {
+                    rangeStartDate = startRow.date;
+                    rangeRet = (m.close - startRow.close) / startRow.close;
+                }
+            }
+            const rangeCls = rangeRet === null ? '' : (rangeRet >= 0 ? 'val-pos' : 'val-neg');
+            const rangeTxt = rangeRet === null ? '—' : `${rangeRet >= 0 ? '+' : ''}${fmtPct(rangeRet)}`;
+            const rangeTitle = rangeStartDate ? `${rangeStartDate} → ${currentDate}` : '';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="tk-dot" style="background:${info.color}"></span> <b>${t}</b></td>
                 <td>${info.sector || info.name}</td>
                 <td>$${fmt(m.close, 2)}</td>
+                <td class="${rangeCls}" title="${rangeTitle}">${rangeTxt}</td>
                 <td class="${retCls}">${m.ret10d >= 0 ? '+' : ''}${fmtPct(m.ret10d)}</td>
                 <td class="${relCls}">${m.y >= 0 ? '+' : ''}${fmtPct(m.y)}</td>
                 <td>${fmt(m.x, 2)}x</td>
@@ -1048,9 +1063,17 @@
                     </div>
                     <div class="tt-row">📅 ${hit.metric.date}</div>
                     <div class="tt-row">💵 收盤 $${fmt(hit.metric.close, 2)}</div>
+                    ${(() => {
+                        const raw = state.rawSeries[hit.t];
+                        if (!raw) return '';
+                        const start = raw.find(r => r.date >= RANGE_FROM);
+                        if (!start) return '';
+                        const rr = (hit.metric.close - start.close) / start.close;
+                        return `<div class="tt-row">🏁 區間累計 <b>${rr >= 0 ? '+' : ''}${fmtPct(rr)}</b><br><small>${start.date} → ${hit.metric.date}</small></div>`;
+                    })()}
                     <div class="tt-row">📊 量比 <b>${fmt(hit.metric.x, 2)}x</b>（近5日/20日均量）</div>
                     <div class="tt-row">📈 10日報酬 ${retSign}${fmtPct(hit.metric.ret10d)}</div>
-                    <div class="tt-row">🎯 相對 SPY ${relSign}${fmtPct(hit.metric.y)}</div>
+                    <div class="tt-row">🎯 相對基準 ${relSign}${fmtPct(hit.metric.y)}</div>
                     <div class="tt-quad ${q.cls}">${q.emoji} <b>${q.name}</b></div>
                 `;
                 tooltip.style.left = (e.clientX + 15) + 'px';
