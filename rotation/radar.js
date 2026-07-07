@@ -7,7 +7,7 @@
     // 產業龍頭個股（FMP 免費 tier 全支援 · 免 CORS proxy · 訊號比 ETF 平均更清晰）
     // SPDR 類股 ETF（XLK/XLC 等）在 FMP 免費 tier 是「Special Endpoint」需付費升級 ·
     // 龍頭個股跟 sector ETF 相關性 0.8+ · 資金流向趨勢一致
-    const TICKERS = ['NVDA', 'META', 'JPM', 'XOM', 'UNH', 'CAT'];
+    const TICKERS = ['NVDA', 'META', 'JPM', 'XOM', 'UNH', 'HON'];
     const BENCHMARK = 'SPY';
     const VOL_WINDOW = 20;    // 20 日均量
     const MOM_WINDOW = 10;    // 10 日累積報酬
@@ -20,7 +20,7 @@
         JPM:  { name: '金融 · 摩根大通',    color: '#10b981', sector: '金融' },
         XOM:  { name: '能源 · Exxon',       color: '#f59e0b', sector: '能源' },
         UNH:  { name: '醫療 · UnitedHealth', color: '#ef4444', sector: '醫療' },
-        CAT:  { name: '工業 · Caterpillar', color: '#6b7280', sector: '工業' },
+        HON:  { name: '工業 · Honeywell',   color: '#6b7280', sector: '工業' },
     };
 
     // 資料源：FMP 為主（有 key 才用）· 失敗 fallback Yahoo（靠 CORS proxy）
@@ -232,6 +232,8 @@
         axisRanges: null,
         visibleTickers: new Set(TICKERS),   // 哪些 ticker 目前要顯示
         dataSources: { FMP: 0, Yahoo: 0 },  // 各資料源抓了幾檔
+        activeTickers: [],                  // 成功抓到的 ticker（失敗的排除）
+        failedTickers: [],                  // 失敗的 ticker + 錯誤訊息
     };
 
     // ==========================================
@@ -264,30 +266,48 @@
         const results = {};
         const sourceCounts = { FMP: 0, Yahoo: 0 };
 
+        const failedTickers = [];
         try {
             if (hasKey) {
-                // 平行載入 · 全部一次 fire · Promise.all 等最慢那個
+                // 平行載入 · 每支 ticker 個別 try/catch · 一支掛不會拖垮全部
                 let doneCount = 0;
                 const promises = all.map(async t => {
-                    const { data, source } = await fetchTicker(t, daysBack);
-                    doneCount += 1;
-                    drawLoadingPlaceholder(doneCount, all.length, t, '平行');
-                    updateLoadStatus(status, doneCount, all.length, t, '平行載入');
-                    return { t, data, source };
+                    try {
+                        const { data, source } = await fetchTicker(t, daysBack);
+                        doneCount += 1;
+                        drawLoadingPlaceholder(doneCount, all.length, t, '平行');
+                        updateLoadStatus(status, doneCount, all.length, t, '平行載入');
+                        return { t, data, source, ok: true };
+                    } catch (e) {
+                        doneCount += 1;
+                        console.error(`❌ ${t} 失敗:`, e.message);
+                        drawLoadingPlaceholder(doneCount, all.length, t, '平行');
+                        updateLoadStatus(status, doneCount, all.length, t, '平行載入');
+                        return { t, ok: false, error: e.message };
+                    }
                 });
                 const settled = await Promise.all(promises);
                 for (const s of settled) {
-                    results[s.t] = s.data;
-                    sourceCounts[s.source] = (sourceCounts[s.source] || 0) + 1;
+                    if (s.ok) {
+                        results[s.t] = s.data;
+                        sourceCounts[s.source] = (sourceCounts[s.source] || 0) + 1;
+                    } else {
+                        failedTickers.push({ t: s.t, error: s.error });
+                    }
                 }
             } else {
                 // 順序載入（Yahoo proxy · 併發會 throttle）
                 for (const t of all) {
                     drawLoadingPlaceholder(Object.keys(results).length, all.length, t, '順序');
                     updateLoadStatus(status, Object.keys(results).length, all.length, t, '順序載入');
-                    const { data, source } = await fetchTicker(t, daysBack);
-                    results[t] = data;
-                    sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+                    try {
+                        const { data, source } = await fetchTicker(t, daysBack);
+                        results[t] = data;
+                        sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+                    } catch (e) {
+                        console.error(`❌ ${t} 失敗:`, e.message);
+                        failedTickers.push({ t, error: e.message });
+                    }
                 }
             }
         } catch (e) {
@@ -315,20 +335,27 @@
         // 保留原始資料給驗證面板
         state.rawSeries = results;
 
-        // Compute metrics per ticker
+        // 只跑成功抓到的 ticker · 失敗的從 visibleTickers 拿掉
+        const activeTickers = TICKERS.filter(t => results[t] && results[t].length > 0);
+        state.activeTickers = activeTickers;
         for (const t of TICKERS) {
+            if (!activeTickers.includes(t)) state.visibleTickers.delete(t);
+        }
+
+        // Compute metrics per active ticker
+        for (const t of activeTickers) {
             state.metrics[t] = computeMetrics(results[t], spy);
         }
 
-        // 取交集日期（所有 ticker 都有 metrics 的日期）· 且只保留最近 DISPLAY_DAYS
+        // 取交集日期（成功的 ticker 都有 metrics 的日期）· 且只保留最近 DISPLAY_DAYS
         const dateCounts = new Map();
-        for (const t of TICKERS) {
+        for (const t of activeTickers) {
             for (const m of state.metrics[t]) {
                 dateCounts.set(m.date, (dateCounts.get(m.date) || 0) + 1);
             }
         }
         const commonDates = Array.from(dateCounts.entries())
-            .filter(([_, c]) => c === TICKERS.length)
+            .filter(([_, c]) => c === activeTickers.length)
             .map(([d]) => d)
             .sort();
         state.dates = commonDates.slice(-DISPLAY_DAYS);
@@ -349,7 +376,12 @@
         if (state.dataSources.Yahoo > 0) srcParts.push(`Yahoo × ${state.dataSources.Yahoo}`);
         const srcTag = srcParts.join(' + ');
         const elapsedTxt = (state.loadElapsedMs / 1000).toFixed(1);
-        status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）· 資料源 <b>${srcTag}</b> · 載入 <b>${elapsedTxt}s</b> · 按 <b>▶ 播放</b> 看資金流向`;
+        let failedMsg = '';
+        if (state.failedTickers && state.failedTickers.length > 0) {
+            const failedNames = state.failedTickers.map(f => f.t).join(', ');
+            failedMsg = `<br>⚠ 失敗 ${state.failedTickers.length} 支：<b>${failedNames}</b>（FMP 402 付費限制 + Yahoo proxy 掛 · 已從圖表隱藏）`;
+        }
+        status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）· 資料源 <b>${srcTag}</b> · 載入 <b>${elapsedTxt}s</b>${failedMsg}<br>按 <b>▶ 播放</b> 看資金流向`;
 
         btnPlay.disabled = false;
         btnPlay.textContent = '▶ 播放';
@@ -480,6 +512,7 @@
     function computeAxisRanges() {
         let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity, maxDV = 0;
         for (const t of TICKERS) {
+            if (!state.metrics[t]) continue;   // 抓失敗的 ticker 跳過
             for (const m of state.metrics[t]) {
                 if (!state.dates.includes(m.date)) continue;
                 if (m.x < xMin) xMin = m.x;
@@ -618,7 +651,8 @@
         const bubblePositions = [];   // for hit detection
 
         for (const t of TICKERS) {
-            if (!state.visibleTickers.has(t)) continue;   // 被隱藏的類股跳過
+            if (!state.visibleTickers.has(t)) continue;   // 被隱藏的個股跳過
+            if (!state.metrics[t]) continue;              // 抓失敗的 ticker 跳過
             const info = TICKER_INFO[t];
             const series = state.metrics[t].filter(m => state.dates.includes(m.date));
             const curMetricIdx = series.findIndex(m => m.date === currentDate);
@@ -717,6 +751,7 @@
         html += `<div class="verify-grid">`;
         for (const t of TICKERS) {
             const raw = state.rawSeries[t];
+            if (!raw) continue;   // 抓失敗的 ticker 跳過
             const info = TICKER_INFO[t];
             const rawIdxByDate = new Map(raw.map((d, i) => [d.date, i]));
             const rawIdx = rawIdxByDate.get(currentDate);
@@ -806,6 +841,7 @@
         const tbody = $('snapshot-tbody');
         tbody.innerHTML = '';
         for (const t of TICKERS) {
+            if (!state.metrics[t]) continue;   // 抓失敗的 ticker 跳過
             const info = TICKER_INFO[t];
             const m = state.metrics[t].find(mm => mm.date === currentDate);
             if (!m) continue;
