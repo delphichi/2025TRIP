@@ -149,23 +149,36 @@
     // ==========================================
     async function loadAllData() {
         const status = $('load-status');
+        const btnPlay = $('btn-play');
+        btnPlay.disabled = true;
+        btnPlay.textContent = '⏳ 資料載入中……';
+
         // 抓 ~140 天 · 才夠算 20 日 vol 和 63 日 display
         const daysBack = DISPLAY_DAYS + VOL_WINDOW + 20;
-        status.textContent = `📡 抓 ${TICKERS.length + 1} 檔標的（${daysBack} 日資料）……`;
-
         const all = [BENCHMARK, ...TICKERS];
+
+        // Canvas 上直接畫 loading placeholder · 玩家不會盯著空白
+        drawLoadingPlaceholder(0, all.length, all[0]);
+        updateLoadStatus(status, 0, all.length, all[0]);
+
         const results = {};
         // 順序抓 · 避免 proxy 併發 throttle
         for (const t of all) {
+            drawLoadingPlaceholder(Object.keys(results).length, all.length, t);
+            updateLoadStatus(status, Object.keys(results).length, all.length, t);
             try {
-                status.textContent = `📡 抓 ${t}……（${Object.keys(results).length}/${all.length}）`;
                 results[t] = await fetchYahoo(t, daysBack);
             } catch (e) {
                 console.error(`Failed to fetch ${t}:`, e);
-                status.innerHTML = `❌ ${t} 抓取失敗：${e.message}<br>重新載入試試（Yahoo proxy 有時 throttle）`;
+                drawErrorPlaceholder(t, e.message);
+                status.innerHTML = `❌ <b>${t}</b> 抓取失敗：${e.message}<br>Yahoo proxy 有時 throttle · 過幾秒重整試試`;
+                btnPlay.textContent = '▶ 播放';
                 return;
             }
         }
+        // All fetched
+        drawLoadingPlaceholder(all.length, all.length, '計算中');
+        updateLoadStatus(status, all.length, all.length, '計算中');
 
         const spy = results[BENCHMARK];
         if (!spy || spy.length < VOL_WINDOW + MOM_WINDOW) {
@@ -205,9 +218,127 @@
         slider.value = state.currentIdx;
         slider.disabled = false;
 
-        status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）`;
+        status.innerHTML = `✅ 資料就緒 · <b>${state.dates.length}</b> 個交易日（${state.dates[0]} → ${state.dates[state.dates.length - 1]}）· 按 <b>▶ 播放</b> 看資金流向`;
+
+        const btnPlay = $('btn-play');
+        btnPlay.disabled = false;
+        btnPlay.textContent = '▶ 播放';
 
         renderFrame();
+    }
+
+    function updateLoadStatus(status, done, total, curTicker) {
+        const pct = Math.floor((done / total) * 100);
+        status.innerHTML = `
+            <div class="load-progress-wrap">
+                <div class="load-progress-label">
+                    📡 正在下載 ${done < total ? `<b>${curTicker}</b> 歷史資料` : '計算輪動指標'}……
+                    <span class="load-progress-count">${done} / ${total}</span>
+                </div>
+                <div class="load-progress-bar-outer">
+                    <div class="load-progress-bar-inner" style="width: ${pct}%"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    function drawLoadingPlaceholder(done, total, curTicker) {
+        const canvas = $('radar-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth || canvas.width;
+        const h = canvas.clientHeight || canvas.height;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+
+        // 淡色四象限背景（提示等等會畫這個）
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(w / 2, 20);
+        ctx.lineTo(w / 2, h - 20);
+        ctx.moveTo(20, h / 2);
+        ctx.lineTo(w - 20, h / 2);
+        ctx.stroke();
+
+        // 象限標籤（淡）
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText('🚀 主升段', w - 20, 20);
+        ctx.textAlign = 'left';
+        ctx.fillText('⚠ 量價背離', 20, 20);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('💥 恐慌賣壓', w - 20, h - 20);
+        ctx.textAlign = 'left';
+        ctx.fillText('❄ 冷門', 20, h - 20);
+
+        // 大字：正在下載
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('📡 正在下載歷史資料', w / 2, h / 2 - 40);
+
+        // 中字：當前狀態
+        ctx.fillStyle = '#475569';
+        ctx.font = '16px sans-serif';
+        const label = done < total ? `${curTicker}（${done + 1} / ${total}）` : `計算輪動指標中……`;
+        ctx.fillText(label, w / 2, h / 2 - 10);
+
+        // 進度條
+        const barW = Math.min(400, w * 0.5);
+        const barH = 10;
+        const barX = (w - barW) / 2;
+        const barY = h / 2 + 20;
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(barX, barY, barW, barH);
+        ctx.fillStyle = '#6366f1';
+        ctx.fillRect(barX, barY, barW * (done / total), barH);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX, barY, barW, barH);
+
+        // 百分比
+        ctx.fillStyle = '#4338ca';
+        ctx.font = 'bold 14px ui-monospace, monospace';
+        ctx.fillText(`${Math.floor((done / total) * 100)}%`, w / 2, barY + barH + 20);
+
+        // 提示
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('（透過 Yahoo Finance · 首次載入約 5-15 秒）', w / 2, barY + barH + 45);
+    }
+
+    function drawErrorPlaceholder(ticker, msg) {
+        const canvas = $('radar-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth || canvas.width;
+        const h = canvas.clientHeight || canvas.height;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        ctx.fillStyle = '#fef2f2';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#7f1d1d';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`❌ 抓 ${ticker} 失敗`, w / 2, h / 2 - 20);
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = '#991b1b';
+        ctx.fillText(msg, w / 2, h / 2 + 10);
+        ctx.fillText('請重新整理頁面（Yahoo proxy 有時 throttle）', w / 2, h / 2 + 35);
     }
 
     function computeAxisRanges() {
@@ -658,6 +789,8 @@
     function init() {
         initControls();
         initTooltip();
+        // 頁面一載入就先畫 loading placeholder · 玩家不會看到白畫面
+        drawLoadingPlaceholder(0, TICKERS.length + 1, BENCHMARK);
         loadAllData();
     }
 
