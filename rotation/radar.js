@@ -13,8 +13,9 @@
     let RANGE_TO = '';
     // TW 股票中文名快取（FinMind TaiwanStockInfo · 抓一次存 localStorage）
     let TW_STOCK_NAMES = {};   // { '2330': '台積電', ... }
-    const VOL_WINDOW = 20;    // 20 日均量
-    const MOM_WINDOW = 10;    // 10 日累積報酬
+    const VOL_WINDOW = 20;         // 20 日均量（分母 · 常態基準）
+    const SHORT_VOL_WINDOW = 5;    // 5 日均量（分子 · 平滑掉單日雜訊 · 避免財報日爆量把股拋到極端）
+    const MOM_WINDOW = 10;         // 10 日累積報酬
     const DISPLAY_DAYS = 63;  // ~3 個月交易日
     const TRAIL_LEN = 12;     // 尾巴保留幾天
 
@@ -292,7 +293,7 @@
     // Metrics computation
     // ==========================================
     // For each ticker, compute per-day:
-    //   x = 今日成交量 / 過去 VOL_WINDOW 日平均成交量
+    //   x = 近 SHORT_VOL_WINDOW 日平均量 / 過去 VOL_WINDOW 日平均量（分子改 5 日平均 · 平滑掉單日爆量）
     //   y = 過去 MOM_WINDOW 日累積報酬 - SPY 同期累積報酬
     //   bubbleSize = 成交金額 (close × volume)
     function computeMetrics(series, spySeries) {
@@ -305,11 +306,17 @@
             if (!spyMatch) continue;
             if (i < MOM_WINDOW) continue;
 
-            // 20-day avg volume（用 i-VOL_WINDOW ... i-1）
+            // 20-day avg volume（用 i-VOL_WINDOW ... i-1）· 分母 = 過去 20 日常態
             let volSum = 0;
             for (let j = i - VOL_WINDOW; j < i; j++) volSum += series[j].volume;
             const avgVol = volSum / VOL_WINDOW;
-            const x = avgVol > 0 ? cur.volume / avgVol : 1;
+            // 5-day avg volume（用 i-4 ... i）· 分子改用近 5 日平均 · 平滑掉單日爆量
+            // 舊：x = cur.volume / avgVol · 財報日爆量會把象限拋到極端
+            // 新：x = recent5dAvg / avgVol · 單日雜訊被 5 天平均攤平
+            let short5dSum = 0;
+            for (let j = Math.max(0, i - SHORT_VOL_WINDOW + 1); j <= i; j++) short5dSum += series[j].volume;
+            const short5dAvg = short5dSum / SHORT_VOL_WINDOW;
+            const x = avgVol > 0 ? short5dAvg / avgVol : 1;
 
             // 10-day cumulative return
             const anchor = series[i - MOM_WINDOW];
@@ -328,6 +335,8 @@
                 x, y,
                 close: cur.close,
                 volume: cur.volume,
+                short5dAvg,       // 給驗證面板秀
+                avgVol,           // 給驗證面板秀
                 dollarVol: cur.close * cur.volume,
                 ret10d: ret,
                 spyRet10d: spyRet,
@@ -752,7 +761,7 @@
         ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillText('資金熱度 · 今日量 / 20日均量 →', padL + cw / 2, padT + ch + 34);
+        ctx.fillText('資金熱度 · 近5日均量 / 20日均量 →', padL + cw / 2, padT + ch + 34);
         ctx.save();
         ctx.translate(padL - 42, padT + ch / 2);
         ctx.rotate(-Math.PI / 2);
@@ -900,7 +909,14 @@
                 }
             }
             const avgVol = volSum / volSamples.length;
-            const x = today.volume / avgVol;
+            // 近 5 日均量 (i-4 ... i)
+            let short5dSum = 0;
+            let short5dSamples = [];
+            for (let j = Math.max(0, rawIdx - SHORT_VOL_WINDOW + 1); j <= rawIdx; j++) {
+                if (raw[j]) { short5dSum += raw[j].volume; short5dSamples.push(raw[j].volume); }
+            }
+            const short5dAvg = short5dSum / short5dSamples.length;
+            const x = short5dAvg / avgVol;
             const ret10 = tenDAgo ? (today.close - tenDAgo.close) / tenDAgo.close : null;
             const spyRet10 = spy10dAgoRaw ? (spyToday.close - spy10dAgoRaw.close) / spy10dAgoRaw.close : null;
             const y = (ret10 !== null && spyRet10 !== null) ? ret10 - spyRet10 : null;
@@ -918,11 +934,16 @@
                         &nbsp;·&nbsp; <span class="vk">今日成交量</span> ${fmtVol(today.volume)}
                     </div>
                     <div class="verify-row">
+                        <span class="vk">近 5 日均量</span>
+                        <code>Σ vol[${rawIdx - SHORT_VOL_WINDOW + 1}..${rawIdx}] / ${SHORT_VOL_WINDOW} = ${fmtVol(short5dAvg)}</code>
+                    </div>
+                    <div class="verify-row">
                         <span class="vk">20 日均量</span>
                         <code>Σ vol[${rawIdx - VOL_WINDOW}..${rawIdx - 1}] / ${VOL_WINDOW} = ${fmtVol(avgVol)}</code>
                     </div>
                     <div class="verify-row verify-calc">
-                        <b>X = ${fmtVol(today.volume)} / ${fmtVol(avgVol)} = <span class="calc-out">${fmt(x, 3)}x</span></b>
+                        <b>X = ${fmtVol(short5dAvg)} / ${fmtVol(avgVol)} = <span class="calc-out">${fmt(x, 3)}x</span></b>
+                        <br><small>（分子改近 5 日均量 · 平滑掉單日爆量）</small>
                     </div>
                     ${tenDAgo ? `
                         <div class="verify-row">
@@ -1027,7 +1048,7 @@
                     </div>
                     <div class="tt-row">📅 ${hit.metric.date}</div>
                     <div class="tt-row">💵 收盤 $${fmt(hit.metric.close, 2)}</div>
-                    <div class="tt-row">📊 成交量比 <b>${fmt(hit.metric.x, 2)}x</b>（20日均量）</div>
+                    <div class="tt-row">📊 量比 <b>${fmt(hit.metric.x, 2)}x</b>（近5日/20日均量）</div>
                     <div class="tt-row">📈 10日報酬 ${retSign}${fmtPct(hit.metric.ret10d)}</div>
                     <div class="tt-row">🎯 相對 SPY ${relSign}${fmtPct(hit.metric.y)}</div>
                     <div class="tt-quad ${q.cls}">${q.emoji} <b>${q.name}</b></div>
