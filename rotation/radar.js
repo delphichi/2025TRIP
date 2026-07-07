@@ -789,25 +789,26 @@
             const curMetricIdx = series.findIndex(m => m.date === currentDate);
             if (curMetricIdx < 0) continue;
 
-            // Trail: last TRAIL_LEN points ending at currentIdx (inclusive)
-            const trailStart = Math.max(0, curMetricIdx - TRAIL_LEN + 1);
-            const trail = series.slice(trailStart, curMetricIdx + 1);
+            // Trail: 從你選的日期區間起頭一路畫到 currentIdx（progressive reveal）
+            // 舊：只保留 TRAIL_LEN=12 天尾巴 · 3 個月區間裡看起來很短
+            const trail = series.slice(0, curMetricIdx + 1);
 
-            // Draw trail as fading line
+            // Draw trail as fading line · 舊點淡但保底 0.15 alpha 讓整條可見
             ctx.strokeStyle = info.color;
             ctx.lineWidth = 1.5;
             for (let i = 1; i < trail.length; i++) {
-                const alpha = i / trail.length;   // fade in
-                ctx.globalAlpha = alpha * 0.6;
+                const t = trail.length > 1 ? i / (trail.length - 1) : 1;   // 0..1
+                ctx.globalAlpha = Math.max(0.15, t * 0.75);
                 ctx.beginPath();
                 ctx.moveTo(xFor(trail[i - 1].x), yFor(trail[i - 1].y));
                 ctx.lineTo(xFor(trail[i].x), yFor(trail[i].y));
                 ctx.stroke();
             }
-            // Draw fading dots along trail
-            for (let i = 0; i < trail.length - 1; i++) {
-                const alpha = (i + 1) / trail.length;
-                ctx.globalAlpha = alpha * 0.5;
+            // Draw fading dots along trail（每 3 天一個 dot · 避免太密）
+            const dotStep = Math.max(1, Math.floor(trail.length / 25));
+            for (let i = 0; i < trail.length - 1; i += dotStep) {
+                const t = trail.length > 1 ? i / (trail.length - 1) : 1;
+                ctx.globalAlpha = Math.max(0.20, t * 0.65);
                 ctx.fillStyle = info.color;
                 ctx.beginPath();
                 ctx.arc(xFor(trail[i].x), yFor(trail[i].y), 2.5, 0, Math.PI * 2);
