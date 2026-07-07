@@ -523,6 +523,90 @@ body.radar-body {
 .tt-quad.q-br { background: rgba(239, 68, 68, 0.3); color: #fecaca; }
 .tt-quad.q-bl { background: rgba(107, 114, 128, 0.3); color: #d1d5db; }
 
+/* ---- Signals panel · 轉折候選名單 ---- */
+.signals-panel {
+    border-left-color: #d97706;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+.signals-panel h2 { color: #78350f; }
+
+.signals-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 10px 0;
+}
+@media (min-width: 900px) {
+    .signals-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.signal-col {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    border-top: 3px solid #cbd5e1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    min-height: 100px;
+}
+.signal-col-transition { border-top-color: #6366f1; }
+.signal-col-accel { border-top-color: #10b981; }
+.signal-col-vlead { border-top-color: #ec4899; }
+
+.signal-col-title {
+    font-size: .95em;
+    font-weight: 700;
+    color: #1f2937;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.signal-col-body {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.signal-item {
+    display: flex;
+    gap: 8px;
+    padding: 6px 8px;
+    background: #f9fafb;
+    border-radius: 6px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 0.15s, transform 0.1s;
+}
+.signal-item:hover {
+    background: #f3f4f6;
+    transform: translateX(2px);
+    border-left-color: #6b7280;
+}
+
+.signal-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+.signal-body { flex: 1; font-size: .84em; }
+.signal-ticker { font-weight: 700; color: #0f172a; }
+.signal-ticker small { font-weight: 400; color: #6b7280; font-size: .88em; }
+.signal-detail { color: #4b5563; margin-top: 2px; font-size: .95em; line-height: 1.5; }
+.signal-detail b { color: #b45309; font-family: ui-monospace, monospace; }
+.signal-detail small { color: #9ca3af; }
+
+.signal-empty {
+    text-align: center;
+    color: #9ca3af;
+    padding: 20px 8px;
+    font-size: .88em;
+    background: #f9fafb;
+    border-radius: 6px;
+    border: 1px dashed #e5e7eb;
+}
+
 /* ---- Snapshot table ---- */
 .table-panel { border-left-color: var(--success); }
 .fund-table {

@@ -162,6 +162,34 @@
             <div id="tooltip" class="radar-tooltip" hidden></div>
         </section>
 
+        <section class="panel signals-panel" id="signals-panel">
+            <h2>🎯 轉折候選名單 · <small style="font-weight:400;color:#6b7280">「機率往這邊拉一點」不是預測</small></h2>
+            <div class="signals-grid">
+                <div class="signal-col signal-col-transition">
+                    <div class="signal-col-title">🔄 剛換象限（近 5 天內）</div>
+                    <div class="signal-col-body" id="signal-transitions">
+                        <div class="signal-empty">等下載資料</div>
+                    </div>
+                </div>
+                <div class="signal-col signal-col-accel">
+                    <div class="signal-col-title">🚀 動能加速中</div>
+                    <div class="signal-col-body" id="signal-accelerating">
+                        <div class="signal-empty">等下載資料</div>
+                    </div>
+                </div>
+                <div class="signal-col signal-col-vlead">
+                    <div class="signal-col-title">👀 量先動 · 價未動</div>
+                    <div class="signal-col-body" id="signal-vlead">
+                        <div class="signal-empty">等下載資料</div>
+                    </div>
+                </div>
+            </div>
+            <p class="hint hint-mini">
+                💡 <b>用法</b>：不是「進場清單」· 是「值得多看一眼」的候選 · 訊號隨時間軸拉動而變。
+                點候選項可 solo 顯示該標的 · 看它完整軌跡再判斷。
+            </p>
+        </section>
+
         <section class="panel table-panel">
             <h2>📊 當日全部標的</h2>
             <table class="fund-table" id="snapshot-table">
