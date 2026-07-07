@@ -467,10 +467,11 @@
                 `;
                 $metaRow.hidden = false;
 
-                // Safety 警告（如果有）
+                // Safety + Quality 警告（如果有）
                 const warnings = [];
                 if (data.inputCheck?.warnings) warnings.push(...data.inputCheck.warnings.map(w => `[輸入] ${w}`));
                 if (data.safety?.warnings) warnings.push(...data.safety.warnings.map(w => `[SVG 清洗] ${w}`));
+                if (data.qualityWarnings?.length) warnings.push(...data.qualityWarnings.map(w => `[品質] ${w}`));
                 if (warnings.length) {
                     $safetyWarnings.innerHTML = `
                         <div class="warning-list">

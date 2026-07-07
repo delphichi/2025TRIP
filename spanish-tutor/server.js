@@ -27,7 +27,7 @@ import {
 } from './harness/context-manager.js';
 import { getDictMeta } from './tools/dictionary-lookup.js';
 import { validateImageUpload } from './harness/image-input-filter.js';
-import { sanitizeSvgOutput, extractSvgFromResponse, SvgSafetyError } from './harness/svg-safety-check.js';
+import { sanitizeSvgOutput, extractSvgFromResponse, checkStyleQuality, SvgSafetyError } from './harness/svg-safety-check.js';
 import { STYLE_PROMPTS, buildSvgPrompt, AVAILABLE_STYLES } from './harness/svg-style-prompts.js';
 import { SVG_LIMITS } from './harness/svg-limits.js';
 
@@ -349,6 +349,7 @@ app.post('/api/svg-generate', async (req, res) => {
             warnings: safetyWarnings.length ? safetyWarnings : null,
             svgLength: sanitized.length,
         },
+        qualityWarnings: checkStyleQuality(sanitized, style),
     });
 });
 

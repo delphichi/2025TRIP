@@ -100,6 +100,37 @@ export function isSvgTruncated(svgCode) {
     return !/<\/svg>/i.test(svgCode);
 }
 
+/**
+ * 風格特定的品質檢查（不阻擋 · 只回警告）
+ * silhouette 應該是「1 個 path · 只 1 個 M」· 若不是可能翻車
+ */
+export function checkStyleQuality(svg, styleKey) {
+    const warnings = [];
+    if (styleKey === 'silhouette') {
+        const pathCount = (svg.match(/<path\b/gi) || []).length;
+        if (pathCount > 2) {
+            warnings.push(`silhouette 有 ${pathCount} 個 path · 建議只 1 個 · 可能出現多剪影或雜訊`);
+        }
+        const mCount = (svg.match(/[\sd="']\s*[Mm][\s\d]/g) || []).length;
+        if (mCount > 3) {
+            warnings.push(`silhouette 的 path 含 ${mCount} 個 M 子路徑 · 可能導致剪影破碎`);
+        }
+    }
+    if (styleKey === 'geometric') {
+        const polyCount = (svg.match(/<polygon\b/gi) || []).length;
+        if (polyCount > 50) {
+            warnings.push(`geometric 有 ${polyCount} 個 polygon · 可能過度切碎`);
+        }
+    }
+    if (styleKey === 'minimal_icon') {
+        const elemCount = (svg.match(/<(circle|rect|polygon|path|ellipse|line|polyline)\b/gi) || []).length;
+        if (elemCount > 12) {
+            warnings.push(`minimal_icon 有 ${elemCount} 個元素 · 超過建議上限 8 · 可能不夠「極簡」`);
+        }
+    }
+    return warnings;
+}
+
 /** 從 Claude 原始 text response 抽出 SVG · 若含 code fence 也處理 */
 export function extractSvgFromResponse(text) {
     if (!text) return null;
