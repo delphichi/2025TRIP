@@ -537,7 +537,7 @@ body.radar-body {
     margin: 10px 0;
 }
 @media (min-width: 900px) {
-    .signals-grid { grid-template-columns: repeat(3, 1fr); }
+    .signals-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 .signal-col {
@@ -551,6 +551,7 @@ body.radar-body {
 .signal-col-transition { border-top-color: #6366f1; }
 .signal-col-accel { border-top-color: #10b981; }
 .signal-col-vlead { border-top-color: #ec4899; }
+.signal-col-buying { border-top-color: #f59e0b; }
 
 .signal-col-title {
     font-size: .95em;
@@ -638,6 +639,7 @@ body.radar-body {
 }
 .val-pos { color: var(--success); font-weight: 600; }
 .val-neg { color: var(--danger); font-weight: 600; }
+.val-neutral { color: #6b7280; font-weight: 600; }
 td.q-tr { background: #ecfdf5; color: #065f46; }
 td.q-tl { background: #fef3c7; color: #78350f; }
 td.q-br { background: #fef2f2; color: #7f1d1d; }
