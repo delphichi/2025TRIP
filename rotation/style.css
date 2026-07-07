@@ -237,6 +237,55 @@ body.radar-body {
     box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
 }
 
+.date-range-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+    margin: 8px 0 12px;
+    padding: 10px 12px;
+    background: rgba(5, 150, 105, 0.05);
+    border-radius: 8px;
+    border: 1px dashed #a7f3d0;
+}
+.date-range-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 140px;
+}
+.date-input {
+    padding: 6px 10px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-family: ui-monospace, monospace;
+    font-size: .95em;
+    background: #fff;
+    color: #0f172a;
+}
+.date-input:focus {
+    outline: none;
+    border-color: #059669;
+    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+.date-presets {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+.date-preset-btn {
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid #a7f3d0;
+    border-radius: 999px;
+    font-size: .82em;
+    font-weight: 600;
+    color: #065f46;
+    cursor: pointer;
+}
+.date-preset-btn:hover { background: #ecfdf5; }
+
 .btn-download {
     background: #059669;
     color: #fff;

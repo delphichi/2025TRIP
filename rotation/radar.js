@@ -4,12 +4,15 @@
     // ==========================================
     // Config
     // ==========================================
-    // TICKERS + BENCHMARK 現在由 UI 輸入決定 · localStorage 記住上次選擇
-    // 預設 6 支產業龍頭 · SPY 當基準
+    // TICKERS + BENCHMARK + 日期區間 現在由 UI 輸入決定 · localStorage 記住上次選擇
     const DEFAULT_TICKERS = ['NVDA', 'META', 'JPM', 'XOM', 'UNH', 'DE'];
     const DEFAULT_BENCHMARK = 'SPY';
     let TICKERS = [...DEFAULT_TICKERS];
     let BENCHMARK = DEFAULT_BENCHMARK;
+    let RANGE_FROM = '';   // 'YYYY-MM-DD' · loadAllData 前設好
+    let RANGE_TO = '';
+    // TW 股票中文名快取（FinMind TaiwanStockInfo · 抓一次存 localStorage）
+    let TW_STOCK_NAMES = {};   // { '2330': '台積電', ... }
     const VOL_WINDOW = 20;    // 20 日均量
     const MOM_WINDOW = 10;    // 10 日累積報酬
     const DISPLAY_DAYS = 63;  // ~3 個月交易日
@@ -28,11 +31,17 @@
     };
     // 由 buildTickerInfo() 動態產生 · 每次下載時重建
     let TICKER_INFO = {};
+    function displayNameFor(t) {
+        // TW 股票（純數字）優先用 FinMind 抓的中文名
+        if (isTwTicker && isTwTicker(t) && TW_STOCK_NAMES[t]) return TW_STOCK_NAMES[t];
+        return KNOWN_TICKERS[t] || null;
+    }
     function buildTickerInfo() {
         TICKER_INFO = {};
         TICKERS.forEach((t, i) => {
-            const name = KNOWN_TICKERS[t] ? `${t} · ${KNOWN_TICKERS[t]}` : t;
-            const sector = KNOWN_TICKERS[t] || t;
+            const dn = displayNameFor(t);
+            const name = dn ? `${t} · ${dn}` : t;
+            const sector = dn || t;
             TICKER_INFO[t] = { name, sector, color: COLOR_PALETTE[i % COLOR_PALETTE.length] };
         });
     }
@@ -89,10 +98,10 @@
         throw new Error('直連 + 兩個 proxy 都失敗 · F12 看 console');
     }
 
-    async function fetchYahoo(ticker, daysBack) {
-        const now = Math.floor(Date.now() / 1000);
-        const start = now - daysBack * 86400;
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${now}&interval=1d`;
+    async function fetchYahoo(ticker, fromStr, toStr) {
+        const start = Math.floor(new Date(fromStr + 'T00:00:00Z').getTime() / 1000);
+        const end = Math.floor(new Date(toStr + 'T23:59:59Z').getTime() / 1000);
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=1d`;
         const data = await fetchViaProxy(url);
         if (!data || !data.chart || !data.chart.result || !data.chart.result[0]) {
             throw new Error(`${ticker} 回傳格式異常`);
@@ -109,14 +118,8 @@
         })).filter(d => d.close !== null && isFinite(d.close) && d.volume);
     }
 
-    // FMP · /stable/historical-price-eod/light · 免費 tier 對 SPDR 類股 ETF 也支援
-    // (原本的 /full 免費 tier 對 XLK/XLC/etc 會 402 · Premium Query Parameter Special Endpoint)
-    // light 回傳 date + price + volume 剛好夠我算 X/Y 兩軸
-    async function fetchFmp(ticker, daysBack, apikey) {
-        const to = new Date();
-        const from = new Date(to.getTime() - daysBack * 86400 * 1000);
-        const fromStr = from.toISOString().slice(0, 10);
-        const toStr = to.toISOString().slice(0, 10);
+    // FMP · /stable/historical-price-eod/light · light 回傳 date + price + volume 剛好夠 X/Y
+    async function fetchFmp(ticker, fromStr, toStr, apikey) {
         const url = `${FMP_BASE}/historical-price-eod/light?symbol=${ticker}&from=${fromStr}&to=${toStr}&apikey=${apikey}`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -163,10 +166,12 @@
         return mapped;
     }
 
-    // 快速驗證 FMP key 是否有效 · 打一個輕量 endpoint（單一 ticker 5 天資料）
+    // 快速驗證 FMP key 是否有效 · 打一個輕量 endpoint（單一 ticker 7 天資料）
     async function verifyFmpKey(apikey) {
         try {
-            const rows = await fetchFmp('SPY', 5, apikey);
+            const now = new Date();
+            const from = new Date(now.getTime() - 7 * 86400 * 1000);
+            const rows = await fetchFmp('SPY', from.toISOString().slice(0, 10), now.toISOString().slice(0, 10), apikey);
             return { ok: true, rows: rows.length };
         } catch (e) {
             return { ok: false, error: e.message };
@@ -174,11 +179,7 @@
     }
 
     // FinMind · TaiwanStockPrice · 台股 EOD · 直連 CORS · 需要 token
-    async function fetchFinMind(ticker, daysBack, token) {
-        const to = new Date();
-        const from = new Date(to.getTime() - daysBack * 86400 * 1000);
-        const fromStr = from.toISOString().slice(0, 10);
-        const toStr = to.toISOString().slice(0, 10);
+    async function fetchFinMind(ticker, fromStr, toStr, token) {
         const params = new URLSearchParams({
             dataset: 'TaiwanStockPrice',
             data_id: ticker,
@@ -219,16 +220,48 @@
         return mapped;
     }
 
+    // FinMind TaiwanStockInfo · 一次抓所有台股中文名 · 存 localStorage · 24h 內快取
+    async function loadTwStockNames() {
+        try {
+            const cached = JSON.parse(localStorage.getItem('rotation_tw_names') || 'null');
+            if (cached && cached.ts && Date.now() - cached.ts < 24 * 3600 * 1000 && cached.names) {
+                TW_STOCK_NAMES = cached.names;
+                console.log(`✅ TW 名稱從 localStorage 快取（${Object.keys(TW_STOCK_NAMES).length} 支 · <24h）`);
+                return;
+            }
+        } catch (_) {}
+        const token = getFinMindToken();
+        if (!token) {
+            console.warn('無 FinMind token · 台股用代號本身當名稱');
+            return;
+        }
+        try {
+            const params = new URLSearchParams({ dataset: 'TaiwanStockInfo', token });
+            const res = await fetch(`${FINMIND_BASE}?${params}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            const names = {};
+            for (const r of (json.data || [])) {
+                if (r.stock_id && r.stock_name) names[r.stock_id] = r.stock_name;
+            }
+            TW_STOCK_NAMES = names;
+            localStorage.setItem('rotation_tw_names', JSON.stringify({ ts: Date.now(), names }));
+            console.log(`✅ FinMind TaiwanStockInfo 抓了 ${Object.keys(names).length} 支中文名 · 存 localStorage`);
+        } catch (e) {
+            console.warn('抓 TaiwanStockInfo 失敗:', e.message);
+        }
+    }
+
     // 統一入口：依 ticker 型別路由
     //   純數字（2330）→ FinMind · 失敗才 fallback Yahoo
     //   字母（NVDA）→ FMP · 失敗才 fallback Yahoo
     // 回傳 { data, source } · source 是 'FMP' / 'FinMind' / 'Yahoo'
-    async function fetchTicker(ticker, daysBack) {
+    async function fetchTicker(ticker, fromStr, toStr) {
         if (isTwTicker(ticker)) {
             const token = getFinMindToken();
             if (token) {
                 try {
-                    const data = await fetchFinMind(ticker, daysBack, token);
+                    const data = await fetchFinMind(ticker, fromStr, toStr, token);
                     if (data && data.length > 10) return { data, source: 'FinMind' };
                 } catch (e) {
                     console.warn(`FinMind fail for ${ticker}: ${e.message} · falling back to Yahoo`);
@@ -236,23 +269,21 @@
             } else {
                 console.warn(`⚠ ${ticker} 是台股 · 但沒 FinMind token · fallback Yahoo`);
             }
-            // Yahoo 也支援台股 · 用 X.TW / X.TWO 後綴
-            const yTicker = /^00/.test(ticker) ? `${ticker}.TW` : `${ticker}.TW`;
-            const data = await fetchYahoo(yTicker, daysBack);
+            const yTicker = `${ticker}.TW`;
+            const data = await fetchYahoo(yTicker, fromStr, toStr);
             console.log(`✅ Yahoo ${yTicker}: ${data.length} rows（fallback）`);
             return { data, source: 'Yahoo' };
         }
-        // 字母 ticker · 走 FMP
         const key = getFmpKey();
         if (key) {
             try {
-                const data = await fetchFmp(ticker, daysBack, key);
+                const data = await fetchFmp(ticker, fromStr, toStr, key);
                 if (data && data.length > 10) return { data, source: 'FMP' };
             } catch (e) {
                 console.warn(`FMP fail for ${ticker}: ${e.message} · falling back to Yahoo`);
             }
         }
-        const data = await fetchYahoo(ticker, daysBack);
+        const data = await fetchYahoo(ticker, fromStr, toStr);
         console.log(`✅ Yahoo ${ticker}: ${data.length} rows（fallback）`);
         return { data, source: 'Yahoo' };
     }
@@ -340,8 +371,11 @@
         btnPlay.disabled = true;
         btnPlay.textContent = '⏳ 資料載入中……';
 
-        // 抓 ~140 天 · 才夠算 20 日 vol 和 63 日 display
-        const daysBack = DISPLAY_DAYS + VOL_WINDOW + 20;
+        // 使用者選的日期區間 · 抓資料時要往前多抓 50 個日曆日當緩衝（VOL_WINDOW + MOM_WINDOW）
+        const fetchFromDate = new Date(RANGE_FROM);
+        fetchFromDate.setDate(fetchFromDate.getDate() - 50);
+        const fetchFromStr = fetchFromDate.toISOString().slice(0, 10);
+        const fetchToStr = RANGE_TO;
         const all = [BENCHMARK, ...TICKERS];
 
         // 有 FMP key 就平行抓（FMP 支援 300/分）· 沒 key 就 sequential（Yahoo proxy 會 throttle）
@@ -368,7 +402,7 @@
                 let doneCount = 0;
                 const promises = all.map(async t => {
                     try {
-                        const { data, source } = await fetchTicker(t, daysBack);
+                        const { data, source } = await fetchTicker(t, fetchFromStr, fetchToStr);
                         doneCount += 1;
                         drawLoadingPlaceholder(doneCount, all.length, t, '平行');
                         updateLoadStatus(status, doneCount, all.length, t, '平行載入');
@@ -396,7 +430,7 @@
                     drawLoadingPlaceholder(Object.keys(results).length, all.length, t, '順序');
                     updateLoadStatus(status, Object.keys(results).length, all.length, t, '順序載入');
                     try {
-                        const { data, source } = await fetchTicker(t, daysBack);
+                        const { data, source } = await fetchTicker(t, fetchFromStr, fetchToStr);
                         results[t] = data;
                         sourceCounts[source] = (sourceCounts[source] || 0) + 1;
                     } catch (e) {
@@ -453,7 +487,8 @@
             .filter(([_, c]) => c === activeTickers.length)
             .map(([d]) => d)
             .sort();
-        state.dates = commonDates.slice(-DISPLAY_DAYS);
+        // 只保留使用者選的日期範圍內的交易日
+        state.dates = commonDates.filter(d => d >= RANGE_FROM && d <= RANGE_TO);
         state.currentIdx = state.dates.length - 1;   // start at latest day
 
         // 計算 axis range 和 max dollar vol
@@ -1240,6 +1275,42 @@
         for (let i = 0; i < 6; i++) $(`ticker-${i + 1}`).value = TICKERS[i] || DEFAULT_TICKERS[i];
         $('ticker-benchmark').value = BENCHMARK;
 
+        // 日期預設：3 個月前 → 今天
+        const today = new Date();
+        const threeMonAgo = new Date(today);
+        threeMonAgo.setMonth(today.getMonth() - 3);
+        $('date-end').value = today.toISOString().slice(0, 10);
+        $('date-start').value = threeMonAgo.toISOString().slice(0, 10);
+        // 若 localStorage 有存日期 · 復原
+        try {
+            const savedDate = JSON.parse(localStorage.getItem('rotation_date_range') || 'null');
+            if (savedDate && savedDate.from && savedDate.to) {
+                // 用「離今天多久」而不是絕對日期 · 免得下週回來還是 3 個月前那批
+                const saved = new Date(savedDate.from);
+                const today2 = new Date();
+                const daysBack = Math.floor((today2 - saved) / 86400000);
+                const restoredStart = new Date(today2);
+                restoredStart.setDate(today2.getDate() - daysBack);
+                $('date-start').value = restoredStart.toISOString().slice(0, 10);
+                $('date-end').value = today2.toISOString().slice(0, 10);
+            }
+        } catch (_) {}
+
+        // 日期 preset 按鈕
+        document.querySelectorAll('.date-preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const today2 = new Date();
+                $('date-end').value = today2.toISOString().slice(0, 10);
+                if (btn.dataset.ytd) {
+                    $('date-start').value = `${today2.getFullYear()}-01-01`;
+                } else if (btn.dataset.months) {
+                    const from = new Date(today2);
+                    from.setMonth(today2.getMonth() - parseInt(btn.dataset.months));
+                    $('date-start').value = from.toISOString().slice(0, 10);
+                }
+            });
+        });
+
         const collectTickers = () => {
             const t = [];
             for (let i = 1; i <= 6; i++) {
@@ -1287,12 +1358,29 @@
             if ((usTickers.length > 0 || !isTwTicker(benchmark)) && !getFmpKey()) {
                 if (!confirm(`你填了 ${usTickers.length} 支美股但沒設 FMP key · 會 fallback Yahoo · 繼續？`)) return;
             }
+            // 讀日期
+            const from = $('date-start').value;
+            const to = $('date-end').value;
+            if (!from || !to) {
+                alert('請填起始 + 結束日期');
+                return;
+            }
+            if (from >= to) {
+                alert('起始日期必須早於結束日期');
+                return;
+            }
+            RANGE_FROM = from;
+            RANGE_TO = to;
             // 更新 global TICKERS + BENCHMARK · 重建 TICKER_INFO
             TICKERS = tickers;
             BENCHMARK = benchmark;
+            // 若有台股 · 先抓 TaiwanStockInfo（中文名）
+            const twInList = tickers.some(isTwTicker) || isTwTicker(benchmark);
+            if (twInList) loadTwStockNames().then(() => buildTickerInfo()).then(rebuildTickerChips);
             buildTickerInfo();
             // 存 localStorage
             localStorage.setItem('rotation_tickers', JSON.stringify({ tickers, benchmark }));
+            localStorage.setItem('rotation_date_range', JSON.stringify({ from, to }));
             // 重置狀態 + 重建 chip · 開始載入
             state.visibleTickers = new Set(TICKERS);
             state.metrics = {};
@@ -1376,6 +1464,12 @@
         initControls();
         initTooltip();
         initTickerInputs();
+        // 若上次選了台股 · 背景抓中文名（不阻擋 UI）
+        const hasTw = TICKERS.some(isTwTicker) || isTwTicker(BENCHMARK);
+        if (hasTw) loadTwStockNames().then(() => {
+            buildTickerInfo();
+            rebuildTickerChips();
+        });
         // 不自動抓資料 · 等使用者按下載
         drawWaitingPlaceholder();
         const btnPlay = $('btn-play');
