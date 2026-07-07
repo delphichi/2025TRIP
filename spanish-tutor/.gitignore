@@ -3,3 +3,7 @@ node_modules/
 .env.local
 *.log
 .DS_Store
+
+# Kaikki 下載快取（.jsonl 幾十 MB · 不進 repo）
+tools/data/.kaikki-*.jsonl
+tools/data/.kaikki-*.gz

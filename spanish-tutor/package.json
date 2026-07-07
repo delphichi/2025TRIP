@@ -2,11 +2,14 @@
     "name": "spanish-tutor",
     "version": "0.1.0",
     "private": true,
-    "description": "西班牙文學習助手 · AI Agent 完整架構 · Phase 0（純文字問答）",
+    "description": "西班牙文學習助手 · AI Agent 完整架構 · Phase 5（真字典 · Kaikki/Wiktionary）",
     "type": "module",
     "scripts": {
         "start": "node server.js",
-        "dev": "node --watch server.js"
+        "dev": "node --watch server.js",
+        "fetch-dict": "node scripts/fetch-dictionary.mjs --merge",
+        "fetch-dict:top10k": "node scripts/fetch-dictionary.mjs --top=10000 --merge",
+        "fetch-dict:fresh": "node scripts/fetch-dictionary.mjs --no-cache"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.32.1",

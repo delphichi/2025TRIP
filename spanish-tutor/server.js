@@ -25,6 +25,7 @@ import {
     summarizeIfNeeded, buildHistoryForAgent, appendExchange,
     CONTEXT_LIMITS,
 } from './harness/context-manager.js';
+import { getDictMeta } from './tools/dictionary-lookup.js';
 
 dotenv.config();
 
@@ -247,7 +248,8 @@ app.get('/api/health', (_req, res) => {
         harnessLimits: HARNESS_LIMITS,
         multiAgentLimits: MULTI_AGENT_LIMITS,
         contextLimits: CONTEXT_LIMITS,
-        phase: 'phase-4-context',
+        dictionary: getDictMeta(),
+        phase: 'phase-5-real-dict',
         hasKey: !!process.env.ANTHROPIC_API_KEY,
         routes: [
             '/api/chat-simple', '/api/chat-agent', '/api/chat-multi-agent',
@@ -258,7 +260,7 @@ app.get('/api/health', (_req, res) => {
 
 app.listen(PORT, () => {
     console.log('');
-    console.log('🇪🇸 Spanish tutor · Phase 4（對話記憶 + 自動摘要）');
+    console.log('🇪🇸 Spanish tutor · Phase 5（真字典 · Wiktionary/Kaikki）');
     console.log(`   URL:   http://localhost:${PORT}`);
     console.log(`   Model: ${MODEL}`);
     console.log(`   Max tokens: ${MAX_TOKENS}`);
