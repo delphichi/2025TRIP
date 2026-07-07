@@ -49,7 +49,9 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-app.use(express.json({ limit: '10kb' }));
+// 全域 body limit · 10mb 支援照片上傳（SVG endpoint）· 純聊天 endpoint 靠 route 內
+// message.length > 1000 檢查擋大訊息 · 兩層防線
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // System prompt · 教 Claude 用「西文 + 中文括號」雙語格式回答
@@ -234,9 +236,9 @@ app.post('/api/chat-multi-agent', async (req, res) => {
  * body: { imageBase64: string, mimeType: string, style: string }
  * flow: image-input-filter → Claude vision API → svg-safety-check
  *
- * 用專用的 express.json({limit:'8mb'}) middleware · 因為圖片 base64 會很大
+ * body limit 靠全域 express.json({limit:'10mb'}) · 因為圖片 base64 會較大
  */
-app.post('/api/svg-generate', express.json({ limit: '8mb' }), async (req, res) => {
+app.post('/api/svg-generate', async (req, res) => {
     const { imageBase64, mimeType, style } = req.body || {};
 
     // === 基本參數檢查 ===
@@ -382,6 +384,26 @@ app.get('/api/health', (_req, res) => {
             '/api/chat-simple', '/api/chat-agent', '/api/chat-multi-agent',
             '/api/session/:id (GET/DELETE)',
         ],
+    });
+});
+
+// 全域錯誤 handler · 保底：body-parser 或其他 middleware 錯 · 回 JSON 而非預設 HTML 頁
+// 避免前端拿到 HTML 又 JSON.parse 出「Unexpected token '<'」
+app.use((err, req, res, _next) => {
+    console.error('Global error:', err.status || 500, err.type, err.message);
+    if (res.headersSent) return;
+    if (err.type === 'entity.too.large') {
+        return res.status(413).json({
+            error: `上傳 payload 過大 · 上限 10MB · 收到 ${(err.length / 1024 / 1024).toFixed(2)}MB`,
+            stage: 'body-parser',
+        });
+    }
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({ error: `JSON 格式錯：${err.message}`, stage: 'body-parser' });
+    }
+    res.status(err.status || 500).json({
+        error: err.message || 'Internal Server Error',
+        stage: 'unhandled',
     });
 });
 
