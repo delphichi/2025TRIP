@@ -24,3 +24,23 @@ export const PRICING_USD_PER_MTOK = {
 };
 
 export const USD_TO_TWD = 32;
+
+/**
+ * Multi-agent 專用上限 · Phase 3
+ * -----------------------------------
+ * 三層架構：Planner + 2 個 sub-agent
+ * · 每個 sub-agent 有獨立 Guard（sub 內部）
+ * · Planner 有自己的 Guard（協調層）
+ * · Aggregate cap 是「總合上限」· 任何一層都會查
+ */
+export const MULTI_AGENT_LIMITS = {
+    PLANNER_MAX_TOKENS: 3000,
+    PLANNER_MAX_ITERATIONS: 4,
+    PLANNER_MAX_DELEGATIONS: 4,    // Planner 最多派幾次任務
+    SUB_AGENT_MAX_TOKENS: 3000,
+    SUB_AGENT_MAX_ITERATIONS: 4,
+    SUB_AGENT_MAX_TOOL_CALLS: 4,
+    AGGREGATE_MAX_TOKENS: 15_000,  // 全部加起來上限 · 防燒穿
+    TIMEOUT_MS: 60_000,             // 多輪較慢 · 一分鐘
+    MAX_PER_STEP_TOKENS: 1024,
+};
