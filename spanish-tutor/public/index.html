@@ -351,17 +351,34 @@
             padding: 12px 14px;
             margin-bottom: 14px;
         }
+        .truncation-banner.info {
+            background: #fef9c3;
+            border-color: #eab308;
+        }
         .truncation-title {
             font-weight: 700;
             color: #991b1b;
             margin-bottom: 6px;
             font-size: .95em;
         }
+        .truncation-title.info { color: #713f12; }
         .truncation-body {
             color: #7f1d1d;
             font-size: .9em;
             line-height: 1.6;
         }
+        .truncation-banner.info .truncation-body { color: #713f12; }
+        .sev-info, .sev-crit {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: .78em;
+            font-weight: 700;
+            margin-right: 4px;
+            font-family: ui-monospace, monospace;
+        }
+        .sev-info { background: #fef08a; color: #713f12; }
+        .sev-crit { background: #fecaca; color: #991b1b; }
         .truncation-body li { margin: 3px 0; }
         .stop-reason-badge {
             font-family: ui-monospace, monospace;
@@ -799,15 +816,22 @@
                 </div>` + html;
             }
             if (data.truncated) {
-                html = renderTruncationBanner(data.truncationWarnings) + html;
+                html = renderTruncationBanner(data.truncationWarnings, data.finalAnswerAffected) + html;
             }
             $response.innerHTML = html;
             const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
             const blocked = data.blocked === true;
             const truncated = data.truncated === true;
-            const doneCls = blocked ? 'err' : (truncated ? 'warn' : (data.done ? 'ok' : 'warn'));
+            const finalAffected = data.finalAnswerAffected === true;
+            // 三段：無截斷 / sub-agent 截斷（不影響最終）/ 最終回覆被截斷
+            const doneCls = blocked ? 'err'
+                           : finalAffected ? 'warn'
+                           : truncated ? 'ok'
+                           : data.done ? 'ok'
+                           : 'warn';
             const doneText = blocked ? `⛔ Harness 攔截 · ${data.blockCode || 'BLOCKED'}`
-                           : truncated ? '⚠️ 完成但被截斷'
+                           : finalAffected ? '⚠️ 完成但被截斷'
+                           : truncated ? '✅ 完成（中間曾截斷但已補完）'
                            : data.done ? '✅ 完成'
                            : '⚠ 未完成';
             const totalToolCalls = (data.trace || []).reduce((s, step) => s + (step.toolCalls?.length || 0), 0);
@@ -881,16 +905,23 @@
                 </div>` + html;
             }
             if (data.truncated) {
-                html = renderTruncationBanner(data.truncationWarnings) + html;
+                html = renderTruncationBanner(data.truncationWarnings, data.finalAnswerAffected) + html;
             }
             $response.innerHTML = html;
 
             const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
             const blocked = data.blocked === true;
             const truncated = data.truncated === true;
-            const doneCls = blocked ? 'err' : (truncated ? 'warn' : (data.done ? 'ok' : 'warn'));
+            const finalAffected = data.finalAnswerAffected === true;
+            // 三段：無截斷 / sub-agent 截斷（不影響最終）/ 最終回覆被截斷
+            const doneCls = blocked ? 'err'
+                           : finalAffected ? 'warn'
+                           : truncated ? 'ok'
+                           : data.done ? 'ok'
+                           : 'warn';
             const doneText = blocked ? `⛔ Harness 攔截 · ${data.blockCode || 'BLOCKED'}`
-                           : truncated ? '⚠️ 完成但被截斷'
+                           : finalAffected ? '⚠️ 完成但被截斷'
+                           : truncated ? '✅ 完成（中間曾截斷但已補完）'
                            : data.done ? '✅ 完成'
                            : '⚠ 未完成';
             const cost = data.cost;
@@ -1018,13 +1049,31 @@
             `;
         }
 
-        function renderTruncationBanner(warnings) {
+        function renderTruncationBanner(warnings, finalAnswerAffected) {
             if (!warnings?.length) return '';
-            const items = warnings.map(w => `<li><b>${escape(w.source)}</b>：${escape(w.reason)}</li>`).join('');
+            const items = warnings.map(w => {
+                const sevBadge = w.severity === 'informational'
+                    ? '<span class="sev-info">中間步驟</span>'
+                    : '<span class="sev-crit">最終回覆</span>';
+                return `<li>${sevBadge} <b>${escape(w.source)}</b>：${escape(w.reason)}</li>`;
+            }).join('');
+
+            // 若最終回覆沒受影響 · 走黃色 informational · 不是紅色 critical
+            if (!finalAnswerAffected) {
+                return `<div class="truncation-banner info">
+                    <div class="truncation-title info">ℹ️ 中間步驟曾被截斷 · 但最終回覆完整</div>
+                    <div class="truncation-body">
+                        Sub-agent 中間輸出被 <code>max_tokens</code> 硬砍 · 但 Planner 有能力重新整合 · <b>使用者看到的最終答案是完整的</b>。若答案品質有異狀才需注意：
+                        <ul style="margin:4px 0 0 20px">${items}</ul>
+                    </div>
+                </div>`;
+            }
+
+            // 最終回覆真的被截斷 · 紅色警告
             return `<div class="truncation-banner">
-                <div class="truncation-title">🚨 回覆被截斷 · 內容不完整</div>
+                <div class="truncation-title">🚨 最終回覆被截斷 · 內容不完整</div>
                 <div class="truncation-body">
-                    以下位置被 <code>max_tokens</code> 上限硬砍 · 使用者看到的內容可能只是原本的前半段 · 請重問或用更精簡的問法：
+                    Planner 最終整合步被 <code>max_tokens</code> 硬砍 · <b>使用者看到的答案是半吊子</b> · 請重問或用更精簡的問法：
                     <ul style="margin:4px 0 0 20px">${items}</ul>
                 </div>
             </div>`;

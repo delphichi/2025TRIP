@@ -176,11 +176,16 @@ export async function runMultiAgent({ client, model, userQuestion, conversationH
             const collected = collectUnverifiedFromSubAgents(subAgentTraces);
             const filtered = annotateSourceReliability(rawText, collected.pseudoTrace);
 
-            // === 截斷檢測 · 三種來源 ===
+            // === 截斷檢測 · 分級 ===
+            // critical: Planner 最終整合被砍 · 使用者看到的答案不完整
+            // informational: 只有 sub-agent 中間步被砍 · Planner 有機會補洞、最終回覆仍完整
             const truncationWarnings = [];
-            if (response.stop_reason === 'max_tokens') {
+            const plannerTruncated = response.stop_reason === 'max_tokens';
+
+            if (plannerTruncated) {
                 truncationWarnings.push({
                     source: 'planner',
+                    severity: 'critical',
                     reason: `Planner 最終整合被 max_tokens 截斷（output=${response.usage.output_tokens} tok · 上限 ${MULTI_AGENT_LIMITS.PLANNER_MAX_PER_STEP_TOKENS}）· 使用者看到的答案不完整`,
                 });
             }
@@ -188,15 +193,20 @@ export async function runMultiAgent({ client, model, userQuestion, conversationH
                 if (sub.result.truncated) {
                     truncationWarnings.push({
                         source: sub.specialist,
+                        // Planner 若沒被砍 · sub-agent 截斷 = informational（Planner 能重寫）
+                        severity: plannerTruncated ? 'critical' : 'informational',
                         reason: sub.result.truncationReason,
                     });
                 }
             }
             const anyTruncated = truncationWarnings.length > 0;
+            // 關鍵新欄位：使用者最終看到的答案 · 是否真的不完整
+            const finalAnswerAffected = plannerTruncated;
 
             return {
                 done: true,
                 truncated: anyTruncated,
+                finalAnswerAffected,
                 truncationWarnings,
                 finalText: filtered.text,
                 rawText,
