@@ -244,6 +244,35 @@
             font-size: .9em;
             line-height: 1.55;
         }
+        .truncation-banner {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+        .truncation-title {
+            font-weight: 700;
+            color: #991b1b;
+            margin-bottom: 6px;
+            font-size: .95em;
+        }
+        .truncation-body {
+            color: #7f1d1d;
+            font-size: .9em;
+            line-height: 1.6;
+        }
+        .truncation-body li { margin: 3px 0; }
+        .stop-reason-badge {
+            font-family: ui-monospace, monospace;
+            font-size: .78em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+        .stop-reason-badge.ok { background: #dcfce7; color: #166534; }
+        .stop-reason-badge.tool { background: #dbeafe; color: #1e40af; }
+        .stop-reason-badge.trunc { background: #fee2e2; color: #991b1b; }
         .badge.cost {
             background: #fef3c7;
             color: #78350f;
@@ -554,12 +583,17 @@
                     </div>
                 </div>` + html;
             }
+            if (data.truncated) {
+                html = renderTruncationBanner(data.truncationWarnings) + html;
+            }
             $response.innerHTML = html;
             const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
             const blocked = data.blocked === true;
-            const doneCls = data.done ? 'ok' : (blocked ? 'err' : 'warn');
-            const doneText = data.done ? '✅ 完成'
-                           : blocked ? `⛔ Harness 攔截 · ${data.blockCode || 'BLOCKED'}`
+            const truncated = data.truncated === true;
+            const doneCls = blocked ? 'err' : (truncated ? 'warn' : (data.done ? 'ok' : 'warn'));
+            const doneText = blocked ? `⛔ Harness 攔截 · ${data.blockCode || 'BLOCKED'}`
+                           : truncated ? '⚠️ 完成但被截斷'
+                           : data.done ? '✅ 完成'
                            : '⚠ 未完成';
             const totalToolCalls = (data.trace || []).reduce((s, step) => s + (step.toolCalls?.length || 0), 0);
             const cost = data.cost;
@@ -600,7 +634,7 @@
                 <div class="trace-step">
                     <div class="trace-step-header">
                         <span>🔄 Step ${step.step}</span>
-                        <span class="badge">stop: ${step.stopReason} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
+                        <span class="badge">${stopReasonBadge(step.stopReason)} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
                     </div>
                     ${step.thinking ? `<div class="trace-thinking">💭 「${escape(step.thinking)}」</div>` : ''}
                     ${(step.toolCalls || []).map((tc, i) => {
@@ -631,13 +665,18 @@
                     <div class="unverified-body">${parts.join('<br>')}</div>
                 </div>` + html;
             }
+            if (data.truncated) {
+                html = renderTruncationBanner(data.truncationWarnings) + html;
+            }
             $response.innerHTML = html;
 
             const elapsedTxt = ((data.elapsedMs || (performance.now() - t0)) / 1000).toFixed(1);
             const blocked = data.blocked === true;
-            const doneCls = data.done ? 'ok' : (blocked ? 'err' : 'warn');
-            const doneText = data.done ? '✅ 完成'
-                           : blocked ? `⛔ Harness 攔截 · ${data.blockCode || 'BLOCKED'}`
+            const truncated = data.truncated === true;
+            const doneCls = blocked ? 'err' : (truncated ? 'warn' : (data.done ? 'ok' : 'warn'));
+            const doneText = blocked ? `⛔ Harness 攔截 · ${data.blockCode || 'BLOCKED'}`
+                           : truncated ? '⚠️ 完成但被截斷'
+                           : data.done ? '✅ 完成'
                            : '⚠ 未完成';
             const cost = data.cost;
             const delegations = (data.plannerTrace || []).reduce((s, step) => s + (step.delegations?.length || 0), 0);
@@ -703,7 +742,7 @@
                 <div class="trace-step" style="border-left-color:#3b82f6;background:#eff6ff">
                     <div class="trace-step-header" style="color:#1e40af">
                         <span>🎯 Planner Step ${step.step}</span>
-                        <span class="badge">stop: ${step.stopReason} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
+                        <span class="badge">${stopReasonBadge(step.stopReason)} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
                     </div>
                     ${step.thinking ? `<div class="trace-thinking">💭 「${escape(step.thinking)}」</div>` : ''}
                     ${(step.delegations || []).map((d, i) => {
@@ -733,7 +772,7 @@
                 <div class="trace-step" style="margin:6px 0;padding:6px 8px;background:#fff;border-left-color:#a855f7;font-size:.85em">
                     <div class="trace-step-header" style="color:#7e22ce">
                         <span>🔄 ${specialist} Step ${step.step}</span>
-                        <span class="badge">stop: ${step.stopReason} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
+                        <span class="badge">${stopReasonBadge(step.stopReason)} · in ${step.usage.input_tokens} · out ${step.usage.output_tokens}</span>
                     </div>
                     ${step.thinking ? `<div class="trace-thinking">💭 「${escape(step.thinking)}」</div>` : ''}
                     ${(step.toolCalls || []).map((tc, i) => {
@@ -762,6 +801,26 @@
                     </div>
                 </details>
             `;
+        }
+
+        function renderTruncationBanner(warnings) {
+            if (!warnings?.length) return '';
+            const items = warnings.map(w => `<li><b>${escape(w.source)}</b>：${escape(w.reason)}</li>`).join('');
+            return `<div class="truncation-banner">
+                <div class="truncation-title">🚨 回覆被截斷 · 內容不完整</div>
+                <div class="truncation-body">
+                    以下位置被 <code>max_tokens</code> 上限硬砍 · 使用者看到的內容可能只是原本的前半段 · 請重問或用更精簡的問法：
+                    <ul style="margin:4px 0 0 20px">${items}</ul>
+                </div>
+            </div>`;
+        }
+
+        function stopReasonBadge(stopReason) {
+            const cls = stopReason === 'max_tokens' ? 'trunc'
+                      : stopReason === 'tool_use' ? 'tool'
+                      : 'ok';
+            const icon = stopReason === 'max_tokens' ? '🚨 ' : '';
+            return `<span class="stop-reason-badge ${cls}">${icon}${escape(stopReason)}</span>`;
         }
 
         // 把 Claude 的雙語回覆做簡單樣式：西文行加粗紅色、中文正常

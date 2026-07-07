@@ -174,8 +174,15 @@ export async function runLearningAgent({ client, model, userQuestion, conversati
         if (toolUseBlocks.length === 0) {
             const rawText = textBlocks.map(b => b.text).join('\n');
             const filtered = annotateSourceReliability(rawText, trace);
+            const truncated = response.stop_reason === 'max_tokens';
+            const truncationWarnings = truncated ? [{
+                source: 'agent',
+                reason: `Agent 最終回覆被 max_tokens 截斷（output=${response.usage.output_tokens} tok · 上限 ${HARNESS_LIMITS.MAX_PER_STEP_TOKENS}）· 內容不完整`,
+            }] : [];
             return {
                 done: true,
+                truncated,
+                truncationWarnings,
                 finalText: filtered.text,
                 rawText,
                 sourceReliability: {

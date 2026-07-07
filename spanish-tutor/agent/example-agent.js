@@ -106,8 +106,14 @@ export async function runExampleAgent({ client, model, task, aggregateGuard }) {
         });
 
         if (toolUseBlocks.length === 0) {
+            const truncated = response.stop_reason === 'max_tokens';
             return {
                 done: true,
+                truncated,
+                truncationReason: truncated
+                    ? `Example 助教最終步 output=${response.usage.output_tokens} tok · 打到 max_tokens 上限 ${MULTI_AGENT_LIMITS.SUB_AGENT_MAX_PER_STEP_TOKENS} · 回覆不完整`
+                    : null,
+                stopReason: response.stop_reason,
                 finalText: textBlocks.map(b => b.text).join('\n'),
                 trace,
                 iterations: i + 1,
