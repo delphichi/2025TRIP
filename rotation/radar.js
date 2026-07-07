@@ -4,7 +4,10 @@
     // ==========================================
     // Config
     // ==========================================
-    const TICKERS = ['XLK', 'XLC', 'XLF', 'XLE', 'XLV', 'XLI'];
+    // 產業龍頭個股（FMP 免費 tier 全支援 · 免 CORS proxy · 訊號比 ETF 平均更清晰）
+    // SPDR 類股 ETF（XLK/XLC 等）在 FMP 免費 tier 是「Special Endpoint」需付費升級 ·
+    // 龍頭個股跟 sector ETF 相關性 0.8+ · 資金流向趨勢一致
+    const TICKERS = ['NVDA', 'META', 'JPM', 'XOM', 'UNH', 'CAT'];
     const BENCHMARK = 'SPY';
     const VOL_WINDOW = 20;    // 20 日均量
     const MOM_WINDOW = 10;    // 10 日累積報酬
@@ -12,12 +15,12 @@
     const TRAIL_LEN = 12;     // 尾巴保留幾天
 
     const TICKER_INFO = {
-        XLK: { name: '科技',       color: '#3b82f6' },
-        XLC: { name: '通訊服務',   color: '#8b5cf6' },
-        XLF: { name: '金融',       color: '#10b981' },
-        XLE: { name: '能源',       color: '#f59e0b' },
-        XLV: { name: '醫療',       color: '#ef4444' },
-        XLI: { name: '工業',       color: '#6b7280' },
+        NVDA: { name: '科技 · NVIDIA',      color: '#3b82f6', sector: '科技' },
+        META: { name: '通訊 · Meta',        color: '#8b5cf6', sector: '通訊服務' },
+        JPM:  { name: '金融 · 摩根大通',    color: '#10b981', sector: '金融' },
+        XOM:  { name: '能源 · Exxon',       color: '#f59e0b', sector: '能源' },
+        UNH:  { name: '醫療 · UnitedHealth', color: '#ef4444', sector: '醫療' },
+        CAT:  { name: '工業 · Caterpillar', color: '#6b7280', sector: '工業' },
     };
 
     // 資料源：FMP 為主（有 key 才用）· 失敗 fallback Yahoo（靠 CORS proxy）
@@ -812,7 +815,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="tk-dot" style="background:${info.color}"></span> <b>${t}</b></td>
-                <td>${info.name}</td>
+                <td>${info.sector || info.name}</td>
                 <td>$${fmt(m.close, 2)}</td>
                 <td class="${retCls}">${m.ret10d >= 0 ? '+' : ''}${fmtPct(m.ret10d)}</td>
                 <td class="${relCls}">${m.y >= 0 ? '+' : ''}${fmtPct(m.y)}</td>
