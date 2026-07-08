@@ -752,9 +752,9 @@
         const avgStr = avgScore === null ? 'N/A' : Math.round(avgScore);
         const avgVerdict = avgScore === null ? ''
             : avgScore >= 70 ? '🟢 六角形飽滿 · 均衡優質'
-            : avgScore >= 50 ? '🟡 有些軸不錯 · 有些偏低'
-            : avgScore >= 30 ? '🟠 大部分軸偏低 · 有明顯短板'
-            : '🔴 六角形塌陷 · 多數軸偏弱';
+            : avgScore >= 50 ? '🟡 有些軸強 · 有些軸弱 · 混合型公司'
+            : avgScore >= 30 ? '🟠 傳統標準下短板明顯 · <b>若是成長股/AI/半導體 · 這種形狀常見</b> · 需搭配 PEG / 產業對照'
+            : '🔴 傳統標準幾乎不過關 · 若非成長股 · 體質確有疑慮';
 
         // ROE breakdown
         let roeHint = '';
@@ -767,8 +767,19 @@
 
         return `
             <section class="panel radar-panel" id="radar-panel">
-                <h2>🎯 6 軸估值雷達</h2>
+                <h2>🎯 6 軸估值雷達 <span class="radar-lens-tag">傳統價值派標準</span></h2>
                 <p class="hint">六角形越飽滿越好 · 分數用<b>絕對值</b>映射 · 不跟同業比 · 只看該指標的普世好壞。ROE 25% / 毛利 50% / 殖利率 6% / PE 10× / PB 0.8× / 營收 YoY 25% = 各軸滿分。</p>
+                <div class="radar-warning">
+                    <div class="radar-warning-title">⚠️ 這張雷達適合什麼 · 不適合什麼</div>
+                    <div class="radar-warning-body">
+                        本圖用「<b>普世絕對值</b>」評分 · 對<b>高成長股（AI / 半導體 / 平台股）天生不利</b>——這類公司通常 PE / PB 遠高於 10× / 0.8× 的傳統基準 · 但若成長能兌現 · 高 PE 不必然代表「貴」。
+                        <ul>
+                            <li>✅ <b>適合回答</b>：這家公司是不是<b>傳統價值股的標準模範生</b>（低估值、高股息、高 ROE 三者兼得）</li>
+                            <li>❌ <b>不適合單獨用來判斷</b>：成長股 / 科技股「貴或便宜」——後者要搭配上方的<b>歷史百分位</b>、<b>PEG</b>、<b>Zacks 產業對照</b>一起看</li>
+                            <li>⚠️ <b>低分不等於壞公司</b>：AMD / NVDA / GOOGL 這類股票在這裡都會 40 分左右 · 因為評分標準跟他們的類別不匹配 · 不是因為體質差</li>
+                        </ul>
+                    </div>
+                </div>
                 <div class="radar-wrapper">
                     <svg viewBox="0 0 420 400" width="100%" style="max-width:520px" xmlns="http://www.w3.org/2000/svg">
                         ${gridRings}
