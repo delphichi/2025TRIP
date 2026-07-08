@@ -3717,40 +3717,48 @@
     // ---------- Peer comparison（美股專用） ----------
     // FMP /stock-peers 給同業 tickers → Yahoo v7 quote batch 一次拉全部
     // 揭露「相對 peer 貴不貴」· 這比絕對 PE 更能回答 Howard Marks 的市場效率問題
+    // 改用 FMP /batch-quote（一次抓多支 · 不用 CORS proxy · 遠比 Yahoo v7 穩定）
+    // Yahoo v7 保留當「Forward PE 補充」· 有就用 · 沒就只顯示 Trailing PE
     async function fetchPeersComparison(usTicker, fmpKey) {
         if (!fmpKey) return null;
         try {
             const peers = await fmpFetch(`/stock-peers?symbol=${usTicker}`, fmpKey);
             if (!Array.isArray(peers) || peers.length === 0) return null;
-            // 取 6-8 家 · 加上自己 + SPY（大盤參考）· batch symbols 一次拉
             const peerTickers = peers.slice(0, 7).map(p => p.symbol).filter(Boolean);
-            const symbols = [usTicker, ...peerTickers, 'SPY'].join(',');
-            const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`;
-            let data = null;
-            try { data = await fredRawFetch(url); } catch (_) {}
-            if (!data) {
+            const allSymbols = [usTicker, ...peerTickers, 'SPY'];
+
+            // 主資料源：FMP /batch-quote（帶 trailing PE + market cap + EPS · 100% 穩定）
+            const fmpQuotes = await fmpFetch(`/batch-quote?symbols=${allSymbols.join(',')}`, fmpKey).catch(() => null);
+            const fmpBySym = new Map();
+            if (Array.isArray(fmpQuotes)) fmpQuotes.forEach(q => fmpBySym.set(q.symbol, q));
+
+            // 選配：Yahoo v7（給 Forward PE）· 走 CORS proxy · 失敗就算了
+            const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(allSymbols.join(','))}`;
+            let yahooData = null;
+            try { yahooData = await fredRawFetch(yahooUrl); } catch (_) {}
+            if (!yahooData) {
                 for (const proxy of CORS_PROXIES) {
-                    try { data = await fredRawFetch(`${proxy}${encodeURIComponent(url)}`); break; }
-                    catch (_) { data = null; }
+                    try { yahooData = await fredRawFetch(`${proxy}${encodeURIComponent(yahooUrl)}`); break; }
+                    catch (_) { yahooData = null; }
                 }
             }
-            if (!data || !data.quoteResponse || !Array.isArray(data.quoteResponse.result)) return null;
-            const bySym = new Map();
-            data.quoteResponse.result.forEach(q => bySym.set(q.symbol, q));
+            const yahooBySym = new Map();
+            if (yahooData && yahooData.quoteResponse && Array.isArray(yahooData.quoteResponse.result)) {
+                yahooData.quoteResponse.result.forEach(q => yahooBySym.set(q.symbol, q));
+            }
 
             const toRow = (sym, name) => {
-                const q = bySym.get(sym);
-                if (!q) return null;
-                const fwdGrowth = (q.epsForward && q.epsTrailingTwelveMonths && q.epsTrailingTwelveMonths > 0)
-                    ? ((q.epsForward - q.epsTrailingTwelveMonths) / q.epsTrailingTwelveMonths) * 100
-                    : null;
-                const fwdPeg = (q.forwardPE && fwdGrowth && fwdGrowth > 0) ? q.forwardPE / fwdGrowth : null;
-                return {
-                    symbol: sym, name: name || sym,
-                    trailingPE: q.trailingPE,
-                    forwardPE: q.forwardPE,
-                    fwdGrowth, fwdPeg,
-                };
+                const fq = fmpBySym.get(sym);
+                const yq = yahooBySym.get(sym);
+                if (!fq && !yq) return null;
+                // FMP 給 trailingPE + marketCap · Yahoo 給 forwardPE
+                const trailingPE = (yq && yq.trailingPE) || (fq && fq.pe) || null;
+                const forwardPE = yq && yq.forwardPE ? yq.forwardPE : null;
+                const marketCap = (fq && fq.marketCap) || (yq && yq.marketCap) || null;
+                const fwdGrowth = (yq && yq.epsForward && yq.epsTrailingTwelveMonths && yq.epsTrailingTwelveMonths > 0)
+                    ? ((yq.epsForward - yq.epsTrailingTwelveMonths) / yq.epsTrailingTwelveMonths) * 100 : null;
+                const fwdPeg = (forwardPE && fwdGrowth && fwdGrowth > 0) ? forwardPE / fwdGrowth : null;
+                return { symbol: sym, name: name || sym, trailingPE, forwardPE, fwdGrowth, fwdPeg, marketCap };
             };
 
             const peerRows = peerTickers.map(t => {
@@ -3759,7 +3767,6 @@
             }).filter(Boolean);
             const spyRow = toRow('SPY', 'S&P 500');
 
-            // Peer group median（不含自己 · 不含 SPY）
             const med = arr => {
                 const s = arr.filter(v => v !== null && v !== undefined && isFinite(v)).sort((a, b) => a - b);
                 return s.length ? s[Math.floor(s.length / 2)] : null;
@@ -3768,7 +3775,10 @@
             const peerFwdPegMed = med(peerRows.map(p => p.fwdPeg));
             const peerTrailingPeMed = med(peerRows.map(p => p.trailingPE));
 
-            return { peerRows, spyRow, peerFwdPeMed, peerFwdPegMed, peerTrailingPeMed };
+            // 標註：Yahoo 是否有跑起來（讓 render 判斷是否要顯示 Forward PE 欄位）
+            const hasForwardData = peerRows.some(r => r.forwardPE !== null);
+
+            return { peerRows, spyRow, peerFwdPeMed, peerFwdPegMed, peerTrailingPeMed, hasForwardData };
         } catch (e) {
             console.warn('Peer comparison failed:', e.message);
             return null;
