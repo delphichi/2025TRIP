@@ -633,6 +633,297 @@
         return 50 + 50 * (mid50 - val) / (mid50 - low100);
     }
 
+    // ============================================================
+    // 成長股六軸（跟價值派邏輯完全不同）
+    // 核心哲學：問「成長有沒有兌現 + 估值跟成長匹不匹配」·
+    //          不問「便宜不便宜」
+    // ============================================================
+    function computeGrowthAxisScores(analysis) {
+        const fund = analysis.fundamentals || {};
+        const cf = analysis.cashFlow || {};
+
+        // === 1. PEG（用 trailing EPS YoY 算 · 剔除一次性視 spec 未明 · 先用表面 YoY）
+        let peg = null;
+        const currentPE = analysis.currentPE;
+        const latestEps = fund.eps && fund.eps[0];
+        if (currentPE && isFinite(currentPE) && currentPE > 0
+            && latestEps && latestEps.mode === 'YoY' && latestEps.yoy !== null && isFinite(latestEps.yoy) && latestEps.yoy > 0.03) {
+            const growthPct = latestEps.yoy * 100;
+            peg = currentPE / growthPct;
+        }
+
+        // === 2. 營收持續性（近 4 季 YoY 都要正 · 且加速中）
+        // 得分邏輯：
+        //   4 季全正 + 加速中 → 100
+        //   4 季全正但持平/減速 → 60-80
+        //   任一季轉負 → 大幅扣分
+        let revPersistence = null;
+        if (fund.revenue && fund.revenue.length >= 4) {
+            const yoys = fund.revenue.slice(0, 4).map(e => e.yoy).filter(v => v !== null && isFinite(v));
+            if (yoys.length === 4) {
+                const allPositive = yoys.every(v => v > 0);
+                if (!allPositive) {
+                    // 有一季轉負 · 但看嚴重程度
+                    const negCount = yoys.filter(v => v <= 0).length;
+                    revPersistence = Math.max(0, 40 - negCount * 15);   // 1 負 25 · 2 負 10 · 3+ 0
+                } else {
+                    // 全正 · 看是否加速（0 是最新季 · 3 是最舊季）
+                    const isAccelerating = yoys[0] >= yoys[1] && yoys[1] >= yoys[2];
+                    const avgYoy = yoys.reduce((a, b) => a + b, 0) / 4 * 100;
+                    // 平均成長率映射（≥20% 拿滿分）
+                    let base = Math.min(100, avgYoy / 20 * 100);
+                    // 加速的話全給滿 · 減速扣 20 分
+                    if (!isAccelerating) base *= 0.8;
+                    revPersistence = base;
+                }
+            }
+        }
+
+        // === 3. 毛利率趨勢（斜率 · 不是絕對值）
+        // 得分邏輯：
+        //   上升趨勢 → 100
+        //   持平在高檔（>50%）→ 70-80
+        //   下滑趨勢 → 大幅扣分
+        let grossMarginTrend = null;
+        if (fund.grossMargin && fund.grossMargin.length >= 4) {
+            const margins = fund.grossMargin.slice(0, 4).map(e => e.value).filter(v => v !== null && isFinite(v));
+            if (margins.length === 4) {
+                // 用最舊 vs 最新的絕對差當簡易斜率（%pp/季）
+                // margins[0] 是最新 · margins[3] 是最舊
+                const slope = (margins[0] - margins[3]) / 3;   // 平均每季變化
+                const latestMargin = margins[0] * 100;   // 轉 %
+                // 高毛利股（>50%）就算持平也給高分
+                if (latestMargin >= 50 && Math.abs(slope) < 0.005) {
+                    grossMarginTrend = 75;
+                } else if (slope > 0.005) {
+                    // 上升趨勢
+                    grossMarginTrend = Math.min(100, 60 + slope * 4000);
+                } else if (slope < -0.01) {
+                    // 明顯下滑
+                    grossMarginTrend = Math.max(0, 30 + slope * 3000);
+                } else {
+                    // 略降或持平（低毛利）
+                    grossMarginTrend = 50 + slope * 3000;
+                }
+                grossMarginTrend = Math.max(0, Math.min(100, grossMarginTrend));
+            }
+        }
+
+        // === 4. FCF 轉換率（TTM FCF / TTM 淨利）
+        // 滿分 ≥ 80% · 為負大幅扣分
+        let fcfConversion = null, fcfConversionRaw = null;
+        if (cf.freeCF && cf.netIncome && cf.freeCF.length >= 4 && cf.netIncome.length >= 4) {
+            const fcfTtm = cf.freeCF.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
+            const niTtm = cf.netIncome.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
+            if (Math.abs(niTtm) > 1e6) {
+                fcfConversionRaw = fcfTtm / niTtm * 100;   // %
+                if (fcfConversionRaw >= 80) fcfConversion = 100;
+                else if (fcfConversionRaw >= 50) fcfConversion = 50 + (fcfConversionRaw - 50) / 30 * 50;
+                else if (fcfConversionRaw >= 0) fcfConversion = fcfConversionRaw;
+                else fcfConversion = Math.max(0, 20 + fcfConversionRaw / 2);   // 負值嚴扣
+            }
+        }
+
+        // === 5. SBC 稀釋（TTM SBC / TTM GAAP 淨利）· FMP only
+        // 滿分 < 10% · > 35% 大幅扣分
+        let sbcDilution = null, sbcDilutionRaw = null;
+        if (cf.sbc && cf.netIncome && cf.sbc.length >= 4) {
+            const sbcTtm = cf.sbc.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
+            const niTtm = cf.netIncome.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
+            if (sbcTtm > 0 && niTtm > 0) {
+                sbcDilutionRaw = sbcTtm / niTtm * 100;
+                // 反向映射：SBC 比例低分數高
+                if (sbcDilutionRaw <= 10) sbcDilution = 100;
+                else if (sbcDilutionRaw <= 20) sbcDilution = 100 - (sbcDilutionRaw - 10) * 3;   // 70-100
+                else if (sbcDilutionRaw <= 35) sbcDilution = 70 - (sbcDilutionRaw - 20) * 3;    // 25-70
+                else sbcDilution = Math.max(0, 25 - (sbcDilutionRaw - 35) * 0.7);
+            }
+        }
+
+        // === 6. Rule of 40（營收成長 % + FCF margin %）
+        // 滿分 ≥ 60
+        let ruleOf40 = null, ruleOf40Raw = null;
+        if (fund.revenue && fund.revenue[0] && fund.revenue[0].yoy !== null && isFinite(fund.revenue[0].yoy)
+            && cf.freeCF && cf.freeCF.length >= 4) {
+            const revGrowthPct = fund.revenue[0].yoy * 100;
+            const fcfTtm = cf.freeCF.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
+            const revTtm = fund.revenue.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
+            if (revTtm > 0) {
+                const fcfMarginPct = fcfTtm / revTtm * 100;
+                ruleOf40Raw = revGrowthPct + fcfMarginPct;
+                if (ruleOf40Raw >= 60) ruleOf40 = 100;
+                else if (ruleOf40Raw >= 40) ruleOf40 = 60 + (ruleOf40Raw - 40) * 2;   // 60-100
+                else if (ruleOf40Raw >= 20) ruleOf40 = 30 + (ruleOf40Raw - 20) * 1.5; // 30-60
+                else if (ruleOf40Raw >= 0) ruleOf40 = ruleOf40Raw * 1.5;              // 0-30
+                else ruleOf40 = 0;
+            }
+        }
+
+        // PEG 分數（低越好）· ≤ 1.0 滿分 · > 3 為 0
+        let pegScore = null;
+        if (peg !== null && isFinite(peg) && peg > 0) {
+            if (peg <= 1.0) pegScore = 100;
+            else if (peg <= 2.0) pegScore = 100 - (peg - 1.0) * 40;   // 60-100
+            else if (peg <= 3.0) pegScore = 60 - (peg - 2.0) * 60;    // 0-60
+            else pegScore = 0;
+        }
+
+        const scores = {
+            peg: pegScore,
+            revPersistence,
+            grossMarginTrend,
+            fcfConversion,
+            sbcDilution,
+            ruleOf40,
+        };
+        const raw = {
+            peg,
+            revPersistence: fund.revenue && fund.revenue[0] ? fund.revenue[0].yoy * 100 : null,
+            grossMarginTrend: fund.grossMargin && fund.grossMargin[0] ? fund.grossMargin[0].value * 100 : null,
+            fcfConversion: fcfConversionRaw,
+            sbcDilution: sbcDilutionRaw,
+            ruleOf40: ruleOf40Raw,
+        };
+        return { scores, raw };
+    }
+
+    function renderGrowthRadarSvg(analysis) {
+        const { scores, raw } = computeGrowthAxisScores(analysis);
+        const cx = 210, cy = 200, r = 130;
+        const axes = [
+            { key: 'peg',              label: 'PEG', unit: '×', decimals: 2, mapping: '≤1 滿分 · >3 為 0' },
+            { key: 'revPersistence',   label: '營收持續', unit: '% (最新 YoY)', decimals: 1, mapping: '近 4 季全正+加速→100' },
+            { key: 'grossMarginTrend', label: '毛利趨勢', unit: '% (絕對值)', decimals: 1, mapping: '斜率上升→100 · 下滑→扣' },
+            { key: 'fcfConversion',    label: 'FCF/淨利', unit: '%', decimals: 0, mapping: '≥80% 滿分 · 負值嚴扣' },
+            { key: 'sbcDilution',      label: 'SBC 稀釋', unit: '% (低越好)', decimals: 1, mapping: '<10% 滿分 · >35% 嚴扣' },
+            { key: 'ruleOf40',         label: 'Rule of 40', unit: '', decimals: 0, mapping: '營收+FCF margin ≥60 滿分' },
+        ];
+
+        const angle = i => (Math.PI * 2 / axes.length) * i - Math.PI / 2;
+
+        const gridRings = [25, 50, 75, 100].map(pct => {
+            const pts = axes.map((_, i) => {
+                const ang = angle(i);
+                const x = cx + Math.cos(ang) * r * (pct / 100);
+                const y = cy + Math.sin(ang) * r * (pct / 100);
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            }).join(' ');
+            const opa = pct === 100 ? '0.7' : '0.35';
+            return `<polygon points="${pts}" fill="none" stroke="#c4b5fd" stroke-width="1" opacity="${opa}"/>`;
+        }).join('\n');
+
+        const axisLines = axes.map((_, i) => {
+            const ang = angle(i);
+            const x = cx + Math.cos(ang) * r;
+            const y = cy + Math.sin(ang) * r;
+            return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#c4b5fd" stroke-width="1" opacity="0.5"/>`;
+        }).join('\n');
+
+        const dataPoints = axes.map((a, i) => {
+            const s = scores[a.key];
+            const ang = angle(i);
+            const dist = (s === null || s === undefined) ? 0 : (s / 100);
+            const x = cx + Math.cos(ang) * r * dist;
+            const y = cy + Math.sin(ang) * r * dist;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+
+        const dataDots = axes.map((a, i) => {
+            const s = scores[a.key];
+            if (s === null || s === undefined) return '';
+            const ang = angle(i);
+            const x = cx + Math.cos(ang) * r * (s / 100);
+            const y = cy + Math.sin(ang) * r * (s / 100);
+            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#8b5cf6" stroke="#fff" stroke-width="1.5"/>`;
+        }).join('\n');
+
+        const labels = axes.map((a, i) => {
+            const ang = angle(i);
+            const lx = cx + Math.cos(ang) * (r + 32);
+            const ly = cy + Math.sin(ang) * (r + 32);
+            const rawVal = raw[a.key];
+            let rawStr = (rawVal === null || !isFinite(rawVal)) ? 'N/A' : (a.decimals === 0 ? Math.round(rawVal) : rawVal.toFixed(a.decimals));
+            const s = scores[a.key];
+            const scoreStr = (s === null || s === undefined) ? 'N/A' : Math.round(s) + '分';
+            const scoreColor = s === null ? '#9ca3af' : (s >= 70 ? '#059669' : s >= 40 ? '#d97706' : '#dc2626');
+            return `
+                <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">${a.label}</text>
+                <text x="${lx.toFixed(1)}" y="${(ly + 14).toFixed(1)}" text-anchor="middle" font-size="10.5" fill="#64748b">${rawStr}${a.unit}</text>
+                <text x="${lx.toFixed(1)}" y="${(ly + 26).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="${scoreColor}">${scoreStr}</text>
+            `;
+        }).join('\n');
+
+        const legendHtml = axes.map(a => {
+            const s = scores[a.key];
+            const rawVal = raw[a.key];
+            let rawStr = (rawVal === null || !isFinite(rawVal)) ? 'N/A' : (a.decimals === 0 ? Math.round(rawVal) : rawVal.toFixed(a.decimals));
+            const scoreStr = (s === null || s === undefined) ? '—' : Math.round(s);
+            const clsScore = s === null ? '' : (s >= 70 ? 'axis-good' : s >= 40 ? 'axis-mid' : 'axis-poor');
+            return `<tr>
+                <td><b>${a.label}</b></td>
+                <td>${rawStr}${a.unit}</td>
+                <td class="${clsScore}">${scoreStr}分</td>
+                <td class="hint-mini">${a.mapping}</td>
+            </tr>`;
+        }).join('');
+
+        const validScores = Object.values(scores).filter(s => s !== null && s !== undefined);
+        const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : null;
+        const avgStr = avgScore === null ? 'N/A' : Math.round(avgScore);
+        const avgVerdict = avgScore === null ? ''
+            : avgScore >= 70 ? '🟢 成長股標準模範生 · 成長兌現且品質紮實'
+            : avgScore >= 50 ? '🟡 部分軸強 · 部分軸弱 · 常見的「賭成長」型公司'
+            : avgScore >= 30 ? '🟠 成長訊號混雜 · 至少一個核心指標不佳（PEG 太高 · FCF 弱 · SBC 稀釋大）'
+            : '🔴 成長論述站不住腳 · 多個核心指標都有問題';
+
+        const isTwSource = analysis.source === 'FinMind';
+        const sbcNote = isTwSource
+            ? `<div class="hint-mini" style="color:#7c3aed;margin-top:6px">📌 台股 SBC 通常沒揭露那麼細（IFRS 常 embedded 在人事費用內）· 這軸顯示 N/A · 不影響其他 5 軸判讀</div>`
+            : '';
+
+        return `
+            <section class="panel radar-panel radar-panel-growth" id="radar-panel-growth">
+                <h2>🚀 6 軸成長股雷達 <span class="radar-lens-tag lens-growth">成長派標準</span></h2>
+                <p class="hint">問「<b>成長有沒有兌現、估值跟成長速度合不合理</b>」· 不問「便宜不便宜」。適合評估 AI / SaaS / 半導體 / 平台股。</p>
+                <div class="radar-warning radar-warning-growth">
+                    <div class="radar-warning-title">💡 這張雷達適合什麼</div>
+                    <div class="radar-warning-body">
+                        本圖用「<b>成長性 + 估值合理性 + 品質</b>」評分 · 直接對應我們一路討論的 PEG（AMD）· FCF 背離（GOOGL）· SBC 稀釋（AMD）· Rule of 40（SaaS 標準）等概念。
+                        <ul>
+                            <li>✅ <b>適合</b>：成長股 / 科技股 / AI / 半導體 / SaaS · 這類公司在傳統雷達會全趴 · 但這裡能看出「成長品質」</li>
+                            <li>⚠️ <b>PEG</b> 用最新單季 EPS YoY 算 · 若 YoY 是低基期反彈（NVDA 2024 情境）· PEG 會顯著失真 · 上方 verdict 有標警訊</li>
+                            <li>⚠️ <b>SBC 軸</b> FMP 有 · FinMind 通常 N/A（台股 IFRS embedded in 人事費用）</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="radar-wrapper">
+                    <svg viewBox="0 0 420 400" width="100%" style="max-width:520px" xmlns="http://www.w3.org/2000/svg">
+                        ${gridRings}
+                        ${axisLines}
+                        <polygon points="${dataPoints}" fill="rgba(139, 92, 246, 0.35)" stroke="#8b5cf6" stroke-width="2.5" stroke-linejoin="round"/>
+                        ${dataDots}
+                        ${labels}
+                    </svg>
+                </div>
+                <div class="radar-summary">
+                    <div class="radar-avg radar-avg-growth">
+                        <div class="radar-avg-label">綜合分數（有效軸平均）</div>
+                        <div class="radar-avg-value">${avgStr}<span class="radar-avg-suffix">/100</span></div>
+                        <div class="radar-avg-verdict">${avgVerdict}</div>
+                    </div>
+                </div>
+                <details class="radar-details">
+                    <summary>🔍 詳細分數對照</summary>
+                    <table class="radar-table">
+                        <thead><tr><th>指標</th><th>值</th><th>分數</th><th>映射邏輯</th></tr></thead>
+                        <tbody>${legendHtml}</tbody>
+                    </table>
+                    ${sbcNote}
+                </details>
+            </section>
+        `;
+    }
+
     function computeSixAxisScores(analysis) {
         const fund = analysis.fundamentals || {};
         const latestRev = fund.revenue && fund.revenue[0];
@@ -1080,9 +1371,10 @@
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         const instHtml = renderInstitutionalHtml(analysis.institutional);
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
-        // Phase 7 · 6 軸估值雷達放在最下方（B 選項：表格下方 · 當 summary 收尾）
+        // Phase 7 · 兩張雷達 stacked（B 選項）· 價值派在上、成長派在下
         const radarHtml = renderRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml + radarHtml;
+        const growthRadarHtml = renderGrowthRadarSvg(analysis);
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }

@@ -1534,3 +1534,37 @@ textarea {
 .radar-warning-body li {
     margin: 3px 0;
 }
+
+/* Phase 7 · 成長股雷達（紫色系 · 跟價值派橘色系區隔） */
+.radar-panel-growth {
+    background: linear-gradient(180deg, #faf5ff 0%, #fff 100%);
+    border-left: 4px solid #8b5cf6;
+    margin-top: 24px;
+}
+.radar-panel-growth h2 {
+    color: #5b21b6;
+}
+.radar-panel-growth .radar-avg {
+    background: #ede9fe;
+    border-color: #a78bfa;
+}
+.radar-panel-growth .radar-avg-label { color: #5b21b6; }
+.radar-panel-growth .radar-avg-value { color: #4c1d95; }
+.radar-panel-growth .radar-avg-verdict { color: #5b21b6; }
+.radar-panel-growth .radar-details summary { color: #5b21b6; }
+.radar-panel-growth .radar-table th {
+    background: #ede9fe;
+    color: #5b21b6;
+    border-bottom-color: #a78bfa;
+}
+.radar-panel-growth .radar-table td { border-bottom-color: #ddd6fe; }
+.radar-warning-growth {
+    background: #eef2ff;
+    border-color: #a5b4fc;
+}
+.radar-warning-growth .radar-warning-title { color: #4338ca; }
+.radar-warning-growth .radar-warning-body { color: #3730a3; }
+.radar-lens-tag.lens-growth {
+    background: #8b5cf6;
+    color: #fff;
+}
