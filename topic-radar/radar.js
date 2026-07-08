@@ -7,7 +7,7 @@
     // ============================================================
     // 版本標記——修 bug 後 bump · 讓使用者 console 看得到跑的是哪版
     // 若掃描結果的關鍵字還有 x2f/href/https · 表示還在跑舊版 · 硬重整
-    const RADAR_VERSION = 'v2026-07-08-d';
+    const RADAR_VERSION = 'v2026-07-08-e';
 
     // 只看近 N 年 · 避免 SEO 老影片 / 多年前 HN 舊文洗掉討論訊號
     // 兩年是個舒服的權衡：AI 生態變化太快 · 更久的東西通常已過期
@@ -40,6 +40,16 @@
         'LLMDevs',
         'aivideo',
     ];
+
+    // PTT 熱門板（掃在地話題用）· 用 search endpoint 拿含關鍵字的近期文
+    // 為什麼這 6 板：涵蓋一般時事 / 科技 / 娛樂 / 地方 / 運動 / 美食 · 台灣話題大概率會落在其中
+    // Gossiping 因為需要 over18 cookie 從純瀏覽器打不通 · 略過
+    const PTT_BOARDS = ['Tech_Job', 'C_Chat', 'Baseball', 'Food', 'movie', 'Stock'];
+
+    // CJK 檢測 · 主題含中文時給提醒 · 因 HN/Reddit 為英文 tech 圈 · 中文話題必為 0
+    function containsCJK(s) {
+        return /[一-鿿぀-ヿ가-힣]/.test(s || '');
+    }
 
     const $ = id => document.getElementById(id);
 
@@ -216,6 +226,87 @@
             }
         }
         return { subreddit, posts: [], error: attemptLog.join(' → '), via: '', attemptLog };
+    }
+
+    // ============================================================
+    // PTT（HTML 抓 · 沒 JSON API · 用 CORS proxy · DOMParser 抽推文/標題）
+    // ============================================================
+    // 為什麼加：Reddit / HN 是英文 tech 圈 · 中文在地話題必為 0（e.g. 「台中」「士林夜市」）
+    // 打 /bbs/{board}/search?q={keyword} · 拿含關鍵字的近 20 篇 · 每篇有推文數 + 標題 + 作者 + 日期
+    // 「爆」=100+ · 數字 = 推文數 · 「XX」= 空 = 0
+    async function pttBoard(board, keyword) {
+        const upstream = `https://www.ptt.cc/bbs/${encodeURIComponent(board)}/search?q=${encodeURIComponent(keyword)}`;
+        const attempts = [
+            { label: 'direct', url: upstream },
+            ...REDDIT_PROXIES.map(p => ({ label: p.name, url: p.build(upstream) })),
+        ];
+        const attemptLog = [];
+        for (const a of attempts) {
+            const t0 = performance.now();
+            try {
+                const res = await fetch(a.url);
+                const dt = Math.round(performance.now() - t0);
+                if (!res.ok) { attemptLog.push(`${a.label}:HTTP${res.status}(${dt}ms)`); continue; }
+                const html = await res.text();
+                // 若拿到 over18 warning page · 標成 blocked
+                if (html.includes('over18') && html.includes('您通過十八歲')) {
+                    attemptLog.push(`${a.label}:over18(${dt}ms)`);
+                    continue;
+                }
+                const posts = parsePttSearch(html, board);
+                if (posts.length === 0) { attemptLog.push(`${a.label}:empty(${dt}ms)`); continue; }
+                return { board, posts, error: null, via: a.label, attemptLog };
+            } catch (e) {
+                const dt = Math.round(performance.now() - t0);
+                const msg = /Failed to fetch|NetworkError|ERR_/.test(e.message) ? 'NETERR' : e.message.slice(0, 20);
+                attemptLog.push(`${a.label}:${msg}(${dt}ms)`);
+            }
+        }
+        return { board, posts: [], error: attemptLog.join(' → '), via: '', attemptLog };
+    }
+
+    function parsePttSearch(html, board) {
+        // PTT search 結果頁結構：<div class="r-ent"> 每篇 · 內含 .nrec / .title a / .author / .date
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const entries = doc.querySelectorAll('.r-ent');
+        const posts = [];
+        entries.forEach(entry => {
+            const titleAnchor = entry.querySelector('.title a');
+            if (!titleAnchor) return;   // 已刪除的文章沒 <a>
+            const nrecText = (entry.querySelector('.nrec')?.textContent || '').trim();
+            // 「爆」= 100+ 推 · 「XX」= 100 噓（爆負） · 數字 = 推文數 · 空 = 0
+            let score = 0;
+            if (nrecText === '爆') score = 100;
+            else if (nrecText === 'XX') score = -100;
+            else if (/^-?\d+$/.test(nrecText)) score = parseInt(nrecText, 10);
+            else if (/^X(\d)$/.test(nrecText)) score = -parseInt(RegExp.$1, 10) * 10;
+            posts.push({
+                board,
+                title: titleAnchor.textContent.trim(),
+                url: 'https://www.ptt.cc' + titleAnchor.getAttribute('href'),
+                score,
+                author: (entry.querySelector('.author')?.textContent || '').trim(),
+                date: (entry.querySelector('.date')?.textContent || '').trim(),
+            });
+        });
+        return posts;
+    }
+
+    async function pttScan(topic) {
+        const results = await Promise.all(PTT_BOARDS.map(b => pttBoard(b, topic)));
+        // PTT search 已按 keyword 過濾 · 不用再 kw 過濾
+        const matched = [];
+        results.forEach(r => matched.push(...r.posts));
+        matched.sort((a, b) => b.score - a.score);
+        return {
+            posts: matched,
+            perBoard: results.map(r => ({
+                board: r.board,
+                total: r.posts.length,
+                error: r.error,
+                via: r.via || '',
+            })),
+        };
     }
 
     // ============================================================
@@ -590,15 +681,82 @@
         $('hn-list').innerHTML = `<div class="rd-grid">${cards}</div>`;
     }
 
-    function renderCross(videos, redditPosts, topic, redditScanResult, hnResult) {
-        // 「討論訊號」= Reddit ∪ HN · 只要有一邊活躍就算用戶在討論
-        // HN 目前是主力（Reddit 對 browser 封殺 · 常拿 0）
+    function renderPTT(pttResult, topic) {
+        const { posts, perBoard } = pttResult;
+        $('ptt-count').textContent = `(${posts.length})`;
+
+        // 每板狀態徽章：綠 = 有結果 / 灰 = 通了但 0 / 紅 = fetch 掛
+        const boardSummary = perBoard.map(b => {
+            let cls = 'sub-badge';
+            let icon = '';
+            const viaTag = b.via && b.via !== 'direct' ? ` <em class="via-tag">(${b.via})</em>` : '';
+            let text = `${b.board} · ${b.total}${viaTag}`;
+            let title = '';
+            if (b.error) {
+                cls += ' sub-err'; icon = '❌';
+                text = `${b.board}`;
+                title = ` title="${(b.error || '').replace(/"/g, '&quot;')}"`;
+            }
+            else if (b.total === 0) { cls += ' sub-nomatch'; icon = '⚪'; }
+            else { cls += ' sub-hit'; icon = '🎯'; }
+            return `<span class="${cls}"${title}>${icon} ${text}</span>`;
+        }).join('');
+
+        const firstErr = perBoard.find(b => b.error);
+        const diagHtml = firstErr && firstErr.error
+            ? `<details class="rd-diag" open><summary><b>🔬 逐一 proxy 診斷</b>（點開看每條路徑）</summary><div class="rd-diag-body">${firstErr.error}</div></details>`
+            : '';
+
+        const okBoards = perBoard.filter(b => !b.error).length;
+        const totalPosts = perBoard.reduce((s, b) => s + b.total, 0);
+        const topBoard = perBoard.reduce((best, b) => b.total > best.total ? b : best, { board: '—', total: 0 }).board;
+
+        $('ptt-stats').innerHTML = `
+            <div class="stat-grid">
+                <div class="stat-card"><div class="stat-label">符合貼文</div><div class="stat-val">${posts.length}</div></div>
+                <div class="stat-card"><div class="stat-label">板命中</div><div class="stat-val">${okBoards}/${perBoard.length}</div></div>
+                <div class="stat-card"><div class="stat-label">總撈</div><div class="stat-val">${totalPosts}</div></div>
+                <div class="stat-card"><div class="stat-label">最熱板</div><div class="stat-val" style="font-size:0.9em">${topBoard}</div></div>
+            </div>
+            <div class="sub-summary">
+                <h4>📊 每板狀態（🎯 有 · ⚪ 0 · ❌ fetch 掛 · 滑上去看細節）</h4>
+                <div class="sub-badges">${boardSummary}</div>
+            </div>
+            ${diagHtml}
+        `;
+
+        if (posts.length === 0) {
+            $('ptt-list').innerHTML = `<p class="hint">⚪ 沒 match 到「${topic}」的 PTT 文 · 6 板都沒撿到 · 可能該話題不在這 6 板 · 或關鍵字要換</p>`;
+            return;
+        }
+
+        const cards = posts.slice(0, 40).map(p => `
+            <div class="ptt-card ${p.score >= 100 ? 'ptt-bao' : p.score < 0 ? 'ptt-xx' : ''}">
+                <div class="ptt-card-head">
+                    <span class="ptt-score ${p.score >= 100 ? 'ptt-score-bao' : p.score < 0 ? 'ptt-score-neg' : ''}">
+                        ${p.score >= 100 ? '爆' : p.score < 0 ? 'XX' : `推 ${p.score}`}
+                    </span>
+                    <span class="sub-badge sub-hit">${escapeHtml(p.board)}</span>
+                    <span class="rd-age">${escapeHtml(p.date)}</span>
+                </div>
+                <div class="rd-card-title"><a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(p.title)}</a></div>
+                <div class="rd-card-meta">u/${escapeHtml(p.author)}</div>
+            </div>
+        `).join('');
+        $('ptt-list').innerHTML = `<div class="rd-grid">${cards}</div>`;
+    }
+
+    function renderCross(videos, redditPosts, topic, redditScanResult, hnResult, pttResult) {
+        // 「討論訊號」= Reddit ∪ HN ∪ PTT · 只要一邊活躍就算用戶在討論
+        // 英文話題主要看 HN（Reddit 封 browser 常拿 0）· 中文在地話題主要看 PTT
         const hnPosts = (hnResult && hnResult.posts) || [];
-        const discussionPosts = [...redditPosts, ...hnPosts];
-        // discussion side 的關鍵字：Reddit title + selftext + HN title + storyText 都算
+        const pttPosts = (pttResult && pttResult.posts) || [];
+        const discussionPosts = [...redditPosts, ...hnPosts, ...pttPosts];
+        // discussion side 的關鍵字：三邊 title + 內文都算
         const discussionTexts = [
             ...redditPosts.map(p => p.title + ' ' + p.selftext.slice(0, 150)),
             ...hnPosts.map(p => p.title + ' ' + p.storyText.slice(0, 150)),
+            ...pttPosts.map(p => p.title),
         ];
         // 從兩邊 title 抽關鍵字
         const ytKw = extractKeywords(videos.map(v => v.title)).map(([w]) => w);
@@ -621,9 +779,16 @@
         const hnRecent = hnPosts.filter(p => (Date.now() - p.created) < HN_HOT_WINDOW_MS);
         const hnRecentSubstantive = hnRecent.filter(p => p.points >= HN_HOT_MIN_POINTS);
         const hnHot = hnRecentSubstantive.length >= HN_HOT_MIN_COUNT;
-        const discussionHot = rdHot || hnHot;
+        // PTT「熱」= 5+ 篇 · 頂樓推 >30 · 或有 1 篇「爆」（score=100）
+        // 為什麼 30：PTT 平均推文量比 Reddit / HN 少 · 一般文 20 推就算不錯
+        const pttHot = pttPosts.length >= 5 && (pttPosts[0]?.score >= 30 || pttPosts.some(p => p.score >= 100));
+        const discussionHot = rdHot || hnHot || pttHot;
         // 找出討論方是哪邊主導（顯示用）
-        const discussionSrc = rdHot && hnHot ? 'Reddit + HN' : rdHot ? 'Reddit' : hnHot ? 'HN' : '';
+        const activeSrcs = [];
+        if (rdHot) activeSrcs.push('Reddit');
+        if (hnHot) activeSrcs.push('HN');
+        if (pttHot) activeSrcs.push('PTT');
+        const discussionSrc = activeSrcs.join(' + ');
         let verdict, verdictClass, verdictAdvice;
         if (ytHot && discussionHot) {
             verdict = `🔥 兩邊都熱 · 主流話題（討論方：${discussionSrc}）`;
@@ -636,11 +801,18 @@
         } else if (ytHot && !discussionHot) {
             verdict = '⚠️ YouTube 熱 · 用戶沒討論 · KOL 假熱';
             verdictClass = 'v-fake';
-            verdictAdvice = '<b>小心</b>——高機率是行銷波 / 平台推薦演算法炒作 · Reddit + HN 都沒動靜 · 進場前確認需求';
+            verdictAdvice = '<b>小心</b>——高機率是行銷波 / 平台推薦演算法炒作 · 三大討論方（Reddit / HN / PTT）都沒動靜 · 進場前確認需求';
         } else {
             verdict = '❄️ 兩邊都冷 · 冷門話題';
             verdictClass = 'v-cold';
             verdictAdvice = '沒需求 or 太 niche · 別浪費時間 · 換關鍵字或角度';
+        }
+
+        // CJK 話題提醒 · 讓使用者知道英文 tech 圈本來就會 0 · 不是 bug
+        let cjkHintHtml = '';
+        if (containsCJK(topic)) {
+            const activeCJKSrc = pttHot ? '✅ PTT 有讀數' : '⚠️ PTT 也 0 · 可能該話題不在這 6 板';
+            cjkHintHtml = `<div class="cjk-hint">🈶 主題含中文 · HN / Reddit 為英文 tech 圈 · 中文話題必為 0（不是 bug） · PTT 才是主力—— ${activeCJKSrc}</div>`;
         }
 
         // Reddit 健康度診斷（讓使用者一眼看到 Reddit 到底有沒有正常運作）
@@ -672,29 +844,43 @@
                 <div class="cross-verdict-title">${verdict}</div>
                 <div class="cross-verdict-body">${verdictAdvice}</div>
             </div>
+            ${cjkHintHtml}
             ${rdHealthHtml}
         `;
 
+        // PTT cell 額外統計
+        const pttBao = pttPosts.filter(p => p.score >= 100).length;
+        const pttTop = pttPosts[0]?.score;
+        const pttMedian = pttPosts.length ? pttPosts[Math.floor(pttPosts.length / 2)].score : null;
+
         $('cross-cells').innerHTML = `
-            <div class="cross-quad cross-quad-3">
+            <div class="cross-quad cross-quad-4">
                 <div class="cq-cell">
-                    <div class="cq-label">📺 YouTube 訊號強度</div>
-                    <div class="cq-val">${videos.length} 支影片</div>
+                    <div class="cq-label">📺 YouTube</div>
+                    <div class="cq-val">${videos.length} 支</div>
                     <div class="cq-sub">中位 views: ${videos.length ? fmtNum(videos[Math.floor(videos.length / 2)].views) : '—'}</div>
                     <div class="cq-sub">最高 views: ${videos.length ? fmtNum(videos[0].views) : '—'}</div>
                     <div class="cq-verdict">${ytHot ? '<b class="hot">🔥 熱</b>' : '<b class="cold">❄️ 冷</b>'}</div>
                 </div>
                 <div class="cq-cell">
-                    <div class="cq-label">🧡 HN 訊號強度</div>
-                    <div class="cq-val">${hnPosts.length} 篇 story</div>
-                    <div class="cq-sub">近 90 天：<b>${hnRecent.length}</b> 篇</div>
-                    <div class="cq-sub">近 90 天 ≥${HN_HOT_MIN_POINTS} pts：<b>${hnRecentSubstantive.length}</b> 篇 ${hnHot ? '✅' : ''}</div>
-                    <div class="cq-sub">歷史頂樓：${hnPosts.length ? fmtNum(hnPosts[0].points) : '—'} pts</div>
-                    <div class="cq-verdict">${hnHot ? '<b class="hot">🔥 熱（當前）</b>' : hnPosts.length && hnPosts[0]?.points > 100 ? '<b class="cold">💤 曾爆紅但當前無</b>' : '<b class="cold">❄️ 冷</b>'}</div>
+                    <div class="cq-label">🧡 HN</div>
+                    <div class="cq-val">${hnPosts.length} 篇</div>
+                    <div class="cq-sub">近 90 天：<b>${hnRecent.length}</b></div>
+                    <div class="cq-sub">近 90 天 ≥${HN_HOT_MIN_POINTS} pts：<b>${hnRecentSubstantive.length}</b> ${hnHot ? '✅' : ''}</div>
+                    <div class="cq-sub">歷史頂樓：${hnPosts.length ? fmtNum(hnPosts[0].points) : '—'}</div>
+                    <div class="cq-verdict">${hnHot ? '<b class="hot">🔥 熱（當前）</b>' : hnPosts.length && hnPosts[0]?.points > 100 ? '<b class="cold">💤 曾爆紅</b>' : '<b class="cold">❄️ 冷</b>'}</div>
                 </div>
                 <div class="cq-cell">
-                    <div class="cq-label">💬 Reddit 訊號強度</div>
-                    <div class="cq-val">${redditPosts.length} 篇貼文</div>
+                    <div class="cq-label">🇹🇼 PTT</div>
+                    <div class="cq-val">${pttPosts.length} 篇</div>
+                    <div class="cq-sub">爆文（推≥100）：<b>${pttBao}</b></div>
+                    <div class="cq-sub">中位推：${pttMedian !== null ? pttMedian : '—'}</div>
+                    <div class="cq-sub">最高推：${pttTop !== undefined ? pttTop : '—'}</div>
+                    <div class="cq-verdict">${pttHot ? '<b class="hot">🔥 熱</b>' : '<b class="cold">❄️ 冷</b>'}</div>
+                </div>
+                <div class="cq-cell">
+                    <div class="cq-label">💬 Reddit</div>
+                    <div class="cq-val">${redditPosts.length} 篇</div>
                     <div class="cq-sub">中位 score: ${redditPosts.length ? fmtNum(redditPosts[Math.floor(redditPosts.length / 2)].score) : '—'}</div>
                     <div class="cq-sub">最高 score: ${redditPosts.length ? fmtNum(redditPosts[0].score) : '—'}</div>
                     <div class="cq-verdict">${rdHot ? '<b class="hot">🔥 熱</b>' : '<b class="cold">❄️ 冷</b>'}</div>
@@ -746,24 +932,28 @@
                 : Promise.resolve({ __err: '沒 YouTube key' });
             const rdPromise = redditScan(topic).catch(e => { console.error('RD fail', e); return { posts: [], errors: [e.message], perSub: [], unmatchedTop: [] }; });
             const hnPromise = hnSearch(topic).catch(e => { console.error('HN fail', e); return { posts: [], error: e.message }; });
+            const pttPromise = pttScan(topic).catch(e => { console.error('PTT fail', e); return { posts: [], perBoard: [] }; });
 
-            const [ytResult, rdResult, hnResult] = await Promise.all([ytPromise, rdPromise, hnPromise]);
+            const [ytResult, rdResult, hnResult, pttResult] = await Promise.all([ytPromise, rdPromise, hnPromise, pttPromise]);
 
             const videos = Array.isArray(ytResult) ? ytResult : [];
             const ytErr = ytResult && ytResult.__err ? ytResult.__err : null;
             const redditPosts = rdResult.posts || [];
             const hnPosts = hnResult.posts || [];
+            const pttPosts = pttResult.posts || [];
 
             renderYouTube(videos);
             renderReddit(rdResult);
             renderHN(hnResult, topic);
-            renderCross(videos, redditPosts, topic, rdResult, hnResult);
+            renderPTT(pttResult, topic);
+            renderCross(videos, redditPosts, topic, rdResult, hnResult, pttResult);
 
             $('result-panel').hidden = false;
             const msgParts = [];
             if (videos.length > 0) msgParts.push(`YouTube ${videos.length} 支`);
             else if (ytErr) msgParts.push(`YouTube 失敗（${ytErr}）`);
             if (hnPosts.length > 0) msgParts.push(`HN ${hnPosts.length} 篇`);
+            if (pttPosts.length > 0) msgParts.push(`PTT ${pttPosts.length} 篇`);
             if (redditPosts.length > 0) msgParts.push(`Reddit ${redditPosts.length} 篇`);
             setStatus('success', `✅ 掃描完成：${msgParts.join(' · ')}`);
         } catch (e) {

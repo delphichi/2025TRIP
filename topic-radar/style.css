@@ -621,3 +621,75 @@ body.radar-body {
     color: #94a3b8;
     margin-top: 8px;
 }
+
+/* PTT cards · 綠色主調 · 爆文 / 噓文特色 */
+.ptt-card {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ptt-card.ptt-bao {
+    background: #fef3c7;
+    border-color: #fbbf24;
+}
+.ptt-card.ptt-xx {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    opacity: 0.7;
+}
+.ptt-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.ptt-score {
+    background: #16a34a;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.82em;
+    font-weight: 700;
+    min-width: 40px;
+    text-align: center;
+}
+.ptt-score-bao {
+    background: #ef4444;
+    animation: pulse-bao 2s ease-in-out infinite;
+}
+.ptt-score-neg {
+    background: #6b7280;
+}
+@keyframes pulse-bao {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+.ptt-card .rd-card-title a { color: #14532d; }
+.ptt-card .rd-card-title a:hover { color: #052e16; }
+
+/* 4 欄的 cross-quad · 螢幕小自動 2x2 */
+.cross-quad-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 1000px) {
+    .cross-quad-4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+    .cross-quad-4 { grid-template-columns: 1fr; }
+}
+
+/* CJK 話題提醒 banner · 讓使用者知道英文源 0 不是 bug */
+.cjk-hint {
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    color: #1e3a8a;
+    font-size: 0.92em;
+    line-height: 1.6;
+}
