@@ -1396,3 +1396,102 @@ textarea {
     .pos-adjust-row { grid-template-columns: auto 1fr; align-items: center; }
     .preset-buttons { grid-template-columns: repeat(5, 1fr); }
 }
+
+/* ============================================================
+ * Phase 7 · 6 軸估值雷達
+ * ============================================================ */
+.radar-panel {
+    margin-top: 20px;
+    background: linear-gradient(180deg, #fffaf0 0%, #fff 100%);
+    border-left: 4px solid #f59e0b;
+}
+.radar-panel h2 {
+    color: #78350f;
+    margin: 0 0 8px;
+}
+.radar-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+}
+.radar-summary {
+    display: flex;
+    justify-content: center;
+    margin: 12px 0;
+}
+.radar-avg {
+    text-align: center;
+    padding: 14px 24px;
+    background: #fef3c7;
+    border: 2px solid #fbbf24;
+    border-radius: 12px;
+    max-width: 400px;
+}
+.radar-avg-label {
+    font-size: .85em;
+    color: #78350f;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.radar-avg-value {
+    font-size: 2.4em;
+    font-weight: 700;
+    color: #92400e;
+    line-height: 1;
+}
+.radar-avg-suffix {
+    font-size: .5em;
+    color: #a68a3d;
+    font-weight: 500;
+}
+.radar-avg-verdict {
+    margin-top: 6px;
+    font-size: .9em;
+    color: #78350f;
+    font-weight: 600;
+}
+.radar-details {
+    margin-top: 12px;
+    padding: 0 4px;
+}
+.radar-details summary {
+    cursor: pointer;
+    color: #78350f;
+    font-weight: 700;
+    padding: 6px 0;
+}
+.radar-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: .9em;
+}
+.radar-table th {
+    background: #fef3c7;
+    color: #78350f;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 2px solid #fbbf24;
+}
+.radar-table td {
+    padding: 6px 8px;
+    border-bottom: 1px dashed #fde68a;
+}
+.radar-table .axis-good { color: #059669; font-weight: 700; }
+.radar-table .axis-mid  { color: #d97706; font-weight: 700; }
+.radar-table .axis-poor { color: #dc2626; font-weight: 700; }
+
+/* 跨頁跳轉按鈕（valuation → rotation） */
+.cross-nav-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #0ea5e9;
+    color: #fff;
+    border-radius: 999px;
+    font-size: .85em;
+    text-decoration: none;
+    margin-left: 8px;
+    font-weight: 600;
+}
+.cross-nav-btn:hover { background: #0284c7; }

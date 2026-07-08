@@ -97,14 +97,18 @@
 
     // FinMind：TaiwanStockFinancialStatements 是 long format
     // 需要 pivot：group by date、type 當欄位
+    // Phase 7（估值雷達）：同時抓 BalanceSheet · 算 TTM ROE
     async function fetchFinMindFundamentals(ticker, token) {
         try {
             const startDate = todayMinusYears(4);   // 4 年 = 16 季足夠算 10 季 YoY
-            const rows = await finMindFetch('TaiwanStockFinancialStatements', ticker, startDate, todayStr(), token);
-            if (!rows || rows.length === 0) return null;
+            const [fsRows, bsRows] = await Promise.all([
+                finMindFetch('TaiwanStockFinancialStatements', ticker, startDate, todayStr(), token),
+                finMindFetch('TaiwanStockBalanceSheet', ticker, startDate, todayStr(), token).catch(() => []),
+            ]);
+            if (!fsRows || fsRows.length === 0) return null;
             // Pivot：{ date: { type1: value1, type2: value2, ... } }
             const byDate = new Map();
-            rows.forEach(r => {
+            fsRows.forEach(r => {
                 if (!byDate.has(r.date)) byDate.set(r.date, {});
                 byDate.get(r.date)[r.type] = r.value;
             });
@@ -117,20 +121,58 @@
                 const grossProfit = flat.GrossProfit || flat.OperatingGrossProfit || null;
                 const opIncome = flat.OperatingIncome || flat.OperatingProfit || null;
                 const eps = flat.EPS || flat.BasicEPS || flat.DilutedEPS || null;
+                // 淨利：spec 明確叫 IncomeAfterTaxes（有 s）
+                const netIncome = flat.IncomeAfterTaxes || flat.IncomeAfterTax || flat.ProfitAfterTax || null;
                 return {
                     date: d,
                     revenue,
                     eps,
+                    netIncome,
                     grossMargin: (grossProfit !== null && revenue) ? grossProfit / revenue : null,
                     operatingMargin: (opIncome !== null && revenue) ? opIncome / revenue : null,
                 };
             });
-            return processFundamentals(wideRows, {
+            const result = processFundamentals(wideRows, {
                 revenue: r => r.revenue,
                 eps: r => r.eps,
                 grossMargin: r => r.grossMargin,
                 operatingMargin: r => r.operatingMargin,
             });
+
+            // === Phase 7 · 算 TTM ROE ===
+            // 分子：近 4 季淨利加總（TTM）
+            // 分母：最新期末權益總額（Equity 欄位）
+            if (result && bsRows && bsRows.length > 0 && wideRows.length >= 4) {
+                // Pivot BalanceSheet
+                const bsByDate = new Map();
+                bsRows.forEach(r => {
+                    if (!bsByDate.has(r.date)) bsByDate.set(r.date, {});
+                    bsByDate.get(r.date)[r.type] = r.value;
+                });
+                const bsDates = Array.from(bsByDate.keys()).sort().reverse();
+                if (bsDates.length > 0) {
+                    const latestBs = bsByDate.get(bsDates[0]);
+                    // Equity 欄位 · spec 提到 Equity（權益總額）· fallback 到 EquityAttributableToOwnersOfParent
+                    const equity = latestBs.Equity || latestBs.EquityAttributableToOwnersOfParent || null;
+                    // 近 4 季淨利加總
+                    let ttmNetIncome = 0, validQuarters = 0;
+                    for (let i = 0; i < Math.min(4, wideRows.length); i++) {
+                        const ni = wideRows[i].netIncome;
+                        if (ni !== null && isFinite(ni)) { ttmNetIncome += ni; validQuarters++; }
+                    }
+                    if (validQuarters === 4 && equity && equity > 0) {
+                        result.roe = (ttmNetIncome / equity) * 100;   // %
+                        result.roeBreakdown = {
+                            ttmNetIncome,
+                            equity,
+                            equityDate: bsDates[0],
+                            method: 'FinMind TTM',
+                        };
+                    }
+                }
+            }
+
+            return result;
         } catch (e) {
             console.warn('FinMind fundamentals fetch failed:', e.message);
             return null;
@@ -254,6 +296,10 @@
             fundamentals,
             cashFlow,
             institutional,
+            // Phase 7 · 6 軸雷達用
+            roe: fundamentals?.roe ?? null,
+            roeBreakdown: fundamentals?.roeBreakdown || null,
+            dividendYield: (latest.dividend_yield !== undefined) ? latest.dividend_yield : null,
         };
     }
 
@@ -568,6 +614,189 @@
         ctx.fillText(fmt(maxVal, 1), padL + chartW, padT + chartH + 26);
     }
 
+    // ---------- Phase 7 · 6 軸估值雷達 ----------
+    // 6 軸絕對值 → 0-100 分映射（線性內插）
+    // - 正向指標（越大越好）：ROE / 營收 YoY / 毛利率 / 殖利率
+    // - 反向指標（越小越好）：PE / PB · 用 scoreInverse
+    function scoreLinear(val, min0, mid50, max100) {
+        if (val === null || val === undefined || !isFinite(val)) return null;
+        if (val <= min0) return 0;
+        if (val >= max100) return 100;
+        if (val <= mid50) return 50 * (val - min0) / (mid50 - min0);
+        return 50 + 50 * (val - mid50) / (max100 - mid50);
+    }
+    function scoreInverse(val, high0, mid50, low100) {
+        if (val === null || val === undefined || !isFinite(val)) return null;
+        if (val >= high0) return 0;
+        if (val <= low100) return 100;
+        if (val >= mid50) return 50 * (high0 - val) / (high0 - mid50);
+        return 50 + 50 * (mid50 - val) / (mid50 - low100);
+    }
+
+    function computeSixAxisScores(analysis) {
+        const fund = analysis.fundamentals || {};
+        const latestRev = fund.revenue && fund.revenue[0];
+        const latestMargin = fund.grossMargin && fund.grossMargin[0];
+
+        const raw = {
+            roe: analysis.roe !== null && analysis.roe !== undefined ? analysis.roe : null,
+            revYoY: (latestRev && latestRev.yoy !== null && isFinite(latestRev.yoy)) ? latestRev.yoy * 100 : null,
+            grossMargin: (latestMargin && latestMargin.value !== null && isFinite(latestMargin.value)) ? latestMargin.value * 100 : null,
+            dividendYield: analysis.dividendYield !== null && analysis.dividendYield !== undefined ? analysis.dividendYield : null,
+            pb: analysis.currentPBR !== null && isFinite(analysis.currentPBR) ? analysis.currentPBR : null,
+            pe: analysis.currentPE !== null && isFinite(analysis.currentPE) ? analysis.currentPE : null,
+        };
+
+        const scores = {
+            roe: scoreLinear(raw.roe, 0, 12, 25),
+            revYoY: scoreLinear(raw.revYoY, -20, 5, 25),
+            grossMargin: scoreLinear(raw.grossMargin, 10, 30, 50),
+            dividendYield: scoreLinear(raw.dividendYield, 0, 3, 6),
+            pb: scoreInverse(raw.pb, 5, 2, 0.8),
+            pe: scoreInverse(raw.pe, 50, 20, 10),
+        };
+
+        return { scores, raw };
+    }
+
+    function renderRadarSvg(analysis) {
+        const { scores, raw } = computeSixAxisScores(analysis);
+        const cx = 210, cy = 200, r = 130;
+        // 6 軸順時針排列 · 從正上方開始
+        const axes = [
+            { key: 'roe',           label: 'ROE',      unit: '%',  decimals: 1, mapping: '0/12/25' },
+            { key: 'revYoY',        label: '營收 YoY',  unit: '%',  decimals: 1, mapping: '-20/5/25' },
+            { key: 'grossMargin',   label: '毛利率',    unit: '%',  decimals: 1, mapping: '10/30/50' },
+            { key: 'dividendYield', label: '殖利率',    unit: '%',  decimals: 2, mapping: '0/3/6' },
+            { key: 'pb',            label: 'PB',       unit: '×',  decimals: 2, mapping: '5/2/0.8（低）' },
+            { key: 'pe',            label: 'PE',       unit: '×',  decimals: 1, mapping: '50/20/10（低）' },
+        ];
+
+        const angle = i => (Math.PI * 2 / axes.length) * i - Math.PI / 2;
+
+        // 4 層同心六邊形網格（25/50/75/100）
+        const gridRings = [25, 50, 75, 100].map(pct => {
+            const pts = axes.map((_, i) => {
+                const ang = angle(i);
+                const x = cx + Math.cos(ang) * r * (pct / 100);
+                const y = cy + Math.sin(ang) * r * (pct / 100);
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            }).join(' ');
+            const opa = pct === 100 ? '0.7' : '0.35';
+            return `<polygon points="${pts}" fill="none" stroke="#cbd5e1" stroke-width="1" opacity="${opa}"/>`;
+        }).join('\n');
+
+        // 6 條軸線
+        const axisLines = axes.map((_, i) => {
+            const ang = angle(i);
+            const x = cx + Math.cos(ang) * r;
+            const y = cy + Math.sin(ang) * r;
+            return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#cbd5e1" stroke-width="1" opacity="0.5"/>`;
+        }).join('\n');
+
+        // 資料多邊形 · 缺值用 0 分頂點（往中心塌）
+        const dataPoints = axes.map((a, i) => {
+            const s = scores[a.key];
+            const ang = angle(i);
+            const dist = (s === null || s === undefined) ? 0 : (s / 100);
+            const x = cx + Math.cos(ang) * r * dist;
+            const y = cy + Math.sin(ang) * r * dist;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+
+        // 資料點
+        const dataDots = axes.map((a, i) => {
+            const s = scores[a.key];
+            if (s === null || s === undefined) return '';
+            const ang = angle(i);
+            const x = cx + Math.cos(ang) * r * (s / 100);
+            const y = cy + Math.sin(ang) * r * (s / 100);
+            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#f59e0b" stroke="#fff" stroke-width="1.5"/>`;
+        }).join('\n');
+
+        // 軸標籤 + 數值
+        const labels = axes.map((a, i) => {
+            const ang = angle(i);
+            const lx = cx + Math.cos(ang) * (r + 32);
+            const ly = cy + Math.sin(ang) * (r + 32);
+            const rawVal = raw[a.key];
+            const rawStr = (rawVal === null || !isFinite(rawVal)) ? '—' : (a.decimals === 0 ? Math.round(rawVal) : rawVal.toFixed(a.decimals));
+            const s = scores[a.key];
+            const scoreStr = (s === null || s === undefined) ? 'N/A' : Math.round(s) + '分';
+            const scoreColor = s === null ? '#9ca3af' : (s >= 70 ? '#059669' : s >= 40 ? '#d97706' : '#dc2626');
+            return `
+                <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">${a.label}</text>
+                <text x="${lx.toFixed(1)}" y="${(ly + 14).toFixed(1)}" text-anchor="middle" font-size="10.5" fill="#64748b">${rawStr}${a.unit}</text>
+                <text x="${lx.toFixed(1)}" y="${(ly + 26).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="${scoreColor}">${scoreStr}</text>
+            `;
+        }).join('\n');
+
+        // 分數對照表（下方 · 說明每軸怎麼判讀）
+        const legendHtml = axes.map(a => {
+            const s = scores[a.key];
+            const rawVal = raw[a.key];
+            const rawStr = (rawVal === null || !isFinite(rawVal)) ? 'N/A' : (a.decimals === 0 ? Math.round(rawVal) : rawVal.toFixed(a.decimals));
+            const scoreStr = (s === null || s === undefined) ? '—' : Math.round(s);
+            const clsScore = s === null ? '' : (s >= 70 ? 'axis-good' : s >= 40 ? 'axis-mid' : 'axis-poor');
+            return `<tr>
+                <td><b>${a.label}</b></td>
+                <td>${rawStr}${a.unit}</td>
+                <td class="${clsScore}">${scoreStr}分</td>
+                <td class="hint-mini">0/50/100 = ${a.mapping}</td>
+            </tr>`;
+        }).join('');
+
+        // 平均分（六角形飽滿度）· null 不算
+        const validScores = Object.values(scores).filter(s => s !== null && s !== undefined);
+        const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : null;
+        const avgStr = avgScore === null ? 'N/A' : Math.round(avgScore);
+        const avgVerdict = avgScore === null ? ''
+            : avgScore >= 70 ? '🟢 六角形飽滿 · 均衡優質'
+            : avgScore >= 50 ? '🟡 有些軸不錯 · 有些偏低'
+            : avgScore >= 30 ? '🟠 大部分軸偏低 · 有明顯短板'
+            : '🔴 六角形塌陷 · 多數軸偏弱';
+
+        // ROE breakdown
+        let roeHint = '';
+        if (analysis.roeBreakdown) {
+            const b = analysis.roeBreakdown;
+            const niStr = (b.ttmNetIncome / 1e8).toFixed(1) + '億';
+            const eqStr = (b.equity / 1e8).toFixed(1) + '億';
+            roeHint = `<span class="hint-mini">ROE 計算：TTM 淨利 ${niStr} / 最新期末權益 ${eqStr}（${b.equityDate}）· ${b.method}</span>`;
+        }
+
+        return `
+            <section class="panel radar-panel" id="radar-panel">
+                <h2>🎯 6 軸估值雷達</h2>
+                <p class="hint">六角形越飽滿越好 · 分數用<b>絕對值</b>映射 · 不跟同業比 · 只看該指標的普世好壞。ROE 25% / 毛利 50% / 殖利率 6% / PE 10× / PB 0.8× / 營收 YoY 25% = 各軸滿分。</p>
+                <div class="radar-wrapper">
+                    <svg viewBox="0 0 420 400" width="100%" style="max-width:520px" xmlns="http://www.w3.org/2000/svg">
+                        ${gridRings}
+                        ${axisLines}
+                        <polygon points="${dataPoints}" fill="rgba(245, 158, 11, 0.35)" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round"/>
+                        ${dataDots}
+                        ${labels}
+                    </svg>
+                </div>
+                <div class="radar-summary">
+                    <div class="radar-avg">
+                        <div class="radar-avg-label">綜合分數（六軸平均）</div>
+                        <div class="radar-avg-value">${avgStr}<span class="radar-avg-suffix">/100</span></div>
+                        <div class="radar-avg-verdict">${avgVerdict}</div>
+                    </div>
+                </div>
+                <details class="radar-details">
+                    <summary>🔍 詳細分數對照</summary>
+                    <table class="radar-table">
+                        <thead><tr><th>指標</th><th>值</th><th>分數</th><th>映射</th></tr></thead>
+                        <tbody>${legendHtml}</tbody>
+                    </table>
+                    ${roeHint}
+                </details>
+            </section>
+        `;
+    }
+
     // ---------- Rendering ----------
     function renderResult(analysis) {
         const { ticker, name, price, currentPE, currentPBR, history, latestRatioDate, sector } = analysis;
@@ -840,7 +1069,9 @@
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         const instHtml = renderInstitutionalHtml(analysis.institutional);
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml;
+        // Phase 7 · 6 軸估值雷達放在最下方（B 選項：表格下方 · 當 summary 收尾）
+        const radarHtml = renderRadarSvg(analysis);
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml + radarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -2617,6 +2848,18 @@
         });
 
         onModeChange();
+
+        // Phase 7 · URL query 支援 ?ticker=2330 · 自動填入 + 執行
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const urlTicker = params.get('ticker');
+            if (urlTicker && urlTicker.trim()) {
+                $('cfg-ticker').value = urlTicker.trim();
+                // 若是純數字 · 自動切 FinMind mode（若在 auto 也 OK）
+                // 300ms 後自動 query · 給 UI 時間 render
+                setTimeout(() => onQuery(), 300);
+            }
+        } catch (e) { console.warn('URL query 解析失敗:', e.message); }
     }
 
     if (document.readyState === 'loading') {
