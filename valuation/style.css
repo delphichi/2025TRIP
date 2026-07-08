@@ -1896,3 +1896,77 @@ textarea {
     color: #78350f;
     line-height: 1.7;
 }
+
+/* Feature B · 資產負債結構 panel */
+.balance-sheet-panel {
+    margin-top: 16px;
+    border-left-color: #3b82f6;
+}
+.balance-sheet-panel h3 {
+    color: #1e3a8a;
+    margin-top: 0;
+}
+.balance-sheet-panel h4 {
+    margin: 8px 0 6px;
+    color: #1e40af;
+    font-size: 14px;
+}
+.balance-sheet-panel svg {
+    display: block;
+    width: 100%;
+    max-width: 800px;
+    margin: 4px 0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.bs-note {
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1e3a8a;
+    line-height: 1.7;
+}
+.bs-metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+}
+.bs-metric {
+    padding: 10px 12px;
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    text-align: center;
+    cursor: help;
+}
+.bs-metric-label {
+    font-size: 11px;
+    color: #1e40af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+}
+.bs-metric-val {
+    font-family: ui-monospace, monospace;
+    font-size: 1.3em;
+    font-weight: 800;
+    color: #1e3a8a;
+    margin-top: 2px;
+}
+.bs-table {
+    font-size: 0.85em;
+    width: 100%;
+}
+.bs-table td:first-child { display: flex; align-items: center; gap: 6px; }
+.bs-table td:nth-child(2), .bs-table td:nth-child(3) { text-align: right; font-family: ui-monospace, monospace; }
+.bs-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}

@@ -48,6 +48,47 @@
     }
 
     // FMP：/income-statement?symbol=X&period=quarter
+    // Feature B · FMP 資產負債表 + key metrics TTM · 給資產負債結構 panel 用
+    async function fetchFmpBalanceSheet(ticker, apiKey) {
+        if (!apiKey) return null;
+        try {
+            const [bsRows, kmTtm] = await Promise.all([
+                fmpFetch(`/balance-sheet-statement?symbol=${ticker}&period=quarter`, apiKey).catch(() => null),
+                fmpFetch(`/key-metrics-ttm?symbol=${ticker}`, apiKey).catch(() => null),
+            ]);
+            if (!bsRows || !Array.isArray(bsRows) || bsRows.length === 0) return null;
+            bsRows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            const latest = bsRows[0];
+            const km = (Array.isArray(kmTtm) && kmTtm[0]) ? kmTtm[0] : {};
+            return {
+                date: latest.date || null,
+                totalAssets: latest.totalAssets ?? null,
+                cash: latest.cashAndCashEquivalents ?? null,
+                accountsReceivable: latest.netReceivables ?? latest.accountsReceivables ?? null,
+                inventories: latest.inventory ?? null,
+                currentAssets: latest.totalCurrentAssets ?? null,
+                ppe: latest.propertyPlantEquipmentNet ?? null,
+                intangibles: (latest.intangibleAssets || 0) + (latest.goodwill || 0),
+                ltInvestments: latest.longTermInvestments ?? null,
+                accountsPayable: latest.accountPayables ?? latest.accountsPayable ?? null,
+                currentLiabilities: latest.totalCurrentLiabilities ?? null,
+                longTermDebt: latest.longTermDebt ?? null,
+                totalLiabilities: latest.totalLiabilities ?? null,
+                equity: latest.totalStockholdersEquity ?? latest.totalEquity ?? null,
+                retainedEarnings: latest.retainedEarnings ?? null,
+                // key-metrics-ttm 直接有 · 免自己算
+                roe: km.roeTTM !== undefined ? km.roeTTM * 100 : null,
+                roa: km.returnOnTangibleAssetsTTM !== undefined ? km.returnOnTangibleAssetsTTM * 100
+                     : (km.returnOnAssetsTTM !== undefined ? km.returnOnAssetsTTM * 100 : null),
+                roic: km.roicTTM !== undefined ? km.roicTTM * 100 : null,
+                source: 'FMP',
+            };
+        } catch (e) {
+            console.warn('FMP balance sheet fetch failed:', e.message);
+            return null;
+        }
+    }
+
     async function fetchFmpFundamentals(ticker, apiKey) {
         try {
             const rows = await fmpFetch(`/income-statement?symbol=${ticker}&period=quarter`, apiKey);
@@ -182,6 +223,58 @@
                             inventories: flat.Inventories ?? null,
                         };
                     });
+
+                    // Feature B · 資產負債結構 snapshot（最新一季）
+                    // 用戶要的 8 資產項 + 4 負債項 + 權益 + ROE/ROA/ROIC/PB
+                    const totalAssets = latestBs.TotalAssets || null;
+                    // TW 台商稅率固定 20% · 用來算 NOPAT
+                    let ttmOpIncome = 0, opIncValid = 0;
+                    for (let i = 0; i < Math.min(4, wideRows.length); i++) {
+                        const rev = wideRows[i].revenue;
+                        const opMargin = wideRows[i].operatingMargin;
+                        if (rev !== null && opMargin !== null && isFinite(rev) && isFinite(opMargin)) {
+                            ttmOpIncome += rev * opMargin;
+                            opIncValid++;
+                        }
+                    }
+                    const roa = (equity && totalAssets && totalAssets > 0)
+                        ? (result.roeBreakdown ? (result.roeBreakdown.ttmNetIncome / totalAssets * 100) : null)
+                        : null;
+                    const ltDebt = (latestBs.LongtermBorrowings || 0) + (latestBs.BondsPayable || 0);
+                    const investedCapital = equity && ltDebt !== null ? equity + ltDebt : null;
+                    const roic = (opIncValid === 4 && investedCapital && investedCapital > 0)
+                        ? (ttmOpIncome * 0.80 / investedCapital * 100)   // NOPAT ≈ OpInc × (1 - 20%)
+                        : null;
+
+                    result.balanceSheetSnapshot = {
+                        date: bsDates[0],
+                        totalAssets,
+                        // 資產
+                        cash: latestBs.CashAndCashEquivalents ?? null,
+                        accountsReceivable: latestBs.AccountsReceivableNet ?? null,
+                        inventories: latestBs.Inventories ?? null,
+                        currentAssets: latestBs.CurrentAssets ?? null,
+                        ppe: latestBs.PropertyPlantAndEquipment ?? null,
+                        intangibles: latestBs.IntangibleAssets ?? null,
+                        ltInvestments: (latestBs.InvestmentAccountedForUsingEquityMethod || 0)
+                            + (latestBs.FinancialAssetsAtAmortizedCostNonCurrent || 0)
+                            + (latestBs.FinancialAssetsAtFairvalueThroughOtherComprehensiveIncomeNonCurrent || 0)
+                            + (latestBs.NonCurrentFinancialAssetsAtFairvalueThroughProfitOrLoss || 0),
+                        // 負債
+                        accountsPayable: latestBs.AccountsPayable ?? null,
+                        currentLiabilities: latestBs.CurrentLiabilities ?? null,
+                        longTermDebt: ltDebt || null,
+                        totalLiabilities: latestBs.Liabilities ?? null,
+                        // 權益
+                        equity,
+                        retainedEarnings: latestBs.RetainedEarnings ?? null,
+                        // 比率
+                        roe: result.roe ?? null,
+                        roa,
+                        roic,
+                        // pb 之後在 render 層用 currentPBR 補上
+                        source: 'FinMind',
+                    };
                 }
             }
 
@@ -401,8 +494,9 @@
             label('ratios',         fmpFetch(`/ratios?symbol=${ticker}`, apiKey)),
             label('income-stmt',    fetchFmpFundamentals(ticker, apiKey)),
             label('cash-flow',      fetchFmpCashFlow(ticker, apiKey)),
+            label('balance-sheet',  fetchFmpBalanceSheet(ticker, apiKey)),
         ]);
-        const [quoteR, profileR, ratiosR, fundR, cfR] = results;
+        const [quoteR, profileR, ratiosR, fundR, cfR, bsR] = results;
         const failed = results.filter(r => !r.ok);
 
         // 生成 402 專用建議：試 GOOG↔GOOGL / TSLA↔TSLA / BRK.A↔BRK.B 這類 dual-class
@@ -470,6 +564,12 @@
         // 當前 PBR：用最新一筆 ratio（ratios[0] 是最新的年報）
         let currentPBR = pickField(ratios[0] || {}, ...PBR_FIELDS);
 
+        // Feature B · 把 FMP balance sheet snapshot attach 到 fundamentals（跟 TW 對齊）
+        const fmpBalanceSheet = bsR.ok ? bsR.value : null;
+        if (fundamentals && fmpBalanceSheet) {
+            fundamentals.balanceSheetSnapshot = fmpBalanceSheet;
+        }
+
         return {
             ticker,
             name: p.companyName || q.name || ticker,
@@ -483,7 +583,7 @@
             industry: p.industry,
             fundamentals,
             cashFlow,
-            institutional: null,   // FMP 沒有 13F 這麼細，US 目前跳過
+            institutional: null,
         };
     }
 
@@ -1539,6 +1639,10 @@
         let drilldownHtml = '';
         try { drilldownHtml = renderQuarterlyDrilldown(analysis.cashFlow, analysis.fundamentals); }
         catch (e) { console.warn('renderQuarterlyDrilldown failed:', e.message); }
+        // Feature B · 資產負債結構 panel · try/catch 保護
+        let balanceSheetHtml = '';
+        try { balanceSheetHtml = renderBalanceSheetHtml(analysis); }
+        catch (e) { console.warn('renderBalanceSheetHtml failed:', e.message); }
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         // Step 2 · 最後 12 月營收 / 4 季毛利+營益（值+增長率）· try/catch 保護
         let monthlyMetricsHtml = '';
@@ -1565,7 +1669,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -2185,6 +2289,154 @@
                     </thead>
                     <tbody>${rows}</tbody>
                 </table>
+            </section>
+        `;
+    }
+
+    // Feature B · 資產負債結構 · 水平堆疊長條 + 表格 + ROE/ROA/ROIC/PB 摘要
+    // 兩張 100% 長條（都以 TotalAssets 為分母 · 因為資產 = 負債 + 權益 · 兩張長度相等）
+    // 上面：資產怎麼組成（現金 / 應收 / 存貨 / 其他流動 / 固定 / 無形 / 長期投資 / 其他）
+    // 下面：資產怎麼被支撐（應付 / 其他流動負債 / 長期負債 / 其他負債 / 權益）
+    function renderBalanceSheetHtml(analysis) {
+        const bs = analysis.fundamentals && analysis.fundamentals.balanceSheetSnapshot;
+        if (!bs || !bs.totalAssets || bs.totalAssets <= 0) return '';
+
+        const TA = bs.totalAssets;
+        const pct = v => (v === null || v === undefined || !isFinite(v)) ? 0 : (v / TA * 100);
+        const fmtVal = v => {
+            if (v === null || v === undefined || !isFinite(v)) return '—';
+            const abs = Math.abs(v);
+            if (abs >= 1e12) return (v / 1e12).toFixed(2) + '兆';
+            if (abs >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (abs >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            if (abs >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+            return v.toFixed(0);
+        };
+        const fmtPct = p => (p === 0 || !isFinite(p)) ? '—' : p.toFixed(1) + '%';
+
+        // 資產分格（7 格 · 用實際值算 · 「其他」= TotalAssets - 已認識項目）
+        const cashPct = pct(bs.cash);
+        const arPct = pct(bs.accountsReceivable);
+        const invPct = pct(bs.inventories);
+        const otherCurrentPct = Math.max(0, pct(bs.currentAssets) - cashPct - arPct - invPct);
+        const ppePct = pct(bs.ppe);
+        const intangPct = pct(bs.intangibles);
+        const ltInvPct = pct(bs.ltInvestments);
+        const otherAssetPct = Math.max(0, 100 - cashPct - arPct - invPct - otherCurrentPct - ppePct - intangPct - ltInvPct);
+
+        const assetSlices = [
+            { label: '現金', pct: cashPct, color: '#10b981', val: bs.cash },
+            { label: '應收', pct: arPct, color: '#3b82f6', val: bs.accountsReceivable },
+            { label: '存貨', pct: invPct, color: '#f59e0b', val: bs.inventories },
+            { label: '其他流動', pct: otherCurrentPct, color: '#a78bfa', val: (bs.currentAssets || 0) - (bs.cash || 0) - (bs.accountsReceivable || 0) - (bs.inventories || 0) },
+            { label: '固定資產', pct: ppePct, color: '#6366f1', val: bs.ppe },
+            { label: '無形', pct: intangPct, color: '#ec4899', val: bs.intangibles },
+            { label: '長期投資', pct: ltInvPct, color: '#14b8a6', val: bs.ltInvestments },
+            { label: '其他', pct: otherAssetPct, color: '#94a3b8', val: (TA - ((bs.currentAssets || 0) + (bs.ppe || 0) + (bs.intangibles || 0) + (bs.ltInvestments || 0))) },
+        ];
+
+        // 負債+權益（5 格 · 因為 Assets = Liab + Equity · 兩條長度一致代表資產 100%）
+        const apPct = pct(bs.accountsPayable);
+        const otherCLPct = Math.max(0, pct(bs.currentLiabilities) - apPct);
+        const ltDebtPct = pct(bs.longTermDebt);
+        const totalLPct = pct(bs.totalLiabilities);
+        const otherLPct = Math.max(0, totalLPct - pct(bs.currentLiabilities) - ltDebtPct);
+        const equityPct = pct(bs.equity);
+        const financeSlices = [
+            { label: '應付', pct: apPct, color: '#ef4444', val: bs.accountsPayable },
+            { label: '其他流動負債', pct: otherCLPct, color: '#f97316', val: (bs.currentLiabilities || 0) - (bs.accountsPayable || 0) },
+            { label: '長期負債', pct: ltDebtPct, color: '#dc2626', val: bs.longTermDebt },
+            { label: '其他負債', pct: otherLPct, color: '#fb923c', val: (bs.totalLiabilities || 0) - (bs.currentLiabilities || 0) - (bs.longTermDebt || 0) },
+            { label: '權益', pct: equityPct, color: '#16a34a', val: bs.equity },
+        ];
+
+        // 水平堆疊長條 SVG
+        const renderStackedBar = (slices, height) => {
+            const W = 800;
+            let x = 0;
+            const rects = [];
+            const labels = [];
+            slices.forEach(s => {
+                if (s.pct <= 0) return;
+                const w = s.pct / 100 * W;
+                rects.push(`<rect x="${x.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${height}" fill="${s.color}" stroke="#fff" stroke-width="0.5"><title>${s.label}: ${fmtPct(s.pct)} · ${fmtVal(s.val)}</title></rect>`);
+                // 只在 pct > 5% 才標籤 · 避免擠
+                if (s.pct >= 5) {
+                    const midX = x + w / 2;
+                    labels.push(`<text x="${midX.toFixed(1)}" y="${(height/2 + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${s.label} ${s.pct.toFixed(0)}%</text>`);
+                }
+                x += w;
+            });
+            return `<svg viewBox="0 0 ${W} ${height}" width="100%" xmlns="http://www.w3.org/2000/svg">${rects.join('')}${labels.join('')}</svg>`;
+        };
+
+        // 詳細表格
+        const renderTable = (title, slices) => {
+            let rowsHtml = '';
+            slices.forEach(s => {
+                if (s.val === 0 || s.val === null || s.val === undefined) return;
+                rowsHtml += `<tr>
+                    <td><span class="bs-swatch" style="background:${s.color}"></span>${s.label}</td>
+                    <td>${fmtVal(s.val)}</td>
+                    <td>${fmtPct(s.pct)}</td>
+                </tr>`;
+            });
+            return `<div class="fund-cell">
+                <h4>${title}</h4>
+                <table class="fund-table bs-table">
+                    <tr><th>項目</th><th>絕對值</th><th>佔資產%</th></tr>
+                    ${rowsHtml}
+                </table>
+            </div>`;
+        };
+
+        // 摘要指標
+        const pb = analysis.currentPBR;
+        const metricRow = (label, val, unit, tooltip) => `
+            <div class="bs-metric" title="${tooltip || ''}">
+                <div class="bs-metric-label">${label}</div>
+                <div class="bs-metric-val">${val === null || !isFinite(val) ? 'N/A' : val.toFixed(1) + unit}</div>
+            </div>`;
+
+        // 結構解讀
+        let structNote = '';
+        if (equityPct >= 60) structNote = `💪 <b>權益佔 ${equityPct.toFixed(0)}%</b> · 財務結構穩健 · 靠自有資本支撐 · 抗景氣衝擊能力強`;
+        else if (equityPct >= 40) structNote = `⚖️ 權益佔 ${equityPct.toFixed(0)}% · 中性資本結構 · 有借力也有自己撐`;
+        else structNote = `⚠️ <b>權益僅佔 ${equityPct.toFixed(0)}%</b>（負債佔 ${totalLPct.toFixed(0)}%）· 高槓桿 · 利率上升時利息壓力大`;
+
+        // 資產類型分類
+        let assetTypeNote = '';
+        if (ppePct >= 40) assetTypeNote = `🏭 <b>固定資產佔 ${ppePct.toFixed(0)}%</b> · 典型製造業/資本密集型（半導體、鋼鐵、營建）· CapEx 週期會直接影響 FCF`;
+        else if (intangPct >= 30) assetTypeNote = `🧠 <b>無形資產佔 ${intangPct.toFixed(0)}%</b>（含商譽）· 品牌 / 併購 / 軟體型公司 · 要看是併購商譽（減值風險）還是自研品牌（護城河）`;
+        else if (cashPct >= 25) assetTypeNote = `💵 <b>現金佔 ${cashPct.toFixed(0)}%</b> · 資產輕、現金充沛 · 可能是軟體/服務業 or 保守累積`;
+
+        return `
+            <section class="panel balance-sheet-panel">
+                <h3>🏦 資產負債結構（${bs.date} · ${bs.source}）</h3>
+                <p class="hint">
+                    兩條長條都以 <b>總資產 = 100%</b> 為分母（因為 Assets = Liabilities + Equity）· 一眼看到「這公司什麼結構撐起來的」。
+                    百分比 &gt; 5% 才顯示標籤 · 滑鼠停格看小段落絕對值。
+                </p>
+                ${structNote ? `<div class="bs-note">${structNote}</div>` : ''}
+                ${assetTypeNote ? `<div class="bs-note">${assetTypeNote}</div>` : ''}
+
+                <h4 style="margin-top:14px">📈 資產結構（Total = ${fmtVal(TA)}）</h4>
+                ${renderStackedBar(assetSlices, 32)}
+
+                <h4 style="margin-top:14px">📉 負債 + 權益（同一 100% · 誰在支撐這些資產）</h4>
+                ${renderStackedBar(financeSlices, 32)}
+
+                <div class="bs-metrics-row">
+                    ${metricRow('ROE', bs.roe, '%', 'TTM 淨利 / 期末權益')}
+                    ${metricRow('ROA', bs.roa, '%', 'TTM 淨利 / 總資產')}
+                    ${metricRow('ROIC', bs.roic, '%', 'NOPAT / (權益+長期債) · TW 假設稅率 20%')}
+                    ${metricRow('P/B', pb, '×', '股價 / 每股淨值')}
+                </div>
+
+                <div class="fund-grid" style="margin-top:14px">
+                    ${renderTable('📈 資產項目', assetSlices)}
+                    ${renderTable('📉 負債 + 權益', financeSlices)}
+                </div>
             </section>
         `;
     }
