@@ -814,9 +814,54 @@
         let pegScore = null;
         if (peg !== null && isFinite(peg) && peg > 0) {
             if (peg <= 1.0) pegScore = 100;
-            else if (peg <= 2.0) pegScore = 100 - (peg - 1.0) * 40;   // 60-100
-            else if (peg <= 3.0) pegScore = 60 - (peg - 2.0) * 60;    // 0-60
+            else if (peg <= 2.0) pegScore = 100 - (peg - 1.0) * 40;
+            else if (peg <= 3.0) pegScore = 60 - (peg - 2.0) * 60;
             else pegScore = 0;
+        }
+
+        // Feature 2 · PEG 多年 CAGR 對照（抵抗低基期效應）
+        // 單季 YoY 遇低基期會爆表 · CAGR 用 TTM EPS vs N 年前 TTM EPS 算 · 訊號更誠實
+        let pegCagr1y = null, pegCagr2y = null, pegCagr3y = null;
+        let cagr1yPct = null, cagr2yPct = null, cagr3yPct = null;
+        if (currentPE && isFinite(currentPE) && currentPE > 0 && fund.eps && fund.eps.length >= 8) {
+            const validEps = fund.eps.filter(e => e.value !== null && isFinite(e.value));
+            const ttmSum = arr => arr.reduce((s, e) => s + e.value, 0);
+            if (validEps.length >= 8) {
+                const ttmNow = ttmSum(validEps.slice(0, 4));
+                // 1Y CAGR: TTM_now vs TTM_1Y_ago（8 季 · 大部分股票都算得出）
+                const ttm1yAgo = ttmSum(validEps.slice(4, 8));
+                if (ttm1yAgo > 0 && ttmNow > 0) {
+                    cagr1yPct = (ttmNow / ttm1yAgo - 1) * 100;
+                    if (cagr1yPct > 3) pegCagr1y = currentPE / cagr1yPct;
+                }
+                if (validEps.length >= 12) {
+                    const ttm2yAgo = ttmSum(validEps.slice(8, 12));
+                    if (ttm2yAgo > 0 && ttmNow > 0) {
+                        cagr2yPct = (Math.pow(ttmNow / ttm2yAgo, 1/2) - 1) * 100;
+                        if (cagr2yPct > 3) pegCagr2y = currentPE / cagr2yPct;
+                    }
+                }
+                if (validEps.length >= 16) {
+                    const ttm3yAgo = ttmSum(validEps.slice(12, 16));
+                    if (ttm3yAgo > 0 && ttmNow > 0) {
+                        cagr3yPct = (Math.pow(ttmNow / ttm3yAgo, 1/3) - 1) * 100;
+                        if (cagr3yPct > 3) pegCagr3y = currentPE / cagr3yPct;
+                    }
+                }
+            }
+        }
+
+        // 低基期扭曲偵測：優先 3Y CAGR · 沒有就 fallback 到 2Y / 1Y
+        // 若 CAGR-based PEG 比 1Y YoY 版 PEG 貴 40%+ = 最新單季 YoY 是低基期反彈放大
+        let pegBaseDistortion = null;
+        const cagrRef = pegCagr3y || pegCagr2y || pegCagr1y;
+        const cagrGrowthRef = cagr3yPct || cagr2yPct || cagr1yPct;
+        const cagrLabel = pegCagr3y ? '3Y CAGR' : pegCagr2y ? '2Y CAGR' : '1Y TTM-CAGR';
+        if (peg !== null && cagrRef !== null) {
+            const distortionRatio = cagrRef / peg;
+            if (distortionRatio > 1.4) {
+                pegBaseDistortion = { peg1y: peg, pegCagr: cagrRef, cagrGrowth: cagrGrowthRef, cagrLabel, ratio: distortionRatio };
+            }
         }
 
         const scores = {
@@ -831,10 +876,14 @@
             peg,
             revPersistence: fund.revenue && fund.revenue[0] ? fund.revenue[0].yoy * 100 : null,
             grossMarginTrend: fund.grossMargin && fund.grossMargin[0] ? fund.grossMargin[0].value * 100 : null,
-            grossMarginSlope: grossMarginSlopePpQtr,   // 給詳細分數顯示用 · pp/Q
+            grossMarginSlope: grossMarginSlopePpQtr,
             fcfConversion: fcfConversionRaw,
             sbcDilution: sbcDilutionRaw,
             ruleOf40: ruleOf40Raw,
+            // Feature 2 · PEG CAGR 對照
+            pegCagr1y, pegCagr2y, pegCagr3y,
+            cagr1yPct, cagr2yPct, cagr3yPct,
+            pegBaseDistortion,
         };
         return { scores, raw };
     }
@@ -910,10 +959,17 @@
             const rawVal = raw[a.key];
             let rawStr = (rawVal === null || !isFinite(rawVal)) ? 'N/A' : (a.decimals === 0 ? Math.round(rawVal) : rawVal.toFixed(a.decimals));
             let unitStr = a.unit;
-            // 毛利趨勢附上斜率 · 讓讀者看到分數來源
             if (a.key === 'grossMarginTrend' && raw.grossMarginSlope !== null && isFinite(raw.grossMarginSlope)) {
                 const sign = raw.grossMarginSlope >= 0 ? '+' : '';
                 unitStr = `${a.unit} · 斜率 ${sign}${raw.grossMarginSlope.toFixed(2)}pp/Q`;
+            }
+            // Feature 2 · PEG 附 CAGR 對照
+            if (a.key === 'peg') {
+                const parts = [];
+                if (raw.pegCagr1y !== null) parts.push(`1Y CAGR 版 ${raw.pegCagr1y.toFixed(2)}×`);
+                if (raw.pegCagr2y !== null) parts.push(`2Y CAGR 版 ${raw.pegCagr2y.toFixed(2)}×`);
+                if (raw.pegCagr3y !== null) parts.push(`3Y CAGR 版 ${raw.pegCagr3y.toFixed(2)}×`);
+                if (parts.length > 0) unitStr = `${a.unit} · ${parts.join(' / ')}`;
             }
             const scoreStr = (s === null || s === undefined) ? '—' : Math.round(s);
             const clsScore = s === null ? '' : (s >= 70 ? 'axis-good' : s >= 40 ? 'axis-mid' : 'axis-poor');
@@ -924,6 +980,15 @@
                 <td class="hint-mini">${a.mapping}</td>
             </tr>`;
         }).join('');
+
+        // Feature 2 · PEG 低基期扭曲警訊
+        let pegDistortionBanner = '';
+        if (raw.pegBaseDistortion) {
+            const d = raw.pegBaseDistortion;
+            pegDistortionBanner = `<div class="peg-distortion-banner">
+                ⚠️ <b>PEG 低基期扭曲</b>：單季 YoY 版 PEG <b>${d.peg1y.toFixed(2)}×</b> 看起來很便宜 · 但用 <b>${d.cagrLabel}</b>（${d.cagrGrowth.toFixed(0)}%/年）算的 PEG 是 <b>${d.pegCagr.toFixed(2)}×</b> · 貴 ${((d.ratio - 1) * 100).toFixed(0)}%。代表最新單季 YoY 是靠低基期反彈放大 · <b>PEG 這軸的滿分可能是假象</b> · 用 CAGR 版重估更誠實。
+            </div>`;
+        }
 
         const validScores = Object.values(scores).filter(s => s !== null && s !== undefined);
         const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : null;
@@ -970,6 +1035,7 @@
                         <div class="radar-avg-verdict">${avgVerdict}</div>
                     </div>
                 </div>
+                ${pegDistortionBanner}
                 <details class="radar-details">
                     <summary>🔍 詳細分數對照</summary>
                     <table class="radar-table">
@@ -2009,11 +2075,39 @@
             return '';   // CapEx 不套色
         };
 
+        // Feature 1 · DSO/DIO 週轉天數
+        // DSO = 應收 / 營收 × 90 天（單季）· 判「收款要幾天」
+        // DIO = 存貨 / 銷貨成本 × 90 天 · 銷貨成本 = 營收 × (1 - 毛利率)
+        // 用 fund.revenue + fund.grossMargin 對日期查
+        const revByDate = new Map((fund && fund.revenue ? fund.revenue : []).map(e => [e.date, e]));
+        const gmByDate = new Map((fund && fund.grossMargin ? fund.grossMargin : []).map(e => [e.date, e]));
+        const calcDSO = (ar, date) => {
+            const rev = revByDate.get(date);
+            if (!rev || !ar || rev.value === null || !isFinite(rev.value) || rev.value <= 0) return null;
+            return ar / rev.value * 90;
+        };
+        const calcDIO = (inv, date) => {
+            const rev = revByDate.get(date);
+            const gm = gmByDate.get(date);
+            if (!rev || !gm || !inv || rev.value === null || gm.value === null || !isFinite(rev.value) || !isFinite(gm.value)) return null;
+            const cogs = rev.value * (1 - gm.value);
+            if (cogs <= 0) return null;
+            return inv / cogs * 90;
+        };
+        const fmtDays = d => (d === null || !isFinite(d)) ? '—' : Math.round(d) + '天';
+        const daysCls = (cur, prev) => {
+            if (cur === null || prev === null) return '';
+            const delta = cur - prev;
+            if (delta > 10) return 'yoy-neg';   // 週轉拉長 = 惡化
+            if (delta < -5) return 'yoy-pos';   // 週轉收斂 = 改善
+            return '';
+        };
+
         // 建每一列（每季一列 · 對照前一季算 QoQ）
         let rows = '';
         for (let i = 0; i < dates.length; i++) {
             const d = dates[i];
-            const nextD = dates[i + 1];   // 前一季
+            const nextD = dates[i + 1];
             const bs = bsByDate.get(d) || {};
             const bsPrev = nextD ? (bsByDate.get(nextD) || {}) : {};
             const capEx = capExByDate.get(d) || {};
@@ -2026,30 +2120,66 @@
             const cx = capEx.value ?? null;
             const cxPrev = capExPrev.value ?? null;
 
+            const dso = calcDSO(ar, d);
+            const dsoPrev = nextD ? calcDSO(arPrev, nextD) : null;
+            const dio = calcDIO(inv, d);
+            const dioPrev = nextD ? calcDIO(invPrev, nextD) : null;
+
             rows += `<tr>
                 <td>${d}</td>
                 <td>${fmtNum(ar)}</td>
                 <td class="${qoqCls(ar, arPrev, true)}">${fmtQoQ(ar, arPrev)}</td>
+                <td class="${daysCls(dso, dsoPrev)}"><b>${fmtDays(dso)}</b></td>
                 <td>${fmtNum(inv)}</td>
                 <td class="${qoqCls(inv, invPrev, true)}">${fmtQoQ(inv, invPrev)}</td>
+                <td class="${daysCls(dio, dioPrev)}"><b>${fmtDays(dio)}</b></td>
                 <td>${fmtNum(cx)}</td>
                 <td>${fmtQoQ(cx, cxPrev)}</td>
             </tr>`;
         }
 
+        // 最新一季 DSO/DIO verdict
+        let daysVerdict = '';
+        if (dates.length >= 2) {
+            const latest = dates[0], prev = dates[1];
+            const latestBs = bsByDate.get(latest) || {};
+            const prevBs = bsByDate.get(prev) || {};
+            const dsoLatest = calcDSO(latestBs.accountsReceivable, latest);
+            const dsoPrev = calcDSO(prevBs.accountsReceivable, prev);
+            const dioLatest = calcDIO(latestBs.inventories, latest);
+            const dioPrev = calcDIO(prevBs.inventories, prev);
+            const parts = [];
+            if (dsoLatest !== null && dsoPrev !== null) {
+                const delta = dsoLatest - dsoPrev;
+                if (delta > 10) parts.push(`🚨 <b>收款週期 ${Math.round(dsoPrev)}天 → ${Math.round(dsoLatest)}天</b>（拉長 ${Math.round(delta)}天）· 對 CF 有直接壓力`);
+                else if (delta < -5) parts.push(`✅ 收款週期 ${Math.round(dsoPrev)}天 → ${Math.round(dsoLatest)}天（改善 ${Math.round(-delta)}天）`);
+                else parts.push(`ⓘ 收款週期穩定 ${Math.round(dsoLatest)}天`);
+            }
+            if (dioLatest !== null && dioPrev !== null) {
+                const delta = dioLatest - dioPrev;
+                if (delta > 10) parts.push(`🚨 <b>存貨週轉 ${Math.round(dioPrev)}天 → ${Math.round(dioLatest)}天</b>（拉長 ${Math.round(delta)}天）· 出貨壓力累積`);
+                else if (delta < -5) parts.push(`✅ 存貨週轉 ${Math.round(dioPrev)}天 → ${Math.round(dioLatest)}天（改善 ${Math.round(-delta)}天）`);
+                else parts.push(`ⓘ 存貨週轉穩定 ${Math.round(dioLatest)}天`);
+            }
+            if (parts.length > 0) {
+                daysVerdict = `<div class="drilldown-verdict">${parts.join('<br>')}</div>`;
+            }
+        }
+
         return `
             <section class="panel drilldown-panel">
-                <h3>🔎 應收 / 存貨 / CapEx（季度 · QoQ）</h3>
+                <h3>🔎 應收 / 存貨 / CapEx · DSO / DIO（季度 · QoQ）</h3>
                 <p class="hint">
-                    上方 CF 背離警訊指向的「回查對象」· 應收/存貨的 QoQ 若明顯 &gt; 15% = 資產負債表在膨脹（收款拉長 or 產品堆積）·
-                    CapEx 中性看趨勢（擴產週期會壓 FCF 但可能帶未來成長）。
+                    <b>DSO</b>（收款週期）= 應收 ÷ 營收 × 90 · <b>DIO</b>（存貨週轉）= 存貨 ÷ 銷貨成本 × 90 · 這兩個直接答「收款要幾天 / 存貨要幾天才賣掉」·
+                    比 QoQ 增長率<b>更能判斷絕對水位</b>。應收/存貨 QoQ &gt; 15% 就警訊 · DSO / DIO 一季拉長 &gt; 10 天更嚴重。
                 </p>
+                ${daysVerdict}
                 <table class="fund-table drilldown-table">
                     <thead>
                         <tr>
                             <th>季度</th>
-                            <th>應收帳款</th><th>QoQ</th>
-                            <th>存貨</th><th>QoQ</th>
+                            <th>應收帳款</th><th>QoQ</th><th>DSO</th>
+                            <th>存貨</th><th>QoQ</th><th>DIO</th>
                             <th>CapEx</th><th>QoQ</th>
                         </tr>
                     </thead>

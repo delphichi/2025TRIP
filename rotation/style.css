@@ -766,3 +766,24 @@ td.q-bl { background: #f3f4f6; color: #374151; }
     .fund-table { font-size: .82em; }
     .fund-table th, .fund-table td { padding: 6px 4px; }
 }
+
+/* B2 · 跳去 valuation 深挖按鈕 */
+.jump-valuation-btn {
+    display: inline-block;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #f59e0b 0%, #7c3aed 100%);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.jump-valuation-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(124, 58, 237, 0.35);
+    color: #fff;
+    text-decoration: none;
+}
+.jump-valuation-btn:active { transform: translateY(0); }

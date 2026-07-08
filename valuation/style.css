@@ -1872,3 +1872,27 @@ textarea {
     font-weight: 700;
     border-top: 2px solid #94a3b8;
 }
+
+/* Feature 1 · DSO/DIO drilldown verdict */
+.drilldown-verdict {
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: #f0f9ff;
+    border-left: 4px solid #0284c7;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #0c4a6e;
+    line-height: 1.7;
+}
+
+/* Feature 2 · PEG 低基期扭曲警訊 */
+.peg-distortion-banner {
+    margin: 10px 0;
+    padding: 12px 14px;
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.7;
+}

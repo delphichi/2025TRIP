@@ -1226,6 +1226,8 @@
             const brTxt = `${brArrow} ${(br * 100).toFixed(0)}%`;
             const brTitle = `過去 20 天：上漲日成交量 / (上漲+下跌日成交量) · > 60% 資金明顯流入 · < 40% 明顯流出`;
 
+            // B2 · 跳去 valuation 深挖這支個股
+            const valuationUrl = `../valuation/index.html?ticker=${encodeURIComponent(t)}`;
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="tk-dot" style="background:${info.color}"></span> <b>${t}</b></td>
@@ -1237,6 +1239,7 @@
                 <td>${fmt(m.x, 2)}x</td>
                 <td class="${brCls}" title="${brTitle}">${brTxt}</td>
                 <td class="${q.cls}"><b>${q.emoji} ${q.name}</b></td>
+                <td><a class="jump-valuation-btn" href="${valuationUrl}" title="打開這支個股的估值分析（6 軸雷達 · DSO/DIO · 外資訊號 · CF 品質）">📊 估值</a></td>
             `;
             tbody.appendChild(tr);
         }
