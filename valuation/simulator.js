@@ -1781,21 +1781,23 @@
 
     function renderMarginTrajectory(fund) {
         if (!fund || !fund.revenue || !fund.grossMargin) return '';
-        // 對齊營收 + 毛利率同一季度
-        const marginByDate = {};
+        // 對齊營收 + 毛利率同一季度（同時抓 YoY 變化跟絕對值）
+        const marginPPByDate = {};   // pp YoY change · 給 X 軸
+        const marginAbsByDate = {};  // absolute % · 給線粗細
         fund.grossMargin.forEach(e => {
-            if (e.date && e.yoy !== null && isFinite(e.yoy) && e.mode === 'YoY') {
-                marginByDate[e.date] = e.yoy * 100;
-            }
+            if (!e.date) return;
+            if (e.value !== null && isFinite(e.value)) marginAbsByDate[e.date] = e.value * 100;
+            if (e.yoy !== null && isFinite(e.yoy) && e.mode === 'YoY') marginPPByDate[e.date] = e.yoy * 100;
         });
         const points = [];
         fund.revenue.forEach(e => {
-            if (e.date && e.yoy !== null && isFinite(e.yoy) && e.mode === 'YoY' && marginByDate[e.date] !== undefined) {
+            if (e.date && e.yoy !== null && isFinite(e.yoy) && e.mode === 'YoY' && marginPPByDate[e.date] !== undefined) {
                 points.push({
                     date: e.date,
-                    quarter: e.date.slice(2, 4) + extractQuarter(e.date),   // e.g. "25Q1"
+                    quarter: e.date.slice(2, 4) + extractQuarter(e.date),
                     revYoY: e.yoy * 100,
-                    marginPP: marginByDate[e.date],
+                    marginPP: marginPPByDate[e.date],
+                    marginAbs: marginAbsByDate[e.date] !== undefined ? marginAbsByDate[e.date] : null,
                 });
             }
         });
@@ -1860,34 +1862,52 @@
             ticks.push(`<text x="${x}" y="${cy+16}" text-anchor="middle" font-size="10" fill="#64748b">${v > 0 ? '+' : ''}${v.toFixed(1)}pp</text>`);
         });
 
-        // 軌跡線（漸變透明度：舊淡新深）
+        // 毛利絕對值 → 線粗（0% → 1.5px · 60% → 6px · 上限 7px）
+        // 線越粗代表「這段期間毛利水位越高」· 讓讀者一眼看「這家是高毛利公司還是低毛利公司」
+        const marginToStroke = m => {
+            if (m === null || !isFinite(m)) return 2;   // 沒毛利資料用預設細線
+            return Math.max(1.5, Math.min(7, 1.5 + (m / 60) * 4.5));
+        };
+
+        // 軌跡線（漸變透明度：舊淡新深 · 線粗依段內平均毛利水位）
         const pathSegs = [];
         for (let i = 1; i < points.length; i++) {
             const opa = 0.25 + 0.65 * (i / (points.length - 1));
             const x1 = xToPx(points[i-1].marginPP), y1 = yToPx(points[i-1].revYoY);
             const x2 = xToPx(points[i].marginPP), y2 = yToPx(points[i].revYoY);
-            pathSegs.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#7c3aed" stroke-width="2" opacity="${opa.toFixed(2)}"/>`);
+            const avgMargin = (points[i-1].marginAbs !== null && points[i].marginAbs !== null)
+                ? (points[i-1].marginAbs + points[i].marginAbs) / 2 : null;
+            const sw = marginToStroke(avgMargin);
+            pathSegs.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#7c3aed" stroke-width="${sw.toFixed(2)}" stroke-linecap="round" opacity="${opa.toFixed(2)}"/>`);
         }
-        // 最新一段加箭頭
+        // 最新一段加箭頭 · 大小跟該段線粗連動
         const last = points[points.length - 1];
         const prev = points[points.length - 2];
+        const lastSegMargin = (prev.marginAbs !== null && last.marginAbs !== null)
+            ? (prev.marginAbs + last.marginAbs) / 2 : last.marginAbs;
+        const lastSw = marginToStroke(lastSegMargin);
+        const arrowSize = 6 + lastSw * 0.8;
         const arrowX = xToPx(last.marginPP), arrowY = yToPx(last.revYoY);
         const dx = arrowX - xToPx(prev.marginPP), dy = arrowY - yToPx(prev.revYoY);
         const angleRad = Math.atan2(dy, dx);
-        const ax1 = arrowX - 8 * Math.cos(angleRad - 0.4);
-        const ay1 = arrowY - 8 * Math.sin(angleRad - 0.4);
-        const ax2 = arrowX - 8 * Math.cos(angleRad + 0.4);
-        const ay2 = arrowY - 8 * Math.sin(angleRad + 0.4);
+        const ax1 = arrowX - arrowSize * Math.cos(angleRad - 0.4);
+        const ay1 = arrowY - arrowSize * Math.sin(angleRad - 0.4);
+        const ax2 = arrowX - arrowSize * Math.cos(angleRad + 0.4);
+        const ay2 = arrowY - arrowSize * Math.sin(angleRad + 0.4);
         const arrow = `<polygon points="${arrowX},${arrowY} ${ax1.toFixed(1)},${ay1.toFixed(1)} ${ax2.toFixed(1)},${ay2.toFixed(1)}" fill="#7c3aed"/>`;
 
-        // 資料點 + 標籤
+        // 資料點 · 半徑跟該點毛利水位也連動一點（3-6.5px · 最新那點固定較大）
+        const marginToDotR = m => {
+            if (m === null || !isFinite(m)) return 3.5;
+            return Math.max(3, Math.min(6, 3 + (m / 60) * 3));
+        };
         const dots = points.map((p, i) => {
             const x = xToPx(p.marginPP), y = yToPx(p.revYoY);
             const isLast = i === points.length - 1;
-            const r = isLast ? 6 : 4;
+            const baseR = marginToDotR(p.marginAbs);
+            const r = isLast ? baseR + 2 : baseR;
             const fill = isLast ? '#7c3aed' : '#a78bfa';
-            const stroke = isLast ? '#fff' : '#fff';
-            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
+            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="#fff" stroke-width="1.5"/>`;
         }).join('');
 
         // 只標最新 + 最舊 + 中間隔幾個 · 避免擠在一起
@@ -1919,9 +1939,20 @@
             <section class="panel trajectory-panel">
                 <h3>📊 營收 × 毛利軌跡圖（近 ${points.length} 季）</h3>
                 <p class="hint">
-                    每季一個點 · 按時序連線 · X 軸「毛利率 YoY 變化」判成本控制、產品組合升級· Y 軸「營收 YoY」判規模成長 ·
+                    每季一個點 · 按時序連線 · X 軸「毛利率 YoY 變化」判成本控制、產品組合升級 · Y 軸「營收 YoY」判規模成長 ·
                     <b>看軌跡走向</b>比看單點更有意義：往右上飄 = 越來越好 · 往左下退 = 越來越差 · 在象限間跳動 = 週期股或轉型中。
                 </p>
+                <div class="trajectory-legend">
+                    <span class="legend-title">線粗 = 毛利水位：</span>
+                    <svg viewBox="0 0 140 22" width="140" height="22" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle">
+                        <line x1="4" y1="11" x2="40" y2="11" stroke="#7c3aed" stroke-width="1.6" stroke-linecap="round"/>
+                        <line x1="52" y1="11" x2="88" y2="11" stroke="#7c3aed" stroke-width="3.6" stroke-linecap="round"/>
+                        <line x1="100" y1="11" x2="136" y2="11" stroke="#7c3aed" stroke-width="6" stroke-linecap="round"/>
+                    </svg>
+                    <span class="legend-tick">10%</span>
+                    <span class="legend-tick">30%</span>
+                    <span class="legend-tick">60%+</span>
+                </div>
                 <div class="trajectory-verdict" style="border-color:${verdictColor};color:${verdictColor}">${verdict}</div>
                 <div class="trajectory-wrapper">
                     <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:700px" xmlns="http://www.w3.org/2000/svg">
