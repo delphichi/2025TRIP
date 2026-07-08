@@ -484,3 +484,40 @@ body.radar-body {
     opacity: 0.7;
     background: #fff;
 }
+
+/* Reddit 健康度診斷（cross tab 上方 · 一眼看到 Reddit 有沒有正常運作） */
+.rd-health {
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 0.92em;
+    line-height: 1.6;
+    border-left: 4px solid;
+}
+.rd-health-fail {
+    background: #fee2e2;
+    border-color: var(--danger);
+    color: #7f1d1d;
+}
+.rd-health-warn {
+    background: #fef3c7;
+    border-color: var(--warn);
+    color: #78350f;
+}
+.rd-health-mixed {
+    background: #ffedd5;
+    border-color: #f97316;
+    color: #7c2d12;
+}
+.rd-health b { font-weight: 800; }
+
+/* 走 CORS proxy 時的小標籤 */
+.via-tag {
+    font-style: normal;
+    font-size: 0.75em;
+    color: var(--muted);
+    background: rgba(255,255,255,0.6);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+}

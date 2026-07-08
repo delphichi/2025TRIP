@@ -155,30 +155,49 @@
     // ============================================================
     // Reddit fetch (public .json)
     // ============================================================
+    // CORS proxy fallback（跟 valuation / rotation 一樣 · 直連掛時自動繞路）
+    // 為什麼要 proxy：Reddit 對「Mozilla」User-Agent 越來越嚴 · 從瀏覽器直連常 403/429
+    // proxy 幫我們加合理 UA · 繞開 anti-bot
+    const REDDIT_PROXIES = [
+        u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    ];
+
     async function redditHot(subreddit, limit = 25) {
-        // https://www.reddit.com/r/{sub}/hot.json?limit=25
-        // 有 CORS · 不用 auth · 但 IP 級 rate limit ~60/min
-        const url = `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/hot.json?limit=${limit}`;
-        try {
-            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-            if (!res.ok) return { subreddit, posts: [], error: `HTTP ${res.status}` };
-            const data = await res.json();
-            const posts = (data.data?.children || []).map(c => ({
-                subreddit,
-                title: c.data.title,
-                url: `https://reddit.com${c.data.permalink}`,
-                score: c.data.score,
-                comments: c.data.num_comments,
-                created: c.data.created_utc * 1000,   // epoch ms
-                author: c.data.author,
-                selftext: (c.data.selftext || '').slice(0, 300),
-                isSelf: c.data.is_self,
-                flair: c.data.link_flair_text || '',
-            }));
-            return { subreddit, posts, error: null };
-        } catch (e) {
-            return { subreddit, posts: [], error: e.message };
+        // 為什麼掃 old.reddit.com 而非 www：old 對 unauthenticated 較寬鬆
+        // 若 old 也掛 · 依序試 3 個 CORS proxy
+        const upstreamUrl = `https://old.reddit.com/r/${encodeURIComponent(subreddit)}/hot.json?limit=${limit}&raw_json=1`;
+        const attempts = [
+            { label: 'direct', url: upstreamUrl },
+            ...REDDIT_PROXIES.map((p, i) => ({ label: `proxy${i + 1}`, url: p(upstreamUrl) })),
+        ];
+        let lastErr = '';
+        for (const a of attempts) {
+            try {
+                const res = await fetch(a.url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) { lastErr = `${a.label} HTTP ${res.status}`; continue; }
+                const data = await res.json();
+                const children = data.data?.children || [];
+                if (children.length === 0) { lastErr = `${a.label} empty`; continue; }
+                const posts = children.map(c => ({
+                    subreddit,
+                    title: c.data.title,
+                    url: `https://reddit.com${c.data.permalink}`,
+                    score: c.data.score,
+                    comments: c.data.num_comments,
+                    created: c.data.created_utc * 1000,   // epoch ms
+                    author: c.data.author,
+                    selftext: (c.data.selftext || '').slice(0, 300),
+                    isSelf: c.data.is_self,
+                    flair: c.data.link_flair_text || '',
+                }));
+                return { subreddit, posts, error: null, via: a.label };
+            } catch (e) {
+                lastErr = `${a.label} ${e.message}`;
+            }
         }
+        return { subreddit, posts: [], error: lastErr || 'all attempts failed' };
     }
 
     // 平行拉全部 subreddit · 個別失敗不擋
@@ -217,6 +236,7 @@
                     return kw.length === 0 || kw.some(k => t.includes(k));
                 }).length,
                 error: r.error,
+                via: r.via || '',
             })),
         };
     }
@@ -326,7 +346,8 @@
         const subSummary = perSub.map(s => {
             let cls = 'sub-badge';
             let icon = '';
-            let text = `r/${s.sub} · ${s.matched}/${s.total}`;
+            const viaTag = s.via && s.via !== 'direct' ? ` <em class="via-tag">(${s.via})</em>` : '';
+            let text = `r/${s.sub} · ${s.matched}/${s.total}${viaTag}`;
             if (s.error) { cls += ' sub-err'; icon = '❌'; text = `r/${s.sub} · ${s.error.slice(0, 30)}`; }
             else if (s.matched === 0 && s.total > 0) { cls += ' sub-nomatch'; icon = '⚪'; }
             else if (s.matched > 0) { cls += ' sub-hit'; icon = '🎯'; }
@@ -409,7 +430,7 @@
         $('rd-list').innerHTML = matchedHtml + unmatchedHtml;
     }
 
-    function renderCross(videos, redditPosts, topic) {
+    function renderCross(videos, redditPosts, topic, redditScanResult) {
         // 從兩邊 title 抽關鍵字
         const ytKw = extractKeywords(videos.map(v => v.title)).map(([w]) => w);
         const rdKw = extractKeywords(redditPosts.map(p => p.title + ' ' + p.selftext.slice(0, 150))).map(([w]) => w);
@@ -441,11 +462,36 @@
             verdictAdvice = '沒需求 or 太 niche · 別浪費時間 · 換關鍵字或角度';
         }
 
+        // Reddit 健康度診斷（讓使用者一眼看到 Reddit 到底有沒有正常運作）
+        let rdHealthHtml = '';
+        if (redditScanResult && redditScanResult.perSub) {
+            const perSub = redditScanResult.perSub;
+            const okSubs = perSub.filter(s => !s.error).length;
+            const errSubs = perSub.filter(s => s.error).length;
+            const hitSubs = perSub.filter(s => s.matched > 0).length;
+            const totalHot = perSub.reduce((sum, s) => sum + s.total, 0);
+            let healthClass, healthMsg;
+            if (errSubs === perSub.length) {
+                healthClass = 'rd-health-fail';
+                healthMsg = `❌ <b>Reddit 全部 fetch 失敗</b>（${errSubs}/${perSub.length} 掛）· 很可能是 Reddit 封 browser 直連 · 需上 CORS proxy · 切到 💬 Reddit tab 看細節`;
+            } else if (okSubs > 0 && hitSubs === 0) {
+                healthClass = 'rd-health-warn';
+                healthMsg = `⚪ Reddit 撈到 <b>${totalHot} 篇 hot</b>（${okSubs}/${perSub.length} sub OK）· 但沒 match「${topic}」· 可能關鍵字太窄——切到 💬 Reddit tab 看每個 sub 在聊什麼`;
+            } else if (errSubs > 0) {
+                healthClass = 'rd-health-mixed';
+                healthMsg = `⚠️ Reddit ${errSubs}/${perSub.length} sub 掛 · ${hitSubs} 個 sub 有 match · 部分數據可信 · 切到 💬 Reddit tab 看哪些掛`;
+            }
+            if (healthMsg) {
+                rdHealthHtml = `<div class="rd-health ${healthClass}">${healthMsg}</div>`;
+            }
+        }
+
         $('cross-verdict').innerHTML = `
             <div class="cross-verdict ${verdictClass}">
                 <div class="cross-verdict-title">${verdict}</div>
                 <div class="cross-verdict-body">${verdictAdvice}</div>
             </div>
+            ${rdHealthHtml}
         `;
 
         $('cross-cells').innerHTML = `
@@ -519,7 +565,7 @@
 
             renderYouTube(videos);
             renderReddit(rdResult);
-            renderCross(videos, redditPosts, topic);
+            renderCross(videos, redditPosts, topic, rdResult);
 
             $('result-panel').hidden = false;
             const msgParts = [];
