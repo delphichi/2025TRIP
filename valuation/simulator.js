@@ -754,6 +754,7 @@
         // === 6. Rule of 40（營收成長 % + FCF margin %）
         // 滿分 ≥ 60
         let ruleOf40 = null, ruleOf40Raw = null;
+        let r40RevGrowthPct = null, r40FcfMarginPct = null;   // Phase 7.5 · 拆解
         if (fund.revenue && fund.revenue[0] && fund.revenue[0].yoy !== null && isFinite(fund.revenue[0].yoy)
             && cf.freeCF && cf.freeCF.length >= 4) {
             const revGrowthPct = fund.revenue[0].yoy * 100;
@@ -761,12 +762,23 @@
             const revTtm = fund.revenue.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
             if (revTtm > 0) {
                 const fcfMarginPct = fcfTtm / revTtm * 100;
+                r40RevGrowthPct = revGrowthPct;
+                r40FcfMarginPct = fcfMarginPct;
                 ruleOf40Raw = revGrowthPct + fcfMarginPct;
                 if (ruleOf40Raw >= 60) ruleOf40 = 100;
                 else if (ruleOf40Raw >= 40) ruleOf40 = 60 + (ruleOf40Raw - 40) * 2;   // 60-100
                 else if (ruleOf40Raw >= 20) ruleOf40 = 30 + (ruleOf40Raw - 20) * 1.5; // 30-60
                 else if (ruleOf40Raw >= 0) ruleOf40 = ruleOf40Raw * 1.5;              // 0-30
                 else ruleOf40 = 0;
+            }
+        }
+        // R40 品質檢核：營收扛全場（貢獻 3× 以上）· 代表這個滿分掩蓋了 FCF 弱項
+        let r40Skew = null;
+        if (r40RevGrowthPct !== null && r40FcfMarginPct !== null) {
+            if (r40RevGrowthPct > 20 && r40FcfMarginPct > 0 && r40RevGrowthPct > r40FcfMarginPct * 3) {
+                r40Skew = { revGrowth: r40RevGrowthPct, fcfMargin: r40FcfMarginPct };
+            } else if (r40RevGrowthPct > 20 && r40FcfMarginPct <= 0) {
+                r40Skew = { revGrowth: r40RevGrowthPct, fcfMargin: r40FcfMarginPct, severe: true };
             }
         }
 
@@ -777,6 +789,53 @@
             else if (peg <= 2.0) pegScore = 100 - (peg - 1.0) * 40;   // 60-100
             else if (peg <= 3.0) pegScore = 60 - (peg - 2.0) * 60;    // 0-60
             else pegScore = 0;
+        }
+
+        // Phase 7.5 · PEG 多年 CAGR 對照（抵抗低基期效應）
+        // 單季 YoY 遇上低基期會爆表 · CAGR 用 TTM EPS 對 N 年前 TTM EPS 算 · 訊號更誠實
+        let pegCagr1y = null, pegCagr2y = null, pegCagr3y = null;
+        let cagr1yPct = null, cagr2yPct = null, cagr3yPct = null;
+        if (currentPE && isFinite(currentPE) && currentPE > 0 && fund.eps && fund.eps.length >= 8) {
+            const validEps = fund.eps.filter(e => e.value !== null && isFinite(e.value));
+            const ttmSum = arr => arr.reduce((s, e) => s + e.value, 0);
+            if (validEps.length >= 8) {
+                const ttmNow = ttmSum(validEps.slice(0, 4));
+                // 1Y CAGR: TTM_now vs TTM_1Y_ago（8 季 · 大部分股票都算得出）
+                const ttm1yAgo = ttmSum(validEps.slice(4, 8));
+                if (ttm1yAgo > 0 && ttmNow > 0) {
+                    cagr1yPct = (ttmNow / ttm1yAgo - 1) * 100;
+                    if (cagr1yPct > 3) pegCagr1y = currentPE / cagr1yPct;
+                }
+                if (validEps.length >= 12) {
+                    const ttm2yAgo = ttmSum(validEps.slice(8, 12));
+                    if (ttm2yAgo > 0 && ttmNow > 0) {
+                        cagr2yPct = (Math.pow(ttmNow / ttm2yAgo, 1/2) - 1) * 100;
+                        if (cagr2yPct > 3) pegCagr2y = currentPE / cagr2yPct;
+                    }
+                }
+                if (validEps.length >= 16) {
+                    const ttm3yAgo = ttmSum(validEps.slice(12, 16));
+                    if (ttm3yAgo > 0 && ttmNow > 0) {
+                        cagr3yPct = (Math.pow(ttmNow / ttm3yAgo, 1/3) - 1) * 100;
+                        if (cagr3yPct > 3) pegCagr3y = currentPE / cagr3yPct;
+                    }
+                }
+            }
+        }
+
+        // 低基期扭曲偵測：優先看 2Y CAGR · 沒有就 fallback 到 1Y CAGR
+        // 若 PEG_1Y 明顯 < PEG_CAGR （便宜 40%+）· 代表最新單季 YoY 是低基期反彈放大
+        let pegBaseDistortion = null;
+        const cagrRef = pegCagr3y || pegCagr2y || pegCagr1y;
+        const cagrGrowthRef = cagr3yPct || cagr2yPct || cagr1yPct;
+        const cagrLabel = pegCagr3y ? '3Y CAGR' : pegCagr2y ? '2Y CAGR' : '1Y TTM-CAGR';
+        if (peg !== null && cagrRef !== null) {
+            const distortionRatio = cagrRef / peg;
+            if (distortionRatio > 1.4) {
+                pegBaseDistortion = {
+                    peg1y: peg, pegCagr: cagrRef, cagrGrowth: cagrGrowthRef, cagrLabel, ratio: distortionRatio,
+                };
+            }
         }
 
         const scores = {
@@ -797,6 +856,15 @@
         };
         // Phase 7.3 · 額外：毛利趨勢的斜率（給顯示用 · 讓讀者看到分數來源）
         raw.grossMarginSlope = grossMarginSlopePpQtr;
+        // Phase 7.5 · PEG CAGR 對照 · R40 拆解 · 品質檢核
+        raw.pegVariants = {
+            oneYear: peg,
+            cagr1y: pegCagr1y, cagr1yGrowth: cagr1yPct,
+            cagr2y: pegCagr2y, cagr2yGrowth: cagr2yPct,
+            cagr3y: pegCagr3y, cagr3yGrowth: cagr3yPct,
+        };
+        raw.pegBaseDistortion = pegBaseDistortion;
+        raw.r40Detail = { revGrowth: r40RevGrowthPct, fcfMargin: r40FcfMarginPct, skew: r40Skew };
         return { scores, raw };
     }
 
@@ -874,21 +942,62 @@
             `;
         }).join('\n');
 
+        // Phase 7.5 · PEG 附上 CAGR 對照 · R40 拆成 (營收+ · FCF) 顯示
+        const pegSuffix = () => {
+            const pv = raw.pegVariants;
+            if (!pv) return '';
+            const parts = [];
+            if (pv.cagr1y !== null) parts.push(`1Y CAGR 版 ${pv.cagr1y.toFixed(2)}×`);
+            if (pv.cagr2y !== null) parts.push(`2Y CAGR 版 ${pv.cagr2y.toFixed(2)}×`);
+            if (pv.cagr3y !== null) parts.push(`3Y CAGR 版 ${pv.cagr3y.toFixed(2)}×`);
+            return parts.length ? ` · ${parts.join(' / ')}` : '';
+        };
+        const r40Suffix = () => {
+            const d = raw.r40Detail;
+            if (!d || d.revGrowth === null || d.fcfMargin === null) return '';
+            const rev = (d.revGrowth >= 0 ? '+' : '') + d.revGrowth.toFixed(0);
+            const fcf = (d.fcfMargin >= 0 ? '+' : '') + d.fcfMargin.toFixed(0);
+            return ` <span class="hint-mini">(營收 ${rev} · FCF margin ${fcf}%)</span>`;
+        };
+
         const legendHtml = axes.map(a => {
             const s = scores[a.key];
             const rawVal = raw[a.key];
             let rawStr = (rawVal === null || !isFinite(rawVal)) ? 'N/A' : (a.decimals === 0 ? Math.round(rawVal) : rawVal.toFixed(a.decimals));
             const isTrend = a.key === 'grossMarginTrend';
+            const isPeg = a.key === 'peg';
+            const isR40 = a.key === 'ruleOf40';
             if (isTrend) rawStr = rawStr + a.unit + slopeSuffix();
+            if (isPeg && rawVal !== null && isFinite(rawVal)) rawStr = rawStr + a.unit + pegSuffix();
+            if (isR40 && rawVal !== null && isFinite(rawVal)) rawStr = rawStr + a.unit + r40Suffix();
             const scoreStr = (s === null || s === undefined) ? '—' : Math.round(s);
             const clsScore = s === null ? '' : (s >= 70 ? 'axis-good' : s >= 40 ? 'axis-mid' : 'axis-poor');
+            const unitCell = (isTrend || isPeg || isR40) ? '' : a.unit;
             return `<tr>
                 <td><b>${a.label}</b></td>
-                <td>${rawStr}${isTrend ? '' : a.unit}</td>
+                <td>${rawStr}${unitCell}</td>
                 <td class="${clsScore}">${scoreStr}分</td>
                 <td class="hint-mini">${a.mapping}</td>
             </tr>`;
         }).join('');
+
+        // Phase 7.5 · 品質檢核警訊：PEG 低基期扭曲 + R40 營收扛全場
+        const qualityWarnings = [];
+        if (raw.pegBaseDistortion) {
+            const d = raw.pegBaseDistortion;
+            qualityWarnings.push(`⚠️ <b>PEG 低基期扭曲</b>：單季 YoY 版 PEG <b>${d.peg1y.toFixed(2)}×</b> 看起來很便宜 · 但用 <b>${d.cagrLabel}</b>（${d.cagrGrowth.toFixed(0)}%/年）算的 PEG 是 <b>${d.pegCagr.toFixed(2)}×</b> · 貴 ${((d.ratio - 1) * 100).toFixed(0)}%。代表最新單季 YoY 是靠低基期反彈放大 · <b>PEG 這軸的滿分可能是假象</b> · 用 CAGR 版重估更誠實。`);
+        }
+        if (raw.r40Detail && raw.r40Detail.skew) {
+            const sk = raw.r40Detail.skew;
+            if (sk.severe) {
+                qualityWarnings.push(`⚠️ <b>Rule of 40 品質偏差</b>：營收成長 ${sk.revGrowth.toFixed(0)}% · <b>FCF margin ${sk.fcfMargin.toFixed(0)}% 是負的</b>——這個總分完全靠營收扛 · FCF 反而拖後腿。R40 滿分掩蓋了「燒錢換成長」的事實 · 對照上方 FCF/淨利那軸的低分才是真相。`);
+            } else {
+                qualityWarnings.push(`⚠️ <b>Rule of 40 分數偏斜</b>：營收成長 ${sk.revGrowth.toFixed(0)}% 貢獻遠 &gt; FCF margin ${sk.fcfMargin.toFixed(0)}%（差 ${(sk.revGrowth - sk.fcfMargin).toFixed(0)}pp）· 加總拿滿分 · 但拆解後看是「營收扛全場、現金貢獻小」。對照上方 FCF/淨利軸的低分才是完整的畫面。`);
+            }
+        }
+        const qualityBanner = qualityWarnings.length
+            ? `<div class="radar-quality-warnings">${qualityWarnings.map(w => `<div class="radar-quality-item">${w}</div>`).join('')}</div>`
+            : '';
 
         const validScores = Object.values(scores).filter(s => s !== null && s !== undefined);
         const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : null;
@@ -935,6 +1044,7 @@
                         <div class="radar-avg-verdict">${avgVerdict}</div>
                     </div>
                 </div>
+                ${qualityBanner}
                 <details class="radar-details">
                     <summary>🔍 詳細分數對照</summary>
                     <table class="radar-table">
@@ -1641,7 +1751,28 @@
             else divergence = { kind: 'ok', gap, msg: `✓ 淨利跟營運 CF 同向（差 ${(gap*100).toFixed(0)}pp），獲利品質沒問題。${sampleCaveat}` };
         }
 
-        return { operatingCF: opCF, freeCF: fCF, netIncome: ni, sbc, sbcRatioTtm, divergence };
+        // Phase 7.5 · 更犀利：檢測「最新單季本身」的方向相反
+        // 4Q 平均把訊號磨平 · e.g. 2360 最新單季 NI +83% / CF -48% · 完全相反
+        // 平均後只剩 35pp 差 · 但單季差 131pp · 是「加速惡化」不是「輕微背離」
+        let latestOpposition = null;
+        const niLatest = ni.find(e => e.yoy !== null && isFinite(e.yoy) && e.mode === 'YoY');
+        const cfLatest = opCF.find(e => e.yoy !== null && isFinite(e.yoy) && e.mode === 'YoY');
+        if (niLatest && cfLatest && niLatest.date === cfLatest.date) {
+            const bothStrong = Math.abs(niLatest.yoy) > 0.15 || Math.abs(cfLatest.yoy) > 0.15;
+            const opposite = niLatest.yoy > 0.2 && cfLatest.yoy < -0.1;   // 帳面爆發 + 現金崩塌
+            const oppositeUp = niLatest.yoy < -0.1 && cfLatest.yoy > 0.2;  // 帳面惡化 + 現金強
+            if (bothStrong && (opposite || oppositeUp)) {
+                latestOpposition = {
+                    date: niLatest.date,
+                    niYoY: niLatest.yoy,
+                    cfYoY: cfLatest.yoy,
+                    gap: niLatest.yoy - cfLatest.yoy,
+                    kind: opposite ? 'paper-hot-cash-cold' : 'paper-cold-cash-hot',
+                };
+            }
+        }
+
+        return { operatingCF: opCF, freeCF: fCF, netIncome: ni, sbc, sbcRatioTtm, divergence, latestOpposition };
     }
 
     // ---------- 台股法人買賣超（層次 5：市場情緒） ----------
@@ -2158,11 +2289,34 @@
             return h;
         };
 
+        // Phase 7.5 · 單季反向：優先於 4Q 平均警訊 · 因為方向相反比 15pp 差更嚴重
+        let latestOppBanner = '';
+        if (cf.latestOpposition) {
+            const o = cf.latestOpposition;
+            const niStr = (o.niYoY > 0 ? '+' : '') + (o.niYoY * 100).toFixed(0) + '%';
+            const cfStr = (o.cfYoY > 0 ? '+' : '') + (o.cfYoY * 100).toFixed(0) + '%';
+            const gapAbs = Math.abs(o.gap * 100).toFixed(0);
+            if (o.kind === 'paper-hot-cash-cold') {
+                latestOppBanner = `<div class="divergence-banner divergence-severe">
+                    🚨 <b>最新一季（${o.date}）帳面加速、現金反向惡化</b>：淨利 YoY <b>${niStr}</b> · 營運CF YoY <b>${cfStr}</b> · 差 <b>${gapAbs}pp · 符號完全相反</b>。
+                    這比 4 季平均的「差 XX pp」更嚴重——<b>4Q 平均把訊號磨平了</b> · 單季本身是「帳面在飛、現金在崩」。
+                    可能是應收帳款隨營收暴增（設備廠：客戶下大單、認列營收 · 收款週期拉長）· 存貨堆積 · 認列時點差異 · 一次性利益。回查資產負債表 + 應收週轉天數 + 8-K。
+                </div>`;
+            } else {
+                latestOppBanner = `<div class="divergence-banner divergence-good">
+                    ✅ <b>最新一季（${o.date}）帳面收斂、現金反而強</b>：淨利 YoY ${niStr} · 營運CF YoY ${cfStr} · 差 ${gapAbs}pp。
+                    帳面在退、現金卻在改善 · 可能是應收帳款回收 / 存貨去化 / 遞延收入認列 · 獲利品質其實正在改善。
+                </div>`;
+            }
+        }
+
         let divergenceBanner = '';
         if (cf.divergence) {
             const d = cf.divergence;
             const cls = d.kind === 'warning' ? 'divergence-warn' : d.kind === 'positive' ? 'divergence-good' : 'divergence-ok';
-            divergenceBanner = `<div class="divergence-banner ${cls}">${d.msg}</div>`;
+            // 如果有單季反向 · 這個 4Q 平均警訊降級為補充資訊
+            const prefix = cf.latestOpposition ? '<span class="hint-mini">📊 4 季平均對照：</span> ' : '';
+            divergenceBanner = `<div class="divergence-banner ${cls}">${prefix}${d.msg}</div>`;
         }
 
         // SBC 佔 GAAP 淨利 TTM 比例（美股 FMP 才有 stockBasedCompensation 欄位）
@@ -2194,6 +2348,7 @@
                 <b>自由現金流</b>：FinMind 沒直接欄位，由 <code>營運CF + CapEx</code> 算出。
                 <b>淨利（稅後）</b>：改抓損益表 IncomeAfterTaxes，本身已是單季。<b>不用現金流量表裡的 IncomeBefore*（那是稅前調整起點）</b>——用稅前跟營運CF 比，基準錯（稅前 vs 稅後差 ~20%）。</span>
             </p>
+            ${latestOppBanner}
             ${divergenceBanner}
             ${sbcBanner}
             <div class="fund-grid">

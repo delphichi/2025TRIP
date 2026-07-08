@@ -1689,6 +1689,35 @@ textarea {
 }
 .trajectory-legend .legend-tick + .legend-tick { margin-left: 6px; }
 
+/* Phase 7.5 · 品質檢核警訊（PEG 低基期扭曲 + R40 營收扛全場） */
+.radar-quality-warnings {
+    margin: 12px 0;
+    padding: 12px 14px;
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    border-radius: 8px;
+}
+.radar-quality-item {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #78350f;
+}
+.radar-quality-item + .radar-quality-item {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #fbbf24;
+}
+
+/* Phase 7.5 · 單季反向現金流警訊（比 4Q 平均更嚴重） */
+.divergence-banner.divergence-severe {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-left: 5px solid #dc2626;
+    color: #7f1d1d;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+    font-size: 13.5px;
+    line-height: 1.7;
+}
+
 /* Phase 7.4 · 各季季節性柱狀圖 */
 .seasonality-panel {
     margin-top: 20px;
