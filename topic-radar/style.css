@@ -521,3 +521,57 @@ body.radar-body {
     border-radius: 3px;
     margin-left: 4px;
 }
+
+/* Reddit 診斷面板（Reddit tab 內 · attemptLog 逐一 proxy 結果） */
+.rd-diag {
+    margin: 10px 0;
+    padding: 10px 12px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    font-size: 0.88em;
+}
+.rd-diag summary { cursor: pointer; color: #1e40af; }
+.rd-diag-body {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fff;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.85em;
+    line-height: 1.7;
+    color: #374151;
+    word-break: break-all;
+}
+
+/* 連線診斷結果表（key panel 內 · 5 個 proxy 逐一結果） */
+.reddit-diag {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: #f0f9ff;
+    border: 1px solid #7dd3fc;
+    border-radius: 8px;
+}
+.reddit-diag h4 { margin: 0 0 8px; color: #0369a1; font-size: 0.95em; }
+.diag-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88em;
+    margin-bottom: 6px;
+}
+.diag-table th, .diag-table td {
+    padding: 5px 8px;
+    text-align: left;
+    border-bottom: 1px solid #e0f2fe;
+}
+.diag-table th {
+    background: #e0f2fe;
+    color: #075985;
+    font-weight: 700;
+    font-size: 0.82em;
+}
+.diag-detail {
+    font-family: ui-monospace, monospace;
+    font-size: 0.85em;
+    color: #64748b;
+}

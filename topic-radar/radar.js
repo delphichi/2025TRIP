@@ -155,49 +155,55 @@
     // ============================================================
     // Reddit fetch (public .json)
     // ============================================================
-    // CORS proxy fallback（跟 valuation / rotation 一樣 · 直連掛時自動繞路）
-    // 為什麼要 proxy：Reddit 對「Mozilla」User-Agent 越來越嚴 · 從瀏覽器直連常 403/429
-    // proxy 幫我們加合理 UA · 繞開 anti-bot
+    // CORS proxy fallback（Reddit 對 browser UA 越來越嚴 · 從瀏覽器直連常掛）
+    // 為什麼多個候選：public proxy 常常掛掉 / 被 Cloudflare 封 / rate limit · 多備幾條路
     const REDDIT_PROXIES = [
-        u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-        u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-        u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+        { name: 'corsproxy',   build: u => `https://corsproxy.io/?${encodeURIComponent(u)}` },
+        { name: 'allorigins',  build: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
+        { name: 'codetabs',    build: u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
+        { name: 'thingproxy',  build: u => `https://thingproxy.freeboard.io/fetch/${u}` },
+        { name: 'corssh',      build: u => `https://proxy.cors.sh/${u}` },
     ];
 
     async function redditHot(subreddit, limit = 25) {
         // 為什麼掃 old.reddit.com 而非 www：old 對 unauthenticated 較寬鬆
-        // 若 old 也掛 · 依序試 3 個 CORS proxy
+        // 若 old 也掛 · 依序試 CORS proxy
         const upstreamUrl = `https://old.reddit.com/r/${encodeURIComponent(subreddit)}/hot.json?limit=${limit}&raw_json=1`;
         const attempts = [
             { label: 'direct', url: upstreamUrl },
-            ...REDDIT_PROXIES.map((p, i) => ({ label: `proxy${i + 1}`, url: p(upstreamUrl) })),
+            ...REDDIT_PROXIES.map(p => ({ label: p.name, url: p.build(upstreamUrl) })),
         ];
-        let lastErr = '';
+        const attemptLog = [];   // 收集每一步的結果 · 方便診斷
         for (const a of attempts) {
+            const t0 = performance.now();
             try {
                 const res = await fetch(a.url, { headers: { 'Accept': 'application/json' } });
-                if (!res.ok) { lastErr = `${a.label} HTTP ${res.status}`; continue; }
+                const dt = Math.round(performance.now() - t0);
+                if (!res.ok) { attemptLog.push(`${a.label}:HTTP${res.status}(${dt}ms)`); continue; }
                 const data = await res.json();
                 const children = data.data?.children || [];
-                if (children.length === 0) { lastErr = `${a.label} empty`; continue; }
+                if (children.length === 0) { attemptLog.push(`${a.label}:empty(${dt}ms)`); continue; }
                 const posts = children.map(c => ({
                     subreddit,
                     title: c.data.title,
                     url: `https://reddit.com${c.data.permalink}`,
                     score: c.data.score,
                     comments: c.data.num_comments,
-                    created: c.data.created_utc * 1000,   // epoch ms
+                    created: c.data.created_utc * 1000,
                     author: c.data.author,
                     selftext: (c.data.selftext || '').slice(0, 300),
                     isSelf: c.data.is_self,
                     flair: c.data.link_flair_text || '',
                 }));
-                return { subreddit, posts, error: null, via: a.label };
+                return { subreddit, posts, error: null, via: a.label, attemptLog };
             } catch (e) {
-                lastErr = `${a.label} ${e.message}`;
+                const dt = Math.round(performance.now() - t0);
+                // 「Failed to fetch」= CORS 或網路層掛 · 標成 NETERR 方便一眼看
+                const msg = /Failed to fetch|NetworkError|ERR_/.test(e.message) ? 'NETERR' : e.message.slice(0, 20);
+                attemptLog.push(`${a.label}:${msg}(${dt}ms)`);
             }
         }
-        return { subreddit, posts: [], error: lastErr || 'all attempts failed' };
+        return { subreddit, posts: [], error: attemptLog.join(' → '), via: '', attemptLog };
     }
 
     // 平行拉全部 subreddit · 個別失敗不擋
@@ -343,16 +349,28 @@
         $('rd-count').textContent = `(${posts.length})`;
 
         // 每個 sub 顯示狀態：綠 = 有 match / 黃 = fetch 通但 0 match / 紅 = fetch 掛
+        // 掛的時候把完整 attemptLog（每個 proxy 個別 error + 耗時）用 title 掛上 hover 看
         const subSummary = perSub.map(s => {
             let cls = 'sub-badge';
             let icon = '';
             const viaTag = s.via && s.via !== 'direct' ? ` <em class="via-tag">(${s.via})</em>` : '';
             let text = `r/${s.sub} · ${s.matched}/${s.total}${viaTag}`;
-            if (s.error) { cls += ' sub-err'; icon = '❌'; text = `r/${s.sub} · ${s.error.slice(0, 30)}`; }
+            let title = '';
+            if (s.error) {
+                cls += ' sub-err'; icon = '❌';
+                text = `r/${s.sub}`;
+                title = ` title="${(s.error || '').replace(/"/g, '&quot;')}"`;
+            }
             else if (s.matched === 0 && s.total > 0) { cls += ' sub-nomatch'; icon = '⚪'; }
             else if (s.matched > 0) { cls += ' sub-hit'; icon = '🎯'; }
-            return `<span class="${cls}">${icon} ${text}</span>`;
+            return `<span class="${cls}"${title}>${icon} ${text}</span>`;
         }).join('');
+
+        // 從第一個掛的 sub 提取 attemptLog 當通用診斷（每個 sub 的 log 都一樣）
+        const firstErr = perSub.find(s => s.error);
+        const diagHtml = firstErr && firstErr.error
+            ? `<details class="rd-diag" open><summary><b>🔬 逐一 proxy 診斷</b>（點開看每條路徑）</summary><div class="rd-diag-body">${firstErr.error}</div></details>`
+            : '';
         const errMsg = errors.length > 0
             ? `<p class="hint hint-mini">⚠️ ${errors.length} 個 subreddit fetch 失敗（可能撞 IP rate limit）：${errors.join(' · ')}</p>`
             : '';
@@ -369,9 +387,10 @@
                 }</div></div>
             </div>
             <div class="sub-summary">
-                <h4>📊 每個 subreddit 狀態（🎯 有 match · ⚪ fetch 通但 0 match · ❌ fetch 掛）</h4>
+                <h4>📊 每個 subreddit 狀態（🎯 有 match · ⚪ fetch 通但 0 match · ❌ fetch 掛 · 滑上去看細節）</h4>
                 <div class="sub-badges">${subSummary}</div>
             </div>
+            ${diagHtml}
             ${errMsg}
         `;
 
@@ -597,12 +616,65 @@
     // ============================================================
     // Init
     // ============================================================
+    // ============================================================
+    // Reddit 連線診斷（逐一 ping direct + 每個 proxy）
+    // ============================================================
+    async function testRedditConnectivity() {
+        const box = $('reddit-diag');
+        box.hidden = false;
+        box.innerHTML = '<p class="hint">⏳ 逐一測試中……</p>';
+        const testSub = 'ClaudeAI';   // 拿一個確定有內容的 sub 測
+        const upstream = `https://old.reddit.com/r/${testSub}/hot.json?limit=1&raw_json=1`;
+        const targets = [
+            { name: 'direct old.reddit', url: upstream },
+            { name: 'direct www.reddit', url: `https://www.reddit.com/r/${testSub}/hot.json?limit=1` },
+            ...REDDIT_PROXIES.map(p => ({ name: p.name, url: p.build(upstream) })),
+        ];
+        const rows = [];
+        for (const t of targets) {
+            const t0 = performance.now();
+            let status = '', detail = '';
+            try {
+                const res = await fetch(t.url, { headers: { 'Accept': 'application/json' } });
+                const dt = Math.round(performance.now() - t0);
+                if (res.ok) {
+                    try {
+                        const data = await res.json();
+                        const n = data.data?.children?.length || 0;
+                        status = n > 0 ? '✅ OK' : '⚠️ empty';
+                        detail = `${dt}ms · ${n} posts`;
+                    } catch (e) {
+                        status = '⚠️ not-json';
+                        detail = `${dt}ms · ${e.message.slice(0, 40)}`;
+                    }
+                } else {
+                    status = `❌ HTTP ${res.status}`;
+                    detail = `${dt}ms · ${res.statusText}`;
+                }
+            } catch (e) {
+                const dt = Math.round(performance.now() - t0);
+                status = /Failed to fetch|NetworkError|ERR_/.test(e.message) ? '❌ NETERR' : '❌ ERR';
+                detail = `${dt}ms · ${e.message.slice(0, 60)}`;
+            }
+            rows.push(`<tr><td>${t.name}</td><td>${status}</td><td class="diag-detail">${detail}</td></tr>`);
+            box.innerHTML = `
+                <h4>🔬 Reddit 連線診斷（測試主體：r/${testSub}）</h4>
+                <table class="diag-table">
+                    <thead><tr><th>路徑</th><th>結果</th><th>細節</th></tr></thead>
+                    <tbody>${rows.join('')}</tbody>
+                </table>
+                <p class="hint hint-mini">${targets.length === rows.length ? '✅ 測完 · 若全 NETERR · 可能是網路 / extension / 地區封鎖 Reddit + proxy · 若某條 OK · scanTopic 會自動用那條' : '⏳ 進行中……'}</p>
+            `;
+        }
+    }
+
     function init() {
         loadYtKey();
         initTabs();
         $('btn-save-yt').addEventListener('click', saveYtKey);
         $('btn-clear-yt').addEventListener('click', clearYtKey);
         $('btn-search').addEventListener('click', scanTopic);
+        $('btn-test-reddit').addEventListener('click', testRedditConnectivity);
         $('topic-input').addEventListener('keydown', e => { if (e.key === 'Enter') scanTopic(); });
 
         // URL query 支援 ?topic=X · 自動填入 + 掃
