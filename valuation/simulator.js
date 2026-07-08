@@ -679,19 +679,30 @@
             }
         }
 
-        // === 3. 毛利率趨勢（斜率 · 不是絕對值）
-        // 得分邏輯：
-        //   上升趨勢 → 100
-        //   持平在高檔（>50%）→ 70-80
-        //   下滑趨勢 → 大幅扣分
+        // === 3. 毛利率趨勢（OLS 斜率 · 抗 outlier · 拉到 8 季）
+        // 舊版 bug：只用 margins[0] vs margins[3] 兩個端點 · 遇到單季異常值就翻轉判讀
+        //   e.g. 2360 致茂 · 8 季 59.2→...→62.6 · 但 4 季前剛好爆出 65.4 outlier
+        //   endpoint 差 = 62.6 - 65.4 = -2.8pp → 誤判「下滑」→ 22 分
+        //   OLS 斜率 = +0.47pp/季 → 正確判「上升」→ 75-79 分
         let grossMarginTrend = null;
+        let grossMarginSlopePpQtr = null;
         if (fund.grossMargin && fund.grossMargin.length >= 4) {
-            const margins = fund.grossMargin.slice(0, 4).map(e => e.value).filter(v => v !== null && isFinite(v));
-            if (margins.length === 4) {
-                // 用最舊 vs 最新的絕對差當簡易斜率（%pp/季）
-                // margins[0] 是最新 · margins[3] 是最舊
-                const slope = (margins[0] - margins[3]) / 3;   // 平均每季變化
-                const latestMargin = margins[0] * 100;   // 轉 %
+            const N = Math.min(8, fund.grossMargin.length);
+            const margins = fund.grossMargin.slice(0, N).map(e => e.value).filter(v => v !== null && isFinite(v));
+            if (margins.length >= 4) {
+                // 最小平方法：margins[0] 最新 · 反轉成舊→新 · x=0 最舊
+                const ys = margins.slice().reverse();
+                const n = ys.length;
+                const xMean = (n - 1) / 2;
+                const yMean = ys.reduce((a, b) => a + b, 0) / n;
+                let num = 0, den = 0;
+                for (let i = 0; i < n; i++) {
+                    num += (i - xMean) * (ys[i] - yMean);
+                    den += (i - xMean) ** 2;
+                }
+                const slope = den > 0 ? num / den : 0;   // decimal 形式：0.01 = 1pp/qtr
+                grossMarginSlopePpQtr = slope * 100;      // 給顯示用（pp/qtr）
+                const latestMargin = margins[0] * 100;
                 // 高毛利股（>50%）就算持平也給高分
                 if (latestMargin >= 50 && Math.abs(slope) < 0.005) {
                     grossMarginTrend = 75;
@@ -784,6 +795,8 @@
             sbcDilution: sbcDilutionRaw,
             ruleOf40: ruleOf40Raw,
         };
+        // Phase 7.3 · 額外：毛利趨勢的斜率（給顯示用 · 讓讀者看到分數來源）
+        raw.grossMarginSlope = grossMarginSlopePpQtr;
         return { scores, raw };
     }
 
@@ -793,7 +806,7 @@
         const axes = [
             { key: 'peg',              label: 'PEG', unit: '×', decimals: 2, mapping: '≤1 滿分 · >3 為 0' },
             { key: 'revPersistence',   label: '營收持續', unit: '% (最新 YoY)', decimals: 1, mapping: '近 4 季全正+加速→100' },
-            { key: 'grossMarginTrend', label: '毛利趨勢', unit: '% (絕對值)', decimals: 1, mapping: '斜率上升→100 · 下滑→扣' },
+            { key: 'grossMarginTrend', label: '毛利趨勢', unit: '% (最新)', decimals: 1, mapping: '8Q OLS 斜率上升→100 · 下滑→扣' },
             { key: 'fcfConversion',    label: 'FCF/淨利', unit: '%', decimals: 0, mapping: '≥80% 滿分 · 負值嚴扣' },
             { key: 'sbcDilution',      label: 'SBC 稀釋', unit: '% (低越好)', decimals: 1, mapping: '<10% 滿分 · >35% 嚴扣' },
             { key: 'ruleOf40',         label: 'Rule of 40', unit: '', decimals: 0, mapping: '營收+FCF margin ≥60 滿分' },
@@ -837,6 +850,14 @@
             return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#8b5cf6" stroke="#fff" stroke-width="1.5"/>`;
         }).join('\n');
 
+        // 毛利趨勢特殊顯示：附上斜率讓讀者看到分數為什麼是這個
+        const slopeSuffix = () => {
+            const sl = raw.grossMarginSlope;
+            if (sl === null || sl === undefined || !isFinite(sl)) return '';
+            const sign = sl >= 0 ? '+' : '';
+            return ` · 斜率 ${sign}${sl.toFixed(2)}pp/Q`;
+        };
+
         const labels = axes.map((a, i) => {
             const ang = angle(i);
             const lx = cx + Math.cos(ang) * (r + 32);
@@ -857,11 +878,13 @@
             const s = scores[a.key];
             const rawVal = raw[a.key];
             let rawStr = (rawVal === null || !isFinite(rawVal)) ? 'N/A' : (a.decimals === 0 ? Math.round(rawVal) : rawVal.toFixed(a.decimals));
+            const isTrend = a.key === 'grossMarginTrend';
+            if (isTrend) rawStr = rawStr + a.unit + slopeSuffix();
             const scoreStr = (s === null || s === undefined) ? '—' : Math.round(s);
             const clsScore = s === null ? '' : (s >= 70 ? 'axis-good' : s >= 40 ? 'axis-mid' : 'axis-poor');
             return `<tr>
                 <td><b>${a.label}</b></td>
-                <td>${rawStr}${a.unit}</td>
+                <td>${rawStr}${isTrend ? '' : a.unit}</td>
                 <td class="${clsScore}">${scoreStr}分</td>
                 <td class="hint-mini">${a.mapping}</td>
             </tr>`;
