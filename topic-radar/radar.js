@@ -7,7 +7,7 @@
     // ============================================================
     // 版本標記——修 bug 後 bump · 讓使用者 console 看得到跑的是哪版
     // 若掃描結果的關鍵字還有 x2f/href/https · 表示還在跑舊版 · 硬重整
-    const RADAR_VERSION = 'v2026-07-08-e';
+    const RADAR_VERSION = 'v2026-07-08-f';
 
     // 只看近 N 年 · 避免 SEO 老影片 / 多年前 HN 舊文洗掉討論訊號
     // 兩年是個舒服的權衡：AI 生態變化太快 · 更久的東西通常已過期
@@ -401,8 +401,52 @@
         'http','https','com','org','net','www','href','rel','nofollow','html','htm','href',
         // twitter / x.com 常見 URL 碎片
         'xcancel','status','tweet',
-        '的','在','是','了','和','有','就','都','而','及','與','或','要','把','讓','從','很','也','但','如果','為什麼',
+        // 中文常見停用字（單字 · 因為 bigram 拿的是 2-3 字 token · 這裡列常見的 2 字組合）
+        '的','在','是','了','和','有','就','都','而','及','與','或','要','把','讓','從','很','也','但',
+        '這個','那個','這樣','那樣','但是','如果','因為','所以','因此','而且','或者','或是','以及',
+        '以後','之後','之前','現在','已經','這種','那種','每個','大家','我們','你們','他們','自己',
+        '一些','有些','什麼','怎麼','為何','如何','這些','那些','沒有','可以','可能','不會','會不',
+        '一個','兩個','三個','而已','而是','其實','真的','假的','那麼','這麼','以為','覺得','認為',
+        // PTT 常見 tag 詞（tag 已被去除 · 但殘留單字可能出現）
+        '新聞','討論','閒聊','情報','問卦','請益','分享','心得','公告','活動','其他','舊聞','轉錄',
     ]);
+
+    // PTT tag 開頭「[新聞]」「[討論]」+ Re:/Fw: 前綴一起去 · 不然關鍵字會塞爆這些框架詞
+    function stripPttTags(t) {
+        // `Re: [新聞] xxx` 這種鏈式 tag 要一起去 · 允許 tag 間有空格
+        return String(t || '')
+            .replace(/^(?:(?:Re:|Fw:|Fwd:|轉錄|\[[^\]]{1,6}\])\s*)+/g, '')
+            .trim();
+    }
+
+    // 中文分詞 · 對 CJK 段（連續中日韓漢字）切 bigram + trigram
+    // 為什麼：中文字之間沒 whitespace · whitespace-split 會把整句吃成 1 個 token · 對 IR 完全沒用
+    // Bigram（2 字）+ trigram（3 字）是 dict-free 中文 IR 的標準做法 · 覆蓋 80% 常用詞
+    // 只切 CJK 段 · ASCII 段照舊 whitespace-tokenize
+    function tokenizeMixed(text) {
+        const tokens = [];
+        // 用 CJK vs 非 CJK 分段 · 各段各自處理
+        const segments = text.split(/([一-鿿぀-ヿ가-힣]+)/);
+        for (const seg of segments) {
+            if (!seg) continue;
+            if (/^[一-鿿぀-ヿ가-힣]+$/.test(seg)) {
+                // CJK 段 · 抽 2-gram + 3-gram
+                for (let n = 2; n <= 3 && n <= seg.length; n++) {
+                    for (let i = 0; i + n <= seg.length; i++) {
+                        tokens.push(seg.slice(i, i + n));
+                    }
+                }
+            } else {
+                // 非 CJK · whitespace 拆
+                seg.toLowerCase()
+                    .replace(/[^\w\s]/g, ' ')
+                    .split(/\s+/)
+                    .filter(w => w.length >= 3)
+                    .forEach(w => tokens.push(w));
+            }
+        }
+        return tokens;
+    }
 
     // HTML escape · 顯示已清淨的文字時再 escape 一層防 XSS
     function escapeHtml(s) {
@@ -435,13 +479,14 @@
     function extractKeywords(texts, minLen = 3) {
         const freq = new Map();
         texts.forEach(t => {
-            const words = cleanText(t).toLowerCase()
-                .replace(/[^\w\s一-龥]/g, ' ')
-                .split(/\s+/)
-                // 純數字也剔掉（年份 like 2026 例外會被下面 STOPWORDS 決定）
-                .filter(w => w.length >= minLen && !STOPWORDS.has(w) && !/^\d+$/.test(w));
+            // 先清 HTML entity + URL + tag · 再去 PTT tag · 再走 mixed tokenizer
+            const cleaned = stripPttTags(cleanText(t));
+            const words = tokenizeMixed(cleaned)
+                .filter(w => !STOPWORDS.has(w) && !/^\d+$/.test(w));
             words.forEach(w => freq.set(w, (freq.get(w) || 0) + 1));
         });
+        // n-gram 會多產出「XX + XXY」這種父子關係 token · 排序後前 30 已能反映真訊號
+        // 若之後要進階 · 可加 substring dedup（保留較長且 count 差 <= 1 的長 token · 剔掉被包含的短 token）
         return Array.from(freq.entries())
             .sort((a, b) => b[1] - a[1])
             .slice(0, 30);
