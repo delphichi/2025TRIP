@@ -7,7 +7,15 @@
     // ============================================================
     // 版本標記——修 bug 後 bump · 讓使用者 console 看得到跑的是哪版
     // 若掃描結果的關鍵字還有 x2f/href/https · 表示還在跑舊版 · 硬重整
-    const RADAR_VERSION = 'v2026-07-08-b';
+    const RADAR_VERSION = 'v2026-07-08-c';
+
+    // 只看近 N 年 · 避免 SEO 老影片 / 多年前 HN 舊文洗掉討論訊號
+    // 兩年是個舒服的權衡：AI 生態變化太快 · 更久的東西通常已過期
+    const RECENT_YEARS = 2;
+    const RECENT_SECONDS = RECENT_YEARS * 365 * 86400;
+    const RECENT_MS = RECENT_SECONDS * 1000;
+    const recentIsoCutoff = () => new Date(Date.now() - RECENT_MS).toISOString();
+    const recentUnixCutoff = () => Math.floor((Date.now() - RECENT_MS) / 1000);
     console.log(`%c[topic-radar] ${RADAR_VERSION} loaded`, 'color:#7c3aed;font-weight:bold');
 
     const YT_KEY_STORAGE = 'yt_data_api_key';
@@ -71,11 +79,11 @@
     // YouTube fetch
     // ============================================================
     async function ytSearch(topic, apiKey) {
-        // /search?part=snippet&q={topic}&type=video&maxResults=25&order=viewCount
-        // 為什麼用 viewCount 而不是 relevance：viewCount 排序過濾掉 low-quality 新影片
-        //   避免加密營銷號那種「今天發佈 200 views」的雜訊
-        //   若使用者要看新影片動能 · 之後可加 sort toggle
-        const url = `${YT_API}/search?part=snippet&type=video&q=${encodeURIComponent(topic)}&maxResults=25&order=viewCount&key=${apiKey}`;
+        // /search?part=snippet&q={topic}&type=video&maxResults=25&order=viewCount&publishedAfter=<iso>
+        // 為什麼 viewCount：過濾 low-quality 新影片（避免雜訊）· 若使用者要看新影片動能 · 之後可加 sort toggle
+        // 為什麼 publishedAfter：限制近 2 年 · 排除 SEO 老影片（e.g. 3 年前 300M views 廚藝影片洗版）
+        //   AI / dev tool 話題 3 年前的教程基本已過時 · 不是「當前熱度」訊號
+        const url = `${YT_API}/search?part=snippet&type=video&q=${encodeURIComponent(topic)}&maxResults=25&order=viewCount&publishedAfter=${recentIsoCutoff()}&key=${apiKey}`;
         const res = await fetch(url);
         if (!res.ok) {
             const body = await res.text().catch(() => '');
@@ -217,8 +225,9 @@
     // HN 官方 Algolia mirror 直接開放給瀏覽器 · 且 dev / AI 討論質量比 Reddit 高（founders / execs 都看）
     async function hnSearch(topic) {
         // Algolia 支援全文搜尋 · tags=story 只拿 story 型（過濾 comment）
-        // hitsPerPage 最大 1000 · 我們拿 50 已夠 · 排序預設 relevance · 想看熱門度可改 search_by_date
-        const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(topic)}&tags=story&hitsPerPage=50`;
+        // numericFilters=created_at_i>N · 只拿近 2 年 · 排除 8-11 年前的老文洗榜
+        //   （HN Algolia 預設按 relevance 排 · 舊高分文常擠掉近期真熱點）
+        const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(topic)}&tags=story&hitsPerPage=50&numericFilters=created_at_i>${recentUnixCutoff()}`;
         const t0 = performance.now();
         try {
             const res = await fetch(url);
