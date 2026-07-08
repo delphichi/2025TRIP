@@ -95,6 +95,68 @@
         }
     }
 
+    // Feature · 內部人持股變化（US 專用 · FMP Form 4）
+    async function fetchFmpInsiderTrading(ticker, apiKey) {
+        if (!apiKey) return null;
+        try {
+            const rows = await fmpFetch(`/insider-trading/search?symbol=${ticker}&limit=100`, apiKey);
+            if (!Array.isArray(rows) || rows.length === 0) return null;
+            // 篩最近 90 天 · 算淨買賣
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 90);
+            const cutoffStr = cutoff.toISOString().split('T')[0];
+            let buys3M = 0, sells3M = 0, buyValue3M = 0, sellValue3M = 0;
+            const inRange = rows.filter(r => (r.filingDate || r.transactionDate || '') >= cutoffStr);
+            inRange.forEach(r => {
+                const shares = r.securitiesTransacted || 0;
+                const price = r.price || 0;
+                const type = (r.acquisitionOrDisposition || r.transactionType || '').toUpperCase();
+                if (type === 'A' || type === 'P' || type.includes('BUY')) {
+                    buys3M += shares;
+                    buyValue3M += shares * price;
+                } else if (type === 'D' || type === 'S' || type.includes('SELL')) {
+                    sells3M += shares;
+                    sellValue3M += shares * price;
+                }
+            });
+            return {
+                transactions: rows.slice(0, 20),
+                buys3M, sells3M,
+                buyValue3M, sellValue3M,
+                netShares3M: buys3M - sells3M,
+                netValue3M: buyValue3M - sellValue3M,
+            };
+        } catch (e) {
+            console.warn('FMP insider trading fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    // Feature · 配息歷史（FMP）
+    async function fetchFmpDividends(ticker, apiKey) {
+        if (!apiKey) return null;
+        try {
+            const rows = await fmpFetch(`/dividends?symbol=${ticker}`, apiKey);
+            if (!Array.isArray(rows) || rows.length === 0) return null;
+            // group by year
+            const byYear = new Map();
+            rows.forEach(r => {
+                const year = (r.date || r.recordDate || '').slice(0, 4);
+                if (!year || year === '') return;
+                const div = r.dividend || r.adjDividend || 0;
+                if (!isFinite(div)) return;
+                byYear.set(year, (byYear.get(year) || 0) + div);
+            });
+            return Array.from(byYear.entries())
+                .map(([year, cash]) => ({ year, cash, stock: 0 }))
+                .sort((a, b) => b.year.localeCompare(a.year))
+                .slice(0, 10);
+        } catch (e) {
+            console.warn('FMP dividend fetch failed:', e.message);
+            return null;
+        }
+    }
+
     async function fetchFmpFundamentals(ticker, apiKey) {
         try {
             const rows = await fmpFetch(`/income-statement?symbol=${ticker}&period=quarter`, apiKey);
@@ -509,8 +571,10 @@
             label('income-stmt',    fetchFmpFundamentals(ticker, apiKey)),
             label('cash-flow',      fetchFmpCashFlow(ticker, apiKey)),
             label('balance-sheet',  fetchFmpBalanceSheet(ticker, apiKey)),
+            label('insider',        fetchFmpInsiderTrading(ticker, apiKey)),
+            label('dividends',      fetchFmpDividends(ticker, apiKey)),
         ]);
-        const [quoteR, profileR, ratiosR, fundR, cfR, bsR] = results;
+        const [quoteR, profileR, ratiosR, fundR, cfR, bsR, insiderR, divR] = results;
         const failed = results.filter(r => !r.ok);
 
         // 生成 402 專用建議：試 GOOG↔GOOGL / TSLA↔TSLA / BRK.A↔BRK.B 這類 dual-class
@@ -583,6 +647,30 @@
         if (fundamentals && fmpBalanceSheet) {
             fundamentals.balanceSheetSnapshot = fmpBalanceSheet;
         }
+
+        // Feature · 內部人持股變化 + 配息歷史 attach 到 fundamentals
+        if (fundamentals && insiderR.ok && insiderR.value) fundamentals.insiderTrading = insiderR.value;
+        if (fundamentals && divR.ok && divR.value) fundamentals.dividendHistory = divR.value;
+
+        // Feature · 庫藏股：從 FMP cash flow 的 commonStockRepurchased 依年 aggregate
+        // FMP 的 quarterly cash flow 有 raw · 但 fetchFmpCashFlow 只回 opCF/FCF/NI/SBC
+        // 用另一支 API call 專門抓 raw cash flow 就好 · 只算庫藏股
+        try {
+            const cfRaw = await fmpFetch(`/cash-flow-statement?symbol=${ticker}&period=quarter`, apiKey);
+            if (Array.isArray(cfRaw) && cfRaw.length > 0 && fundamentals) {
+                const byYear = new Map();
+                cfRaw.forEach(r => {
+                    const y = (r.date || '').slice(0, 4);
+                    if (!y) return;
+                    const buyback = r.commonStockRepurchased || 0;   // 負值 = 買回
+                    byYear.set(y, (byYear.get(y) || 0) + buyback);
+                });
+                fundamentals.buybackHistory = Array.from(byYear.entries())
+                    .map(([year, amount]) => ({ year, amount: Math.abs(amount) }))
+                    .sort((a, b) => b.year.localeCompare(a.year))
+                    .slice(0, 10);
+            }
+        } catch (_) {}
 
         return {
             ticker,
@@ -1657,6 +1745,12 @@
         let balanceSheetHtml = '';
         try { balanceSheetHtml = renderBalanceSheetHtml(analysis); }
         catch (e) { console.warn('renderBalanceSheetHtml failed:', e.message); }
+        // Feature · 內部人持股 + 歷年配息/庫藏股
+        let insiderHtml = '', dividendHtml = '';
+        try { insiderHtml = renderInsiderTradingHtml(analysis); }
+        catch (e) { console.warn('renderInsiderTradingHtml failed:', e.message); }
+        try { dividendHtml = renderDividendBuybackHtml(analysis); }
+        catch (e) { console.warn('renderDividendBuybackHtml failed:', e.message); }
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         // Step 2 · 最後 12 月營收 / 4 季毛利+營益（值+增長率）· try/catch 保護
         let monthlyMetricsHtml = '';
@@ -1683,7 +1777,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -2517,6 +2611,197 @@
                     ${renderTable('📈 資產項目', assetSlices)}
                     ${renderTable('📉 負債 + 權益', financeSlices)}
                 </div>
+            </section>
+        `;
+    }
+
+    // Feature · 內部人持股變化（US 專用）· 表格 + 3 個月淨買賣
+    function renderInsiderTradingHtml(analysis) {
+        const it = analysis.fundamentals && analysis.fundamentals.insiderTrading;
+        if (!it || !it.transactions || it.transactions.length === 0) return '';
+
+        const fmtShares = v => {
+            if (v === null || !isFinite(v) || v === 0) return '0';
+            const abs = Math.abs(v);
+            const sign = v > 0 ? '+' : (v < 0 ? '-' : '');
+            if (abs >= 1e6) return sign + (abs / 1e6).toFixed(2) + 'M';
+            if (abs >= 1e3) return sign + (abs / 1e3).toFixed(1) + 'K';
+            return sign + abs.toFixed(0);
+        };
+        const fmtVal = v => {
+            if (v === null || !isFinite(v) || v === 0) return '$0';
+            const abs = Math.abs(v);
+            const sign = v > 0 ? '+' : (v < 0 ? '-' : '');
+            if (abs >= 1e9) return sign + '$' + (abs / 1e9).toFixed(2) + 'B';
+            if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(1) + 'M';
+            if (abs >= 1e3) return sign + '$' + (abs / 1e3).toFixed(0) + 'K';
+            return sign + '$' + abs.toFixed(0);
+        };
+
+        // 3 個月淨買賣 verdict
+        let verdict = '';
+        const netShares = it.netShares3M || 0;
+        const netValue = it.netValue3M || 0;
+        if (it.buys3M === 0 && it.sells3M === 0) {
+            verdict = '📌 近 90 天沒有內部人交易紀錄';
+        } else if (netShares > 0 && netValue > 0) {
+            verdict = `🟢 <b>內部人近 90 天淨買 ${fmtShares(Math.abs(netShares))} 股（${fmtVal(Math.abs(netValue))}）</b> · 高階主管/董事真金白銀進場 · 通常是有信心訊號`;
+        } else if (netShares < 0 && Math.abs(netValue) > 1e6) {
+            verdict = `🔴 <b>內部人近 90 天淨賣 ${fmtShares(Math.abs(netShares))} 股（${fmtVal(Math.abs(netValue))}）</b> · 大量脫手 · 但可能是分散配置/稅務規劃 · 不必然是壞訊號 · 看是否集中在 CEO/CFO 這種內線敏感度高的人`;
+        } else {
+            verdict = `⚖️ 內部人近 90 天買賣接近平衡（買 ${fmtShares(it.buys3M)} 賣 ${fmtShares(it.sells3M)}）`;
+        }
+
+        // 交易表（近 20 筆）
+        const txnRows = it.transactions.slice(0, 15).map(t => {
+            const shares = t.securitiesTransacted || 0;
+            const price = t.price || 0;
+            const type = (t.acquisitionOrDisposition || t.transactionType || '').toUpperCase();
+            const typeLabel = (type === 'A' || type === 'P' || type.includes('BUY')) ? '🟢 買'
+                            : (type === 'D' || type === 'S' || type.includes('SELL')) ? '🔴 賣'
+                            : '⚪ 其他';
+            const name = (t.reportingName || '—').slice(0, 20);
+            const title = t.typeOfOwner || t.title || '';
+            return `<tr>
+                <td>${(t.filingDate || t.transactionDate || '—').slice(0, 10)}</td>
+                <td>${name}${title ? ' <small style="color:#94a3b8">(' + title.slice(0, 15) + ')</small>' : ''}</td>
+                <td>${typeLabel}</td>
+                <td>${fmtShares(shares)}</td>
+                <td>${price ? '$' + price.toFixed(2) : '—'}</td>
+                <td>${fmtVal(shares * price)}</td>
+            </tr>`;
+        }).join('');
+
+        return `
+            <section class="panel insider-panel">
+                <h3>👔 內部人持股變化（Form 4 · 近 100 筆）</h3>
+                <p class="hint">
+                    高階主管 / 董事 / 10% 以上大股東的股票交易紀錄（SEC Form 4 揭露）·
+                    <b>大額買入</b>比賣出更有訊號（買通常代表信心 · 賣可能是分散/稅務規劃）·
+                    看是否集中在 CEO/CFO 這種內線敏感度高的職位。
+                </p>
+                <div class="insider-verdict">${verdict}</div>
+                <table class="fund-table insider-table">
+                    <thead>
+                        <tr><th>日期</th><th>姓名</th><th>類型</th><th>股數</th><th>單價</th><th>金額</th></tr>
+                    </thead>
+                    <tbody>${txnRows}</tbody>
+                </table>
+            </section>
+        `;
+    }
+
+    // Feature · 歷年配息 + 庫藏股（TW + US 通用）
+    function renderDividendBuybackHtml(analysis) {
+        const dh = analysis.fundamentals && analysis.fundamentals.dividendHistory;
+        const bb = analysis.fundamentals && analysis.fundamentals.buybackHistory;
+        if ((!dh || dh.length === 0) && (!bb || bb.length === 0)) return '';
+
+        const isTW = analysis.source === 'FinMind';
+        const price = analysis.price;
+
+        const fmtNum = v => {
+            if (v === null || !isFinite(v) || v === 0) return '—';
+            const abs = Math.abs(v);
+            if (abs >= 1e12) return (v / 1e12).toFixed(2) + '兆';
+            if (abs >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (abs >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            if (abs >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+            return v.toFixed(2);
+        };
+
+        // 配息 bar chart（10 年 · 現金+股票 stacked · TW 專用 · US 只有 cash）
+        let divChartHtml = '';
+        if (dh && dh.length > 0) {
+            const yearsSorted = dh.slice().reverse();   // 舊→新
+            const maxTotal = Math.max(...yearsSorted.map(d => d.cash + d.stock));
+            const barW = 40, gap = 12, W = yearsSorted.length * (barW + gap) + 60, H = 200;
+            const bars = yearsSorted.map((d, i) => {
+                const total = d.cash + d.stock;
+                if (total <= 0) return '';
+                const x = 40 + i * (barW + gap);
+                const cashH = (d.cash / maxTotal) * 150;
+                const stockH = (d.stock / maxTotal) * 150;
+                const cashY = 170 - cashH;
+                const stockY = cashY - stockH;
+                return `<g>
+                    ${d.stock > 0 ? `<rect x="${x}" y="${stockY}" width="${barW}" height="${stockH}" fill="#a78bfa"><title>${d.year} 股票股利 ${fmtNum(d.stock)}</title></rect>` : ''}
+                    <rect x="${x}" y="${cashY}" width="${barW}" height="${cashH}" fill="#10b981"><title>${d.year} 現金股利 ${fmtNum(d.cash)}</title></rect>
+                    <text x="${x + barW/2}" y="185" text-anchor="middle" font-size="11" fill="#64748b">${d.year.slice(-2)}</text>
+                    <text x="${x + barW/2}" y="${cashY - 4}" text-anchor="middle" font-size="10" font-weight="700" fill="#065f46">${d.cash.toFixed(2)}</text>
+                </g>`;
+            }).join('');
+            divChartHtml = `
+                <div style="margin-top:10px">
+                    <h4>💰 歷年配息（${isTW ? '每股 · 現金 + 股票' : '每股現金'}）</h4>
+                    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="40" y1="170" x2="${W - 10}" y2="170" stroke="#334155" stroke-width="1"/>
+                        ${bars}
+                        ${isTW ? '<g><rect x="40" y="10" width="12" height="12" fill="#10b981"/><text x="56" y="20" font-size="11" fill="#334155">現金</text><rect x="90" y="10" width="12" height="12" fill="#a78bfa"/><text x="106" y="20" font-size="11" fill="#334155">股票</text></g>' : ''}
+                    </svg>
+                </div>
+            `;
+        }
+
+        // 摘要指標
+        const latestDiv = dh && dh[0] ? dh[0] : null;
+        const totalLatestCash = latestDiv ? latestDiv.cash : 0;
+        const yieldPct = (totalLatestCash > 0 && price > 0) ? (totalLatestCash / price * 100) : null;
+        const avg5Cash = dh && dh.length >= 3 ? dh.slice(0, Math.min(5, dh.length)).reduce((s, d) => s + d.cash, 0) / Math.min(5, dh.length) : null;
+        const growth = (latestDiv && avg5Cash && avg5Cash > 0) ? ((latestDiv.cash / avg5Cash - 1) * 100) : null;
+
+        // 庫藏股摘要
+        let buybackSummary = '';
+        if (bb && bb.length > 0) {
+            const total3Y = bb.slice(0, 3).reduce((s, e) => s + e.amount, 0);
+            const total5Y = bb.slice(0, 5).reduce((s, e) => s + e.amount, 0);
+            const latest = bb[0];
+            buybackSummary = `
+                <div style="margin-top:10px">
+                    <h4>🔄 庫藏股（買回股本）</h4>
+                    <div class="bs-metrics-row">
+                        <div class="bs-metric" title="最新年度"><div class="bs-metric-label">${latest.year}</div><div class="bs-metric-val">${fmtNum(latest.amount)}</div></div>
+                        <div class="bs-metric" title="近 3 年累計"><div class="bs-metric-label">3Y 累計</div><div class="bs-metric-val">${fmtNum(total3Y)}</div></div>
+                        <div class="bs-metric" title="近 5 年累計"><div class="bs-metric-label">5Y 累計</div><div class="bs-metric-val">${fmtNum(total5Y)}</div></div>
+                    </div>
+                </div>
+            `;
+        } else if (!isTW) {
+            buybackSummary = `<div style="margin-top:10px"><h4>🔄 庫藏股</h4><p class="hint-mini">📌 這公司近 10 年 cash flow 沒偵測到明顯 buyback（commonStockRepurchased ≈ 0）</p></div>`;
+        }
+
+        // 配息穩定度 verdict
+        let divVerdict = '';
+        if (dh && dh.length >= 3) {
+            const posYears = dh.slice(0, 5).filter(d => d.cash > 0).length;
+            const total5 = Math.min(5, dh.length);
+            if (posYears === total5) divVerdict = `🟢 <b>近 ${total5} 年連續配息</b> · 穩定度高`;
+            else if (posYears >= total5 - 1) divVerdict = `🟡 近 ${total5} 年配息 ${posYears} 年 · 大致穩定`;
+            else divVerdict = `⚠️ 近 ${total5} 年只 ${posYears} 年有配息 · 不穩定 or 週期性`;
+            if (growth !== null) {
+                const g = growth.toFixed(0);
+                divVerdict += growth > 20 ? ` · <b>最新 vs 5Y 平均 +${g}% · 加碼中</b>`
+                            : growth < -20 ? ` · <b>最新 vs 5Y 平均 ${g}% · 減碼</b>`
+                            : ` · 最新 vs 5Y 平均 ${g > 0 ? '+' : ''}${g}%`;
+            }
+        }
+
+        return `
+            <section class="panel dividend-panel">
+                <h3>💵 歷年配息 + 庫藏股（資本回饋政策）</h3>
+                <p class="hint">
+                    公司拿獲利做兩件事：<b>配息</b>（現金給股東）跟<b>買回股本</b>（減少流通股 · 拉高 EPS）·
+                    連續配息 = 現金流穩健 · 買回 = 對自己股價有信心 or 沒更好投資機會。
+                </p>
+                <div class="bs-metrics-row">
+                    <div class="bs-metric" title="以最新一年現金股利 / 當前股價"><div class="bs-metric-label">當前殖利率</div><div class="bs-metric-val">${yieldPct !== null ? yieldPct.toFixed(2) + '%' : '—'}</div></div>
+                    <div class="bs-metric" title="最新年度現金股利"><div class="bs-metric-label">最新配息</div><div class="bs-metric-val">${latestDiv ? fmtNum(latestDiv.cash) : '—'}</div></div>
+                    <div class="bs-metric" title="近 5 年現金配息平均"><div class="bs-metric-label">5Y 平均</div><div class="bs-metric-val">${avg5Cash !== null ? fmtNum(avg5Cash) : '—'}</div></div>
+                    <div class="bs-metric" title="最新 vs 5Y 平均"><div class="bs-metric-label">5Y 成長</div><div class="bs-metric-val">${growth !== null ? (growth > 0 ? '+' : '') + growth.toFixed(0) + '%' : '—'}</div></div>
+                </div>
+                ${divVerdict ? `<div class="bs-note" style="margin-top:8px">${divVerdict}</div>` : ''}
+                ${divChartHtml}
+                ${buybackSummary}
             </section>
         `;
     }
@@ -3449,6 +3734,59 @@
         }
     }
 
+    // Feature · TW 配息歷史（10 年 · 給趨勢圖用）
+    async function fetchTwDividendHistory(ticker, token) {
+        try {
+            const startDate = todayMinusYears(10);
+            const rows = await finMindFetch('TaiwanStockDividend', ticker, startDate, todayStr(), token);
+            if (!rows || rows.length === 0) return null;
+            // TaiwanStockDividend 依 year 分組 · 一年可能多筆（分次配息）
+            const byYear = new Map();
+            rows.forEach(r => {
+                const y = String(r.year || (r.date || '').slice(0, 4));
+                if (!y || y === 'undefined') return;
+                if (!byYear.has(y)) byYear.set(y, { cash: 0, stock: 0 });
+                byYear.get(y).cash += (r.CashEarningsDistribution || 0) + (r.CashStatutorySurplus || 0);
+                byYear.get(y).stock += (r.StockEarningsDistribution || 0) + (r.StockStatutorySurplus || 0);
+            });
+            return Array.from(byYear.entries())
+                .map(([year, v]) => ({ year, cash: v.cash, stock: v.stock }))
+                .filter(e => e.cash > 0 || e.stock > 0)
+                .sort((a, b) => b.year.localeCompare(a.year))
+                .slice(0, 10);
+        } catch (e) {
+            console.warn('TW dividend history fetch failed:', e.message);
+            return null;
+        }
+    }
+
+    // Feature · TW 庫藏股（若 FinMind 有這 dataset）
+    async function fetchTwBuyback(ticker, token) {
+        try {
+            const startDate = todayMinusYears(5);
+            const rows = await finMindFetch('TaiwanStockBuyback', ticker, startDate, todayStr(), token);
+            if (!rows || rows.length === 0) return null;
+            // 依年 aggregate 買回張數 * 平均單價
+            const byYear = new Map();
+            rows.forEach(r => {
+                const y = (r.date || r.announcement_date || '').slice(0, 4);
+                if (!y) return;
+                const shares = r.buyback_share || r.shares || 0;
+                const price = r.avg_price || r.price || 0;
+                const amount = shares * price;
+                byYear.set(y, (byYear.get(y) || 0) + amount);
+            });
+            return Array.from(byYear.entries())
+                .map(([year, amount]) => ({ year, amount }))
+                .filter(e => e.amount > 0)
+                .sort((a, b) => b.year.localeCompare(a.year))
+                .slice(0, 10);
+        } catch (e) {
+            console.warn('TW buyback fetch failed:', e.message);
+            return null;
+        }
+    }
+
     // ---------- ADR 折溢價計算器（層次 4 · 資金結構訊號） ----------
     // 公式：Premium = (ADR / ratio) / (localPrice / USDTWD) - 1
     //     = 「ADR 每股 USD」 vs 「本地股價換算成 USD」的比較
@@ -4328,7 +4666,7 @@
             // VIX 從 macro.vix（FRED VIXCLS）拿，FMP 只當 fallback
             // ADR counterpart：查 US 股時若命中 ADR_MAP、順便抓對應台股價（例：TSM → 2330）
             // Yahoo quote：只對美股抓 · 補 Forward PE + 短興趣
-            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote, peersComparison] = await Promise.all([
+            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote, peersComparison, twDivHist, twBuyback] = await Promise.all([
                 stockPromise,
                 fetchMacroFred(fredKey),
                 fetchForexUsdTwd(fmpKey),
@@ -4338,6 +4676,8 @@
                 (!isFinmind) ? fetchAdrCounterpart(ticker, finmindToken) : Promise.resolve(null),
                 (!isFinmind) ? fetchYahooQuote(ticker) : Promise.resolve(null),
                 (!isFinmind) ? fetchPeersComparison(ticker, fmpKey) : Promise.resolve(null),
+                (isFinmind && finmindToken) ? fetchTwDividendHistory(ticker, finmindToken) : Promise.resolve(null),
+                (isFinmind && finmindToken) ? fetchTwBuyback(ticker, finmindToken) : Promise.resolve(null),
             ]);
 
             // VIX 優先 FRED（免額度、更穩定）→ 失敗 fallback FMP
@@ -4349,6 +4689,11 @@
             data.fxSeries = fx;
             data.yahooQuote = yahooQuote;
             data.peersComparison = peersComparison;
+            // Feature · TW 配息 + 庫藏股 attach 到 fundamentals（跟 US 對齊）
+            if (data.fundamentals) {
+                if (twDivHist) data.fundamentals.dividendHistory = twDivHist;
+                if (twBuyback) data.fundamentals.buybackHistory = twBuyback;
+            }
             renderResult(data);
             renderMacroPanel(macro, fx, vix);
         } catch (e) {

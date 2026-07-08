@@ -1991,3 +1991,64 @@ textarea {
 .bs-cl-details table {
     margin-top: 8px;
 }
+
+/* Feature · 內部人持股變化 panel */
+.insider-panel {
+    margin-top: 16px;
+    border-left-color: #8b5cf6;
+}
+.insider-panel h3 {
+    color: #5b21b6;
+    margin-top: 0;
+}
+.insider-verdict {
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: #f5f3ff;
+    border-left: 4px solid #8b5cf6;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #4c1d95;
+    line-height: 1.7;
+}
+.insider-table {
+    width: 100%;
+    font-size: 0.85em;
+    margin-top: 8px;
+}
+.insider-table td, .insider-table th {
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid #e5e7eb;
+}
+.insider-table th {
+    background: #f5f3ff;
+    color: #5b21b6;
+    text-align: center;
+    font-weight: 700;
+}
+.insider-table td:first-child, .insider-table td:nth-child(2) {
+    text-align: left;
+    font-family: ui-monospace, monospace;
+}
+
+/* Feature · 配息 + 庫藏股 panel */
+.dividend-panel {
+    margin-top: 16px;
+    border-left-color: #10b981;
+}
+.dividend-panel h3 {
+    color: #065f46;
+    margin-top: 0;
+}
+.dividend-panel h4 {
+    margin: 8px 0 4px;
+    color: #047857;
+    font-size: 14px;
+}
+.dividend-panel svg {
+    display: block;
+    margin: 4px 0;
+    background: #f0fdf4;
+    border-radius: 6px;
+}
