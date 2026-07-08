@@ -1792,11 +1792,10 @@
     // ---------- 台股法人買賣超（層次 5：市場情緒） ----------
     async function fetchInstitutionalTW(ticker, token) {
         try {
-            const startDate = todayMinusYears(0.25);   // 近 3 個月
+            // Phase 7.7 · 拉到 4 個月 · 給 60 日 rolling 用（原 3 個月剛好夠 · 但補一點 buffer）
+            const startDate = todayMinusYears(0.35);
             const rows = await finMindFetch('TaiwanStockInstitutionalInvestorsBuySell', ticker, startDate, todayStr(), token);
             if (!rows || rows.length === 0) return null;
-            // FinMind schema: { date, stock_id, name, buy, sell }
-            // name 是「Foreign_Investor」「Investment_Trust」「Dealer_Hedging」「Dealer_self」等
             const byDate = new Map();
             rows.forEach(r => {
                 if (!byDate.has(r.date)) byDate.set(r.date, { foreign: 0, trust: 0, dealer: 0 });
@@ -1805,18 +1804,71 @@
                 else if (r.name && r.name.includes('Investment_Trust')) byDate.get(r.date).trust += net;
                 else if (r.name && r.name.includes('Dealer')) byDate.get(r.date).dealer += net;
             });
-            const dates = Array.from(byDate.keys()).sort().reverse().slice(0, 20);   // 近 20 天
-            const daily = dates.map(d => {
+            // 舊→新排序（好算 rolling）· 但顯示時再倒過來
+            const datesAsc = Array.from(byDate.keys()).sort();
+            const dailyAsc = datesAsc.map(d => {
                 const v = byDate.get(d);
-                return {
-                    date: d,
-                    foreign: v.foreign,
-                    trust: v.trust,
-                    dealer: v.dealer,
-                    total: v.foreign + v.trust + v.dealer,
-                };
+                return { date: d, foreign: v.foreign, trust: v.trust, dealer: v.dealer, total: v.foreign + v.trust + v.dealer };
             });
-            // 累計 20 天總買賣超
+
+            // Phase 7.7 · 每一天算 5d / 20d / 60d rolling 外資淨買（含當天）
+            const rollingFor = (idx, N) => {
+                const from = Math.max(0, idx - N + 1);
+                let s = 0, count = 0;
+                for (let j = from; j <= idx; j++) { s += dailyAsc[j].foreign; count++; }
+                return count === N ? s : null;   // 窗口不足回 null · 不騙人
+            };
+            const rollingSeries = dailyAsc.map((d, i) => ({
+                date: d.date,
+                foreign: d.foreign,
+                sum5d: rollingFor(i, 5),
+                sum20d: rollingFor(i, 20),
+                sum60d: rollingFor(i, 60),
+            }));
+
+            // Phase 7.7 · 訊號偵測（比今天 vs 昨天）
+            // 🔴 5d 翻紅: 昨 5d > 0 · 今 5d < 0 · |反轉| > 2M 股
+            // 🟢 5d 翻綠: 昨 5d < 0 · 今 5d > 0 · |反轉| > 2M 股
+            // 📉/📈 20d 巨變: 單日 20d 變化 >= 8M 股
+            // 🚨 三期背離: 5d 跟 20d 方向相反（短期反轉）
+            let signals = [];
+            let signalSeverity = 0;
+            const last = rollingSeries[rollingSeries.length - 1];
+            const prev = rollingSeries[rollingSeries.length - 2];
+            if (last && prev) {
+                // 5d 翻紅 / 翻綠
+                if (last.sum5d !== null && prev.sum5d !== null) {
+                    const rev = Math.abs(last.sum5d - prev.sum5d);
+                    if (prev.sum5d > 0 && last.sum5d < 0 && rev > 2_000_000) {
+                        signals.push('🔴 5d 翻紅（由買轉賣）');
+                        signalSeverity++;
+                    } else if (prev.sum5d < 0 && last.sum5d > 0 && rev > 2_000_000) {
+                        signals.push('🟢 5d 翻綠（由賣轉買）');
+                        signalSeverity++;
+                    }
+                }
+                // 20d 巨變
+                if (last.sum20d !== null && prev.sum20d !== null) {
+                    const chg = last.sum20d - prev.sum20d;
+                    if (Math.abs(chg) >= 8_000_000) {
+                        signals.push(chg > 0 ? '📈 20d 巨變（單日累計 ' + fmtLotsSigned(chg) + ' 張）' : '📉 20d 巨變（單日累計 ' + fmtLotsSigned(chg) + ' 張）');
+                        signalSeverity++;
+                    }
+                }
+                // 三期背離：5d 跟 20d 方向相反 · 代表「20d 慣性 vs 5d 短期反轉」
+                if (last.sum5d !== null && last.sum20d !== null) {
+                    if (last.sum5d > 0 && last.sum20d < 0) {
+                        signals.push('🚨 5d↔20d 背離（由賣轉買 · 20d 累計還是賣、5d 已反轉買）');
+                        signalSeverity++;
+                    } else if (last.sum5d < 0 && last.sum20d > 0) {
+                        signals.push('🚨 5d↔20d 背離（由買轉賣 · 20d 累計還是買、5d 已反轉賣）');
+                        signalSeverity++;
+                    }
+                }
+            }
+
+            // 顯示用 · 只留最近 20 天資料 · 但保留 rolling 完整計算結果
+            const daily = dailyAsc.slice(-20).reverse();
             const sum = daily.reduce((acc, d) => ({
                 foreign: acc.foreign + d.foreign,
                 trust: acc.trust + d.trust,
@@ -1824,11 +1876,29 @@
                 total: acc.total + d.total,
             }), { foreign: 0, trust: 0, dealer: 0, total: 0 });
 
-            return { daily, sum20d: sum };
+            return {
+                daily, sum20d: sum,
+                foreignSignals: {
+                    date: last ? last.date : null,
+                    prev: prev ? prev.date : null,
+                    today: last ? { sum5d: last.sum5d, sum20d: last.sum20d, sum60d: last.sum60d } : null,
+                    yest:  prev ? { sum5d: prev.sum5d, sum20d: prev.sum20d, sum60d: prev.sum60d } : null,
+                    signals,
+                    severity: signalSeverity,
+                },
+            };
         } catch (e) {
             console.warn('FinMind institutional fetch failed:', e.message);
             return null;
         }
+    }
+
+    // 張數格式化：千分位 · 帶正負號（1 張 = 1000 股）
+    function fmtLotsSigned(sh) {
+        if (sh === null || !isFinite(sh)) return '—';
+        const lots = sh / 1000;
+        const sign = lots >= 0 ? '+' : '';
+        return sign + lots.toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
 
     // ---------- Fundamentals table 渲染 ----------
@@ -2489,6 +2559,51 @@
         const sum = inst.sum20d;
         const totalSign = sum.total > 0 ? '📈 淨買超' : sum.total < 0 ? '📉 淨賣超' : '⚖️ 中性';
 
+        // Phase 7.7 · 外資訊號警報 · 用嚴重度轉紅點數
+        let signalBanner = '';
+        const fs = inst.foreignSignals;
+        if (fs && fs.signals && fs.signals.length > 0) {
+            const dots = fs.severity >= 3 ? '🔴🔴🔴' : fs.severity === 2 ? '🔴🔴' : '🔴';
+            const rowFmt = (label, todayVal, yestVal) => {
+                if (todayVal === null || yestVal === null) return `<td>${label}</td><td>—</td><td>—</td>`;
+                const t = fmtLotsSigned(todayVal), y = fmtLotsSigned(yestVal);
+                const tCls = todayVal > 0 ? 'yoy-pos' : todayVal < 0 ? 'yoy-neg' : '';
+                const yCls = yestVal > 0 ? 'yoy-pos' : yestVal < 0 ? 'yoy-neg' : '';
+                return `<td><b>${label}</b></td><td class="${tCls}">${t}</td><td class="${yCls}">${y}</td>`;
+            };
+            const sixtyDayCell = fs.today && fs.today.sum60d !== null
+                ? `<div class="signal-60d">外資 60d 累計：<b class="${fs.today.sum60d > 0 ? 'yoy-pos' : 'yoy-neg'}">${fmtLotsSigned(fs.today.sum60d)} 張</b></div>`
+                : '<div class="signal-60d">外資 60d 累計：<span class="hint-mini">資料窗口不足 60 日</span></div>';
+            signalBanner = `
+                <div class="foreign-signal-banner severity-${Math.min(3, fs.severity)}">
+                    <div class="signal-header">
+                        <span class="signal-severity">${dots}</span>
+                        <span class="signal-title">外資訊號警報（${fs.date}）</span>
+                    </div>
+                    <div class="signal-list">
+                        ${fs.signals.map(s => `<div class="signal-item">${s}</div>`).join('')}
+                    </div>
+                    <table class="signal-table">
+                        <thead><tr><th>窗口</th><th>今日累計（張）</th><th>昨日累計（張）</th></tr></thead>
+                        <tbody>
+                            <tr>${rowFmt('5d', fs.today?.sum5d, fs.yest?.sum5d)}</tr>
+                            <tr>${rowFmt('20d', fs.today?.sum20d, fs.yest?.sum20d)}</tr>
+                        </tbody>
+                    </table>
+                    ${sixtyDayCell}
+                    <div class="signal-rules">
+                        <b>訊號規則：</b>🔴 5d 翻紅（昨 5d &gt; 0 · 今 5d &lt; 0 · 反轉 &gt; 2,000 張）·
+                        🟢 5d 翻綠（反向）· 📉/📈 20d 巨變（單日 20d 變化 ≥ 8,000 張）· 🚨 三期背離（5d 跟 20d 方向相反）·
+                        <b>嚴重度</b>：🔴🔴🔴 3+ / 🔴🔴 2 / 🔴 1
+                    </div>
+                </div>
+            `;
+        } else if (fs) {
+            signalBanner = `<div class="foreign-signal-banner severity-0">
+                <span>✓ 沒偵測到外資訊號（${fs.date}）· 5d / 20d 走勢平穩</span>
+            </div>`;
+        }
+
         let dailyTable = `<table class="fund-table"><tr><th>日期</th><th>外資</th><th>投信</th><th>自營</th><th>合計</th></tr>`;
         inst.daily.slice(0, 10).forEach(d => {
             dailyTable += `<tr>
@@ -2507,6 +2622,7 @@
                 <b>外資 / 投信 / 自營</b>近 20 天的買賣超趨勢。連續買超 = 有機構在建倉，連續賣超 = 有機構在出貨。
                 <b>不是 buy 訊號</b>——法人也會看錯，但它反映「有資訊優勢的錢在往哪走」。
             </p>
+            ${signalBanner}
             <div class="inst-summary">
                 <b>近 20 天累計：</b>
                 外資 <span class="${cls(sum.foreign)}">${fmtShares(sum.foreign)}</span> ·
