@@ -1484,6 +1484,10 @@
         catch (e) { console.warn('renderMarginTrajectoryHtml failed:', e.message); }
         try { seasonalityHtml = renderQuarterlySeasonalityHtml(analysis.fundamentals); }
         catch (e) { console.warn('renderQuarterlySeasonalityHtml failed:', e.message); }
+        // 月度熱區（TW 專用 · C 選項 · 獨立 panel · 不動舊圖）
+        let heatmapHtml = '';
+        try { heatmapHtml = renderMonthlyHeatmapHtml(analysis.fundamentals); }
+        catch (e) { console.warn('renderMonthlyHeatmapHtml failed:', e.message); }
         // Step 3 · 外資訊號警報 · try/catch 保護
         let foreignSignalHtml = '';
         try { foreignSignalHtml = renderForeignSignalHtml(analysis.institutional); }
@@ -1495,7 +1499,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + foreignSignalHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -2344,6 +2348,110 @@
                 <div class="seasonality-grid">
                     ${renderBarChart('💰 各季營收 YoY', groupsRev, -revRange, revRange, 4, '%', true)}
                     ${renderBarChart('📈 各季毛利率（絕對值）', groupsGM, gmYMin, gmYMax, 4, '%', false)}
+                </div>
+            </section>
+        `;
+    }
+
+    // 月度熱區（TW 專用 · 用月營收畫 12×N heatmap · 完全 self-contained）
+    // 每格顏色 = 該月 YoY · 綠深 = 正成長高 · 紅深 = 負成長高 · 底部 row 跨年平均指認「本命月」
+    function renderMonthlyHeatmapHtml(fund) {
+        if (!fund || !fund.monthlyRevenue || fund.monthlyRevenue.length < 12) return '';
+        const monthly = fund.monthlyRevenue;
+        const byKey = new Map(monthly.map(m => [m.period, m]));
+        const years = [...new Set(monthly.map(m => m.year))].sort();
+        if (years.length < 2) return '';
+
+        // YoY 顏色映射：以資料集最大絕對值為基準
+        const yoys = monthly.map(m => m.yoy).filter(v => v !== null && isFinite(v));
+        if (yoys.length === 0) return '';
+        const maxAbs = Math.max(0.2, Math.max(...yoys.map(Math.abs)));
+
+        const colorFor = yoy => {
+            if (yoy === null || !isFinite(yoy)) return '#f1f5f9';
+            const norm = Math.max(-1, Math.min(1, yoy / maxAbs));
+            const alpha = 0.15 + Math.abs(norm) * 0.75;
+            return norm >= 0
+                ? `rgba(22, 163, 74, ${alpha})`
+                : `rgba(220, 38, 38, ${alpha})`;
+        };
+        const textColor = yoy => {
+            if (yoy === null || !isFinite(yoy)) return '#94a3b8';
+            return Math.abs(yoy) > maxAbs * 0.5 ? '#fff' : '#334155';
+        };
+
+        const months = [1,2,3,4,5,6,7,8,9,10,11,12];
+        // 每年一列
+        let rowsHtml = '';
+        years.forEach(y => {
+            let cells = '';
+            months.forEach(m => {
+                const key = `${y}-${String(m).padStart(2, '0')}`;
+                const e = byKey.get(key);
+                if (!e) {
+                    cells += `<td class="heatmap-cell heatmap-empty">—</td>`;
+                } else {
+                    const yoyStr = e.yoy === null ? '—' : ((e.yoy > 0 ? '+' : '') + (e.yoy * 100).toFixed(0) + '%');
+                    const bg = colorFor(e.yoy);
+                    const fg = textColor(e.yoy);
+                    const valBil = e.value !== null ? (e.value / 1e8).toFixed(1) + '億' : '—';
+                    const title = `${key} · 營收 ${valBil} · YoY ${yoyStr}`;
+                    cells += `<td class="heatmap-cell" style="background:${bg};color:${fg}" title="${title}">${yoyStr}</td>`;
+                }
+            });
+            rowsHtml += `<tr><td class="heatmap-year">${y}</td>${cells}</tr>`;
+        });
+
+        // 每月跨年平均 · 指認「本命月 / 弱勢月」
+        const monthAvgs = months.map(m => {
+            const vals = years.map(y => (byKey.get(`${y}-${String(m).padStart(2, '0')}`) || {}).yoy)
+                .filter(v => v !== null && v !== undefined && isFinite(v));
+            return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+        });
+        let bestMonth = -1, worstMonth = -1;
+        monthAvgs.forEach((v, i) => {
+            if (v !== null) {
+                if (bestMonth === -1 || v > monthAvgs[bestMonth]) bestMonth = i;
+                if (worstMonth === -1 || v < monthAvgs[worstMonth]) worstMonth = i;
+            }
+        });
+        let insight = '';
+        if (bestMonth >= 0 && worstMonth >= 0 && bestMonth !== worstMonth) {
+            const bestAvg = monthAvgs[bestMonth] * 100;
+            const worstAvg = monthAvgs[worstMonth] * 100;
+            const gap = bestAvg - worstAvg;
+            if (gap > 15) {
+                insight = `🎯 這公司<b>本命月是 ${bestMonth + 1} 月</b>（跨年平均 +${bestAvg.toFixed(0)}%）· <b>最弱是 ${worstMonth + 1} 月</b>（平均 ${worstAvg.toFixed(0)}%）· 差 ${gap.toFixed(0)}pp · 有明顯月度季節性`;
+            }
+        }
+
+        const avgRow = monthAvgs.map(v => {
+            if (v === null) return '<td class="heatmap-cell heatmap-empty">—</td>';
+            const str = (v > 0 ? '+' : '') + (v * 100).toFixed(0) + '%';
+            const bg = colorFor(v);
+            const fg = textColor(v);
+            return `<td class="heatmap-cell heatmap-avg" style="background:${bg};color:${fg}">${str}</td>`;
+        }).join('');
+
+        return `
+            <section class="panel heatmap-panel">
+                <h3>🔥 月度熱區（TW 專用 · 用月營收畫）</h3>
+                <p class="hint">
+                    每格 = 該月營收 YoY · <span style="background:rgba(22,163,74,0.7);color:#fff;padding:1px 6px;border-radius:3px">綠</span>深 = YoY 越正 ·
+                    <span style="background:rgba(220,38,38,0.7);color:#fff;padding:1px 6px;border-radius:3px">紅</span>深 = YoY 越負 ·
+                    滑鼠停格看營收絕對值。底部「跨年平均」直接看「這公司哪個月固定爆發、哪個月常掉」——比季度平均犀利 4 倍。
+                </p>
+                ${insight ? `<div class="heatmap-insight">${insight}</div>` : ''}
+                <div class="heatmap-scroll">
+                    <table class="monthly-heatmap">
+                        <thead>
+                            <tr><th></th>${months.map(m => `<th>${m}月</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                        <tfoot>
+                            <tr><td class="heatmap-year">跨年平均</td>${avgRow}</tr>
+                        </tfoot>
+                    </table>
                 </div>
             </section>
         `;
