@@ -1495,3 +1495,42 @@ textarea {
     font-weight: 600;
 }
 .cross-nav-btn:hover { background: #0284c7; }
+
+/* Phase 7.1 · 雷達 lens tag + disclaimer */
+.radar-lens-tag {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 3px 10px;
+    background: #fbbf24;
+    color: #78350f;
+    border-radius: 999px;
+    font-size: .65em;
+    font-weight: 700;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+}
+.radar-warning {
+    margin: 12px 0;
+    padding: 12px 14px;
+    background: #fef2f2;
+    border: 2px solid #fca5a5;
+    border-radius: 10px;
+}
+.radar-warning-title {
+    font-weight: 700;
+    color: #991b1b;
+    margin-bottom: 6px;
+    font-size: .95em;
+}
+.radar-warning-body {
+    color: #7f1d1d;
+    font-size: .88em;
+    line-height: 1.65;
+}
+.radar-warning-body ul {
+    margin: 6px 0 0 4px;
+    padding-left: 20px;
+}
+.radar-warning-body li {
+    margin: 3px 0;
+}
