@@ -518,7 +518,7 @@
         setStatus('loading', `📡 抓 ${rawTicker} (FinMind) 資料中……`);
         // 統一格式：去掉 .TW 後綴
         const ticker = rawTicker.replace(/\.TW$/i, '').replace(/^tw/i, '').trim();
-        if (!/^\d+$/.test(ticker)) throw new Error(`FinMind 台股 ticker 必須是純數字（例：2330、0050），你輸入 "${ticker}"`);
+        if (!/^\d{2,6}[A-Z]?$/.test(ticker)) throw new Error(`FinMind 台股 ticker 必須是數字（可帶 A/B/L/R 尾綴 · 例：2330、0050、00981A、00631L），你輸入 "${ticker}"`);
         const startDate = todayMinusYears(years);
         const endDate = todayStr();
         // 平行抓：PER 歷史 + 股價 + 公司資訊 + 財報成長性 + 現金流 + 法人買賣超
@@ -4492,7 +4492,7 @@
         const rawTicker = $('cfg-ticker').value.trim();
         if (!rawTicker) { setStatus('error', '⚠️ 需要在 Ticker 欄位填一支台股（例：2330）'); return; }
         const ticker = rawTicker.replace(/\.TW$/i, '').replace(/^tw/i, '').trim();
-        if (!/^\d+$/.test(ticker)) { setStatus('error', `⚠️ FinMind 台股 ticker 必須是純數字，你輸入 "${ticker}"`); return; }
+        if (!/^\d{2,6}[A-Z]?$/.test(ticker)) { setStatus('error', `⚠️ FinMind 台股 ticker 必須是數字（可帶 A/B/L/R 尾綴 · 例：2330、0050、00981A），你輸入 "${ticker}"`); return; }
 
         localStorage.setItem('finmind_token', token);
         $('debug-panel').hidden = false;
@@ -4817,7 +4817,11 @@
         const t = ticker.trim().toUpperCase();
         // .TW 後綴 → FinMind（strip .TW）
         if (t.endsWith('.TW')) return { source: 'finmind', normalized: t.replace(/\.TW$/, '') };
-        // 純數字 → FinMind 台股
+        // 台股：4-6 位數字 · 可選一個字母尾綴
+        //   A = 特別股（2882A 國泰特）· 主動式 ETF（00981A）
+        //   L = 正 2 槓桿（00631L）· R = 反 1（00632R）· B = B 股
+        if (/^\d{4,6}[A-Z]?$/.test(t)) return { source: 'finmind', normalized: t };
+        // 純數字（3-位以下）· 亦視為台股（極少數老股票 3 位 code）
         if (/^\d+$/.test(t)) return { source: 'finmind', normalized: t };
         // 含字母 → FMP
         return { source: 'fmp', normalized: t };
