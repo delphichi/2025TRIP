@@ -10,14 +10,23 @@
     const YT_API = 'https://www.googleapis.com/youtube/v3';
 
     // AI 相關 subreddit 清單（掃描目標）
-    // 選這 6 個因為 AI agent / LLM 主題討論最集中在這裡
+    // 分兩層：核心通用 + AI 工具產品專屬（Claude / Cursor / GPT / MCP 話題）
+    // 越專屬的 sub 對「工具名」搜尋命中率越高
     const AI_SUBREDDITS = [
+        // 通用 AI 討論
         'LocalLLaMA',
         'OpenAI',
         'singularity',
         'ArtificialInteligence',
         'ChatGPT',
         'MachineLearning',
+        // 工具/產品專屬（Claude / Cursor / 開發者向）
+        'ClaudeAI',
+        'ClaudeCode',
+        'cursor',
+        'PromptEngineering',
+        'LLMDevs',
+        'aivideo',
     ];
 
     const $ = id => document.getElementById(id);
@@ -179,22 +188,36 @@
         // topic 可能是多字：拆成關鍵字 · 至少 match 1 個就算
         const kw = topic.toLowerCase().split(/\s+/).filter(w => w.length > 2);
         const matched = [];
+        // 收集「就算沒 match 也可能有用」的 sub top 貼文 · 讓使用者看到 sub 到底在聊什麼
+        const unmatchedTop = [];
         results.forEach(r => {
+            const subMatched = [];
             r.posts.forEach(p => {
                 const text = (p.title + ' ' + p.selftext).toLowerCase();
                 if (kw.length === 0 || kw.some(k => text.includes(k))) {
                     matched.push(p);
+                    subMatched.push(p);
                 }
             });
+            // 如果這個 sub 一篇都沒 match · 收 top 3 讓使用者參考
+            if (subMatched.length === 0 && r.posts.length > 0) {
+                unmatchedTop.push({ sub: r.subreddit, top: r.posts.slice(0, 3) });
+            }
         });
         matched.sort((a, b) => b.score - a.score);
         return {
             posts: matched,
+            unmatchedTop,
             errors: results.filter(r => r.error).map(r => `${r.subreddit}: ${r.error}`),
-            perSub: results.map(r => ({ sub: r.subreddit, total: r.posts.length, matched: r.posts.filter(p => {
-                const t = (p.title + ' ' + p.selftext).toLowerCase();
-                return kw.length === 0 || kw.some(k => t.includes(k));
-            }).length })),
+            perSub: results.map(r => ({
+                sub: r.subreddit,
+                total: r.posts.length,
+                matched: r.posts.filter(p => {
+                    const t = (p.title + ' ' + p.selftext).toLowerCase();
+                    return kw.length === 0 || kw.some(k => t.includes(k));
+                }).length,
+                error: r.error,
+            })),
         };
     }
 
@@ -296,48 +319,94 @@
     }
 
     function renderReddit(scanResult) {
-        const { posts, errors, perSub } = scanResult;
+        const { posts, errors, perSub, unmatchedTop } = scanResult;
         $('rd-count').textContent = `(${posts.length})`;
 
-        let subSummary = perSub.map(s => `<span class="sub-badge">${s.sub} · ${s.matched}/${s.total}</span>`).join('');
-        let errMsg = errors.length > 0 ? `<p class="hint hint-mini">⚠️ ${errors.length} 個 subreddit fetch 失敗：${errors.join(' · ')}</p>` : '';
+        // 每個 sub 顯示狀態：綠 = 有 match / 黃 = fetch 通但 0 match / 紅 = fetch 掛
+        const subSummary = perSub.map(s => {
+            let cls = 'sub-badge';
+            let icon = '';
+            let text = `r/${s.sub} · ${s.matched}/${s.total}`;
+            if (s.error) { cls += ' sub-err'; icon = '❌'; text = `r/${s.sub} · ${s.error.slice(0, 30)}`; }
+            else if (s.matched === 0 && s.total > 0) { cls += ' sub-nomatch'; icon = '⚪'; }
+            else if (s.matched > 0) { cls += ' sub-hit'; icon = '🎯'; }
+            return `<span class="${cls}">${icon} ${text}</span>`;
+        }).join('');
+        const errMsg = errors.length > 0
+            ? `<p class="hint hint-mini">⚠️ ${errors.length} 個 subreddit fetch 失敗（可能撞 IP rate limit）：${errors.join(' · ')}</p>`
+            : '';
+        const totalFetched = perSub.reduce((s, x) => s + x.total, 0);
+        const okSubs = perSub.filter(s => !s.error).length;
 
         $('rd-stats').innerHTML = `
             <div class="stat-grid">
                 <div class="stat-card"><div class="stat-label">符合貼文</div><div class="stat-val">${posts.length}</div></div>
-                <div class="stat-card"><div class="stat-label">總 score</div><div class="stat-val">${fmtNum(posts.reduce((s, p) => s + p.score, 0))}</div></div>
-                <div class="stat-card"><div class="stat-label">總 comments</div><div class="stat-val">${fmtNum(posts.reduce((s, p) => s + p.comments, 0))}</div></div>
+                <div class="stat-card"><div class="stat-label">Sub 命中</div><div class="stat-val">${okSubs}/${perSub.length}</div></div>
+                <div class="stat-card"><div class="stat-label">總撈 hot</div><div class="stat-val">${totalFetched}</div></div>
                 <div class="stat-card"><div class="stat-label">最熱 sub</div><div class="stat-val" style="font-size:0.9em">${
                     perSub.reduce((best, s) => s.matched > best.matched ? s : best, { sub: '—', matched: 0 }).sub
                 }</div></div>
             </div>
             <div class="sub-summary">
-                <h4>📊 每個 subreddit 命中率</h4>
+                <h4>📊 每個 subreddit 狀態（🎯 有 match · ⚪ fetch 通但 0 match · ❌ fetch 掛）</h4>
                 <div class="sub-badges">${subSummary}</div>
             </div>
             ${errMsg}
         `;
 
-        if (posts.length === 0) {
-            $('rd-list').innerHTML = '<p class="hint">⚠️ 沒有符合關鍵字的貼文（可能 subreddit 熱門區沒討論這個 · 試更寬的關鍵字）</p>';
-            return;
+        // Matched posts
+        let matchedHtml = '';
+        if (posts.length > 0) {
+            const cards = posts.slice(0, 40).map(p => `
+                <div class="rd-card">
+                    <div class="rd-card-head">
+                        <span class="sub-badge sub-hit">r/${p.subreddit}</span>
+                        ${p.flair ? `<span class="flair">${p.flair}</span>` : ''}
+                        <span class="rd-age">${fmtDateAge(new Date(p.created).toISOString())}</span>
+                    </div>
+                    <div class="rd-card-title"><a href="${p.url}" target="_blank" rel="noopener">${p.title}</a></div>
+                    ${p.selftext ? `<div class="rd-card-preview">${p.selftext.slice(0, 200)}${p.selftext.length > 200 ? '…' : ''}</div>` : ''}
+                    <div class="rd-card-meta">
+                        ⬆️ ${fmtNum(p.score)} · 💬 ${fmtNum(p.comments)} · u/${p.author}
+                    </div>
+                </div>
+            `).join('');
+            matchedHtml = `<h4 style="margin-top:16px">🎯 符合關鍵字（${posts.length}）</h4><div class="rd-grid">${cards}</div>`;
+        } else {
+            matchedHtml = `<p class="hint" style="margin-top:14px">⚠️ 沒有符合關鍵字的貼文 · 但下方有各 sub 的 hot 3 · 看看是不是換個關鍵字更貼近討論</p>`;
         }
 
-        const cards = posts.slice(0, 40).map(p => `
-            <div class="rd-card">
-                <div class="rd-card-head">
-                    <span class="sub-badge">r/${p.subreddit}</span>
-                    ${p.flair ? `<span class="flair">${p.flair}</span>` : ''}
-                    <span class="rd-age">${fmtDateAge(new Date(p.created).toISOString())}</span>
-                </div>
-                <div class="rd-card-title"><a href="${p.url}" target="_blank" rel="noopener">${p.title}</a></div>
-                ${p.selftext ? `<div class="rd-card-preview">${p.selftext.slice(0, 200)}${p.selftext.length > 200 ? '…' : ''}</div>` : ''}
-                <div class="rd-card-meta">
-                    ⬆️ ${fmtNum(p.score)} · 💬 ${fmtNum(p.comments)} · u/${p.author}
-                </div>
-            </div>
-        `).join('');
-        $('rd-list').innerHTML = `<div class="rd-grid">${cards}</div>`;
+        // Unmatched top（讓使用者看到 sub 到底在聊什麼）
+        let unmatchedHtml = '';
+        if (unmatchedTop.length > 0) {
+            const groups = unmatchedTop.map(g => {
+                const cards = g.top.map(p => `
+                    <div class="rd-card rd-card-dim">
+                        <div class="rd-card-head">
+                            <span class="rd-age">${fmtDateAge(new Date(p.created).toISOString())}</span>
+                        </div>
+                        <div class="rd-card-title"><a href="${p.url}" target="_blank" rel="noopener">${p.title}</a></div>
+                        <div class="rd-card-meta">
+                            ⬆️ ${fmtNum(p.score)} · 💬 ${fmtNum(p.comments)} · u/${p.author}
+                        </div>
+                    </div>
+                `).join('');
+                return `
+                    <div class="unmatched-sub">
+                        <h5>r/${g.sub}（沒 match 你的關鍵字 · 但這是本 sub 的熱門 3 篇）</h5>
+                        <div class="rd-grid">${cards}</div>
+                    </div>
+                `;
+            }).join('');
+            unmatchedHtml = `
+                <details class="unmatched-details" open>
+                    <summary><b>🔍 沒 match 的 sub 在聊什麼</b>（可能你的關鍵字太窄 · 看看要不要換）</summary>
+                    ${groups}
+                </details>
+            `;
+        }
+
+        $('rd-list').innerHTML = matchedHtml + unmatchedHtml;
     }
 
     function renderCross(videos, redditPosts, topic) {

@@ -439,3 +439,48 @@ body.radar-body {
     .tab-btn { padding: 10px 8px; font-size: 0.85em; }
     .stat-val { font-size: 1.1em; }
 }
+
+/* Sub badge 狀態顏色 */
+.sub-badge.sub-hit {
+    background: #dcfce7;
+    color: #14532d;
+}
+.sub-badge.sub-nomatch {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+.sub-badge.sub-err {
+    background: #fee2e2;
+    color: #7f1d1d;
+}
+
+/* 沒 match 的 sub 顯示 · 讓使用者知道那些 sub 在聊什麼 */
+.unmatched-details {
+    margin-top: 20px;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+.unmatched-details summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 4px 0;
+}
+.unmatched-details summary:hover { color: var(--ink); }
+.unmatched-sub {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+}
+.unmatched-sub h5 {
+    margin: 0 0 8px;
+    font-size: 0.9em;
+    color: var(--primary-dark);
+    font-weight: 700;
+}
+.rd-card-dim {
+    opacity: 0.7;
+    background: #fff;
+}
