@@ -1099,6 +1099,49 @@
         `;
     }
 
+    // Phase 7.2 · 分數落差偵測 · 兩雷達綜合分數差異 ≥ 30 時提示「類型定位鮮明」
+    function computeRadarAvg(scoreObj) {
+        const vals = Object.values(scoreObj).filter(s => s !== null && s !== undefined);
+        if (vals.length === 0) return null;
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+
+    function detectFrameworkMismatch(analysis) {
+        let valueAvg = null, growthAvg = null;
+        try { valueAvg = computeRadarAvg(computeSixAxisScores(analysis).scores); } catch (e) {}
+        try { growthAvg = computeRadarAvg(computeGrowthAxisScores(analysis).scores); } catch (e) {}
+        if (valueAvg === null || growthAvg === null) return '';
+        const v = Math.round(valueAvg), g = Math.round(growthAvg);
+        const gap = Math.abs(g - v);
+        if (gap < 30) return '';
+
+        const growthLeans = g > v;
+        const label = growthLeans ? '成長股' : '價值股';
+        const otherLabel = growthLeans ? '傳統價值派' : '成長派';
+        const lensClass = growthLeans ? 'mismatch-growth' : 'mismatch-value';
+
+        return `
+            <section class="panel radar-mismatch ${lensClass}">
+                <div class="radar-mismatch-header">
+                    <span class="radar-mismatch-icon">⚡</span>
+                    <span class="radar-mismatch-title">兩種評分模式落差 ${gap} 分 · 類型定位鮮明</span>
+                </div>
+                <div class="radar-mismatch-body">
+                    <div class="radar-mismatch-scores">
+                        <span class="score-chip score-value">價值派 ${v} 分</span>
+                        <span class="mismatch-arrow">↔</span>
+                        <span class="score-chip score-growth">成長派 ${g} 分</span>
+                    </div>
+                    <p>
+                        這 ${gap} 分的落差<b>不是任何一邊算錯</b>——是「用什麼判準衡量」這件事本身 · 決定了結論。
+                        這支股票的類型定位偏向<b>純${label}</b> · 不能用<b>${otherLabel}</b>邏輯去期待它。
+                        用<b>${label}</b>邏輯理解它會更準確 · 下方雷達也請主要看<b>${label}</b>那張。
+                    </p>
+                </div>
+            </section>
+        `;
+    }
+
     // ---------- Rendering ----------
     function renderResult(analysis) {
         const { ticker, name, price, currentPE, currentPBR, history, latestRatioDate, sector } = analysis;
@@ -1372,9 +1415,11 @@
         const instHtml = renderInstitutionalHtml(analysis.institutional);
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
         // Phase 7 · 兩張雷達 stacked（B 選項）· 價值派在上、成長派在下
+        // Phase 7.2 · 落差偵測（gap ≥ 30 顯示 · 置於兩雷達最上方）
+        const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }

@@ -1568,3 +1568,77 @@ textarea {
     background: #8b5cf6;
     color: #fff;
 }
+
+/* Phase 7.2 · 分數落差偵測 alert（兩雷達之間 · gap ≥ 30 時顯示） */
+.radar-mismatch {
+    margin-top: 20px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 2px solid;
+    background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+    border-color: #f59e0b;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+.radar-mismatch.mismatch-growth {
+    background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%);
+    border-color: #8b5cf6;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+}
+.radar-mismatch.mismatch-value {
+    background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+    border-color: #f59e0b;
+}
+.radar-mismatch-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.radar-mismatch-icon {
+    font-size: 22px;
+}
+.radar-mismatch-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #78350f;
+}
+.radar-mismatch.mismatch-growth .radar-mismatch-title {
+    color: #5b21b6;
+}
+.radar-mismatch-body {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: #451a03;
+}
+.radar-mismatch.mismatch-growth .radar-mismatch-body {
+    color: #3b0764;
+}
+.radar-mismatch-body p {
+    margin: 0;
+}
+.radar-mismatch-scores {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.score-chip {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+}
+.score-chip.score-value {
+    background: #f59e0b;
+}
+.score-chip.score-growth {
+    background: #8b5cf6;
+}
+.mismatch-arrow {
+    font-size: 18px;
+    color: #64748b;
+    font-weight: 700;
+}
