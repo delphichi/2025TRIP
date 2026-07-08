@@ -575,3 +575,41 @@ body.radar-body {
     font-size: 0.85em;
     color: #64748b;
 }
+
+/* Hacker News tab · 卡片沿用 Reddit 樣式 · 特色用橘色 */
+.hn-card {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.hn-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.hn-points {
+    background: #f97316;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 700;
+}
+.hn-comments {
+    color: #7c2d12;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+.hn-card .rd-card-title a { color: #7c2d12; }
+.hn-card .rd-card-title a:hover { color: #431407; }
+.hn-card .rd-card-meta a { color: #7c2d12; font-weight: 600; text-decoration: none; }
+.hn-card .rd-card-meta a:hover { text-decoration: underline; }
+
+/* 3-column cross quad（YouTube · HN · Reddit） */
+.cross-quad-3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 900px) { .cross-quad-3 { grid-template-columns: 1fr; } }

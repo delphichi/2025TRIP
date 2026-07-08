@@ -22,7 +22,7 @@
     <section class="panel intro-panel">
         <h2>📖 這個工具在做什麼</h2>
         <p class="hint">
-            輸入一個主題（例：<code>AI agent tutorial</code>）· 同時掃 <b>YouTube 影片庫</b>跟 <b>6 個 AI subreddit 熱門討論</b> · 產出：
+            輸入一個主題（例：<code>AI agent tutorial</code>）· 同時掃 <b>YouTube 影片庫</b> + <b>Hacker News 全庫</b> + <b>12 個 AI subreddit 熱門討論</b> · 產出：
         </p>
         <div class="crosstab-legend">
             <div class="ccell c-hot">
@@ -75,8 +75,7 @@
             <button id="btn-search" class="btn-search">🎯 開始掃描</button>
         </div>
         <p class="hint hint-mini">
-            📌 每次掃描約用 <b>105 YouTube quota</b>（1 search + 1 videos batch）· 每天 10,000 額度 → 可掃 ~95 次
-            · Reddit 是免費且沒 quota 概念 · 只受 60 req/min IP rate limit（我們每次掃 6 個 sub · 完全在範圍內）
+            📌 每次掃描：<b>YouTube ~105 quota</b>（每天 10,000 → 可掃 ~95 次） · <b>HN Algolia 免 auth 免 quota</b>（有 CORS · 穩） · <b>Reddit</b>（2023 起 Reddit 主動封殺 browser 直連 · 常拿 0 · HN 是主力）
         </p>
         <div class="query-status" id="query-status" hidden></div>
     </section>
@@ -85,6 +84,7 @@
         <div class="tab-bar">
             <button class="tab-btn active" data-tab="cross">🔄 交叉分析</button>
             <button class="tab-btn" data-tab="youtube">📺 YouTube <span id="yt-count"></span></button>
+            <button class="tab-btn" data-tab="hn">🧡 HN <span id="hn-count"></span></button>
             <button class="tab-btn" data-tab="reddit">💬 Reddit <span id="rd-count"></span></button>
         </div>
 
@@ -97,6 +97,11 @@
         <div class="tab-content" id="tab-youtube" hidden>
             <div id="yt-stats"></div>
             <div id="yt-table"></div>
+        </div>
+
+        <div class="tab-content" id="tab-hn" hidden>
+            <div id="hn-stats"></div>
+            <div id="hn-list"></div>
         </div>
 
         <div class="tab-content" id="tab-reddit" hidden>

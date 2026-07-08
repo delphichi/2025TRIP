@@ -206,6 +206,40 @@
         return { subreddit, posts: [], error: attemptLog.join(' → '), via: '', attemptLog };
     }
 
+    // ============================================================
+    // Hacker News（Algolia search API · 有 CORS · 免 auth · 免 quota）
+    // ============================================================
+    // 為什麼加 HN：Reddit 2023 起主動封殺 browser 直連 · 需 OAuth + server proxy 才能拉
+    // HN 官方 Algolia mirror 直接開放給瀏覽器 · 且 dev / AI 討論質量比 Reddit 高（founders / execs 都看）
+    async function hnSearch(topic) {
+        // Algolia 支援全文搜尋 · tags=story 只拿 story 型（過濾 comment）
+        // hitsPerPage 最大 1000 · 我們拿 50 已夠 · 排序預設 relevance · 想看熱門度可改 search_by_date
+        const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(topic)}&tags=story&hitsPerPage=50`;
+        const t0 = performance.now();
+        try {
+            const res = await fetch(url);
+            const dt = Math.round(performance.now() - t0);
+            if (!res.ok) return { posts: [], error: `HTTP ${res.status} (${dt}ms)`, dt };
+            const data = await res.json();
+            const posts = (data.hits || []).map(h => ({
+                title: h.title || h.story_title || '(no title)',
+                url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+                hnUrl: `https://news.ycombinator.com/item?id=${h.objectID}`,
+                points: h.points || 0,
+                comments: h.num_comments || 0,
+                author: h.author,
+                created: new Date(h.created_at).getTime(),
+                storyText: (h.story_text || '').slice(0, 300),
+            }));
+            posts.sort((a, b) => b.points - a.points);
+            return { posts, error: null, dt, totalHits: data.nbHits || 0 };
+        } catch (e) {
+            const dt = Math.round(performance.now() - t0);
+            const msg = /Failed to fetch|NetworkError|ERR_/.test(e.message) ? 'NETERR' : e.message.slice(0, 40);
+            return { posts: [], error: `${msg} (${dt}ms)`, dt };
+        }
+    }
+
     // 平行拉全部 subreddit · 個別失敗不擋
     async function redditScan(topic) {
         const results = await Promise.all(AI_SUBREDDITS.map(s => redditHot(s, 25)));
@@ -449,10 +483,77 @@
         $('rd-list').innerHTML = matchedHtml + unmatchedHtml;
     }
 
-    function renderCross(videos, redditPosts, topic, redditScanResult) {
+    function renderHN(hnResult, topic) {
+        const { posts, error, dt, totalHits } = hnResult;
+        $('hn-count').textContent = `(${posts.length})`;
+
+        if (error) {
+            $('hn-stats').innerHTML = `<p class="hint">❌ HN 撈失敗：${error}</p>`;
+            $('hn-list').innerHTML = '';
+            return;
+        }
+        if (posts.length === 0) {
+            $('hn-stats').innerHTML = `<p class="hint">⚪ HN 沒找到「${topic}」相關 story · Algolia 全庫 ${totalHits} 筆命中 · 可能關鍵字太窄</p>`;
+            $('hn-list').innerHTML = '';
+            return;
+        }
+
+        // Stats
+        const medianPoints = posts[Math.floor(posts.length / 2)].points;
+        const topPoints = posts[0].points;
+        const totalComments = posts.reduce((s, p) => s + p.comments, 0);
+        const kw = extractKeywords(posts.map(p => p.title + ' ' + p.storyText));
+        const topKw = kw.slice(0, 12);
+        const recentPosts = posts.filter(p => (Date.now() - p.created) < 90 * 86400 * 1000).length;
+
+        $('hn-stats').innerHTML = `
+            <div class="stat-grid">
+                <div class="stat-card"><div class="stat-label">符合 story</div><div class="stat-val">${posts.length}</div></div>
+                <div class="stat-card"><div class="stat-label">中位 points</div><div class="stat-val">${fmtNum(medianPoints)}</div></div>
+                <div class="stat-card"><div class="stat-label">最高 points</div><div class="stat-val">${fmtNum(topPoints)}</div></div>
+                <div class="stat-card"><div class="stat-label">近 90 天</div><div class="stat-val">${recentPosts}</div></div>
+                <div class="stat-card"><div class="stat-label">總留言</div><div class="stat-val">${fmtNum(totalComments)}</div></div>
+                <div class="stat-card"><div class="stat-label">Algolia 全庫</div><div class="stat-val">${fmtNum(totalHits)}</div></div>
+            </div>
+            <div class="kw-row">
+                <h4>🔤 標題高頻詞（前 12）</h4>
+                <div class="kw-chips">${topKw.map(([w, c]) => `<span class="kw-chip">${w} <b>×${c}</b></span>`).join('')}</div>
+            </div>
+            <p class="hint hint-mini">⏱ Algolia 回應 ${dt}ms · story 依 points 由高到低排</p>
+        `;
+
+        const cards = posts.slice(0, 40).map(p => `
+            <div class="hn-card">
+                <div class="hn-card-head">
+                    <span class="hn-points">⬆️ ${fmtNum(p.points)}</span>
+                    <span class="hn-comments">💬 ${fmtNum(p.comments)}</span>
+                    <span class="rd-age">${fmtDateAge(new Date(p.created).toISOString())}</span>
+                </div>
+                <div class="rd-card-title">
+                    <a href="${p.url}" target="_blank" rel="noopener">${p.title}</a>
+                </div>
+                ${p.storyText ? `<div class="rd-card-preview">${p.storyText.slice(0, 200)}${p.storyText.length > 200 ? '…' : ''}</div>` : ''}
+                <div class="rd-card-meta">
+                    u/${p.author} · <a href="${p.hnUrl}" target="_blank" rel="noopener">HN 討論串 →</a>
+                </div>
+            </div>
+        `).join('');
+        $('hn-list').innerHTML = `<div class="rd-grid">${cards}</div>`;
+    }
+
+    function renderCross(videos, redditPosts, topic, redditScanResult, hnResult) {
+        // 「討論訊號」= Reddit ∪ HN · 只要有一邊活躍就算用戶在討論
+        // HN 目前是主力（Reddit 對 browser 封殺 · 常拿 0）
+        const hnPosts = (hnResult && hnResult.posts) || [];
+        const discussionPosts = [...redditPosts, ...hnPosts];
+        // discussion side 的關鍵字：Reddit title + selftext + HN title + storyText 都算
+        const discussionTexts = [
+            ...redditPosts.map(p => p.title + ' ' + p.selftext.slice(0, 150)),
+            ...hnPosts.map(p => p.title + ' ' + p.storyText.slice(0, 150)),
+        ];
         // 從兩邊 title 抽關鍵字
         const ytKw = extractKeywords(videos.map(v => v.title)).map(([w]) => w);
-        const rdKw = extractKeywords(redditPosts.map(p => p.title + ' ' + p.selftext.slice(0, 150))).map(([w]) => w);
+        const rdKw = extractKeywords(discussionTexts).map(([w]) => w);
         const ytSet = new Set(ytKw);
         const rdSet = new Set(rdKw);
         const both = ytKw.filter(w => rdSet.has(w)).slice(0, 15);
@@ -461,20 +562,26 @@
 
         // 4 象限判定
         const ytHot = videos.length >= 15 && videos[0]?.views > 50_000;
+        // 「討論熱」= Reddit 有 8 篇 & 頂樓 >100 分  OR  HN 有 5 篇 & 頂樓 >50 points
+        // HN 的量比 Reddit 少 · 但質量高（tech 圈精華）· threshold 較低
         const rdHot = redditPosts.length >= 8 && redditPosts[0]?.score > 100;
+        const hnHot = hnPosts.length >= 5 && hnPosts[0]?.points > 50;
+        const discussionHot = rdHot || hnHot;
+        // 找出討論方是哪邊主導（顯示用）
+        const discussionSrc = rdHot && hnHot ? 'Reddit + HN' : rdHot ? 'Reddit' : hnHot ? 'HN' : '';
         let verdict, verdictClass, verdictAdvice;
-        if (ytHot && rdHot) {
-            verdict = '🔥 兩邊都熱 · 主流話題';
+        if (ytHot && discussionHot) {
+            verdict = `🔥 兩邊都熱 · 主流話題（討論方：${discussionSrc}）`;
             verdictClass = 'v-hot';
             verdictAdvice = '競爭激烈 · 要有明確差異化角度才殺得進去（更深、更快、更專某個 sub-niche）';
-        } else if (rdHot && !ytHot) {
-            verdict = '🎯 Reddit 熱 · YouTube 沒 · 選題缺口';
+        } else if (discussionHot && !ytHot) {
+            verdict = `🎯 ${discussionSrc} 熱 · YouTube 沒 · 選題缺口`;
             verdictClass = 'v-gap';
-            verdictAdvice = '<b>你的機會</b>——有真實需求（Reddit 用戶主動討論）· 但沒 KOL 做教程 · 值得投入';
-        } else if (ytHot && !rdHot) {
-            verdict = '⚠️ YouTube 熱 · Reddit 沒 · KOL 假熱';
+            verdictAdvice = '<b>你的機會</b>——有真實需求（用戶主動討論）· 但沒 KOL 做教程 · 值得投入';
+        } else if (ytHot && !discussionHot) {
+            verdict = '⚠️ YouTube 熱 · 用戶沒討論 · KOL 假熱';
             verdictClass = 'v-fake';
-            verdictAdvice = '<b>小心</b>——高機率是行銷波 / 平台推薦演算法炒作 · 沒真實用戶討論 · 進場前確認需求';
+            verdictAdvice = '<b>小心</b>——高機率是行銷波 / 平台推薦演算法炒作 · Reddit + HN 都沒動靜 · 進場前確認需求';
         } else {
             verdict = '❄️ 兩邊都冷 · 冷門話題';
             verdictClass = 'v-cold';
@@ -514,13 +621,20 @@
         `;
 
         $('cross-cells').innerHTML = `
-            <div class="cross-quad">
+            <div class="cross-quad cross-quad-3">
                 <div class="cq-cell">
                     <div class="cq-label">📺 YouTube 訊號強度</div>
                     <div class="cq-val">${videos.length} 支影片</div>
                     <div class="cq-sub">中位 views: ${videos.length ? fmtNum(videos[Math.floor(videos.length / 2)].views) : '—'}</div>
                     <div class="cq-sub">最高 views: ${videos.length ? fmtNum(videos[0].views) : '—'}</div>
                     <div class="cq-verdict">${ytHot ? '<b class="hot">🔥 熱</b>' : '<b class="cold">❄️ 冷</b>'}</div>
+                </div>
+                <div class="cq-cell">
+                    <div class="cq-label">🧡 HN 訊號強度</div>
+                    <div class="cq-val">${hnPosts.length} 篇 story</div>
+                    <div class="cq-sub">中位 points: ${hnPosts.length ? fmtNum(hnPosts[Math.floor(hnPosts.length / 2)].points) : '—'}</div>
+                    <div class="cq-sub">最高 points: ${hnPosts.length ? fmtNum(hnPosts[0].points) : '—'}</div>
+                    <div class="cq-verdict">${hnHot ? '<b class="hot">🔥 熱</b>' : '<b class="cold">❄️ 冷</b>'}</div>
                 </div>
                 <div class="cq-cell">
                     <div class="cq-label">💬 Reddit 訊號強度</div>
@@ -540,12 +654,12 @@
                     <p class="hint-mini">👉 這些是<b>主流關鍵字</b> · 兩邊都在討論 · 內容要脫穎而出很難</p>
                 </div>
                 <div class="kw-cross-cell">
-                    <h4>📺 YouTube 有 · Reddit 沒（${ytOnly.length}）</h4>
+                    <h4>📺 YouTube 有 · 討論方沒（${ytOnly.length}）</h4>
                     <div class="kw-chips">${ytOnly.map(w => `<span class="kw-chip kw-yt">${w}</span>`).join('') || '<span class="hint-mini">無</span>'}</div>
                     <p class="hint-mini">⚠️ KOL 在講但用戶沒討論 · <b>可能是宣傳向</b>（教程 / 廣告 / SEO）</p>
                 </div>
                 <div class="kw-cross-cell">
-                    <h4>💬 Reddit 有 · YouTube 沒（${rdOnly.length}）</h4>
+                    <h4>💬 討論方有 · YouTube 沒（${rdOnly.length}）</h4>
                     <div class="kw-chips">${rdOnly.map(w => `<span class="kw-chip kw-rd">${w}</span>`).join('') || '<span class="hint-mini">無</span>'}</div>
                     <p class="hint-mini">🎯 <b>選題缺口</b>——用戶關心但沒教程 · 這裡是機會</p>
                 </div>
@@ -565,7 +679,7 @@
         btn.disabled = true;
 
         try {
-            // 並行拉 YouTube 跟 Reddit
+            // 並行拉 YouTube + Reddit + HN
             const ytKey = getYtKey();
             const ytPromise = ytKey
                 ? (async () => {
@@ -574,22 +688,26 @@
                     return await ytVideosBatch(videoIds, ytKey);
                 })().catch(e => { console.error('YT fail', e); return { __err: e.message }; })
                 : Promise.resolve({ __err: '沒 YouTube key' });
-            const rdPromise = redditScan(topic).catch(e => { console.error('RD fail', e); return { posts: [], errors: [e.message], perSub: [] }; });
+            const rdPromise = redditScan(topic).catch(e => { console.error('RD fail', e); return { posts: [], errors: [e.message], perSub: [], unmatchedTop: [] }; });
+            const hnPromise = hnSearch(topic).catch(e => { console.error('HN fail', e); return { posts: [], error: e.message }; });
 
-            const [ytResult, rdResult] = await Promise.all([ytPromise, rdPromise]);
+            const [ytResult, rdResult, hnResult] = await Promise.all([ytPromise, rdPromise, hnPromise]);
 
             const videos = Array.isArray(ytResult) ? ytResult : [];
             const ytErr = ytResult && ytResult.__err ? ytResult.__err : null;
             const redditPosts = rdResult.posts || [];
+            const hnPosts = hnResult.posts || [];
 
             renderYouTube(videos);
             renderReddit(rdResult);
-            renderCross(videos, redditPosts, topic, rdResult);
+            renderHN(hnResult, topic);
+            renderCross(videos, redditPosts, topic, rdResult, hnResult);
 
             $('result-panel').hidden = false;
             const msgParts = [];
             if (videos.length > 0) msgParts.push(`YouTube ${videos.length} 支`);
             else if (ytErr) msgParts.push(`YouTube 失敗（${ytErr}）`);
+            if (hnPosts.length > 0) msgParts.push(`HN ${hnPosts.length} 篇`);
             if (redditPosts.length > 0) msgParts.push(`Reddit ${redditPosts.length} 篇`);
             setStatus('success', `✅ 掃描完成：${msgParts.join(' · ')}`);
         } catch (e) {
