@@ -59,8 +59,9 @@
     function getFmpKey() { return localStorage.getItem('fmp_api_key') || ''; }
     function getFinMindToken() { return localStorage.getItem('finmind_token') || ''; }
 
-    // 純數字 ticker 判定台股（"2330"、"0050"）· 字母 ticker 判定美股（"NVDA"、"SPY"）
-    function isTwTicker(t) { return /^\d+$/.test(t); }
+    // 台股 ticker：4-6 位數字 · 可選 A/B/C 尾綴（e.g. 主動式 ETF：00981A · 特別股：2882A · L/R 槓桿反向：00631L）
+    // 美股：全字母（NVDA / SPY）· 若字母開頭一律走美股路徑
+    function isTwTicker(t) { return /^\d{4,6}[A-Z]?$/.test(t); }
 
     // ==========================================
     // helpers
