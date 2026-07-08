@@ -229,7 +229,8 @@
                 comments: h.num_comments || 0,
                 author: h.author,
                 created: new Date(h.created_at).getTime(),
-                storyText: (h.story_text || '').slice(0, 300),
+                // storyText 原始帶 HTML tag / entity / URL · 清乾淨再 slice · 不然截斷會爆 `&#x…`
+                storyText: cleanText(h.story_text || '').replace(/\s+/g, ' ').trim().slice(0, 300),
             }));
             posts.sort((a, b) => b.points - a.points);
             return { posts, error: null, dt, totalHits: data.nbHits || 0 };
@@ -289,17 +290,52 @@
         'i','you','he','she','it','we','they','them','this','that','these','those','my','your','his','her','its','our','their',
         'how','what','when','where','why','who','which','do','does','did','have','has','had','can','could','will','would','should','may','might',
         'not','no','yes','so','if','then','than','also','just','only','more','most','some','any','all','one','two','three',
-        'ai','llm','video','ep','part','tutorial','ep','vs',
+        'ai','llm','video','ep','part','tutorial','vs','using','use','used','uses','get','make','need','like','way','new','old',
+        // HTML entity 殘骸（HN Algolia storyText 有 &#x2F; 這種未 decode 的 entity · 汙染關鍵字）
+        'x2f','x27','x3c','x3e','amp','quot','apos','nbsp','lt','gt',
+        // URL / HTML tag 殘骸
+        'http','https','com','org','net','www','href','rel','nofollow','html','htm','href',
+        // twitter / x.com 常見 URL 碎片
+        'xcancel','status','tweet',
         '的','在','是','了','和','有','就','都','而','及','與','或','要','把','讓','從','很','也','但','如果','為什麼',
     ]);
+
+    // HTML escape · 顯示已清淨的文字時再 escape 一層防 XSS
+    function escapeHtml(s) {
+        return String(s || '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        }[c]));
+    }
+
+    // 清 HN storyText 的 HTML entity + URL + tag · 避免抽出「x2f · https · xcancel」這種垃圾
+    function cleanText(t) {
+        if (!t) return '';
+        return t
+            // 先 decode HTML entity（&#x2F; → / · &amp; → & 等）· 手動 decode 避開 DOM parse 成本
+            .replace(/&#x([0-9a-f]+);/gi, (_, h) => {
+                const code = parseInt(h, 16);
+                return code < 128 ? String.fromCharCode(code) : ' ';
+            })
+            .replace(/&#(\d+);/g, (_, d) => {
+                const code = parseInt(d, 10);
+                return code < 128 ? String.fromCharCode(code) : ' ';
+            })
+            .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, ' ')
+            // 幹掉整段 URL · 保留周邊文字
+            .replace(/https?:\/\/\S+/g, ' ')
+            .replace(/www\.\S+/g, ' ')
+            // 幹掉 HTML tag
+            .replace(/<[^>]+>/g, ' ');
+    }
 
     function extractKeywords(texts, minLen = 3) {
         const freq = new Map();
         texts.forEach(t => {
-            const words = (t || '').toLowerCase()
+            const words = cleanText(t).toLowerCase()
                 .replace(/[^\w\s一-龥]/g, ' ')
                 .split(/\s+/)
-                .filter(w => w.length >= minLen && !STOPWORDS.has(w));
+                // 純數字也剔掉（年份 like 2026 例外會被下面 STOPWORDS 決定）
+                .filter(w => w.length >= minLen && !STOPWORDS.has(w) && !/^\d+$/.test(w));
             words.forEach(w => freq.set(w, (freq.get(w) || 0) + 1));
         });
         return Array.from(freq.entries())
@@ -530,11 +566,11 @@
                     <span class="rd-age">${fmtDateAge(new Date(p.created).toISOString())}</span>
                 </div>
                 <div class="rd-card-title">
-                    <a href="${p.url}" target="_blank" rel="noopener">${p.title}</a>
+                    <a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(p.title)}</a>
                 </div>
-                ${p.storyText ? `<div class="rd-card-preview">${p.storyText.slice(0, 200)}${p.storyText.length > 200 ? '…' : ''}</div>` : ''}
+                ${p.storyText ? `<div class="rd-card-preview">${escapeHtml(p.storyText)}${p.storyText.length >= 300 ? '…' : ''}</div>` : ''}
                 <div class="rd-card-meta">
-                    u/${p.author} · <a href="${p.hnUrl}" target="_blank" rel="noopener">HN 討論串 →</a>
+                    u/${escapeHtml(p.author)} · <a href="${escapeHtml(p.hnUrl)}" target="_blank" rel="noopener">HN 討論串 →</a>
                 </div>
             </div>
         `).join('');
