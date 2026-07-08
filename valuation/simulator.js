@@ -98,12 +98,14 @@
     // FinMind：TaiwanStockFinancialStatements 是 long format
     // 需要 pivot：group by date、type 當欄位
     // Phase 7（估值雷達）：同時抓 BalanceSheet · 算 TTM ROE
+    // Step 2 · 加抓 TaiwanStockMonthRevenue（TW 月營收 · 領先季報 6 週）
     async function fetchFinMindFundamentals(ticker, token) {
         try {
-            const startDate = todayMinusYears(4);   // 4 年 = 16 季足夠算 10 季 YoY
-            const [fsRows, bsRows] = await Promise.all([
+            const startDate = todayMinusYears(4);
+            const [fsRows, bsRows, monthRows] = await Promise.all([
                 finMindFetch('TaiwanStockFinancialStatements', ticker, startDate, todayStr(), token),
                 finMindFetch('TaiwanStockBalanceSheet', ticker, startDate, todayStr(), token).catch(() => []),
+                finMindFetch('TaiwanStockMonthRevenue', ticker, startDate, todayStr(), token).catch(() => []),
             ]);
             if (!fsRows || fsRows.length === 0) return null;
             // Pivot：{ date: { type1: value1, type2: value2, ... } }
@@ -181,6 +183,37 @@
                         };
                     });
                 }
+            }
+
+            // Step 2 · 月營收 processing（TW 專用 · 每月 10 號公告 · 領先季報 6 週）
+            // 用 revenue_year / revenue_month 組實際月份 label（date 是公告日不是資料月）
+            if (monthRows && monthRows.length > 0) {
+                const monthMap = new Map();
+                monthRows.forEach(r => {
+                    if (r.revenue === null || !isFinite(r.revenue)) return;
+                    const y = r.revenue_year, m = r.revenue_month;
+                    if (!y || !m) return;
+                    const key = `${y}-${String(m).padStart(2, '0')}`;
+                    monthMap.set(key, { period: key, year: y, month: m, value: r.revenue });
+                });
+                // 舊→新排 · 給算 YoY/MoM 用
+                const monthsAsc = Array.from(monthMap.values()).sort((a, b) => a.period.localeCompare(b.period));
+                const byKey = new Map(monthsAsc.map(x => [x.period, x]));
+                const yoyKey = x => `${x.year - 1}-${String(x.month).padStart(2, '0')}`;
+                const momKey = x => {
+                    const py = x.month === 1 ? x.year - 1 : x.year;
+                    const pm = x.month === 1 ? 12 : x.month - 1;
+                    return `${py}-${String(pm).padStart(2, '0')}`;
+                };
+                const enriched = monthsAsc.map(x => {
+                    const yoyRef = byKey.get(yoyKey(x));
+                    const momRef = byKey.get(momKey(x));
+                    const yoy = yoyRef && yoyRef.value > 0 ? (x.value - yoyRef.value) / yoyRef.value : null;
+                    const mom = momRef && momRef.value > 0 ? (x.value - momRef.value) / momRef.value : null;
+                    return { period: x.period, year: x.year, month: x.month, value: x.value, yoy, mom };
+                });
+                // 存新→舊
+                result.monthlyRevenue = enriched.slice().reverse();
             }
 
             return result;
@@ -1427,6 +1460,14 @@
         try { drilldownHtml = renderQuarterlyDrilldown(analysis.cashFlow, analysis.fundamentals); }
         catch (e) { console.warn('renderQuarterlyDrilldown failed:', e.message); }
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
+        // Step 2 · 最後 12 月營收 / 4 季毛利+營益（值+增長率）· try/catch 保護
+        let monthlyMetricsHtml = '';
+        try { monthlyMetricsHtml = renderMonthlyMetricsHtml(analysis.fundamentals); }
+        catch (e) { console.warn('renderMonthlyMetricsHtml failed:', e.message); }
+        // Step 3 · 外資訊號警報 · try/catch 保護
+        let foreignSignalHtml = '';
+        try { foreignSignalHtml = renderForeignSignalHtml(analysis.institutional); }
+        catch (e) { console.warn('renderForeignSignalHtml failed:', e.message); }
         const instHtml = renderInstitutionalHtml(analysis.institutional);
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
         // Phase 7 · 兩張雷達 stacked（B 選項）· 價值派在上、成長派在下
@@ -1434,7 +1475,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + fundHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + fundHtml + monthlyMetricsHtml + foreignSignalHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -1642,11 +1683,10 @@
     // ---------- 台股法人買賣超（層次 5：市場情緒） ----------
     async function fetchInstitutionalTW(ticker, token) {
         try {
-            const startDate = todayMinusYears(0.25);   // 近 3 個月
+            // Step 3 · 拉到近 4 個月 · 給 60 日 rolling 用（原 3 個月剛好夠 · 加 buffer）
+            const startDate = todayMinusYears(0.35);
             const rows = await finMindFetch('TaiwanStockInstitutionalInvestorsBuySell', ticker, startDate, todayStr(), token);
             if (!rows || rows.length === 0) return null;
-            // FinMind schema: { date, stock_id, name, buy, sell }
-            // name 是「Foreign_Investor」「Investment_Trust」「Dealer_Hedging」「Dealer_self」等
             const byDate = new Map();
             rows.forEach(r => {
                 if (!byDate.has(r.date)) byDate.set(r.date, { foreign: 0, trust: 0, dealer: 0 });
@@ -1655,18 +1695,70 @@
                 else if (r.name && r.name.includes('Investment_Trust')) byDate.get(r.date).trust += net;
                 else if (r.name && r.name.includes('Dealer')) byDate.get(r.date).dealer += net;
             });
-            const dates = Array.from(byDate.keys()).sort().reverse().slice(0, 20);   // 近 20 天
-            const daily = dates.map(d => {
+            // 舊→新（給 rolling 用）
+            const datesAsc = Array.from(byDate.keys()).sort();
+            const dailyAsc = datesAsc.map(d => {
                 const v = byDate.get(d);
-                return {
-                    date: d,
-                    foreign: v.foreign,
-                    trust: v.trust,
-                    dealer: v.dealer,
-                    total: v.foreign + v.trust + v.dealer,
-                };
+                return { date: d, foreign: v.foreign, trust: v.trust, dealer: v.dealer, total: v.foreign + v.trust + v.dealer };
             });
-            // 累計 20 天總買賣超
+
+            // Step 3 · 每日算 5d / 20d / 60d rolling 外資淨買（含當天 · 窗口不足回 null）
+            const rollingFor = (idx, N) => {
+                const from = Math.max(0, idx - N + 1);
+                if (idx - from + 1 < N) return null;
+                let s = 0;
+                for (let j = from; j <= idx; j++) s += dailyAsc[j].foreign;
+                return s;
+            };
+            const rollingSeries = dailyAsc.map((_, i) => ({
+                sum5d: rollingFor(i, 5),
+                sum20d: rollingFor(i, 20),
+                sum60d: rollingFor(i, 60),
+            }));
+
+            // Step 3 · 訊號偵測（今日 vs 昨日）
+            // 🔴 5d 翻紅 / 🟢 5d 翻綠：反轉 > 200 萬股（= 2,000 張）
+            // 📉/📈 20d 巨變：單日 20d 變化 ≥ 800 萬股（= 8,000 張）
+            // 🚨 三期背離：5d 跟 20d 方向相反
+            let signals = [], severity = 0;
+            const last = rollingSeries[rollingSeries.length - 1];
+            const prev = rollingSeries[rollingSeries.length - 2];
+            const fmtLots = sh => {
+                if (sh === null || !isFinite(sh)) return '—';
+                const lots = sh / 1000;
+                return (lots >= 0 ? '+' : '') + lots.toLocaleString('en-US', { maximumFractionDigits: 0 });
+            };
+            if (last && prev) {
+                if (last.sum5d !== null && prev.sum5d !== null) {
+                    const rev = Math.abs(last.sum5d - prev.sum5d);
+                    if (prev.sum5d > 0 && last.sum5d < 0 && rev > 2_000_000) {
+                        signals.push('🔴 5d 翻紅（由買轉賣）');
+                        severity++;
+                    } else if (prev.sum5d < 0 && last.sum5d > 0 && rev > 2_000_000) {
+                        signals.push('🟢 5d 翻綠（由賣轉買）');
+                        severity++;
+                    }
+                }
+                if (last.sum20d !== null && prev.sum20d !== null) {
+                    const chg = last.sum20d - prev.sum20d;
+                    if (Math.abs(chg) >= 8_000_000) {
+                        signals.push(`${chg > 0 ? '📈' : '📉'} 20d 巨變（單日累計 ${fmtLots(chg)} 張）`);
+                        severity++;
+                    }
+                }
+                if (last.sum5d !== null && last.sum20d !== null) {
+                    if (last.sum5d > 0 && last.sum20d < 0) {
+                        signals.push('🚨 5d↔20d 背離（由賣轉買 · 20d 累計還是賣、5d 已反轉買）');
+                        severity++;
+                    } else if (last.sum5d < 0 && last.sum20d > 0) {
+                        signals.push('🚨 5d↔20d 背離（由買轉賣 · 20d 累計還是買、5d 已反轉賣）');
+                        severity++;
+                    }
+                }
+            }
+
+            // 顯示用 · 近 20 天明細（新→舊）
+            const daily = dailyAsc.slice(-20).reverse();
             const sum = daily.reduce((acc, d) => ({
                 foreign: acc.foreign + d.foreign,
                 trust: acc.trust + d.trust,
@@ -1674,7 +1766,16 @@
                 total: acc.total + d.total,
             }), { foreign: 0, trust: 0, dealer: 0, total: 0 });
 
-            return { daily, sum20d: sum };
+            return {
+                daily, sum20d: sum,
+                foreignSignals: {
+                    latestDate: dailyAsc[dailyAsc.length - 1]?.date || null,
+                    prevDate:   dailyAsc[dailyAsc.length - 2]?.date || null,
+                    today: last || null,
+                    yest:  prev || null,
+                    signals, severity,
+                },
+            };
         } catch (e) {
             console.warn('FinMind institutional fetch failed:', e.message);
             return null;
@@ -1930,6 +2031,152 @@
                     </thead>
                     <tbody>${rows}</tbody>
                 </table>
+            </section>
+        `;
+    }
+
+    // Step 2 · 12 個月營收 / 4 季毛利 / 4 季營益（值 + 增長率）
+    // 兩張並排小表 · 因為月營收是月頻 · 毛利/營益是季頻 · 混不進同一列
+    function renderMonthlyMetricsHtml(fund) {
+        const monthly = fund && fund.monthlyRevenue ? fund.monthlyRevenue.slice(0, 12) : [];
+        const quarterly = fund && fund.grossMargin ? fund.grossMargin.slice(0, 4) : [];
+        const opq = fund && fund.operatingMargin ? fund.operatingMargin.slice(0, 4) : [];
+        if (monthly.length === 0 && quarterly.length === 0) return '';
+
+        const fmtRev = v => {
+            if (v === null || !isFinite(v)) return '—';
+            if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+            return v.toFixed(0);
+        };
+        const fmtPctYoY = y => {
+            if (y === null || !isFinite(y)) return '—';
+            const pct = y * 100;
+            return (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+        };
+        const fmtPP = y => {
+            if (y === null || !isFinite(y)) return '—';
+            const pp = y * 100;
+            return (pp > 0 ? '+' : '') + pp.toFixed(1) + 'pp';
+        };
+        const yoyCls = y => y === null ? '' : y > 0.001 ? 'yoy-pos' : y < -0.001 ? 'yoy-neg' : '';
+
+        // 月營收 table（12 rows）
+        let monthlyTable = '';
+        if (monthly.length > 0) {
+            let rowsHtml = '';
+            monthly.forEach(m => {
+                rowsHtml += `<tr>
+                    <td>${m.period}</td>
+                    <td>${fmtRev(m.value)}</td>
+                    <td class="${yoyCls(m.yoy)}">${fmtPctYoY(m.yoy)}</td>
+                    <td class="${yoyCls(m.mom)}">${fmtPctYoY(m.mom)}</td>
+                </tr>`;
+            });
+            monthlyTable = `<div class="fund-cell">
+                <h4>📅 月營收（近 12 月）</h4>
+                <table class="fund-table">
+                    <tr><th>月份</th><th>營收</th><th>YoY</th><th>MoM</th></tr>
+                    ${rowsHtml}
+                </table>
+            </div>`;
+        }
+
+        // 季度毛利/營益 table（4 rows · 合併展示）
+        let quarterlyTable = '';
+        if (quarterly.length > 0 || opq.length > 0) {
+            // 用毛利率的季度為主軸
+            const primary = quarterly.length > 0 ? quarterly : opq;
+            const opByDate = new Map(opq.map(e => [e.date, e]));
+            let rowsHtml = '';
+            primary.forEach(gm => {
+                const op = opByDate.get(gm.date) || {};
+                const gmVal = gm.value !== null && isFinite(gm.value) ? (gm.value * 100).toFixed(1) + '%' : '—';
+                const opVal = op.value !== null && isFinite(op.value) ? (op.value * 100).toFixed(1) + '%' : '—';
+                rowsHtml += `<tr>
+                    <td>${gm.date}</td>
+                    <td>${gmVal}</td>
+                    <td class="${yoyCls(gm.yoy)}">${fmtPP(gm.yoy)}</td>
+                    <td>${opVal}</td>
+                    <td class="${yoyCls(op.yoy)}">${fmtPP(op.yoy)}</td>
+                </tr>`;
+            });
+            quarterlyTable = `<div class="fund-cell">
+                <h4>📊 毛利率 / 營益率（近 4 季）</h4>
+                <table class="fund-table">
+                    <tr><th>季度</th><th>毛利率</th><th>YoY</th><th>營益率</th><th>YoY</th></tr>
+                    ${rowsHtml}
+                </table>
+            </div>`;
+        }
+
+        return `
+            <section class="panel monthly-metrics-panel">
+                <h3>📈 最後 12 個月 · 營收 / 毛利 / 營益</h3>
+                <p class="hint">
+                    <b>月營收</b> 每月 10 號公告 · <b>領先季報 6 週</b>（TW 月營收專屬 · 只有營收沒有 EPS/毛利）·
+                    <b>毛利率 / 營益率</b> 只在季報有 · 用近 4 季覆蓋 12 個月時段。
+                </p>
+                <div class="fund-grid monthly-metrics-grid">
+                    ${monthlyTable}
+                    ${quarterlyTable}
+                </div>
+            </section>
+        `;
+    }
+
+    // Step 3 · 外資訊號警報（獨立 panel · 不改既有 renderInstitutionalHtml）
+    function renderForeignSignalHtml(inst) {
+        if (!inst || !inst.foreignSignals) return '';
+        const fs = inst.foreignSignals;
+        if (!fs.today) return '';
+        const fmtLots = sh => {
+            if (sh === null || !isFinite(sh)) return '—';
+            const lots = sh / 1000;
+            return (lots >= 0 ? '+' : '') + lots.toLocaleString('en-US', { maximumFractionDigits: 0 });
+        };
+        const cls = v => v === null ? '' : v > 0 ? 'yoy-pos' : v < 0 ? 'yoy-neg' : '';
+
+        const dots = fs.severity >= 3 ? '🔴🔴🔴' : fs.severity === 2 ? '🔴🔴' : fs.severity === 1 ? '🔴' : '✓';
+        const sevClass = fs.severity >= 3 ? 'severity-3' : fs.severity === 2 ? 'severity-2' : fs.severity === 1 ? 'severity-1' : 'severity-0';
+        const title = fs.severity > 0 ? `外資訊號警報（${fs.latestDate}）` : `外資訊號安靜（${fs.latestDate}）· 5d/20d 走勢平穩`;
+
+        const signalsList = fs.signals.length > 0
+            ? `<div class="signal-list">${fs.signals.map(s => `<div class="signal-item">${s}</div>`).join('')}</div>`
+            : '';
+
+        const t = fs.today, y = fs.yest || {};
+        const rowFmt = (label, tv, yv) => `<tr>
+            <td><b>${label}</b></td>
+            <td class="${cls(tv)}">${fmtLots(tv)}</td>
+            <td class="${cls(yv)}">${fmtLots(yv)}</td>
+        </tr>`;
+
+        const sixtyRow = t.sum60d !== null
+            ? `<div class="signal-60d">外資 <b>60d</b> 累計：<b class="${cls(t.sum60d)}">${fmtLots(t.sum60d)} 張</b></div>`
+            : `<div class="signal-60d">外資 60d 累計：<span class="hint-mini">資料窗口不足 60 個交易日</span></div>`;
+
+        return `
+            <section class="panel foreign-signal-panel ${sevClass}">
+                <div class="signal-header">
+                    <span class="signal-severity">${dots}</span>
+                    <span class="signal-title">${title}</span>
+                </div>
+                ${signalsList}
+                <table class="fund-table signal-table">
+                    <thead><tr><th>窗口</th><th>今日累計（張）</th><th>昨日累計（張）</th></tr></thead>
+                    <tbody>
+                        ${rowFmt('5d', t.sum5d, y.sum5d)}
+                        ${rowFmt('20d', t.sum20d, y.sum20d)}
+                    </tbody>
+                </table>
+                ${sixtyRow}
+                <div class="signal-rules">
+                    <b>訊號規則：</b>🔴 5d 翻紅（昨 &gt; 0 · 今 &lt; 0 · 反轉 &gt; 2,000 張）·
+                    🟢 5d 翻綠（反向）· 📉/📈 20d 巨變（單日 20d 變化 ≥ 8,000 張）·
+                    🚨 5d↔20d 背離（方向相反）· <b>嚴重度</b> 🔴🔴🔴 3+ / 🔴🔴 2 / 🔴 1
+                </div>
             </section>
         `;
     }
