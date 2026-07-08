@@ -1718,6 +1718,29 @@ textarea {
     line-height: 1.7;
 }
 
+/* Phase 7.6 · 應收/存貨/CapEx drill-down */
+.quality-drilldown-title {
+    margin-top: 24px;
+    color: #7c2d12;
+    border-top: 2px dashed #fde68a;
+    padding-top: 16px;
+}
+.quality-drilldown-diag {
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.7;
+}
+.quality-drilldown-diag > div + div {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #fbbf24;
+}
+
 /* Phase 7.4 · 各季季節性柱狀圖 */
 .seasonality-panel {
     margin-top: 20px;

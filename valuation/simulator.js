@@ -139,9 +139,7 @@
                 operatingMargin: r => r.operatingMargin,
             });
 
-            // === Phase 7 · 算 TTM ROE ===
-            // 分子：近 4 季淨利加總（TTM）
-            // 分母：最新期末權益總額（Equity 欄位）
+            // === Phase 7 · 算 TTM ROE + Phase 7.6 · 抽 應收/存貨 時序 ===
             if (result && bsRows && bsRows.length > 0 && wideRows.length >= 4) {
                 // Pivot BalanceSheet
                 const bsByDate = new Map();
@@ -152,7 +150,6 @@
                 const bsDates = Array.from(bsByDate.keys()).sort().reverse();
                 if (bsDates.length > 0) {
                     const latestBs = bsByDate.get(bsDates[0]);
-                    // Equity 欄位 · spec 提到 Equity（權益總額）· fallback 到 EquityAttributableToOwnersOfParent
                     const equity = latestBs.Equity || latestBs.EquityAttributableToOwnersOfParent || null;
                     // 近 4 季淨利加總
                     let ttmNetIncome = 0, validQuarters = 0;
@@ -161,12 +158,29 @@
                         if (ni !== null && isFinite(ni)) { ttmNetIncome += ni; validQuarters++; }
                     }
                     if (validQuarters === 4 && equity && equity > 0) {
-                        result.roe = (ttmNetIncome / equity) * 100;   // %
+                        result.roe = (ttmNetIncome / equity) * 100;
                         result.roeBreakdown = {
-                            ttmNetIncome,
-                            equity,
-                            equityDate: bsDates[0],
-                            method: 'FinMind TTM',
+                            ttmNetIncome, equity, equityDate: bsDates[0], method: 'FinMind TTM',
+                        };
+                    }
+
+                    // Phase 7.6 · 應收/存貨 quarterly time series（給獲利品質 drill-down）
+                    const bsWide = bsDates.map(d => {
+                        const flat = bsByDate.get(d);
+                        return {
+                            date: d,
+                            accountsReceivable: flat.AccountsReceivableNet ?? null,
+                            inventories: flat.Inventories ?? null,
+                        };
+                    });
+                    const bsResult = processFundamentals(bsWide, {
+                        accountsReceivable: r => r.accountsReceivable,
+                        inventories: r => r.inventories,
+                    });
+                    if (bsResult) {
+                        result.balanceSheet = {
+                            accountsReceivable: bsResult.accountsReceivable,
+                            inventories: bsResult.inventories,
                         };
                     }
                 }
@@ -1543,7 +1557,7 @@
         //                → 財報成長性 → 法人買賣超 → 融資餘額 → 歷年 ratio
         const peerHtml = renderPeerComparisonHtml(analysis);
         const adrHtml = renderAdrPremiumHtml(analysis, analysis.fxSeries);
-        const cfHtml = renderCashFlowHtml(analysis.cashFlow);
+        const cfHtml = renderCashFlowHtml(analysis.cashFlow, analysis.fundamentals);
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         // Phase 7.4 · 營收 × 毛利 軌跡圖 + 季節性柱狀圖（緊接財報成長性後）
         const trajectoryHtml = renderMarginTrajectory(analysis.fundamentals);
@@ -1575,6 +1589,7 @@
                 freeCF: r => r.freeCashFlow,
                 netIncome: r => r.netIncome,
                 sbc: r => r.stockBasedCompensation,   // FMP 現金流表有直接欄位
+                capEx: r => r.capitalExpenditure,
             });
         } catch (e) {
             console.warn('FMP cash flow fetch failed:', e.message);
@@ -1618,7 +1633,7 @@
                           ?? flat.NetCashInflowFromOperatingActivities ?? null;
                 const capEx = flat.PropertyAndPlantAndEquipment ?? null;
                 const fcf = (opCF !== null && capEx !== null) ? opCF + capEx : null;
-                ytdByDate.set(d, { date: d, opCF, fcf });
+                ytdByDate.set(d, { date: d, opCF, fcf, capEx });
             });
 
             const prevQuarterDate = d => {
@@ -1638,30 +1653,28 @@
                 const cur = ytdByDate.get(d);
                 const prevD = prevQuarterDate(d);
                 const prev = prevD ? ytdByDate.get(prevD) : null;
-                // 淨利：從損益表拿 IncomeAfterTaxes（本期淨利 淨損，稅後）
-                //       fallback 用 EquityAttributableToOwnersOfParent（稅後淨利歸屬於母公司）
-                //       這張表本身就是單季，不做差分
                 const fsFlat = fsByDate.get(d) || {};
                 const netIncome = fsFlat.IncomeAfterTaxes
                                ?? fsFlat.EquityAttributableToOwnersOfParent
                                ?? null;
                 if (!prev) {
-                    return { date: d, operatingCF: cur.opCF, freeCF: cur.fcf, netIncome };
+                    return { date: d, operatingCF: cur.opCF, freeCF: cur.fcf, capEx: cur.capEx, netIncome };
                 }
                 return {
                     date: d,
                     operatingCF: diff(cur.opCF, prev.opCF),
                     freeCF:      diff(cur.fcf, prev.fcf),
+                    capEx:       diff(cur.capEx, prev.capEx),
                     netIncome,
                 };
             });
 
-            // processCashFlow 期待新→舊
             quarterlyWide.sort((a, b) => b.date.localeCompare(a.date));
 
             return processCashFlow(quarterlyWide, {
                 operatingCF: r => r.operatingCF,
                 freeCF: r => r.freeCF,
+                capEx: r => r.capEx,
                 netIncome: r => r.netIncome,
             });
         } catch (e) {
@@ -1707,6 +1720,7 @@
         const fCF = build(getters.freeCF);
         const ni = build(getters.netIncome);
         const sbc = getters.sbc ? build(getters.sbc) : null;
+        const capEx = getters.capEx ? build(getters.capEx) : null;
 
         // SBC 佔 GAAP 淨利比例（TTM · 用近 4 季 sum ÷ 近 4 季淨利 sum）
         // 判讀：<10% 輕微 · 10-25% 中度 · >25% 重度
@@ -1772,7 +1786,7 @@
             }
         }
 
-        return { operatingCF: opCF, freeCF: fCF, netIncome: ni, sbc, sbcRatioTtm, divergence, latestOpposition };
+        return { operatingCF: opCF, freeCF: fCF, netIncome: ni, sbc, sbcRatioTtm, divergence, latestOpposition, capEx };
     }
 
     // ---------- 台股法人買賣超（層次 5：市場情緒） ----------
@@ -2259,8 +2273,8 @@
         `;
     }
 
-    // 現金流量 + 淨利背離渲染
-    function renderCashFlowHtml(cf) {
+    // 現金流量 + 淨利背離渲染（Phase 7.6 · 帶 fund 進來提供應收/存貨 drill-down）
+    function renderCashFlowHtml(cf, fund) {
         if (!cf) return '';
         const fmtNum = v => {
             if (v === null || !isFinite(v)) return '—';
@@ -2356,6 +2370,107 @@
                 ${renderCol('🆓 自由現金流', cf.freeCF)}
                 ${renderCol('📖 淨利（帳面）', cf.netIncome)}
                 ${cf.sbc ? renderCol('💸 股票薪酬 (SBC)', cf.sbc) : ''}
+            </div>
+            ${renderQualityDrilldown(cf, fund)}
+        `;
+    }
+
+    // Phase 7.6 · 獲利品質 drill-down：應收帳款 / 存貨 / CapEx
+    // 這 3 個是 CF 背離警訊指向的「回查對象」· 直接把資料擺出來給讀者確認
+    //   應收帳款 YoY > 營收 YoY → 認列了但沒收到錢 → 現金流拖後腿
+    //   存貨 YoY > 營收 YoY → 產品堆積 → 未來要打折出清 → 毛利警訊
+    //   CapEx 逐季爬升 → 擴產週期 · 短期壓 FCF 但可能帶未來成長
+    function renderQualityDrilldown(cf, fund) {
+        const ar = fund && fund.balanceSheet ? fund.balanceSheet.accountsReceivable : null;
+        const inv = fund && fund.balanceSheet ? fund.balanceSheet.inventories : null;
+        const capEx = cf ? cf.capEx : null;
+        const hasAny = (ar && ar.some(e => e.value !== null)) ||
+                       (inv && inv.some(e => e.value !== null)) ||
+                       (capEx && capEx.some(e => e.value !== null));
+        if (!hasAny) return '';
+
+        const fmtNum = v => {
+            if (v === null || !isFinite(v)) return '—';
+            const abs = Math.abs(v);
+            if (abs >= 1e12) return (v / 1e12).toFixed(2) + '兆';
+            if (abs >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (abs >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            if (abs >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+            return v.toFixed(0);
+        };
+        const fmtYoY = (y) => {
+            if (y === null || !isFinite(y)) return '—';
+            const pct = y * 100;
+            return (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+        };
+        const yoyCls = y => y === null ? '' : y > 0.001 ? 'yoy-pos' : y < -0.001 ? 'yoy-neg' : '';
+
+        const renderCol = (title, entries, invertColor) => {
+            if (!entries || entries.every(e => e.value === null)) return '';
+            let h = `<div class="fund-cell"><h4>${title}</h4><table class="fund-table"><tr><th>季度</th><th>值</th><th>YoY / QoQ</th></tr>`;
+            entries.forEach(e => {
+                const tag = e.mode === 'QoQ'
+                    ? ` <span class="mode-tag mode-qoq" title="QoQ · 跟前一季比，有季節性">Q/Q</span>`
+                    : '';
+                // invertColor：對應收/存貨/CapEx · 快速膨脹是負面訊號 · 反轉顏色
+                let cls = '';
+                if (e.mode === 'YoY' && e.yoy !== null) {
+                    cls = invertColor
+                        ? (e.yoy > 0.15 ? 'yoy-neg' : e.yoy < -0.05 ? 'yoy-pos' : '')
+                        : yoyCls(e.yoy);
+                }
+                h += `<tr><td>${e.date || '—'}</td><td>${fmtNum(e.value)}</td><td class="${cls}">${fmtYoY(e.yoy)}${tag}</td></tr>`;
+            });
+            h += '</table></div>';
+            return h;
+        };
+
+        // 診斷：應收/存貨膨脹速度 vs 營收
+        const diagnostics = [];
+        const latestRevYoY = (fund && fund.revenue && fund.revenue[0] && fund.revenue[0].mode === 'YoY') ? fund.revenue[0].yoy : null;
+        if (latestRevYoY !== null && ar && ar[0] && ar[0].mode === 'YoY' && ar[0].yoy !== null) {
+            const arYoY = ar[0].yoy;
+            const gap = arYoY - latestRevYoY;
+            if (gap > 0.15) {
+                diagnostics.push(`⚠️ <b>應收帳款 YoY ${(arYoY*100).toFixed(0)}% 明顯高於營收 YoY ${(latestRevYoY*100).toFixed(0)}%</b>（差 ${(gap*100).toFixed(0)}pp）· 客戶收款週期在拉長 · 對應了上方 CF 背離的可能成因。`);
+            }
+        }
+        if (latestRevYoY !== null && inv && inv[0] && inv[0].mode === 'YoY' && inv[0].yoy !== null) {
+            const invYoY = inv[0].yoy;
+            const gap = invYoY - latestRevYoY;
+            if (gap > 0.15) {
+                diagnostics.push(`⚠️ <b>存貨 YoY ${(invYoY*100).toFixed(0)}% 明顯高於營收 YoY ${(latestRevYoY*100).toFixed(0)}%</b>（差 ${(gap*100).toFixed(0)}pp）· 存貨堆積 · 未來可能要打折出清 · 對毛利率有壓力。`);
+            }
+        }
+        if (capEx && capEx[0] && capEx[0].mode === 'YoY' && capEx[0].yoy !== null) {
+            const capYoY = capEx[0].yoy;
+            // capEx 通常是負值（現金流出）· 判斷時看絕對值變化
+            const cap0Abs = Math.abs(capEx[0].value || 0);
+            const cap4Abs = capEx[4] && capEx[4].value !== null ? Math.abs(capEx[4].value) : null;
+            if (cap4Abs !== null && cap4Abs > 0) {
+                const absGrowth = (cap0Abs - cap4Abs) / cap4Abs;
+                if (absGrowth > 0.5) {
+                    diagnostics.push(`📈 <b>資本支出 vs 一年前放大 ${(absGrowth*100).toFixed(0)}%</b> · 明顯擴產週期 · 短期壓 FCF · 但若「量價齊揚軌跡」也在漂 · 代表擴產有需求承接。`);
+                }
+            }
+        }
+
+        const diagHtml = diagnostics.length
+            ? `<div class="quality-drilldown-diag">${diagnostics.map(d => `<div>${d}</div>`).join('')}</div>`
+            : '';
+
+        const capExTitle = fund && !fund.balanceSheet ? '💰 資本支出 (CapEx)' : '💰 資本支出 (CapEx · 現金流出)';
+        return `
+            <h3 class="quality-drilldown-title">🔎 獲利品質 drill-down · 應收 / 存貨 / CapEx</h3>
+            <p class="hint">
+                上方 CF 背離警訊指向的「回查對象」全部擺這裡：<b>應收帳款膨脹 = 認列了但沒收到錢 · 存貨膨脹 = 產品堆積打折壓力 · CapEx 爬升 = 擴產週期短期壓 FCF</b>。
+                應收/存貨的 YoY 若明顯 <b>&gt;</b> 營收 YoY · 就是「資產負債表在膨脹、現金在流失」的直接證據。
+            </p>
+            ${diagHtml}
+            <div class="fund-grid">
+                ${renderCol('📬 應收帳款', ar, true)}
+                ${renderCol('📦 存貨', inv, true)}
+                ${renderCol(capExTitle, capEx, false)}
             </div>
         `;
     }
