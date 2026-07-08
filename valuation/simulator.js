@@ -679,19 +679,30 @@
             }
         }
 
-        // === 3. 毛利率趨勢（斜率 · 不是絕對值）
-        // 得分邏輯：
-        //   上升趨勢 → 100
-        //   持平在高檔（>50%）→ 70-80
-        //   下滑趨勢 → 大幅扣分
+        // === 3. 毛利率趨勢（OLS 斜率 · 抗 outlier · 拉到 8 季）
+        // 舊版 bug：只用 margins[0] vs margins[3] 兩個端點 · 遇到單季異常值就翻轉判讀
+        //   e.g. 2360 致茂 · 8 季 59.2→...→62.6 · 但 4 季前剛好爆出 65.4 outlier
+        //   endpoint 差 = 62.6 - 65.4 = -2.8pp → 誤判「下滑」→ 22 分
+        //   OLS 斜率 = +0.47pp/季 → 正確判「上升」→ 75-79 分
         let grossMarginTrend = null;
+        let grossMarginSlopePpQtr = null;
         if (fund.grossMargin && fund.grossMargin.length >= 4) {
-            const margins = fund.grossMargin.slice(0, 4).map(e => e.value).filter(v => v !== null && isFinite(v));
-            if (margins.length === 4) {
-                // 用最舊 vs 最新的絕對差當簡易斜率（%pp/季）
-                // margins[0] 是最新 · margins[3] 是最舊
-                const slope = (margins[0] - margins[3]) / 3;   // 平均每季變化
-                const latestMargin = margins[0] * 100;   // 轉 %
+            const N = Math.min(8, fund.grossMargin.length);
+            const margins = fund.grossMargin.slice(0, N).map(e => e.value).filter(v => v !== null && isFinite(v));
+            if (margins.length >= 4) {
+                // 最小平方法：margins[0] 最新 · 反轉成舊→新 · x=0 最舊
+                const ys = margins.slice().reverse();
+                const n = ys.length;
+                const xMean = (n - 1) / 2;
+                const yMean = ys.reduce((a, b) => a + b, 0) / n;
+                let num = 0, den = 0;
+                for (let i = 0; i < n; i++) {
+                    num += (i - xMean) * (ys[i] - yMean);
+                    den += (i - xMean) ** 2;
+                }
+                const slope = den > 0 ? num / den : 0;   // decimal 形式：0.01 = 1pp/qtr
+                grossMarginSlopePpQtr = slope * 100;      // 給顯示用（pp/qtr）
+                const latestMargin = margins[0] * 100;
                 // 高毛利股（>50%）就算持平也給高分
                 if (latestMargin >= 50 && Math.abs(slope) < 0.005) {
                     grossMarginTrend = 75;
@@ -784,6 +795,8 @@
             sbcDilution: sbcDilutionRaw,
             ruleOf40: ruleOf40Raw,
         };
+        // Phase 7.3 · 額外：毛利趨勢的斜率（給顯示用 · 讓讀者看到分數來源）
+        raw.grossMarginSlope = grossMarginSlopePpQtr;
         return { scores, raw };
     }
 
@@ -793,7 +806,7 @@
         const axes = [
             { key: 'peg',              label: 'PEG', unit: '×', decimals: 2, mapping: '≤1 滿分 · >3 為 0' },
             { key: 'revPersistence',   label: '營收持續', unit: '% (最新 YoY)', decimals: 1, mapping: '近 4 季全正+加速→100' },
-            { key: 'grossMarginTrend', label: '毛利趨勢', unit: '% (絕對值)', decimals: 1, mapping: '斜率上升→100 · 下滑→扣' },
+            { key: 'grossMarginTrend', label: '毛利趨勢', unit: '% (最新)', decimals: 1, mapping: '8Q OLS 斜率上升→100 · 下滑→扣' },
             { key: 'fcfConversion',    label: 'FCF/淨利', unit: '%', decimals: 0, mapping: '≥80% 滿分 · 負值嚴扣' },
             { key: 'sbcDilution',      label: 'SBC 稀釋', unit: '% (低越好)', decimals: 1, mapping: '<10% 滿分 · >35% 嚴扣' },
             { key: 'ruleOf40',         label: 'Rule of 40', unit: '', decimals: 0, mapping: '營收+FCF margin ≥60 滿分' },
@@ -837,6 +850,14 @@
             return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#8b5cf6" stroke="#fff" stroke-width="1.5"/>`;
         }).join('\n');
 
+        // 毛利趨勢特殊顯示：附上斜率讓讀者看到分數為什麼是這個
+        const slopeSuffix = () => {
+            const sl = raw.grossMarginSlope;
+            if (sl === null || sl === undefined || !isFinite(sl)) return '';
+            const sign = sl >= 0 ? '+' : '';
+            return ` · 斜率 ${sign}${sl.toFixed(2)}pp/Q`;
+        };
+
         const labels = axes.map((a, i) => {
             const ang = angle(i);
             const lx = cx + Math.cos(ang) * (r + 32);
@@ -857,11 +878,13 @@
             const s = scores[a.key];
             const rawVal = raw[a.key];
             let rawStr = (rawVal === null || !isFinite(rawVal)) ? 'N/A' : (a.decimals === 0 ? Math.round(rawVal) : rawVal.toFixed(a.decimals));
+            const isTrend = a.key === 'grossMarginTrend';
+            if (isTrend) rawStr = rawStr + a.unit + slopeSuffix();
             const scoreStr = (s === null || s === undefined) ? '—' : Math.round(s);
             const clsScore = s === null ? '' : (s >= 70 ? 'axis-good' : s >= 40 ? 'axis-mid' : 'axis-poor');
             return `<tr>
                 <td><b>${a.label}</b></td>
-                <td>${rawStr}${a.unit}</td>
+                <td>${rawStr}${isTrend ? '' : a.unit}</td>
                 <td class="${clsScore}">${scoreStr}分</td>
                 <td class="hint-mini">${a.mapping}</td>
             </tr>`;
@@ -1095,6 +1118,49 @@
                     </table>
                     ${roeHint}
                 </details>
+            </section>
+        `;
+    }
+
+    // Phase 7.2 · 分數落差偵測 · 兩雷達綜合分數差異 ≥ 30 時提示「類型定位鮮明」
+    function computeRadarAvg(scoreObj) {
+        const vals = Object.values(scoreObj).filter(s => s !== null && s !== undefined);
+        if (vals.length === 0) return null;
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+
+    function detectFrameworkMismatch(analysis) {
+        let valueAvg = null, growthAvg = null;
+        try { valueAvg = computeRadarAvg(computeSixAxisScores(analysis).scores); } catch (e) {}
+        try { growthAvg = computeRadarAvg(computeGrowthAxisScores(analysis).scores); } catch (e) {}
+        if (valueAvg === null || growthAvg === null) return '';
+        const v = Math.round(valueAvg), g = Math.round(growthAvg);
+        const gap = Math.abs(g - v);
+        if (gap < 30) return '';
+
+        const growthLeans = g > v;
+        const label = growthLeans ? '成長股' : '價值股';
+        const otherLabel = growthLeans ? '傳統價值派' : '成長派';
+        const lensClass = growthLeans ? 'mismatch-growth' : 'mismatch-value';
+
+        return `
+            <section class="panel radar-mismatch ${lensClass}">
+                <div class="radar-mismatch-header">
+                    <span class="radar-mismatch-icon">⚡</span>
+                    <span class="radar-mismatch-title">兩種評分模式落差 ${gap} 分 · 類型定位鮮明</span>
+                </div>
+                <div class="radar-mismatch-body">
+                    <div class="radar-mismatch-scores">
+                        <span class="score-chip score-value">價值派 ${v} 分</span>
+                        <span class="mismatch-arrow">↔</span>
+                        <span class="score-chip score-growth">成長派 ${g} 分</span>
+                    </div>
+                    <p>
+                        這 ${gap} 分的落差<b>不是任何一邊算錯</b>——是「用什麼判準衡量」這件事本身 · 決定了結論。
+                        這支股票的類型定位偏向<b>純${label}</b> · 不能用<b>${otherLabel}</b>邏輯去期待它。
+                        用<b>${label}</b>邏輯理解它會更準確 · 下方雷達也請主要看<b>${label}</b>那張。
+                    </p>
+                </div>
             </section>
         `;
     }
@@ -1369,12 +1435,17 @@
         const adrHtml = renderAdrPremiumHtml(analysis, analysis.fxSeries);
         const cfHtml = renderCashFlowHtml(analysis.cashFlow);
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
+        // Phase 7.4 · 營收 × 毛利 軌跡圖 + 季節性柱狀圖（緊接財報成長性後）
+        const trajectoryHtml = renderMarginTrajectory(analysis.fundamentals);
+        const seasonalityHtml = renderQuarterlySeasonality(analysis.fundamentals);
         const instHtml = renderInstitutionalHtml(analysis.institutional);
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
         // Phase 7 · 兩張雷達 stacked（B 選項）· 價值派在上、成長派在下
+        // Phase 7.2 · 落差偵測（gap ≥ 30 顯示 · 置於兩雷達最上方）
+        const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + trajectoryHtml + seasonalityHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -1687,6 +1758,373 @@
                 ${renderTable('📈 毛利率', fund.grossMargin, true, v => (v * 100).toFixed(1) + '%')}
                 ${renderTable('📉 營益率', fund.operatingMargin, true, v => (v * 100).toFixed(1) + '%')}
             </div>
+        `;
+    }
+
+    // ============================================================
+    // Phase 7.4 · 營收 × 毛利 軌跡圖 + 季節性柱狀圖
+    // 軌跡圖：X 軸 = 毛利率 YoY 變化（pp）· Y 軸 = 營收 YoY（%）
+    //   四象限：右上「量價齊揚」· 左上「殺價衝量」· 右下「收縮升級」· 左下「全面衰退」
+    // 季節性圖：X = Q1/Q2/Q3/Q4 · 每組並排展示各年度 · 檢查成長是否集中在特定季
+    // ============================================================
+
+    // 從日期字串抽出 Q1-Q4（03-31 → Q1, 06-30 → Q2, 09-30 → Q3, 12-31 → Q4）
+    function extractQuarter(dateStr) {
+        if (!dateStr) return null;
+        const month = parseInt(dateStr.slice(5, 7));
+        if (isNaN(month)) return null;
+        if (month <= 3) return 'Q1';
+        if (month <= 6) return 'Q2';
+        if (month <= 9) return 'Q3';
+        return 'Q4';
+    }
+
+    function renderMarginTrajectory(fund) {
+        if (!fund || !fund.revenue || !fund.grossMargin) return '';
+        // 對齊營收 + 毛利率同一季度（同時抓 YoY 變化跟絕對值）
+        const marginPPByDate = {};   // pp YoY change · 給 X 軸
+        const marginAbsByDate = {};  // absolute % · 給線粗細
+        fund.grossMargin.forEach(e => {
+            if (!e.date) return;
+            if (e.value !== null && isFinite(e.value)) marginAbsByDate[e.date] = e.value * 100;
+            if (e.yoy !== null && isFinite(e.yoy) && e.mode === 'YoY') marginPPByDate[e.date] = e.yoy * 100;
+        });
+        const points = [];
+        fund.revenue.forEach(e => {
+            if (e.date && e.yoy !== null && isFinite(e.yoy) && e.mode === 'YoY' && marginPPByDate[e.date] !== undefined) {
+                points.push({
+                    date: e.date,
+                    quarter: e.date.slice(2, 4) + extractQuarter(e.date),
+                    revYoY: e.yoy * 100,
+                    marginPP: marginPPByDate[e.date],
+                    marginAbs: marginAbsByDate[e.date] !== undefined ? marginAbsByDate[e.date] : null,
+                });
+            }
+        });
+        if (points.length < 3) {
+            return `<section class="panel trajectory-panel">
+                <h3>📊 營收 × 毛利軌跡</h3>
+                <p class="hint">⚠️ 對得起的 YoY 樣本 &lt; 3 · 無法畫軌跡（免費 API 常只給 5 季 · YoY 需要 4 季前的 prior · 至少要 8 季資料）</p>
+            </section>`;
+        }
+        // 按日期 舊→新 排序（軌跡才有方向）
+        points.sort((a, b) => a.date.localeCompare(b.date));
+
+        // 資料範圍 + 對稱 pad
+        const maxRev = Math.max(...points.map(p => Math.abs(p.revYoY)));
+        const maxPP = Math.max(...points.map(p => Math.abs(p.marginPP)));
+        const yRange = Math.max(15, Math.ceil(maxRev * 1.2 / 10) * 10);      // 至少 ±15%
+        const xRange = Math.max(3, Math.ceil(maxPP * 1.2));                    // 至少 ±3pp
+
+        // SVG 座標
+        const W = 640, H = 460;
+        const padL = 60, padR = 30, padT = 40, padB = 60;
+        const plotW = W - padL - padR, plotH = H - padT - padB;
+        const cx = padL + plotW / 2, cy = padT + plotH / 2;
+
+        const xToPx = x => cx + (x / xRange) * (plotW / 2);
+        const yToPx = y => cy - (y / yRange) * (plotH / 2);
+
+        // 四象限背景
+        const qBg = `
+            <rect x="${cx}" y="${padT}" width="${plotW/2}" height="${plotH/2}" fill="#dcfce7" opacity="0.35"/>
+            <rect x="${padL}" y="${padT}" width="${plotW/2}" height="${plotH/2}" fill="#fef3c7" opacity="0.35"/>
+            <rect x="${cx}" y="${cy}" width="${plotW/2}" height="${plotH/2}" fill="#dbeafe" opacity="0.35"/>
+            <rect x="${padL}" y="${cy}" width="${plotW/2}" height="${plotH/2}" fill="#fee2e2" opacity="0.35"/>
+        `;
+
+        // 象限標籤
+        const qLabels = `
+            <text x="${cx + plotW/4}" y="${padT + 16}" text-anchor="middle" font-size="11" font-weight="700" fill="#065f46">量價齊揚 ✨</text>
+            <text x="${padL + plotW/4}" y="${padT + 16}" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">殺價衝量 ⚠️</text>
+            <text x="${cx + plotW/4}" y="${padT + plotH - 6}" text-anchor="middle" font-size="11" font-weight="700" fill="#1e40af">收縮升級 🎯</text>
+            <text x="${padL + plotW/4}" y="${padT + plotH - 6}" text-anchor="middle" font-size="11" font-weight="700" fill="#991b1b">全面衰退 💀</text>
+        `;
+
+        // 軸線 + 網格
+        const zeroX = `<line x1="${cx}" y1="${padT}" x2="${cx}" y2="${padT+plotH}" stroke="#1e293b" stroke-width="1.5"/>`;
+        const zeroY = `<line x1="${padL}" y1="${cy}" x2="${padL+plotW}" y2="${cy}" stroke="#1e293b" stroke-width="1.5"/>`;
+
+        // 軸標籤
+        const xLabel = `<text x="${cx}" y="${H - 20}" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">毛利率 YoY 變化（pp）→</text>`;
+        const yLabel = `<text x="18" y="${cy}" text-anchor="middle" font-size="12" font-weight="700" fill="#334155" transform="rotate(-90 18 ${cy})">↑ 營收 YoY（%）</text>`;
+
+        // 刻度
+        const ticks = [];
+        [-yRange, -yRange/2, yRange/2, yRange].forEach(v => {
+            const y = yToPx(v);
+            ticks.push(`<line x1="${cx-4}" y1="${y}" x2="${cx+4}" y2="${y}" stroke="#64748b" stroke-width="1"/>`);
+            ticks.push(`<text x="${cx-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#64748b">${v > 0 ? '+' : ''}${v}%</text>`);
+        });
+        [-xRange, -xRange/2, xRange/2, xRange].forEach(v => {
+            const x = xToPx(v);
+            ticks.push(`<line x1="${x}" y1="${cy-4}" x2="${x}" y2="${cy+4}" stroke="#64748b" stroke-width="1"/>`);
+            ticks.push(`<text x="${x}" y="${cy+16}" text-anchor="middle" font-size="10" fill="#64748b">${v > 0 ? '+' : ''}${v.toFixed(1)}pp</text>`);
+        });
+
+        // 毛利絕對值 → 線粗（0% → 1.5px · 60% → 6px · 上限 7px）
+        // 線越粗代表「這段期間毛利水位越高」· 讓讀者一眼看「這家是高毛利公司還是低毛利公司」
+        const marginToStroke = m => {
+            if (m === null || !isFinite(m)) return 2;   // 沒毛利資料用預設細線
+            return Math.max(1.5, Math.min(7, 1.5 + (m / 60) * 4.5));
+        };
+
+        // 軌跡線（漸變透明度：舊淡新深 · 線粗依段內平均毛利水位）
+        const pathSegs = [];
+        for (let i = 1; i < points.length; i++) {
+            const opa = 0.25 + 0.65 * (i / (points.length - 1));
+            const x1 = xToPx(points[i-1].marginPP), y1 = yToPx(points[i-1].revYoY);
+            const x2 = xToPx(points[i].marginPP), y2 = yToPx(points[i].revYoY);
+            const avgMargin = (points[i-1].marginAbs !== null && points[i].marginAbs !== null)
+                ? (points[i-1].marginAbs + points[i].marginAbs) / 2 : null;
+            const sw = marginToStroke(avgMargin);
+            pathSegs.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#7c3aed" stroke-width="${sw.toFixed(2)}" stroke-linecap="round" opacity="${opa.toFixed(2)}"/>`);
+        }
+        // 最新一段加箭頭 · 大小跟該段線粗連動
+        const last = points[points.length - 1];
+        const prev = points[points.length - 2];
+        const lastSegMargin = (prev.marginAbs !== null && last.marginAbs !== null)
+            ? (prev.marginAbs + last.marginAbs) / 2 : last.marginAbs;
+        const lastSw = marginToStroke(lastSegMargin);
+        const arrowSize = 6 + lastSw * 0.8;
+        const arrowX = xToPx(last.marginPP), arrowY = yToPx(last.revYoY);
+        const dx = arrowX - xToPx(prev.marginPP), dy = arrowY - yToPx(prev.revYoY);
+        const angleRad = Math.atan2(dy, dx);
+        const ax1 = arrowX - arrowSize * Math.cos(angleRad - 0.4);
+        const ay1 = arrowY - arrowSize * Math.sin(angleRad - 0.4);
+        const ax2 = arrowX - arrowSize * Math.cos(angleRad + 0.4);
+        const ay2 = arrowY - arrowSize * Math.sin(angleRad + 0.4);
+        const arrow = `<polygon points="${arrowX},${arrowY} ${ax1.toFixed(1)},${ay1.toFixed(1)} ${ax2.toFixed(1)},${ay2.toFixed(1)}" fill="#7c3aed"/>`;
+
+        // 資料點 · 半徑跟該點毛利水位也連動一點（3-6.5px · 最新那點固定較大）
+        const marginToDotR = m => {
+            if (m === null || !isFinite(m)) return 3.5;
+            return Math.max(3, Math.min(6, 3 + (m / 60) * 3));
+        };
+        const dots = points.map((p, i) => {
+            const x = xToPx(p.marginPP), y = yToPx(p.revYoY);
+            const isLast = i === points.length - 1;
+            const baseR = marginToDotR(p.marginAbs);
+            const r = isLast ? baseR + 2 : baseR;
+            const fill = isLast ? '#7c3aed' : '#a78bfa';
+            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${fill}" stroke="#fff" stroke-width="1.5"/>`;
+        }).join('');
+
+        // 只標最新 + 最舊 + 中間隔幾個 · 避免擠在一起
+        const step = Math.max(1, Math.floor(points.length / 5));
+        const labels = points.map((p, i) => {
+            if (i !== 0 && i !== points.length - 1 && i % step !== 0) return '';
+            const x = xToPx(p.marginPP), y = yToPx(p.revYoY);
+            const isLast = i === points.length - 1;
+            return `<text x="${(x+7).toFixed(1)}" y="${(y-6).toFixed(1)}" font-size="${isLast ? 11 : 10}" font-weight="${isLast ? 700 : 500}" fill="${isLast ? '#5b21b6' : '#64748b'}">${p.quarter}</text>`;
+        }).join('');
+
+        // Verdict：最新一季落在哪
+        let verdict = '', verdictColor = '';
+        if (last.revYoY > 0 && last.marginPP > 0) {
+            verdict = '✨ 最新一季落在「量價齊揚」象限 · 營收成長 + 毛利改善 · 這是成長股最好的訊號';
+            verdictColor = '#065f46';
+        } else if (last.revYoY > 0 && last.marginPP < 0) {
+            verdict = '⚠️ 最新一季落在「殺價衝量」象限 · 營收有成長但毛利在稀釋 · 常見於報價戰 / 促銷策略';
+            verdictColor = '#92400e';
+        } else if (last.revYoY < 0 && last.marginPP > 0) {
+            verdict = '🎯 最新一季落在「收縮升級」象限 · 營收縮但毛利改善 · 常見於高階產品聚焦 / 剝離低毛利業務';
+            verdictColor = '#1e40af';
+        } else {
+            verdict = '💀 最新一季落在「全面衰退」象限 · 營收縮 + 毛利也在退 · 產業或公司體質有問題';
+            verdictColor = '#991b1b';
+        }
+
+        return `
+            <section class="panel trajectory-panel">
+                <h3>📊 營收 × 毛利軌跡圖（近 ${points.length} 季）</h3>
+                <p class="hint">
+                    每季一個點 · 按時序連線 · X 軸「毛利率 YoY 變化」判成本控制、產品組合升級 · Y 軸「營收 YoY」判規模成長 ·
+                    <b>看軌跡走向</b>比看單點更有意義：往右上飄 = 越來越好 · 往左下退 = 越來越差 · 在象限間跳動 = 週期股或轉型中。
+                </p>
+                <div class="trajectory-legend">
+                    <span class="legend-title">線粗 = 毛利水位：</span>
+                    <svg viewBox="0 0 140 22" width="140" height="22" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle">
+                        <line x1="4" y1="11" x2="40" y2="11" stroke="#7c3aed" stroke-width="1.6" stroke-linecap="round"/>
+                        <line x1="52" y1="11" x2="88" y2="11" stroke="#7c3aed" stroke-width="3.6" stroke-linecap="round"/>
+                        <line x1="100" y1="11" x2="136" y2="11" stroke="#7c3aed" stroke-width="6" stroke-linecap="round"/>
+                    </svg>
+                    <span class="legend-tick">10%</span>
+                    <span class="legend-tick">30%</span>
+                    <span class="legend-tick">60%+</span>
+                </div>
+                <div class="trajectory-verdict" style="border-color:${verdictColor};color:${verdictColor}">${verdict}</div>
+                <div class="trajectory-wrapper">
+                    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:700px" xmlns="http://www.w3.org/2000/svg">
+                        ${qBg}
+                        ${qLabels}
+                        ${ticks.join('')}
+                        ${zeroX}
+                        ${zeroY}
+                        ${xLabel}
+                        ${yLabel}
+                        ${pathSegs.join('')}
+                        ${arrow}
+                        ${dots}
+                        ${labels}
+                    </svg>
+                </div>
+            </section>
+        `;
+    }
+
+    function renderQuarterlySeasonality(fund) {
+        if (!fund || !fund.revenue) return '';
+        // 按 Q1-Q4 分組 · 保留年度
+        const groupsRev = { Q1: [], Q2: [], Q3: [], Q4: [] };
+        const groupsGM = { Q1: [], Q2: [], Q3: [], Q4: [] };
+        fund.revenue.forEach(e => {
+            const q = extractQuarter(e.date);
+            if (!q || e.yoy === null || !isFinite(e.yoy) || e.mode !== 'YoY') return;
+            groupsRev[q].push({ year: e.date.slice(0, 4), val: e.yoy * 100 });
+        });
+        (fund.grossMargin || []).forEach(e => {
+            const q = extractQuarter(e.date);
+            if (!q || e.value === null || !isFinite(e.value)) return;
+            groupsGM[q].push({ year: e.date.slice(0, 4), val: e.value * 100 });
+        });
+        // 每季按年度排序（舊→新）
+        ['Q1','Q2','Q3','Q4'].forEach(q => {
+            groupsRev[q].sort((a, b) => a.year.localeCompare(b.year));
+            groupsGM[q].sort((a, b) => a.year.localeCompare(b.year));
+        });
+        // 收集所有出現的年度
+        const allYears = new Set();
+        Object.values(groupsRev).forEach(arr => arr.forEach(e => allYears.add(e.year)));
+        Object.values(groupsGM).forEach(arr => arr.forEach(e => allYears.add(e.year)));
+        const years = [...allYears].sort();
+        if (years.length < 2 || fund.revenue.length < 4) {
+            return `<section class="panel seasonality-panel">
+                <h3>📅 各年營收 × 毛利季節性</h3>
+                <p class="hint">⚠️ 需至少 2 年資料才能比較同一季不同年度</p>
+            </section>`;
+        }
+
+        // 年度→顏色（新年份越鮮豔）
+        const yearColors = ['#cbd5e1', '#94a3b8', '#60a5fa', '#f59e0b', '#dc2626', '#7c3aed'];
+        const colorForYear = year => yearColors[Math.min(yearColors.length - 1, years.indexOf(year))];
+
+        // 找 Y 範圍
+        const revValues = Object.values(groupsRev).flat().map(e => e.val);
+        const gmValues = Object.values(groupsGM).flat().map(e => e.val);
+        const revMax = Math.max(0, ...revValues), revMin = Math.min(0, ...revValues);
+        const revRange = Math.max(Math.abs(revMax), Math.abs(revMin)) * 1.15 || 20;
+        const gmMax = Math.max(...gmValues), gmMin = Math.min(...gmValues);
+        const gmPad = (gmMax - gmMin) * 0.15 || 5;
+        const gmYMin = Math.max(0, gmMin - gmPad), gmYMax = gmMax + gmPad;
+
+        const renderBarChart = (title, groups, yMin, yMax, yTickCount, valSuffix, isSignedY, verdictNote) => {
+            const W = 640, H = 320;
+            const padL = 50, padR = 20, padT = 30, padB = 40;
+            const plotW = W - padL - padR, plotH = H - padT - padB;
+            const quarters = ['Q1','Q2','Q3','Q4'];
+            const groupW = plotW / 4;
+
+            // Y scale
+            const yToPx = y => padT + plotH - ((y - yMin) / (yMax - yMin)) * plotH;
+
+            // Y 軸刻度
+            const ticks = [];
+            for (let i = 0; i <= yTickCount; i++) {
+                const yv = yMin + (yMax - yMin) * (i / yTickCount);
+                const yPx = yToPx(yv);
+                ticks.push(`<line x1="${padL}" y1="${yPx}" x2="${padL + plotW}" y2="${yPx}" stroke="#e2e8f0" stroke-width="1"/>`);
+                ticks.push(`<text x="${padL - 6}" y="${yPx + 3}" text-anchor="end" font-size="10" fill="#64748b">${(yv >= 0 && isSignedY ? '+' : '') + yv.toFixed(0)}${valSuffix}</text>`);
+            }
+            // Zero line 特別強調
+            if (yMin < 0 && yMax > 0) {
+                const zeroY = yToPx(0);
+                ticks.push(`<line x1="${padL}" y1="${zeroY}" x2="${padL + plotW}" y2="${zeroY}" stroke="#0f172a" stroke-width="1.5"/>`);
+            }
+
+            // 各季 bars
+            const barsHtml = [];
+            const groupLabels = [];
+            quarters.forEach((q, qi) => {
+                const gx = padL + qi * groupW;
+                const entries = groups[q];
+                const barW = Math.min(24, (groupW - 20) / Math.max(1, entries.length));
+                const totalBarW = barW * entries.length + Math.max(0, entries.length - 1) * 2;
+                const startX = gx + (groupW - totalBarW) / 2;
+                entries.forEach((e, bi) => {
+                    const bx = startX + bi * (barW + 2);
+                    const yTop = yToPx(Math.max(0, e.val));
+                    const yBase = yToPx(Math.min(0, e.val));
+                    const bh = Math.abs(yBase - yTop);
+                    const color = colorForYear(e.year);
+                    barsHtml.push(`<rect x="${bx.toFixed(1)}" y="${yTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" stroke="#fff" stroke-width="0.5">
+                        <title>${e.year} ${q}: ${(e.val >= 0 && isSignedY ? '+' : '') + e.val.toFixed(1)}${valSuffix}</title>
+                    </rect>`);
+                });
+                // 標籤在底下
+                groupLabels.push(`<text x="${(gx + groupW / 2).toFixed(1)}" y="${(padT + plotH + 18).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">${q}</text>`);
+            });
+
+            // 圖例
+            const legendItems = years.map((y, i) => {
+                const cx = padL + i * 60;
+                return `<g transform="translate(${cx}, 8)">
+                    <rect x="0" y="0" width="14" height="10" fill="${colorForYear(y)}"/>
+                    <text x="18" y="9" font-size="11" fill="#334155">${y}</text>
+                </g>`;
+            }).join('');
+
+            return `
+                <div class="seasonality-chart">
+                    <h4>${title}</h4>
+                    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:640px" xmlns="http://www.w3.org/2000/svg">
+                        ${legendItems}
+                        ${ticks.join('')}
+                        ${barsHtml.join('')}
+                        ${groupLabels.join('')}
+                    </svg>
+                    ${verdictNote ? `<div class="seasonality-note">${verdictNote}</div>` : ''}
+                </div>
+            `;
+        };
+
+        // 檢測「單一季異常爆發」訊號 · 幫使用者一眼看到「是否只在 Q4 有成長」
+        const yearlyRevAvg = years.map(y => {
+            const qs = ['Q1','Q2','Q3','Q4'].map(q => (groupsRev[q].find(e => e.year === y) || {}).val).filter(v => v !== undefined);
+            return qs.length ? qs.reduce((a, b) => a + b, 0) / qs.length : null;
+        });
+        // 找每年最強季（最高 YoY）· 若都是同一季 = 極可能是季節性
+        const strongestQuarterByYear = years.map(y => {
+            let bestQ = null, bestVal = -Infinity;
+            ['Q1','Q2','Q3','Q4'].forEach(q => {
+                const e = groupsRev[q].find(en => en.year === y);
+                if (e && e.val > bestVal) { bestVal = e.val; bestQ = q; }
+            });
+            return bestQ;
+        }).filter(Boolean);
+        let seasonalNote = '';
+        if (strongestQuarterByYear.length >= 2) {
+            const uniq = new Set(strongestQuarterByYear);
+            if (uniq.size === 1) {
+                seasonalNote = `⚠️ 這家公司 <b>${strongestQuarterByYear.length} 年來成長都集中在 ${[...uniq][0]}</b> · 明顯季節性 · 判讀 QoQ / 單季 YoY 時要小心「季節性 vs 真成長」`;
+            } else if (uniq.size <= 2) {
+                seasonalNote = `📌 成長強季集中在 ${[...uniq].join(' / ')} · 有輕度季節性 · 建議看 TTM 或全年累計避免單季誤讀`;
+            }
+        }
+
+        return `
+            <section class="panel seasonality-panel">
+                <h3>📅 各季營收成長 × 各季毛利（跨年度並排）</h3>
+                <p class="hint">
+                    每個 Q 展示各年度並排 · <b>目的</b>：看成長是「全年均勻」還是「集中在某季爆發」——後者代表這公司有明顯季節性 · 用單季 YoY 判成長要小心。
+                    左圖看營收 YoY 動能 · 右圖看毛利率絕對值走勢。
+                </p>
+                ${seasonalNote ? `<div class="seasonality-verdict">${seasonalNote}</div>` : ''}
+                <div class="seasonality-grid">
+                    ${renderBarChart('💰 各季營收 YoY', groupsRev, -revRange, revRange, 4, '%', true, '')}
+                    ${renderBarChart('📈 各季毛利率（絕對值）', groupsGM, gmYMin, gmYMax, 4, '%', false, '')}
+                </div>
+            </section>
         `;
     }
 

@@ -1568,3 +1568,169 @@ textarea {
     background: #8b5cf6;
     color: #fff;
 }
+
+/* Phase 7.2 · 分數落差偵測 alert（兩雷達之間 · gap ≥ 30 時顯示） */
+.radar-mismatch {
+    margin-top: 20px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 2px solid;
+    background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+    border-color: #f59e0b;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+.radar-mismatch.mismatch-growth {
+    background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%);
+    border-color: #8b5cf6;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+}
+.radar-mismatch.mismatch-value {
+    background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+    border-color: #f59e0b;
+}
+.radar-mismatch-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.radar-mismatch-icon {
+    font-size: 22px;
+}
+.radar-mismatch-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #78350f;
+}
+.radar-mismatch.mismatch-growth .radar-mismatch-title {
+    color: #5b21b6;
+}
+.radar-mismatch-body {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: #451a03;
+}
+.radar-mismatch.mismatch-growth .radar-mismatch-body {
+    color: #3b0764;
+}
+.radar-mismatch-body p {
+    margin: 0;
+}
+.radar-mismatch-scores {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.score-chip {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+}
+.score-chip.score-value {
+    background: #f59e0b;
+}
+.score-chip.score-growth {
+    background: #8b5cf6;
+}
+.mismatch-arrow {
+    font-size: 18px;
+    color: #64748b;
+    font-weight: 700;
+}
+
+/* Phase 7.4 · 營收 × 毛利軌跡圖 */
+.trajectory-panel {
+    margin-top: 20px;
+    background: linear-gradient(180deg, #faf5ff 0%, #fff 100%);
+    border-left: 4px solid #7c3aed;
+}
+.trajectory-panel h3 {
+    color: #5b21b6;
+    margin-top: 0;
+}
+.trajectory-verdict {
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-left: 4px solid;
+    background: #fff;
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+}
+.trajectory-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+.trajectory-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #64748b;
+    margin: 8px 0 4px 0;
+    flex-wrap: wrap;
+}
+.trajectory-legend .legend-title {
+    font-weight: 700;
+    color: #5b21b6;
+}
+.trajectory-legend .legend-tick {
+    font-size: 11px;
+    color: #94a3b8;
+    min-width: 28px;
+    text-align: center;
+    margin-left: -18px;
+}
+.trajectory-legend .legend-tick + .legend-tick { margin-left: 6px; }
+
+/* Phase 7.4 · 各季季節性柱狀圖 */
+.seasonality-panel {
+    margin-top: 20px;
+    background: linear-gradient(180deg, #fefce8 0%, #fff 100%);
+    border-left: 4px solid #f59e0b;
+}
+.seasonality-panel h3 {
+    color: #92400e;
+    margin-top: 0;
+}
+.seasonality-verdict {
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-left: 4px solid #f59e0b;
+    background: #fef3c7;
+    border-radius: 6px;
+    font-size: 13.5px;
+    color: #78350f;
+}
+.seasonality-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-top: 10px;
+}
+@media (min-width: 900px) {
+    .seasonality-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+.seasonality-chart h4 {
+    margin: 0 0 6px 0;
+    font-size: 14px;
+    color: #334155;
+    font-weight: 700;
+}
+.seasonality-chart svg {
+    display: block;
+    width: 100%;
+}
+.seasonality-note {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #64748b;
+}
