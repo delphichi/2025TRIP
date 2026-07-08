@@ -2105,3 +2105,32 @@ textarea {
     text-align: left;
     font-family: ui-monospace, monospace;
 }
+
+/* 診斷 · FMP endpoint 狀態 panel */
+.fmp-status-panel {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: #fef3c7;
+    border-left-color: #f59e0b;
+    border-radius: 8px;
+    font-size: 13px;
+}
+.fmp-status-panel summary {
+    cursor: pointer;
+    color: #78350f;
+    font-weight: 600;
+}
+.fmp-status-list {
+    margin: 8px 0 0;
+    padding-left: 20px;
+    color: #78350f;
+    font-size: 12.5px;
+    line-height: 1.8;
+}
+.fmp-status-list code {
+    background: #fff;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 11px;
+    color: #92400e;
+}

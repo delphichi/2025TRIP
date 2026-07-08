@@ -132,6 +132,40 @@
         }
     }
 
+    // 診斷：顯示 FMP 每個 endpoint 的狀態 · 讓使用者知道 panel 為什麼沒亮
+    function renderFmpStatusHtml(analysis) {
+        const status = analysis.fmpEndpointStatus;
+        if (!status || !Array.isArray(status)) return '';
+        const failed = status.filter(s => !s.hasData);
+        if (failed.length === 0) return '';
+
+        const items = failed.map(s => {
+            let msg = s.err || '空回傳';
+            let cause = '';
+            if (/403|premium|paid|subscription|Premium/i.test(msg)) cause = '🔒 需付費 tier';
+            else if (/402/i.test(msg)) cause = '🔒 需付費 tier';
+            else if (/429|rate limit|quota/i.test(msg)) cause = '⏱ 額度用完';
+            else if (/404|not found/i.test(msg)) cause = '❓ 找不到（可能 ticker 不支援）';
+            else if (/500|502|503/i.test(msg)) cause = '⚠️ FMP 伺服器問題';
+            else if (/timeout|network/i.test(msg)) cause = '🌐 網路問題';
+            else if (msg === '空回傳') cause = '📭 API 通了但沒資料';
+            return `<li><b>${s.name}</b>：${cause} · <code>${msg.slice(0, 80)}</code></li>`;
+        }).join('');
+
+        return `
+            <section class="panel fmp-status-panel">
+                <details>
+                    <summary>⚠️ FMP 有 ${failed.length} 個選配 endpoint 沒拿到資料（點展開看原因）</summary>
+                    <p class="hint-mini" style="margin-top:8px">
+                        免費 tier 常鎖：<b>內部人交易 · 13F · 分析師預估 · 部分同業 quote</b> · 這些 panel 不會顯示。
+                        <b>核心指標</b>（quote / ratios / 損益 / 現金流 / 資產負債表）不受影響。
+                    </p>
+                    <ul class="fmp-status-list">${items}</ul>
+                </details>
+            </section>
+        `;
+    }
+
     // Feature · 機構持股集中度（13F · US 專用）
     // 抓最新 filed quarter · 顯示前 10 大機構 + 集中度警訊
     async function fetchFmpInstitutionalOwnership(ticker, apiKey) {
@@ -691,6 +725,19 @@
         if (fundamentals && divR.ok && divR.value) fundamentals.dividendHistory = divR.value;
         if (fundamentals && instOwnR.ok && instOwnR.value) fundamentals.institutionalOwnership = instOwnR.value;
 
+        // 診斷：把選配 endpoint 的狀態存起來 · 讓 render 層顯示「資料狀態」panel
+        const optionalStatus = [
+            { name: '報價', key: 'quote', ok: quoteR.ok, err: quoteR.error, hasData: quoteR.ok },
+            { name: '公司資料', key: 'profile', ok: profileR.ok, err: profileR.error, hasData: profileR.ok },
+            { name: '歷年 ratio', key: 'ratios', ok: ratiosR.ok, err: ratiosR.error, hasData: ratiosR.ok },
+            { name: '損益表', key: 'income', ok: fundR.ok, err: fundR.error, hasData: fundR.ok && !!fundR.value },
+            { name: '現金流表', key: 'cf', ok: cfR.ok, err: cfR.error, hasData: cfR.ok && !!cfR.value },
+            { name: '資產負債表', key: 'bs', ok: bsR.ok, err: bsR.error, hasData: bsR.ok && !!bsR.value },
+            { name: '內部人交易', key: 'insider', ok: insiderR.ok, err: insiderR.error, hasData: insiderR.ok && !!insiderR.value },
+            { name: '配息歷史', key: 'dividends', ok: divR.ok, err: divR.error, hasData: divR.ok && !!divR.value },
+            { name: '13F 機構持股', key: 'inst-own', ok: instOwnR.ok, err: instOwnR.error, hasData: instOwnR.ok && !!instOwnR.value },
+        ];
+
         // Feature · 庫藏股：從 FMP cash flow 的 commonStockRepurchased 依年 aggregate
         // FMP 的 quarterly cash flow 有 raw · 但 fetchFmpCashFlow 只回 opCF/FCF/NI/SBC
         // 用另一支 API call 專門抓 raw cash flow 就好 · 只算庫藏股
@@ -725,6 +772,7 @@
             fundamentals,
             cashFlow,
             institutional: null,
+            fmpEndpointStatus: optionalStatus,
         };
     }
 
@@ -1792,6 +1840,10 @@
         catch (e) { console.warn('renderDividendBuybackHtml failed:', e.message); }
         try { instOwnHtml = renderInstitutionalOwnershipHtml(analysis); }
         catch (e) { console.warn('renderInstitutionalOwnershipHtml failed:', e.message); }
+        // 診斷：FMP endpoint 狀態 · 讓使用者知道哪些 panel 為什麼沒亮
+        let fmpStatusHtml = '';
+        try { fmpStatusHtml = renderFmpStatusHtml(analysis); }
+        catch (e) { console.warn('renderFmpStatusHtml failed:', e.message); }
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         // Step 2 · 最後 12 月營收 / 4 季毛利+營益（值+增長率）· try/catch 保護
         let monthlyMetricsHtml = '';
@@ -1818,7 +1870,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
