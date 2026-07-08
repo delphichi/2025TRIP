@@ -169,6 +169,17 @@
                             method: 'FinMind TTM',
                         };
                     }
+
+                    // 應收帳款 · 存貨 quarterly 時序（給 drill-down 表用）
+                    // bsDates 已是新→舊 · 直接 map · 存原始值 · QoQ 在 render 層算
+                    result.balanceSheetSeries = bsDates.slice(0, 10).map(d => {
+                        const flat = bsByDate.get(d);
+                        return {
+                            date: d,
+                            accountsReceivable: flat.AccountsReceivableNet ?? null,
+                            inventories: flat.Inventories ?? null,
+                        };
+                    });
                 }
             }
 
@@ -1411,6 +1422,10 @@
         const peerHtml = renderPeerComparisonHtml(analysis);
         const adrHtml = renderAdrPremiumHtml(analysis, analysis.fxSeries);
         const cfHtml = renderCashFlowHtml(analysis.cashFlow);
+        // 應收/存貨/CapEx drill-down · 緊接 CF · try/catch 保護
+        let drilldownHtml = '';
+        try { drilldownHtml = renderQuarterlyDrilldown(analysis.cashFlow, analysis.fundamentals); }
+        catch (e) { console.warn('renderQuarterlyDrilldown failed:', e.message); }
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         const instHtml = renderInstitutionalHtml(analysis.institutional);
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
@@ -1419,7 +1434,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + fundHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + fundHtml + instHtml + marginHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -1482,7 +1497,7 @@
                           ?? flat.NetCashInflowFromOperatingActivities ?? null;
                 const capEx = flat.PropertyAndPlantAndEquipment ?? null;
                 const fcf = (opCF !== null && capEx !== null) ? opCF + capEx : null;
-                ytdByDate.set(d, { date: d, opCF, fcf });
+                ytdByDate.set(d, { date: d, opCF, fcf, capExYtd: capEx });
             });
 
             const prevQuarterDate = d => {
@@ -1510,12 +1525,13 @@
                                ?? fsFlat.EquityAttributableToOwnersOfParent
                                ?? null;
                 if (!prev) {
-                    return { date: d, operatingCF: cur.opCF, freeCF: cur.fcf, netIncome };
+                    return { date: d, operatingCF: cur.opCF, freeCF: cur.fcf, netIncome, capEx: cur.capExYtd };
                 }
                 return {
                     date: d,
                     operatingCF: diff(cur.opCF, prev.opCF),
                     freeCF:      diff(cur.fcf, prev.fcf),
+                    capEx:       diff(cur.capExYtd, prev.capExYtd),
                     netIncome,
                 };
             });
@@ -1523,11 +1539,16 @@
             // processCashFlow 期待新→舊
             quarterlyWide.sort((a, b) => b.date.localeCompare(a.date));
 
-            return processCashFlow(quarterlyWide, {
+            const cfResult = processCashFlow(quarterlyWide, {
                 operatingCF: r => r.operatingCF,
                 freeCF: r => r.freeCF,
                 netIncome: r => r.netIncome,
             });
+            // 附上 CapEx 單季時序（給 drill-down 表用 · 不影響現有 CF 邏輯）
+            if (cfResult) {
+                cfResult.capExSeries = quarterlyWide.slice(0, 10).map(r => ({ date: r.date, value: r.capEx }));
+            }
+            return cfResult;
         } catch (e) {
             console.warn('FinMind cash flow fetch failed:', e.message);
             return null;
@@ -1809,6 +1830,107 @@
                 ${renderCol('📖 淨利（帳面）', cf.netIncome)}
                 ${cf.sbc ? renderCol('💸 股票薪酬 (SBC)', cf.sbc) : ''}
             </div>
+        `;
+    }
+
+    // 應收 / 存貨 / CapEx 季度表 · QoQ
+    // 這是 CF 背離警訊指向的「回查對象」· 讓讀者直接看到膨脹速度
+    // - 應收帳款：來自 BalanceSheet（點時值 · quarterly snapshot）
+    // - 存貨：同上
+    // - CapEx：來自 CashFlow · 已差分為單季（負值 · 現金流出）
+    function renderQuarterlyDrilldown(cf, fund) {
+        const bsSeries = fund && fund.balanceSheetSeries ? fund.balanceSheetSeries : null;
+        const capExSeries = cf && cf.capExSeries ? cf.capExSeries : null;
+        // 至少要有一組資料才顯示
+        const hasBs = bsSeries && bsSeries.some(e => e.accountsReceivable !== null || e.inventories !== null);
+        const hasCapEx = capExSeries && capExSeries.some(e => e.value !== null);
+        if (!hasBs && !hasCapEx) return '';
+
+        // 收集所有日期 · 用聯集（bsSeries 跟 capExSeries 可能日期集合不同）
+        const dateSet = new Set();
+        if (bsSeries) bsSeries.forEach(e => dateSet.add(e.date));
+        if (capExSeries) capExSeries.forEach(e => dateSet.add(e.date));
+        const dates = Array.from(dateSet).sort().reverse().slice(0, 10);   // 新→舊 · 最多 10 季
+
+        // 索引化
+        const bsByDate = new Map((bsSeries || []).map(e => [e.date, e]));
+        const capExByDate = new Map((capExSeries || []).map(e => [e.date, e]));
+
+        const fmtNum = v => {
+            if (v === null || !isFinite(v)) return '—';
+            const abs = Math.abs(v);
+            if (abs >= 1e12) return (v / 1e12).toFixed(2) + '兆';
+            if (abs >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (abs >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            if (abs >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+            return v.toFixed(0);
+        };
+        const fmtQoQ = (cur, prev) => {
+            if (cur === null || prev === null || !isFinite(cur) || !isFinite(prev) || prev === 0) return '—';
+            const pct = (cur - prev) / Math.abs(prev) * 100;
+            const sign = pct > 0 ? '+' : '';
+            return `${sign}${pct.toFixed(1)}%`;
+        };
+        const qoqCls = (cur, prev, invert) => {
+            if (cur === null || prev === null || !isFinite(cur) || !isFinite(prev) || prev === 0) return '';
+            const pct = (cur - prev) / Math.abs(prev);
+            // 應收/存貨反轉：快速膨脹 = 紅色警訊 · 收斂 = 綠色
+            // CapEx 中性：擴產不一定壞
+            if (invert) {
+                if (pct > 0.15) return 'yoy-neg';
+                if (pct < -0.05) return 'yoy-pos';
+                return '';
+            }
+            return '';   // CapEx 不套色
+        };
+
+        // 建每一列（每季一列 · 對照前一季算 QoQ）
+        let rows = '';
+        for (let i = 0; i < dates.length; i++) {
+            const d = dates[i];
+            const nextD = dates[i + 1];   // 前一季
+            const bs = bsByDate.get(d) || {};
+            const bsPrev = nextD ? (bsByDate.get(nextD) || {}) : {};
+            const capEx = capExByDate.get(d) || {};
+            const capExPrev = nextD ? (capExByDate.get(nextD) || {}) : {};
+
+            const ar = bs.accountsReceivable ?? null;
+            const arPrev = bsPrev.accountsReceivable ?? null;
+            const inv = bs.inventories ?? null;
+            const invPrev = bsPrev.inventories ?? null;
+            const cx = capEx.value ?? null;
+            const cxPrev = capExPrev.value ?? null;
+
+            rows += `<tr>
+                <td>${d}</td>
+                <td>${fmtNum(ar)}</td>
+                <td class="${qoqCls(ar, arPrev, true)}">${fmtQoQ(ar, arPrev)}</td>
+                <td>${fmtNum(inv)}</td>
+                <td class="${qoqCls(inv, invPrev, true)}">${fmtQoQ(inv, invPrev)}</td>
+                <td>${fmtNum(cx)}</td>
+                <td>${fmtQoQ(cx, cxPrev)}</td>
+            </tr>`;
+        }
+
+        return `
+            <section class="panel drilldown-panel">
+                <h3>🔎 應收 / 存貨 / CapEx（季度 · QoQ）</h3>
+                <p class="hint">
+                    上方 CF 背離警訊指向的「回查對象」· 應收/存貨的 QoQ 若明顯 &gt; 15% = 資產負債表在膨脹（收款拉長 or 產品堆積）·
+                    CapEx 中性看趨勢（擴產週期會壓 FCF 但可能帶未來成長）。
+                </p>
+                <table class="fund-table drilldown-table">
+                    <thead>
+                        <tr>
+                            <th>季度</th>
+                            <th>應收帳款</th><th>QoQ</th>
+                            <th>存貨</th><th>QoQ</th>
+                            <th>CapEx</th><th>QoQ</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </section>
         `;
     }
 

@@ -1642,3 +1642,34 @@ textarea {
     color: #64748b;
     font-weight: 700;
 }
+
+/* 應收 / 存貨 / CapEx 季度 drill-down（QoQ） */
+.drilldown-panel {
+    margin-top: 16px;
+    border-left-color: #f59e0b;
+}
+.drilldown-panel h3 {
+    color: #78350f;
+    margin-top: 0;
+}
+.drilldown-table {
+    width: 100%;
+    font-size: .88em;
+    margin-top: 8px;
+}
+.drilldown-table th, .drilldown-table td {
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid #e5e7eb;
+}
+.drilldown-table th {
+    background: #fef3c7;
+    color: #78350f;
+    text-align: center;
+    font-weight: 700;
+}
+.drilldown-table td:first-child {
+    text-align: left;
+    color: #6b7280;
+    font-family: ui-monospace, monospace;
+}
