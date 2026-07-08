@@ -132,6 +132,43 @@
         }
     }
 
+    // Feature · 機構持股集中度（13F · US 專用）
+    // 抓最新 filed quarter · 顯示前 10 大機構 + 集中度警訊
+    async function fetchFmpInstitutionalOwnership(ticker, apiKey) {
+        if (!apiKey) return null;
+        try {
+            // 13F 45 天後 filed · 試最近 4 個 quarter · 抓到就 stop
+            const now = new Date();
+            const currentY = now.getFullYear();
+            const currentM = now.getMonth() + 1;
+            let curQ = Math.ceil(currentM / 3);
+            const attempts = [];
+            for (let back = 1; back <= 4; back++) {
+                let q = curQ - back;
+                let y = currentY;
+                while (q <= 0) { q += 4; y--; }
+                attempts.push({ year: y, quarter: q });
+            }
+            for (const { year, quarter } of attempts) {
+                try {
+                    const rows = await fmpFetch(
+                        `/institutional-ownership/extract-analytics/holder?symbol=${ticker}&year=${year}&quarter=${quarter}&page=0&limit=25`,
+                        apiKey
+                    );
+                    if (Array.isArray(rows) && rows.length > 0) {
+                        // 排序 · 大→小
+                        rows.sort((a, b) => (b.sharesNumber || 0) - (a.sharesNumber || 0));
+                        return { year, quarter, holders: rows.slice(0, 20) };
+                    }
+                } catch (_) {}
+            }
+            return null;
+        } catch (e) {
+            console.warn('FMP institutional ownership fetch failed:', e.message);
+            return null;
+        }
+    }
+
     // Feature · 配息歷史（FMP）
     async function fetchFmpDividends(ticker, apiKey) {
         if (!apiKey) return null;
@@ -573,8 +610,9 @@
             label('balance-sheet',  fetchFmpBalanceSheet(ticker, apiKey)),
             label('insider',        fetchFmpInsiderTrading(ticker, apiKey)),
             label('dividends',      fetchFmpDividends(ticker, apiKey)),
+            label('inst-own',       fetchFmpInstitutionalOwnership(ticker, apiKey)),
         ]);
-        const [quoteR, profileR, ratiosR, fundR, cfR, bsR, insiderR, divR] = results;
+        const [quoteR, profileR, ratiosR, fundR, cfR, bsR, insiderR, divR, instOwnR] = results;
         const failed = results.filter(r => !r.ok);
 
         // 生成 402 專用建議：試 GOOG↔GOOGL / TSLA↔TSLA / BRK.A↔BRK.B 這類 dual-class
@@ -648,9 +686,10 @@
             fundamentals.balanceSheetSnapshot = fmpBalanceSheet;
         }
 
-        // Feature · 內部人持股變化 + 配息歷史 attach 到 fundamentals
+        // Feature · 內部人持股變化 + 配息歷史 + 13F 機構持股 attach 到 fundamentals
         if (fundamentals && insiderR.ok && insiderR.value) fundamentals.insiderTrading = insiderR.value;
         if (fundamentals && divR.ok && divR.value) fundamentals.dividendHistory = divR.value;
+        if (fundamentals && instOwnR.ok && instOwnR.value) fundamentals.institutionalOwnership = instOwnR.value;
 
         // Feature · 庫藏股：從 FMP cash flow 的 commonStockRepurchased 依年 aggregate
         // FMP 的 quarterly cash flow 有 raw · 但 fetchFmpCashFlow 只回 opCF/FCF/NI/SBC
@@ -1745,12 +1784,14 @@
         let balanceSheetHtml = '';
         try { balanceSheetHtml = renderBalanceSheetHtml(analysis); }
         catch (e) { console.warn('renderBalanceSheetHtml failed:', e.message); }
-        // Feature · 內部人持股 + 歷年配息/庫藏股
-        let insiderHtml = '', dividendHtml = '';
+        // Feature · 內部人持股 + 歷年配息/庫藏股 + 13F 機構持股集中度
+        let insiderHtml = '', dividendHtml = '', instOwnHtml = '';
         try { insiderHtml = renderInsiderTradingHtml(analysis); }
         catch (e) { console.warn('renderInsiderTradingHtml failed:', e.message); }
         try { dividendHtml = renderDividendBuybackHtml(analysis); }
         catch (e) { console.warn('renderDividendBuybackHtml failed:', e.message); }
+        try { instOwnHtml = renderInstitutionalOwnershipHtml(analysis); }
+        catch (e) { console.warn('renderInstitutionalOwnershipHtml failed:', e.message); }
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
         // Step 2 · 最後 12 月營收 / 4 季毛利+營益（值+增長率）· try/catch 保護
         let monthlyMetricsHtml = '';
@@ -1777,7 +1818,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -2611,6 +2652,112 @@
                     ${renderTable('📈 資產項目', assetSlices)}
                     ${renderTable('📉 負債 + 權益', financeSlices)}
                 </div>
+            </section>
+        `;
+    }
+
+    // Feature · 機構持股集中度（13F · US 專用）
+    // 前 20 大機構 + top 5/10 集中度 · 判「主力誰在」+「有沒有大戶跑」
+    function renderInstitutionalOwnershipHtml(analysis) {
+        const io = analysis.fundamentals && analysis.fundamentals.institutionalOwnership;
+        if (!io || !io.holders || io.holders.length === 0) return '';
+
+        const holders = io.holders;
+        const totalShares = holders.reduce((s, h) => s + (h.sharesNumber || 0), 0);
+        const top5 = holders.slice(0, 5).reduce((s, h) => s + (h.sharesNumber || 0), 0);
+        const top10 = holders.slice(0, 10).reduce((s, h) => s + (h.sharesNumber || 0), 0);
+        const top5Pct = totalShares > 0 ? (top5 / totalShares * 100) : 0;
+        const top10Pct = totalShares > 0 ? (top10 / totalShares * 100) : 0;
+
+        const fmtShares = v => {
+            if (!v || !isFinite(v)) return '—';
+            if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+            if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+            return v.toFixed(0);
+        };
+        const fmtVal = v => {
+            if (!v || !isFinite(v)) return '—';
+            if (v >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+            if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+            return '$' + v.toFixed(0);
+        };
+
+        // 集中度 verdict
+        let concentrationNote = '';
+        if (top5Pct >= 30) {
+            concentrationNote = `⚠️ <b>前 5 大機構持股集中 ${top5Pct.toFixed(1)}%</b> · 高集中度 · 若其中任一大戶調倉 · 對股價有明顯影響`;
+        } else if (top5Pct >= 20) {
+            concentrationNote = `📌 前 5 大機構持股 ${top5Pct.toFixed(1)}% · 中度集中`;
+        } else {
+            concentrationNote = `✅ 前 5 大機構持股 ${top5Pct.toFixed(1)}% · 分散度高 · 沒單一大戶主導`;
+        }
+
+        // 部位變化訊號（若 change 或 changeInSharesNumber 有資料）
+        let changesHtml = '';
+        const withChanges = holders.filter(h => h.changeInSharesNumber !== undefined && h.changeInSharesNumber !== 0);
+        if (withChanges.length > 0) {
+            const bigBuys = withChanges.filter(h => h.changeInSharesNumber > 0)
+                .sort((a, b) => (b.changeInSharesNumber || 0) - (a.changeInSharesNumber || 0)).slice(0, 3);
+            const bigSells = withChanges.filter(h => h.changeInSharesNumber < 0)
+                .sort((a, b) => (a.changeInSharesNumber || 0) - (b.changeInSharesNumber || 0)).slice(0, 3);
+            const chgLines = [];
+            if (bigBuys.length > 0) {
+                chgLines.push('🟢 <b>本季加碼</b>：' + bigBuys.map(h =>
+                    `${(h.investorName || '').slice(0, 20)} +${fmtShares(h.changeInSharesNumber)} 股`).join(' · '));
+            }
+            if (bigSells.length > 0) {
+                chgLines.push('🔴 <b>本季減碼</b>：' + bigSells.map(h =>
+                    `${(h.investorName || '').slice(0, 20)} ${fmtShares(h.changeInSharesNumber)} 股`).join(' · '));
+            }
+            if (chgLines.length > 0) {
+                changesHtml = `<div class="io-changes">${chgLines.join('<br>')}</div>`;
+            }
+        }
+
+        // 前 10 大機構表格
+        const holderRows = holders.slice(0, 10).map((h, i) => {
+            const name = (h.investorName || '—');
+            const shares = h.sharesNumber || 0;
+            const marketValue = h.marketValue || 0;
+            const pctOwn = h.ownership || (totalShares > 0 ? shares / totalShares * 100 : 0);
+            const change = h.changeInSharesNumber;
+            const changeStr = change !== undefined && change !== null && change !== 0
+                ? `<span class="${change > 0 ? 'yoy-pos' : 'yoy-neg'}">${change > 0 ? '+' : ''}${fmtShares(change)}</span>`
+                : '—';
+            return `<tr>
+                <td>${i + 1}</td>
+                <td>${name.slice(0, 30)}</td>
+                <td>${fmtShares(shares)}</td>
+                <td>${pctOwn ? pctOwn.toFixed(2) + '%' : '—'}</td>
+                <td>${fmtVal(marketValue)}</td>
+                <td>${changeStr}</td>
+            </tr>`;
+        }).join('');
+
+        return `
+            <section class="panel io-panel">
+                <h3>🏛️ 機構持股集中度（13F · ${io.year} Q${io.quarter}）</h3>
+                <p class="hint">
+                    <b>SEC Form 13F</b> 每季揭露 · $100M+ AUM 機構必須申報。<b>集中度高</b>= 少數大戶主導 · 誰調倉股價就跟著動 ·
+                    <b>集中度低</b>= 分散度高 · 沒單一大戶能撼動。看<b>本季加碼/減碼</b>比看誰持股更有訊號。
+                </p>
+                <div class="bs-metrics-row">
+                    <div class="bs-metric" title="前 5 大機構持股佔全部 13F 揭露總股數"><div class="bs-metric-label">Top 5 集中</div><div class="bs-metric-val">${top5Pct.toFixed(1)}%</div></div>
+                    <div class="bs-metric" title="前 10 大機構持股佔全部 13F 揭露總股數"><div class="bs-metric-label">Top 10 集中</div><div class="bs-metric-val">${top10Pct.toFixed(1)}%</div></div>
+                    <div class="bs-metric" title="全 13F 機構持股總數"><div class="bs-metric-label">機構總持</div><div class="bs-metric-val">${fmtShares(totalShares)}</div></div>
+                </div>
+                <div class="bs-note" style="margin-top:8px">${concentrationNote}</div>
+                ${changesHtml}
+                <details class="io-details" open>
+                    <summary><b>🏛️ 前 10 大機構</b>（點展開）</summary>
+                    <table class="fund-table io-table">
+                        <thead>
+                            <tr><th>#</th><th>機構名</th><th>股數</th><th>持股%</th><th>市值</th><th>本季變化</th></tr>
+                        </thead>
+                        <tbody>${holderRows}</tbody>
+                    </table>
+                </details>
             </section>
         `;
     }

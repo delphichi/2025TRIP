@@ -2052,3 +2052,56 @@ textarea {
     background: #f0fdf4;
     border-radius: 6px;
 }
+
+/* Feature · 機構持股集中度 13F panel */
+.io-panel {
+    margin-top: 16px;
+    border-left-color: #6366f1;
+}
+.io-panel h3 {
+    color: #4338ca;
+    margin-top: 0;
+}
+.io-changes {
+    margin: 8px 0;
+    padding: 10px 12px;
+    background: #eef2ff;
+    border-left: 4px solid #6366f1;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #3730a3;
+    line-height: 1.8;
+}
+.io-details {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+.io-details summary {
+    cursor: pointer;
+    color: #4338ca;
+    font-weight: 600;
+    padding: 4px 0;
+}
+.io-table {
+    width: 100%;
+    font-size: 0.85em;
+    margin-top: 8px;
+}
+.io-table th, .io-table td {
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid #e5e7eb;
+}
+.io-table th {
+    background: #eef2ff;
+    color: #4338ca;
+    text-align: center;
+    font-weight: 700;
+}
+.io-table td:nth-child(2) {
+    text-align: left;
+    font-family: ui-monospace, monospace;
+}
