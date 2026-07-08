@@ -7,7 +7,7 @@
     // ============================================================
     // 版本標記——修 bug 後 bump · 讓使用者 console 看得到跑的是哪版
     // 若掃描結果的關鍵字還有 x2f/href/https · 表示還在跑舊版 · 硬重整
-    const RADAR_VERSION = 'v2026-07-08-c';
+    const RADAR_VERSION = 'v2026-07-08-d';
 
     // 只看近 N 年 · 避免 SEO 老影片 / 多年前 HN 舊文洗掉討論訊號
     // 兩年是個舒服的權衡：AI 生態變化太快 · 更久的東西通常已過期
@@ -611,10 +611,16 @@
 
         // 4 象限判定
         const ytHot = videos.length >= 15 && videos[0]?.views > 50_000;
-        // 「討論熱」= Reddit 有 8 篇 & 頂樓 >100 分  OR  HN 有 5 篇 & 頂樓 >50 points
-        // HN 的量比 Reddit 少 · 但質量高（tech 圈精華）· threshold 較低
         const rdHot = redditPosts.length >= 8 && redditPosts[0]?.score > 100;
-        const hnHot = hnPosts.length >= 5 && hnPosts[0]?.points > 50;
+        // HN「熱」= 近 90 天有 3+ 篇 >= 50 points · 而非拿歷史 max
+        // 為什麼：Algolia 按 relevance 排 · 8 月前一次 launch 的 800 分文永遠會在 top · 但那不代表話題「當前」熱
+        // 「近 90 天 & 有一定分數」才反映當前討論動能——避免「已過氣但曾爆紅」被誤讀為活熱
+        const HN_HOT_WINDOW_MS = 90 * 86400 * 1000;
+        const HN_HOT_MIN_POINTS = 50;
+        const HN_HOT_MIN_COUNT = 3;
+        const hnRecent = hnPosts.filter(p => (Date.now() - p.created) < HN_HOT_WINDOW_MS);
+        const hnRecentSubstantive = hnRecent.filter(p => p.points >= HN_HOT_MIN_POINTS);
+        const hnHot = hnRecentSubstantive.length >= HN_HOT_MIN_COUNT;
         const discussionHot = rdHot || hnHot;
         // 找出討論方是哪邊主導（顯示用）
         const discussionSrc = rdHot && hnHot ? 'Reddit + HN' : rdHot ? 'Reddit' : hnHot ? 'HN' : '';
@@ -681,9 +687,10 @@
                 <div class="cq-cell">
                     <div class="cq-label">🧡 HN 訊號強度</div>
                     <div class="cq-val">${hnPosts.length} 篇 story</div>
-                    <div class="cq-sub">中位 points: ${hnPosts.length ? fmtNum(hnPosts[Math.floor(hnPosts.length / 2)].points) : '—'}</div>
-                    <div class="cq-sub">最高 points: ${hnPosts.length ? fmtNum(hnPosts[0].points) : '—'}</div>
-                    <div class="cq-verdict">${hnHot ? '<b class="hot">🔥 熱</b>' : '<b class="cold">❄️ 冷</b>'}</div>
+                    <div class="cq-sub">近 90 天：<b>${hnRecent.length}</b> 篇</div>
+                    <div class="cq-sub">近 90 天 ≥${HN_HOT_MIN_POINTS} pts：<b>${hnRecentSubstantive.length}</b> 篇 ${hnHot ? '✅' : ''}</div>
+                    <div class="cq-sub">歷史頂樓：${hnPosts.length ? fmtNum(hnPosts[0].points) : '—'} pts</div>
+                    <div class="cq-verdict">${hnHot ? '<b class="hot">🔥 熱（當前）</b>' : hnPosts.length && hnPosts[0]?.points > 100 ? '<b class="cold">💤 曾爆紅但當前無</b>' : '<b class="cold">❄️ 冷</b>'}</div>
                 </div>
                 <div class="cq-cell">
                     <div class="cq-label">💬 Reddit 訊號強度</div>
