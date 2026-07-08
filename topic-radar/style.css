@@ -613,3 +613,11 @@ body.radar-body {
 /* 3-column cross quad（YouTube · HN · Reddit） */
 .cross-quad-3 { grid-template-columns: 1fr 1fr 1fr; }
 @media (max-width: 900px) { .cross-quad-3 { grid-template-columns: 1fr; } }
+
+/* 版本標記 · footer · 用來眼看瀏覽器跑的是哪版 JS */
+.radar-version {
+    font-family: ui-monospace, monospace;
+    font-size: 0.75em;
+    color: #94a3b8;
+    margin-top: 8px;
+}

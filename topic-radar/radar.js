@@ -2,9 +2,13 @@
     'use strict';
 
     // ============================================================
-    // 主題雷達 · YouTube × Reddit 交叉監聽
-    // 純瀏覽器 SPA · YouTube 用 Data API v3 · Reddit 用 public .json
+    // 主題雷達 · YouTube × HN × Reddit 交叉監聽
+    // 純瀏覽器 SPA · YouTube Data API v3 + HN Algolia + Reddit .json
     // ============================================================
+    // 版本標記——修 bug 後 bump · 讓使用者 console 看得到跑的是哪版
+    // 若掃描結果的關鍵字還有 x2f/href/https · 表示還在跑舊版 · 硬重整
+    const RADAR_VERSION = 'v2026-07-08-b';
+    console.log(`%c[topic-radar] ${RADAR_VERSION} loaded`, 'color:#7c3aed;font-weight:bold');
 
     const YT_KEY_STORAGE = 'yt_data_api_key';
     const YT_API = 'https://www.googleapis.com/youtube/v3';
@@ -823,6 +827,9 @@
     }
 
     function init() {
+        // 版本標記顯示在 footer · 眼看得到跑的是哪版
+        const verEl = document.getElementById('radar-ver');
+        if (verEl) verEl.textContent = RADAR_VERSION;
         loadYtKey();
         initTabs();
         $('btn-save-yt').addEventListener('click', saveYtKey);
