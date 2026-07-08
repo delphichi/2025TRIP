@@ -1970,3 +1970,24 @@ textarea {
     border-radius: 2px;
     flex-shrink: 0;
 }
+
+/* Feature B · 「其他流動負債」拆解 sub-section */
+.bs-cl-details {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+.bs-cl-details summary {
+    cursor: pointer;
+    color: #1e40af;
+    font-weight: 600;
+    padding: 4px 0;
+}
+.bs-cl-details summary:hover {
+    color: #1e3a8a;
+}
+.bs-cl-details table {
+    margin-top: 8px;
+}

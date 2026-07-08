@@ -74,6 +74,12 @@
                 currentLiabilities: latest.totalCurrentLiabilities ?? null,
                 longTermDebt: latest.longTermDebt ?? null,
                 totalLiabilities: latest.totalLiabilities ?? null,
+                // 流動負債細項（US 對應 · 預收款 / 短期債 / 應計 / 應付稅）
+                contractLiabilities: latest.deferredRevenue ?? null,   // FMP 用 deferredRevenue 代表預收款
+                shortTermBorrowings: latest.shortTermDebt ?? null,
+                otherPayables: latest.accruedExpenses ?? null,
+                currentTaxLiabilities: latest.taxPayables ?? null,
+                otherCurrentLiabilities: latest.otherCurrentLiabilities ?? null,
                 equity: latest.totalStockholdersEquity ?? latest.totalEquity ?? null,
                 retainedEarnings: latest.retainedEarnings ?? null,
                 // key-metrics-ttm 直接有 · 免自己算
@@ -265,6 +271,14 @@
                         currentLiabilities: latestBs.CurrentLiabilities ?? null,
                         longTermDebt: ltDebt || null,
                         totalLiabilities: latestBs.Liabilities ?? null,
+                        // 流動負債細項（拆「其他流動負債」用 · 特別是預收款判斷訂單能見度）
+                        contractLiabilities: latestBs.ContractLiabilities ?? latestBs.AdvanceReceipts ?? null,   // 合約負債 = 預收款
+                        shortTermBorrowings: (latestBs.ShortTermBorrowings || 0)
+                            + (latestBs.ShortTermNotesAndBillsPayable || 0)
+                            + (latestBs.CurrentPortionOfLongtermBorrowings || 0) || null,
+                        otherPayables: latestBs.OtherPayables ?? null,                                            // 應計費用 / 應付薪資
+                        currentTaxLiabilities: latestBs.CurrentTaxLiabilities ?? null,
+                        otherCurrentLiabilities: latestBs.OtherCurrentLiabilities ?? null,
                         // 權益
                         equity,
                         retainedEarnings: latestBs.RetainedEarnings ?? null,
@@ -2282,8 +2296,8 @@
                     <thead>
                         <tr>
                             <th>季度</th>
-                            <th>應收帳款</th><th>QoQ</th><th>DSO</th>
-                            <th>存貨</th><th>QoQ</th><th>DIO</th>
+                            <th>應收帳款</th><th>QoQ</th><th>DSO<br><small>收款天數</small></th>
+                            <th>存貨</th><th>QoQ</th><th>DIO<br><small>存貨天數</small></th>
                             <th>CapEx</th><th>QoQ</th>
                         </tr>
                     </thead>
@@ -2410,6 +2424,69 @@
         else if (intangPct >= 30) assetTypeNote = `🧠 <b>無形資產佔 ${intangPct.toFixed(0)}%</b>（含商譽）· 品牌 / 併購 / 軟體型公司 · 要看是併購商譽（減值風險）還是自研品牌（護城河）`;
         else if (cashPct >= 25) assetTypeNote = `💵 <b>現金佔 ${cashPct.toFixed(0)}%</b> · 資產輕、現金充沛 · 可能是軟體/服務業 or 保守累積`;
 
+        // 「其他流動負債」拆解：預收款 = 訂單能見度指標 · 短期借款 = 資金壓力
+        // otherCL total = CurrentLiab - AP · 上面已算 · 這裡拆內部細項
+        const otherCLTotal = (bs.currentLiabilities || 0) - (bs.accountsPayable || 0);
+        const clBreakdown = [
+            { label: '合約負債（預收款）', val: bs.contractLiabilities, color: '#10b981', note: '訂單能見度指標 · 越高越好' },
+            { label: '短期借款', val: bs.shortTermBorrowings, color: '#dc2626', note: '資金週轉壓力 · 越高越糟' },
+            { label: '其他應付款（應計費用）', val: bs.otherPayables, color: '#f97316', note: '應付薪資 · 應計費用 · 中性' },
+            { label: '應付所得稅', val: bs.currentTaxLiabilities, color: '#a78bfa', note: '本期稅款 · 中性' },
+        ].filter(s => s.val !== null && s.val > 0);
+        const clKnownSum = clBreakdown.reduce((s, e) => s + e.val, 0);
+        const clOther = Math.max(0, otherCLTotal - clKnownSum);
+        if (clOther > 0) {
+            clBreakdown.push({ label: '其他（未拆解）', val: clOther, color: '#94a3b8', note: '資料源沒揭露這些欄位' });
+        }
+
+        // 訂單能見度 verdict（基於預收款占資產比例）
+        let orderVisibilityNote = '';
+        if (bs.contractLiabilities !== null && bs.contractLiabilities > 0) {
+            const clPct = pct(bs.contractLiabilities);
+            if (clPct >= 10) {
+                orderVisibilityNote = `🎯 <b>合約負債（預收款）${fmtVal(bs.contractLiabilities)} · 佔資產 ${clPct.toFixed(1)}%</b> · <b>訂單能見度真實存在</b> · 客戶已經先付錢卡單 · 這是最誠實的 backlog 指標`;
+            } else if (clPct >= 3) {
+                orderVisibilityNote = `📌 合約負債佔資產 ${clPct.toFixed(1)}% · 有些預收款 · 訂單能見度中性`;
+            }
+        }
+        if (bs.shortTermBorrowings !== null && bs.shortTermBorrowings > 0) {
+            const sbPct = pct(bs.shortTermBorrowings);
+            if (sbPct >= 15) {
+                orderVisibilityNote += (orderVisibilityNote ? '<br>' : '') + `⚠️ <b>短期借款佔資產 ${sbPct.toFixed(1)}%</b> · 資金週轉壓力大 · 利率上升時利息成本會直接吃獲利`;
+            }
+        }
+
+        // 拆解 sub-table
+        let clBreakdownHtml = '';
+        if (clBreakdown.length > 0 && otherCLTotal > 0) {
+            let rows = '';
+            clBreakdown.forEach(s => {
+                const percent = s.val / bs.totalAssets * 100;
+                const percentOfCL = s.val / otherCLTotal * 100;
+                rows += `<tr>
+                    <td><span class="bs-swatch" style="background:${s.color}"></span>${s.label}</td>
+                    <td>${fmtVal(s.val)}</td>
+                    <td>${percent.toFixed(1)}%</td>
+                    <td>${percentOfCL.toFixed(0)}%</td>
+                    <td class="hint-mini">${s.note}</td>
+                </tr>`;
+            });
+            clBreakdownHtml = `
+                <details class="bs-cl-details" open>
+                    <summary><b>🔍 「其他流動負債」拆解</b>（總 ${fmtVal(otherCLTotal)} · 佔資產 ${(otherCLTotal / bs.totalAssets * 100).toFixed(1)}%）</summary>
+                    <p class="hint-mini" style="margin:8px 0">
+                        <b>為什麼要拆</b>：「其他流動負債」常常佔比很大但沒揭露內容 · 兩種完全相反的可能：
+                        <br>· <b>合約負債（預收款）</b>多 = 訂單能見度真實存在 = 正面訊號
+                        <br>· <b>短期借款</b>多 = 資金週轉壓力 = 負面訊號
+                    </p>
+                    <table class="fund-table bs-table">
+                        <thead><tr><th>項目</th><th>絕對值</th><th>佔資產%</th><th>佔流動非應付%</th><th>意義</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </details>
+            `;
+        }
+
         return `
             <section class="panel balance-sheet-panel">
                 <h3>🏦 資產負債結構（${bs.date} · ${bs.source}）</h3>
@@ -2419,6 +2496,7 @@
                 </p>
                 ${structNote ? `<div class="bs-note">${structNote}</div>` : ''}
                 ${assetTypeNote ? `<div class="bs-note">${assetTypeNote}</div>` : ''}
+                ${orderVisibilityNote ? `<div class="bs-note">${orderVisibilityNote}</div>` : ''}
 
                 <h4 style="margin-top:14px">📈 資產結構（Total = ${fmtVal(TA)}）</h4>
                 ${renderStackedBar(assetSlices, 32)}
@@ -2432,6 +2510,8 @@
                     ${metricRow('ROIC', bs.roic, '%', 'NOPAT / (權益+長期債) · TW 假設稅率 20%')}
                     ${metricRow('P/B', pb, '×', '股價 / 每股淨值')}
                 </div>
+
+                ${clBreakdownHtml}
 
                 <div class="fund-grid" style="margin-top:14px">
                     ${renderTable('📈 資產項目', assetSlices)}
