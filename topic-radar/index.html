@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主題雷達 · YouTube × Reddit 交叉監聽</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script>document.write('<link rel="stylesheet" href="style.css?v=' + Date.now() + '">');</script>
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body class="radar-body">
+
+<header class="radar-header">
+    <h1>🎯 主題雷達</h1>
+    <p class="radar-subtitle">YouTube × Reddit 交叉監聽 · 找選題缺口 · 判話題風向</p>
+</header>
+
+<main class="radar-main">
+
+    <section class="panel intro-panel">
+        <h2>📖 這個工具在做什麼</h2>
+        <p class="hint">
+            輸入一個主題（例：<code>AI agent tutorial</code>）· 同時掃 <b>YouTube 影片庫</b>跟 <b>6 個 AI subreddit 熱門討論</b> · 產出：
+        </p>
+        <div class="crosstab-legend">
+            <div class="ccell c-hot">
+                <div class="ccell-title">🔥 兩邊都熱</div>
+                <div class="ccell-desc">主流話題 · 競爭激烈 · 要有差異化才殺得進去</div>
+            </div>
+            <div class="ccell c-gap">
+                <div class="ccell-title">🎯 Reddit 熱 · YouTube 沒</div>
+                <div class="ccell-desc"><b>選題缺口</b> · 有需求但沒人做教程 · 你的機會</div>
+            </div>
+            <div class="ccell c-fake">
+                <div class="ccell-title">⚠️ YouTube 熱 · Reddit 沒</div>
+                <div class="ccell-desc">KOL 帶起來的假熱 · 可能是行銷波 · 沒真實需求</div>
+            </div>
+            <div class="ccell c-cold">
+                <div class="ccell-title">❄️ 兩邊都冷</div>
+                <div class="ccell-desc">冷門話題 · 沒需求 · 別浪費時間</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel key-panel">
+        <h2>🔑 API Key 設定</h2>
+        <div class="key-row">
+            <label for="yt-key-input" class="key-label">YouTube API Key</label>
+            <input type="password" id="yt-key-input" placeholder="貼 YouTube Data API v3 key" autocomplete="off">
+            <button id="btn-save-yt" class="btn-save-key">💾 儲存</button>
+            <button id="btn-clear-yt" class="btn-clear-key">🗑 清除</button>
+        </div>
+        <div class="key-status" id="key-status">🔍 讀 localStorage 中……</div>
+        <p class="hint hint-mini">
+            💡 YouTube key 存 localStorage（<code>yt_data_api_key</code>）· 從瀏覽器出去 · 我這邊看不到。
+            <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">申請 YouTube API →</a>
+            (Google Cloud Console 免費 · 每天 10,000 quota units)
+        </p>
+        <p class="hint hint-mini">
+            📌 <b>Reddit 不用 key</b>——走 public <code>.json</code> endpoint · 有 CORS · 純瀏覽器就能拉。
+        </p>
+    </section>
+
+    <section class="panel query-panel">
+        <h2>🔍 主題查詢</h2>
+        <div class="query-row">
+            <input type="text" id="topic-input" placeholder="例：AI agent tutorial · Claude Code · MCP server" autocomplete="off" spellcheck="false">
+            <button id="btn-search" class="btn-search">🎯 開始掃描</button>
+        </div>
+        <p class="hint hint-mini">
+            📌 每次掃描約用 <b>105 YouTube quota</b>（1 search + 1 videos batch）· 每天 10,000 額度 → 可掃 ~95 次
+            · Reddit 是免費且沒 quota 概念 · 只受 60 req/min IP rate limit（我們每次掃 6 個 sub · 完全在範圍內）
+        </p>
+        <div class="query-status" id="query-status" hidden></div>
+    </section>
+
+    <section class="panel result-panel" id="result-panel" hidden>
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="cross">🔄 交叉分析</button>
+            <button class="tab-btn" data-tab="youtube">📺 YouTube <span id="yt-count"></span></button>
+            <button class="tab-btn" data-tab="reddit">💬 Reddit <span id="rd-count"></span></button>
+        </div>
+
+        <div class="tab-content" id="tab-cross">
+            <div id="cross-verdict"></div>
+            <div class="cross-cells" id="cross-cells"></div>
+            <div id="cross-keywords"></div>
+        </div>
+
+        <div class="tab-content" id="tab-youtube" hidden>
+            <div id="yt-stats"></div>
+            <div id="yt-table"></div>
+        </div>
+
+        <div class="tab-content" id="tab-reddit" hidden>
+            <div id="rd-stats"></div>
+            <div id="rd-list"></div>
+        </div>
+    </section>
+
+    <footer class="radar-footer">
+        <p>資料源：YouTube Data API v3 + Reddit public JSON · 純瀏覽器 SPA · 免費（YT quota 內）</p>
+        <p><a href="../valuation/">🏦 估值分析器</a> · <a href="../rotation/">🎯 資金輪動雷達</a></p>
+    </footer>
+
+</main>
+
+<script src="radar.js"></script>
+</body>
+</html>
