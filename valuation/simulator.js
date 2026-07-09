@@ -360,7 +360,7 @@
                     //   一般：ShareCapital
                     //   銀行/金控：CapitalStock · PaidInCapital · IssuedCapital · OrdinaryShareCapital
                     //   舊 IAS：CommonStock
-                    const scCandidates = ['ShareCapital', 'CapitalStock', 'PaidInCapital', 'IssuedCapital', 'OrdinaryShareCapital', 'PaidInCapitalOfCommonStocks', 'CommonStock'];
+                    const scCandidates = ['ShareCapital', 'CapitalStock', 'PaidInCapital', 'IssuedCapital', 'OrdinaryShareCapital', 'OrdinaryShare', 'PaidInCapitalOfCommonStocks', 'CommonStock'];
                     let scHitField = null;
                     result.balanceSheetSeries = bsDates.slice(0, 10).map(d => {
                         const flat = bsByDate.get(d);
@@ -492,21 +492,29 @@
                         'GainLossOnFairValueChangeOfInvestmentProperty',
                         'ShareOfProfitsOfAssociatesAndJointVentures',
                     ]);
+                    // 富邦金 / 國泰金 等大型金控只揭露「利息 + 非利息」二分 · 不細分 fees / premium / invest
+                    // 這時 fallback 到 NetNonInterestIncome 當合併桶（若 fees/premium/invest 全 null）
+                    const nonInterestB = bucket(['NetNonInterestIncome', 'NonInterestIncome']);
                     const totalRev  = wideRows[0]?.revenue ?? bucket(['NetRevenue', 'Revenue', 'OperatingRevenue', 'TotalRevenue'])?.value ?? null;
 
                     // 永遠 log 一次 · 讓使用者可以幫我補漏的 alias
                     const allFsTypes = Object.keys(latestFsFlat).sort();
                     const revLike = allFsTypes.filter(t => /interest|fee|commission|insurance|premium|investment|revenue|income|gain/i.test(t));
                     console.info(`[金融股收入拆解] ${ticker} 匹配狀態:`,
-                        { interest: interestB?.field, fees: feesB?.field, premium: premiumB?.field, invest: investB?.field },
+                        { interest: interestB?.field, fees: feesB?.field, premium: premiumB?.field, invest: investB?.field, nonInterest: nonInterestB?.field },
                         '· 該季所有收入相關 type:', revLike);
 
-                    if ((interestB || feesB || premiumB || investB) && totalRev) {
+                    // 若細分項全 null 但有 NetNonInterestIncome · 用「合併非利息」bucket 兜底
+                    const hasBreakdown = feesB || premiumB || investB;
+                    const useNonInterestFallback = !hasBreakdown && nonInterestB;
+
+                    if ((interestB || hasBreakdown || useNonInterestFallback) && totalRev) {
                         const buckets = [
                             interestB ? { key: 'interest', label: '💰 利息淨收入', value: interestB.value, field: interestB.field } : null,
                             feesB     ? { key: 'fees',     label: '💳 手續費淨收入', value: feesB.value,     field: feesB.field } : null,
                             premiumB  ? { key: 'premium',  label: '📋 保費淨收入',   value: premiumB.value,  field: premiumB.field } : null,
                             investB   ? { key: 'invest',   label: '📈 投資淨收益',   value: investB.value,   field: investB.field } : null,
+                            useNonInterestFallback ? { key: 'nonInterest', label: '💼 非利息淨收入（合併）', value: nonInterestB.value, field: nonInterestB.field } : null,
                         ].filter(Boolean);
                         const knownSum = buckets.reduce((s, b) => s + b.value, 0);
                         const other = totalRev - knownSum;
@@ -1010,7 +1018,59 @@
 
         // 先抓 Info 判斷是不是 ETF · industry_category = "ETF" 才是可靠判定（regex 猜不準）
         // 花 1 次 API call · 值得——路由到對的分析路徑
-        const infoProbe = await finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []);
+        //
+        // 靜默失敗防禦：TaiwanStockInfo 若 FinMind quota 用完會回 [] · 導致 sector 空 · 金融股判讀失效
+        // 三層防禦：
+        //   1. 有拿到 → 快取到 localStorage（stock_name + industry_category）
+        //   2. 拿不到 → 回讀 localStorage 之前查詢過的資料
+        //   3. 都沒有 → 用硬編碼金控名單當最後保險（2881 富邦金 / 2882 國泰金 等）
+        let infoProbe = await finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []);
+        const INFO_CACHE_KEY = `tw-info-${ticker}`;
+        if (infoProbe && infoProbe.length > 0) {
+            // 拿到 → 快取（只存最新 stock_name + industry_category · 不存全部 row）
+            try {
+                const info = infoProbe[infoProbe.length - 1];
+                localStorage.setItem(INFO_CACHE_KEY, JSON.stringify({
+                    stock_name: info.stock_name,
+                    industry_category: info.industry_category,
+                    ts: Date.now(),
+                }));
+            } catch (_) {}
+        } else {
+            // 沒拿到 → 回讀 cache
+            console.warn(`[TaiwanStockInfo] ${ticker} 抓不到（quota / rate limit）· 回讀 localStorage cache`);
+            try {
+                const cached = JSON.parse(localStorage.getItem(INFO_CACHE_KEY) || 'null');
+                if (cached && cached.stock_name) {
+                    infoProbe = [{ stock_name: cached.stock_name, industry_category: cached.industry_category || '' }];
+                    console.info(`[TaiwanStockInfo] ${ticker} 用 cache: ${cached.stock_name} · ${cached.industry_category} · 存於 ${new Date(cached.ts).toLocaleString()}`);
+                }
+            } catch (_) {}
+            // 還是沒有 → 硬編碼台股 15 大金控 fallback（sector 保底為金融保險 · 名字用 ticker）
+            if (!infoProbe || infoProbe.length === 0) {
+                const TW_FINANCIAL_HOLDINGS = {
+                    '2801': '彰化銀行', '2809': '京城銀', '2812': '台中銀',
+                    '2820': '華票', '2823': '中壽',
+                    '2834': '臺企銀', '2836': '高雄銀', '2838': '聯邦銀',
+                    '2845': '遠東銀', '2849': '安泰銀', '2850': '新產',
+                    '2851': '中再保', '2852': '第一保', '2855': '統一證',
+                    '2867': '三商壽', '2880': '華南金', '2881': '富邦金',
+                    '2882': '國泰金', '2883': '開發金', '2884': '玉山金',
+                    '2885': '元大金', '2886': '兆豐金', '2887': '台新金',
+                    '2888': '新光金', '2889': '國票金', '2890': '永豐金',
+                    '2891': '中信金', '2892': '第一金', '5820': '日盛金',
+                    '5876': '上海商銀', '5880': '合庫金',
+                };
+                if (TW_FINANCIAL_HOLDINGS[ticker]) {
+                    infoProbe = [{ stock_name: TW_FINANCIAL_HOLDINGS[ticker], industry_category: '金融保險' }];
+                    console.info(`[TaiwanStockInfo] ${ticker} 使用硬編碼金融保險 fallback: ${TW_FINANCIAL_HOLDINGS[ticker]}`);
+                    // 順便寫入 cache · 讓下次讀更快
+                    try { localStorage.setItem(INFO_CACHE_KEY, JSON.stringify({ stock_name: TW_FINANCIAL_HOLDINGS[ticker], industry_category: '金融保險', ts: Date.now() })); } catch (_) {}
+                } else {
+                    setStatus('loading', `⚠️ ${ticker} FinMind info 抓不到（quota 用完？）· sector 資訊缺失 · 部分判讀不準`);
+                }
+            }
+        }
         const isEtf = infoProbe.length > 0 && infoProbe[0].industry_category === 'ETF';
         if (isEtf) {
             // 分岔到 ETF 專屬 fetch + render
@@ -3841,7 +3901,7 @@
         let revMixHtml = '';
         if (revMix && revMix.buckets && revMix.buckets.length > 0) {
             const total = revMix.totalRevenue;
-            const colors = { interest: '#0891b2', fees: '#f59e0b', premium: '#8b5cf6', invest: '#10b981', other: '#94a3b8' };
+            const colors = { interest: '#0891b2', fees: '#f59e0b', premium: '#8b5cf6', invest: '#10b981', nonInterest: '#6366f1', other: '#94a3b8' };
             const W = 640, H = 42;
             let x = 0;
             const rects = [];
@@ -3859,9 +3919,16 @@
             });
             const bar = `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">${rects.join('')}${labels.join('')}</svg>`;
             const getPct = k => (revMix.buckets.find(b => b.key === k)?.value || 0) / total * 100;
-            const interestPct = getPct('interest'), feesPct = getPct('fees'), premiumPct = getPct('premium'), investPct = getPct('invest');
+            const interestPct = getPct('interest'), feesPct = getPct('fees'), premiumPct = getPct('premium'), investPct = getPct('invest'), nonInterestPct = getPct('nonInterest');
             let mixVerdict = '';
-            if (interestPct >= 60) mixVerdict = `🏦 <b>利息收入佔 ${interestPct.toFixed(0)}%</b> · 純銀行體質 · 對利差變化最敏感 · 升息週期直接受惠`;
+            // 富邦金 / 國泰金：只揭露 利息 + 非利息 · 用合併桶判讀 · 不套「純銀行」誤判
+            if (nonInterestPct > 0) {
+                const ratio = interestPct / (interestPct + nonInterestPct);
+                if (ratio >= 0.7) mixVerdict = `🏦 <b>利息佔 ${interestPct.toFixed(0)}% · 非利息 ${nonInterestPct.toFixed(0)}%</b> · 銀行為主體的金控 · 對利差敏感`;
+                else if (ratio >= 0.4) mixVerdict = `🏢 <b>利息 ${interestPct.toFixed(0)}% · 非利息 ${nonInterestPct.toFixed(0)}%</b> · 均衡型金控（銀行+保險+證券多元）· 該公司 IFRS 揭露只到「利息 vs 非利息」二分 · 手續費/保費/投資 細項要進 MOPS 法說會查`;
+                else mixVerdict = `🛡 <b>非利息佔 ${nonInterestPct.toFixed(0)}%</b> · 非銀行主導金控（保險/證券佔比高）· 細項揭露不足 · 要對照 MOPS 法說會拆解`;
+            }
+            else if (interestPct >= 60) mixVerdict = `🏦 <b>利息收入佔 ${interestPct.toFixed(0)}%</b> · 純銀行體質 · 對利差變化最敏感 · 升息週期直接受惠`;
             else if (premiumPct >= 50) mixVerdict = `🛡 <b>保費收入佔 ${premiumPct.toFixed(0)}%</b> · 保險為主 · 看綜合成本率 &lt; 100% 承保才賺 · 剩下靠投資部位`;
             else if (feesPct >= 30) mixVerdict = `💳 <b>手續費佔 ${feesPct.toFixed(0)}%</b> · 手續費多元化 · 對利率不敏感 · 但受經紀業務景氣影響`;
             else if (investPct >= 30) mixVerdict = `📈 <b>投資收益佔 ${investPct.toFixed(0)}%</b> · 高比例投資部位 · EPS 隨股債市場波動大`;
