@@ -39,9 +39,10 @@ FUNDS = [
     # {"code": "00998A", "name": "復華金融股息", "house": "fhtrust", "etf": "ETF??"},
     {"code": "00981A", "name": "統一台股增長", "house": "ezmoney", "fc": "49YTW"},
     {"code": "00403A", "name": "統一升級50",   "house": "ezmoney", "fc": "63YTW"},
-    # 新監看 (user 提供 URL: https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=61YTW)
-    # ezmoney 擋 WebFetch · 中文名待人工補 · 目前 placeholder
-    {"code": "00988A", "name": "統一 00988A",   "house": "ezmoney", "fc": "61YTW"},
+    # 統一全球創新主動式 ETF · 全球股票（美股為主 · e.g. NVDA / MSFT / AAPL）
+    # 注意：跟其他 3 檔（台股 ETF）標的池不同 · 不參與跨基金共識運算才有意義
+    # 若 PCF 用字母 ticker · STOCK_CODE_RE 會全 filter 掉 · 觀察 CI 結果再決定要不要放寬
+    {"code": "00988A", "name": "統一全球創新",   "house": "ezmoney", "fc": "61YTW"},
 ]
 
 # 台股 stock code regex: 4-6 digits + optional letter suffix
