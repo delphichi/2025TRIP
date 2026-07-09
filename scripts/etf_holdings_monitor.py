@@ -232,15 +232,51 @@ def diff_consensus(today):
         print("(無跨基金共識/分歧訊號)")
 
 
-def write_manifest(today, day_dfs, per_fund_actions, buy, sell):
+def latest_snapshot_of(code):
+    """回傳 (path, date) 或 (None, None)。掃 disk 找該檔最新的 CSV。"""
+    files = sorted(glob.glob(os.path.join(OUTDIR, f"{code}_*.csv")))
+    if not files:
+        return None, None
+    latest = files[-1]
+    date_str = os.path.basename(latest)[len(code) + 1:len(code) + 9]   # {code}_YYYYMMDD.csv
+    try:
+        d = datetime.strptime(date_str, "%Y%m%d").date()
+    except ValueError:
+        return None, None
+    return latest, d
+
+
+def latest_common_date():
+    """回傳「≥2 檔基金都有資料」的最新日期(用來算跨基金共識)。"""
+    per_date = {}
+    for f in FUNDS:
+        for path in glob.glob(os.path.join(OUTDIR, f"{f['code']}_*.csv")):
+            date_str = os.path.basename(path)[len(f["code"]) + 1:len(f["code"]) + 9]
+            per_date.setdefault(date_str, set()).add(f["code"])
+    valid = [d for d, codes in per_date.items() if len(codes) >= 2]
+    if not valid:
+        return None
+    try:
+        return datetime.strptime(max(valid), "%Y%m%d").date()
+    except ValueError:
+        return None
+
+
+def write_manifest(today):
     """
     寫 latest.json manifest 給 browser 用。
+    改進版：每檔用『各自最新的快照』(可能不同天) · 共識用『最新的 ≥2 檔同天日期』。
+    這樣即便復華 7/9 沒發、統一 7/9 發了 · 4 檔都能被 browser 找到自己的最新。
+
     schema:
     {
-      "date": "2026-07-10",
+      "date": "2026-07-10",                    // manifest 產生日
       "generated_at": "2026-07-10T18:35:00+08:00",
+      "consensus_date": "2026-07-08",          // 跨基金共識所用的日期 (可能不是 today)
       "funds": [
-        {"code": "00981A", "name": "統一台股增長", "snapshot": "00981A_20260710.csv",
+        {"code": "00981A", "name": "統一台股增長",
+         "snapshot": "00981A_20260709.csv",
+         "snapshot_date": "2026-07-09",         // 該檔實際的資料日 (可能落後 today)
          "holdings_count": 52, "actions": {...}}
       ],
       "consensus_buy": [{"stock_id": "2330", "name": "台積電", "funds": ["復華未來50", "統一台股增長"]}],
@@ -249,52 +285,84 @@ def write_manifest(today, day_dfs, per_fund_actions, buy, sell):
     }
     """
     os.makedirs(OUTDIR, exist_ok=True)
-    fund_lookup = {f["code"]: f for f in FUNDS}
+
+    # 1. 每檔 fund 找各自最新快照 · 算該檔的 vs 前一天 actions
     funds_data = []
-    for code, df in day_dfs.items():
-        f = fund_lookup.get(code, {})
-        # 找該檔的名稱從 df 拿一支代表股票 (fallback)
+    for f in FUNDS:
+        latest_path, latest_date = latest_snapshot_of(f["code"])
+        if not latest_path:
+            continue   # 該檔沒任何快照
+        df = pd.read_csv(latest_path, dtype={"代號": str}).set_index("代號")
+        # 算該檔的 vs 上個快照的動作
+        prev = prev_snapshot(f["code"], latest_date)
+        actions = {"new": [], "drop": [], "add": [], "reduce": [], "build": []}
+        if prev:
+            prev_df, _ = prev
+            new, drop, chg = diff(df, prev_df)
+            for s, n, w in new:
+                actions["new"].append({"code": s, "name": str(n), "weight": None if pd.isna(w) else float(w)})
+            for s, n, w in drop:
+                actions["drop"].append({"code": s, "name": str(n), "weight": None if pd.isna(w) else float(w)})
+            for s, n, pct, w, build in chg[:8]:
+                if build:
+                    actions["build"].append({"code": s, "name": str(n), "weight": None if pd.isna(w) else float(w)})
+                else:
+                    bucket = "add" if pct > 0 else "reduce"
+                    actions[bucket].append({"code": s, "name": str(n), "pct": float(pct), "weight": None if pd.isna(w) else float(w)})
         funds_data.append({
-            "code": code,
-            "name": f.get("name", code),
-            "snapshot": os.path.basename(snapshot_path(code, today)),
+            "code": f["code"],
+            "name": f["name"],
+            "snapshot": os.path.basename(latest_path),
+            "snapshot_date": latest_date.strftime("%Y-%m-%d"),
             "holdings_count": int(len(df)),
-            "actions": per_fund_actions.get(code, {}),
+            "actions": actions,
         })
 
-    # 共識 / 分歧
-    def to_list(d):
-        return [
-            {"stock_id": s, "funds": sorted(set(v))}
-            for s, v in d.items() if len(set(v)) >= 2
+    # 2. 找最新的「≥2 檔同天」日期算跨基金共識
+    consensus_date = latest_common_date()
+    consensus_buy, consensus_sell, divergence = [], [], []
+    consensus_date_str = None
+    if consensus_date:
+        consensus_date_str = consensus_date.strftime("%Y-%m-%d")
+        _log, buy, sell, _actions = compute_diff_consensus(consensus_date)
+
+        def to_list(d):
+            return [{"stock_id": s, "funds": sorted(set(v))}
+                    for s, v in d.items() if len(set(v)) >= 2]
+        consensus_buy = to_list(buy)
+        consensus_sell = to_list(sell)
+        divergence = [
+            {"stock_id": s, "buy_funds": sorted(set(buy.get(s, []))), "sell_funds": sorted(set(sell.get(s, [])))}
+            for s in set(buy) & set(sell)
         ]
-    consensus_buy = to_list(buy)
-    consensus_sell = to_list(sell)
-    divergence = [
-        {"stock_id": s, "buy_funds": sorted(set(buy.get(s, []))), "sell_funds": sorted(set(sell.get(s, [])))}
-        for s in set(buy) & set(sell)
-    ]
 
-    # 補上 stock name (從當日任一 df 抓)
-    def enrich_name(items):
-        for it in items:
-            sid = it["stock_id"]
-            for df in day_dfs.values():
-                if sid in df.index:
-                    nm = df.loc[sid, "名稱"]
-                    if pd.notna(nm):
-                        it["name"] = str(nm)
-                        break
-            it.setdefault("name", sid)
-        return items
+        # 補股票名稱 · 從當日 any fund 抓
+        day_dfs = {}
+        for f in FUNDS:
+            csv = snapshot_path(f["code"], consensus_date)
+            if os.path.exists(csv):
+                day_dfs[f["code"]] = pd.read_csv(csv, dtype={"代號": str}).set_index("代號")
 
-    enrich_name(consensus_buy)
-    enrich_name(consensus_sell)
-    enrich_name(divergence)
+        def enrich_name(items):
+            for it in items:
+                sid = it["stock_id"]
+                for df in day_dfs.values():
+                    if sid in df.index:
+                        nm = df.loc[sid, "名稱"]
+                        if pd.notna(nm):
+                            it["name"] = str(nm)
+                            break
+                it.setdefault("name", sid)
+            return items
+
+        enrich_name(consensus_buy)
+        enrich_name(consensus_sell)
+        enrich_name(divergence)
 
     manifest = {
         "date": today.strftime("%Y-%m-%d"),
         "generated_at": datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds"),
+        "consensus_date": consensus_date_str,
         "funds": funds_data,
         "consensus_buy": consensus_buy,
         "consensus_sell": consensus_sell,
@@ -302,7 +370,7 @@ def write_manifest(today, day_dfs, per_fund_actions, buy, sell):
     }
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
-    print(f"\n📝 寫入 {MANIFEST_PATH}: {len(funds_data)} 檔 / 共識買 {len(consensus_buy)} / 共識賣 {len(consensus_sell)} / 分歧 {len(divergence)}")
+    print(f"\n📝 寫入 {MANIFEST_PATH}: {len(funds_data)} 檔（各自最新快照）· 共識日期 {consensus_date_str or '無'} · 買 {len(consensus_buy)} / 賣 {len(consensus_sell)} / 分歧 {len(divergence)}")
 
 
 def week_report():
@@ -351,11 +419,8 @@ def main():
             if got:
                 last_day_dfs = (d, got)
         week_report()
-        # 用最後一個有資料的日期寫 manifest
-        if last_day_dfs:
-            d, dfs = last_day_dfs
-            _log, buy, sell, actions = compute_diff_consensus(d)
-            write_manifest(d, dfs, actions, buy, sell)
+        # write_manifest 自己會從 disk 找每檔各自的最新快照 · 不再需要傳 dfs
+        write_manifest(date.today())
         return
 
     today = parse_env_date(os.environ.get("ETF_DATE", "").strip()) or date.today()
@@ -381,7 +446,7 @@ def main():
         print("(無跨基金共識/分歧訊號)")
     print()
     cross_fund(day_dfs)
-    write_manifest(today, day_dfs, actions, buy, sell)
+    write_manifest(today)
 
 
 if __name__ == "__main__":

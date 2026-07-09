@@ -2550,3 +2550,15 @@ textarea {
     .consensus-item { grid-template-columns: 50px 1fr; }
     .consensus-funds { grid-column: 1 / -1; }
 }
+
+.holdings-stale {
+    font-size: 0.72em;
+    color: #92400e;
+    background: #fef3c7;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 8px;
+    display: inline-block;
+    vertical-align: middle;
+}

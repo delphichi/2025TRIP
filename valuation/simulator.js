@@ -2170,8 +2170,14 @@
         let consensusPanelHtml = '';
         if (activeHoldings) {
             if (activeHoldings.available && activeHoldings.holdings && activeHoldings.holdings.length > 0) {
-                const snapshotDate = activeHoldings.manifest?.date || '—';
+                // 每檔 fund 各有自己的 snapshot_date（新版 manifest）· 落後 today 也 OK · fallback 到 manifest.date
+                const snapshotDate = activeHoldings.fund?.snapshot_date || activeHoldings.manifest?.date || '—';
                 const generatedAt = activeHoldings.manifest?.generated_at || '';
+                const manifestDate = activeHoldings.manifest?.date;
+                // 若快照日期跟 manifest 產生日不同 · 秀警告 · 讓使用者知道資料可能落後
+                const staleWarn = manifestDate && snapshotDate !== manifestDate
+                    ? `<span class="holdings-stale">⚠️ 快照 ${snapshotDate} · manifest ${manifestDate}（該投信尚未發布最新 PCF）</span>`
+                    : '';
                 const holdingsCount = activeHoldings.fund?.holdings_count || activeHoldings.holdings.length;
                 const top10 = activeHoldings.holdings.slice(0, 10);
                 const top10WeightSum = top10.reduce((s, h) => s + h.weight, 0);
@@ -2198,7 +2204,7 @@
                     : '<p class="hint hint-mini">📊 vs 前一日無變化（或還沒累積 2 個快照）</p>';
 
                 holdingsPanelHtml = `
-                    <h3>📦 經理人持股 Top 10 · <span class="holdings-freshness">${snapshotDate}</span></h3>
+                    <h3>📦 經理人持股 Top 10 · <span class="holdings-freshness">${snapshotDate}</span> ${staleWarn}</h3>
                     <div class="holdings-summary">
                         <span>總持股：<b>${holdingsCount}</b> 檔</span>
                         <span>Top 10 集中度：<b>${top10WeightSum.toFixed(1)}%</b></span>
@@ -2247,9 +2253,10 @@
                         <span class="consensus-funds">買：${(c.buy_funds || []).join(',')} · 砍：${(c.sell_funds || []).join(',')}</span>
                     </div>
                 `).join('');
+                const consDate = manifest.consensus_date || manifest.date;
                 consensusPanelHtml = `
-                    <h3>🔥 跨基金共識 · <span class="holdings-freshness">${manifest.date}</span></h3>
-                    <p class="hint hint-mini" style="margin-bottom:10px">💡 監看 <b>${manifest.funds?.length || 0} 檔主動 ETF</b> · ≥ 2 檔同向 = 共識（法人共同看法）· 一買一砍 = 分歧（有爭議）</p>
+                    <h3>🔥 跨基金共識 · <span class="holdings-freshness">${consDate}</span></h3>
+                    <p class="hint hint-mini" style="margin-bottom:10px">💡 監看 <b>${manifest.funds?.length || 0} 檔主動 ETF</b> · ≥ 2 檔同向 = 共識（法人共同看法）· 一買一砍 = 分歧（有爭議）· 用「當日 ≥ 2 檔都有 PCF 的日期」算</p>
                     ${buyItems || sellItems || divItems ? `<div class="consensus-grid">${buyItems}${sellItems}${divItems}</div>` : '<p class="hint">📊 今日無跨基金共識或分歧訊號</p>'}
                 `;
             }
