@@ -579,13 +579,15 @@
         setStatus('loading', `📡 ${ticker} 是 ETF · 抓專屬資料中……`);
         const startDate = todayMinusYears(Math.min(years, 3));   // ETF 只需近 3 年 · 太久沒意義
         const endDate = todayStr();
-        const [priceData, dividendData, institutional, holdingSharesPer, marginData, activeHoldings] = await Promise.all([
+        const [priceData, dividendData, institutional, holdingSharesPer, marginData, activeHoldings, dividendResult] = await Promise.all([
             finMindFetch('TaiwanStockPrice', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockDividend', ticker, todayMinusYears(5), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockInstitutionalInvestorsBuySell', ticker, todayMinusYears(0.5), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockHoldingSharesPer', ticker, todayMinusYears(2), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockMarginPurchaseShortSale', ticker, todayMinusYears(0.5), endDate, token).catch(() => []),
             fetchEtfHoldings(ticker),   // 只有 monitored ETF 才有 · null / {available:false} 都可以
+            // Tier A · 除息填息（ETF 常配息 · 這是主用）
+            finMindFetch('TaiwanStockDividendResult', ticker, todayMinusYears(3), endDate, token).catch(() => []),
         ]);
 
         const info = (prefetchedInfo && prefetchedInfo.length > 0) ? prefetchedInfo[prefetchedInfo.length - 1] : {};
@@ -828,6 +830,8 @@
             margin: { marginSeries, marginLast, margin60dChange, shortMarginRatio },
             // 主動 ETF 持股 · null 或 {available:false} 都可以（前端優雅降級）
             activeHoldings,
+            // Tier A · 除息填息（cross-ref priceData）
+            dividendResults: enrichDividendResults(dividendResult, priceData),
         };
     }
 
@@ -853,13 +857,16 @@
         // 平行抓：PER 歷史 + 股價 + 公司資訊 + 財報成長性 + 現金流 + 法人買賣超
         // 股價改抓 startDate（full 歷史）· 為了月度熱區用 · 之前只抓 0.05 年只夠顯示現價
         //   FinMind quota 一次 call 幾百 rows 不成本問題 · TaiwanStockPrice 也沒收費限制
-        const [perData, priceData, infoData, fundamentals, cashFlow, institutional] = await Promise.all([
+        const [perData, priceData, infoData, fundamentals, cashFlow, institutional, dividendResult, capitalReduction] = await Promise.all([
             finMindFetch('TaiwanStockPER', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockPrice', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []),
             fetchFinMindFundamentals(ticker, token),
             fetchFinMindCashFlow(ticker, token),
             fetchInstitutionalTW(ticker, token),
+            // Tier A 新增：除息填息 · 減資
+            finMindFetch('TaiwanStockDividendResult', ticker, todayMinusYears(5), endDate, token).catch(() => []),
+            finMindFetch('TaiwanStockCapitalReductionReferencePrice', ticker, todayMinusYears(10), endDate, token).catch(() => []),
         ]);
 
         if (!perData || perData.length === 0) throw new Error(`FinMind 找不到 ${ticker} 的 PER/PBR 資料（可能是新股或未收）`);
@@ -917,6 +924,10 @@
             dividendYield: (latest.dividend_yield !== undefined) ? latest.dividend_yield : null,
             // 月度熱區用 · 統一格式 [{date, close}] · sorted asc
             priceSeries: (priceData || []).map(p => ({ date: p.date, close: p.close })).filter(p => p.close > 0),
+            // Tier A · 除息填息事件（enriched with 填息天數）
+            dividendResults: enrichDividendResults(dividendResult, priceData),
+            // Tier A · 減資紀錄
+            capitalReductions: capitalReduction || [],
         };
     }
 
@@ -2299,10 +2310,16 @@
             </div>
         `;
 
+        // Tier A · 填息追蹤（用 dividendResults · 對配息 ETF 是主用）
+        let fillPanelHtml = '';
+        try { fillPanelHtml = renderDividendResultHtml(etf); }
+        catch (e) { console.warn('renderDividendResultHtml (etf) failed:', e.message); }
+
         etfContainer.innerHTML = headerHtml
             + technicalPanelHtml
             + riskPanelHtml
             + dividendPanelHtml
+            + fillPanelHtml
             + instPanelHtml
             + marginPanelHtml
             + chipPanelHtml
@@ -2848,6 +2865,12 @@
         let priceHeatmapHtml = '';
         try { priceHeatmapHtml = renderPriceHeatmapHtml(analysis); }
         catch (e) { console.warn('renderPriceHeatmapHtml failed:', e.message); }
+        // Tier A · 除息填息 · 減資紀錄（TW-only · 用 FinMind DividendResult + CapitalReduction）
+        let dividendResultHtml = '', capitalReductionHtml = '';
+        try { dividendResultHtml = renderDividendResultHtml(analysis); }
+        catch (e) { console.warn('renderDividendResultHtml failed:', e.message); }
+        try { capitalReductionHtml = renderCapitalReductionHtml(analysis); }
+        catch (e) { console.warn('renderCapitalReductionHtml failed:', e.message); }
         // Step 3 · 外資訊號警報 · try/catch 保護
         let foreignSignalHtml = '';
         try { foreignSignalHtml = renderForeignSignalHtml(analysis.institutional); }
@@ -2859,7 +2882,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -3875,6 +3898,128 @@
                     </thead>
                     <tbody>${txnRows}</tbody>
                 </table>
+            </section>
+        `;
+    }
+
+    // ---------- Tier A · 除權除息結果 · 填息追蹤 ----------
+    // FinMind TaiwanStockDividendResult 有除息當日 before_price / after_price / reference_price
+    // 我們在此 cross-reference priceData 算「填息天數」——除息後 N 天回到 before_price
+    //   完全填息 = close >= before_price
+    //   若 90 天內未填 · 標「未填 · 貼息」
+    function enrichDividendResults(events, priceData) {
+        if (!Array.isArray(events) || events.length === 0) return [];
+        if (!priceData || priceData.length === 0) return events;
+        // Build price lookup for fast date query
+        const priceByDate = new Map(priceData.map(p => [p.date, p.close]));
+        const sortedDates = priceData.map(p => p.date).sort();
+        return events.map(e => {
+            const exDate = e.date;
+            const before = e.before_price;
+            if (!before || before <= 0) return { ...e, fillDays: null, filled: false };
+            // 找除息日在 priceData 中的 index
+            const startIdx = sortedDates.findIndex(d => d > exDate);
+            if (startIdx === -1) return { ...e, fillDays: null, filled: false, note: '尚未除息 or 資料不足' };
+            let fillDays = null, filled = false;
+            for (let i = startIdx; i < sortedDates.length && i < startIdx + 90; i++) {
+                const close = priceByDate.get(sortedDates[i]);
+                if (close && close >= before) {
+                    fillDays = i - startIdx + 1;
+                    filled = true;
+                    break;
+                }
+            }
+            return { ...e, fillDays, filled };
+        });
+    }
+
+    // Render 除息填息 panel · 表格式 · 顯示 fill率 + 中位數天數
+    function renderDividendResultHtml(analysis) {
+        const events = analysis.dividendResults;
+        if (!Array.isArray(events) || events.length === 0) return '';
+        const withFill = events.filter(e => e.fillDays !== null);
+        const filled = events.filter(e => e.filled);
+        const fillRate = events.length > 0 ? (filled.length / events.length * 100) : null;
+        const medianDays = withFill.length > 0
+            ? withFill.slice().sort((a, b) => a.fillDays - b.fillDays)[Math.floor(withFill.length / 2)].fillDays
+            : null;
+        // insight: 填息率高（>80%）= 品質配息（不貼息）· 低（<50%）= 貼息警訊
+        let insight = '';
+        if (fillRate !== null) {
+            if (fillRate >= 80) insight = `<div class="divergence-banner divergence-good">✅ 高填息率 ${fillRate.toFixed(0)}% · 中位填息 ${medianDays !== null ? medianDays + ' 天' : '—'} · 配息品質好 · 不貼息</div>`;
+            else if (fillRate < 50) insight = `<div class="divergence-banner divergence-warn">⚠️ 填息率僅 ${fillRate.toFixed(0)}% · 有貼息傾向 · 配息可能是「賺股利賠價差」</div>`;
+            else insight = `<div class="divergence-banner divergence-ok">📊 填息率 ${fillRate.toFixed(0)}% · 中位填息 ${medianDays !== null ? medianDays + ' 天' : '—'}</div>`;
+        }
+        const rows = events.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 12).map(e => {
+            const before = e.before_price;
+            const after = e.after_price;
+            const dropPct = (before && after) ? ((after - before) / before * 100).toFixed(2) + '%' : '—';
+            const fillCell = e.fillDays !== null
+                ? `<span class="${e.filled ? 'yoy-pos' : 'yoy-neg'}">${e.filled ? '✅ ' + e.fillDays + ' 天' : '❌ 未填'}</span>`
+                : '—';
+            return `<tr>
+                <td>${e.date || '—'}</td>
+                <td class="num-cell">$${(before || 0).toFixed(2)}</td>
+                <td class="num-cell">$${(after || 0).toFixed(2)}</td>
+                <td>${dropPct}</td>
+                <td class="num-cell">${(e.stock_and_cache_dividend || 0).toFixed(2)}</td>
+                <td>${e.stock_or_cache_dividend || '—'}</td>
+                <td>${fillCell}</td>
+            </tr>`;
+        }).join('');
+        return `
+            <section class="panel dividend-result-panel">
+                <h3>💰 除息填息追蹤（近 5 年 · ${events.length} 次事件）</h3>
+                <p class="hint">
+                    除息當日：<b>before_price</b> = 前一日收盤 · <b>after_price</b> = 除息參考價（已扣股利）· 跌幅約 = 配息金額 / 前日價
+                    · <b>填息</b> = 除息後在 90 天內 close 回到 before_price · 沒回 = 貼息（賺股利賠價差）
+                    <span class="hint-mini">FinMind <code>TaiwanStockDividendResult</code> × 你剛抓的 daily close 交叉算出來</span>
+                </p>
+                ${insight}
+                <div class="table-scroll">
+                    <table class="result-table">
+                        <thead><tr><th>除息日</th><th>除息前</th><th>除息後</th><th>跌幅</th><th>股利</th><th>種類</th><th>填息</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </section>
+        `;
+    }
+
+    // Render 減資紀錄 panel · 表格 + 減資次數警戒
+    function renderCapitalReductionHtml(analysis) {
+        const events = analysis.capitalReductions;
+        if (!Array.isArray(events) || events.length === 0) return '';
+        // 過去 10 年減資 ≥ 3 次 = 頻繁減資（股東可能不斷被稀釋）· 資本效率警訊
+        let insight = '';
+        if (events.length >= 3) {
+            insight = `<div class="divergence-banner divergence-warn">⚠️ 過去 10 年減資 <b>${events.length}</b> 次 · 頻繁減資 · 股東不斷被稀釋 · 資本效率警訊</div>`;
+        } else if (events.length >= 1) {
+            insight = `<div class="divergence-banner divergence-ok">📊 過去 10 年減資 ${events.length} 次 · 尚屬正常</div>`;
+        }
+        const rows = events.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(e => `
+            <tr>
+                <td>${e.date || '—'}</td>
+                <td class="num-cell">$${(e.ClosingPriceonTheLastTradingDay || 0).toFixed(2)}</td>
+                <td class="num-cell">$${(e.PostReductionReferencePrice || 0).toFixed(2)}</td>
+                <td>${e.ReasonforCapitalReduction || '—'}</td>
+            </tr>
+        `).join('');
+        return `
+            <section class="panel capital-reduction-panel">
+                <h3>📉 減資紀錄（近 10 年）</h3>
+                <p class="hint">
+                    減資 = 公司退還股本給股東 · 常見原因：<b>Cash refund</b>（現金退還）· <b>Loss compensation</b>（彌補虧損）。
+                    後者是<b>警訊</b>——公司賠錢用股本填坑 · 股東實質資本被損耗。
+                    <span class="hint-mini">FinMind <code>TaiwanStockCapitalReductionReferencePrice</code></span>
+                </p>
+                ${insight}
+                <div class="table-scroll">
+                    <table class="result-table">
+                        <thead><tr><th>減資日</th><th>減資前收盤</th><th>減資後參考價</th><th>原因</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
             </section>
         `;
     }
