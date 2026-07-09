@@ -851,9 +851,11 @@
             return { __isEtf: true, etf: etfData };
         }
         // 平行抓：PER 歷史 + 股價 + 公司資訊 + 財報成長性 + 現金流 + 法人買賣超
+        // 股價改抓 startDate（full 歷史）· 為了月度熱區用 · 之前只抓 0.05 年只夠顯示現價
+        //   FinMind quota 一次 call 幾百 rows 不成本問題 · TaiwanStockPrice 也沒收費限制
         const [perData, priceData, infoData, fundamentals, cashFlow, institutional] = await Promise.all([
             finMindFetch('TaiwanStockPER', ticker, startDate, endDate, token),
-            finMindFetch('TaiwanStockPrice', ticker, todayMinusYears(0.05), endDate, token),
+            finMindFetch('TaiwanStockPrice', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []),
             fetchFinMindFundamentals(ticker, token),
             fetchFinMindCashFlow(ticker, token),
@@ -913,6 +915,8 @@
             roe: fundamentals?.roe ?? null,
             roeBreakdown: fundamentals?.roeBreakdown || null,
             dividendYield: (latest.dividend_yield !== undefined) ? latest.dividend_yield : null,
+            // 月度熱區用 · 統一格式 [{date, close}] · sorted asc
+            priceSeries: (priceData || []).map(p => ({ date: p.date, close: p.close })).filter(p => p.close > 0),
         };
     }
 
@@ -974,8 +978,10 @@
             label('insider',        fetchFmpInsiderTrading(ticker, apiKey)),
             label('dividends',      fetchFmpDividends(ticker, apiKey)),
             label('inst-own',       fetchFmpInstitutionalOwnership(ticker, apiKey)),
+            // 月度熱區用：daily EOD light（只有 date + close · 便宜）
+            label('historical',     fmpFetch(`/historical-price-eod/light?symbol=${ticker}`, apiKey)),
         ]);
-        const [quoteR, profileR, ratiosR, fundR, cfR, bsR, insiderR, divR, instOwnR] = results;
+        const [quoteR, profileR, ratiosR, fundR, cfR, bsR, insiderR, divR, instOwnR, histR] = results;
         const failed = results.filter(r => !r.ok);
 
         // 生成 402 專用建議：試 GOOG↔GOOGL / TSLA↔TSLA / BRK.A↔BRK.B 這類 dual-class
@@ -1087,6 +1093,12 @@
             }
         } catch (_) {}
 
+        // 月度熱區用 · FMP historical 回 [{date, close, ...}] · 排序 asc（他們預設是 desc）
+        // 若 endpoint 掛（402/error）· priceSeries 為空 · 熱區 render 時會 fallback「資料不足」
+        const priceSeries = (histR.ok && Array.isArray(histR.value))
+            ? histR.value.map(p => ({ date: p.date, close: p.close })).filter(p => p.close > 0).sort((a, b) => a.date.localeCompare(b.date))
+            : [];
+
         return {
             ticker,
             name: p.companyName || q.name || ticker,
@@ -1102,6 +1114,7 @@
             cashFlow,
             institutional: null,
             fmpEndpointStatus: optionalStatus,
+            priceSeries,
         };
     }
 
@@ -2831,6 +2844,10 @@
         let heatmapHtml = '';
         try { heatmapHtml = renderMonthlyHeatmapHtml(analysis.fundamentals); }
         catch (e) { console.warn('renderMonthlyHeatmapHtml failed:', e.message); }
+        // 股價月度熱區（TW + US 通用 · 用 priceSeries · 看週期規律）
+        let priceHeatmapHtml = '';
+        try { priceHeatmapHtml = renderPriceHeatmapHtml(analysis); }
+        catch (e) { console.warn('renderPriceHeatmapHtml failed:', e.message); }
         // Step 3 · 外資訊號警報 · try/catch 保護
         let foreignSignalHtml = '';
         try { foreignSignalHtml = renderForeignSignalHtml(analysis.institutional); }
@@ -2842,7 +2859,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -4266,6 +4283,154 @@
                 <div class="seasonality-grid">
                     ${renderBarChart('💰 各季營收 YoY', groupsRev, -revRange, revRange, 4, '%', true)}
                     ${renderBarChart('📈 各季毛利率（絕對值）', groupsGM, gmYMin, gmYMax, 4, '%', false)}
+                </div>
+            </section>
+        `;
+    }
+
+    // 股價月度熱區（TW + US 通用 · 用 priceSeries 算月報酬 · 看週期規律）
+    //   每格 = 該月首日收盤 → 末日收盤的 % 報酬（假設月初買 · 月底賣）
+    //   底部 row = 跨年平均月報酬 · 指認「本命月 / 弱勢月」+ 勝率
+    // 為什麼看月報酬而非累積：月報酬去除 baseline drift · 純看「該月」的貢獻
+    function renderPriceHeatmapHtml(analysis) {
+        const series = analysis.priceSeries || [];
+        if (series.length < 24 * 20) return '';   // 少於 ~2 年 daily 樣本 · 沒意義
+
+        // Group by year-month · 抓每月首、末收盤
+        const monthly = new Map();   // key 'YYYY-MM' → {first, last}
+        series.forEach(d => {
+            const ym = (d.date || '').slice(0, 7);
+            if (!ym) return;
+            if (!monthly.has(ym)) monthly.set(ym, { first: d.close, last: d.close });
+            else monthly.get(ym).last = d.close;
+        });
+        // 只保留完整月份（跳過只有一天的月份 · e.g. 資料開始月 or 當前月）
+        const returns = new Map();   // key 'YYYY-MM' → 報酬 % （小數）
+        monthly.forEach((v, ym) => {
+            if (v.first > 0 && v.last > 0) returns.set(ym, v.last / v.first - 1);
+        });
+
+        // 拿年份清單 · 剔除只有 1-2 個月的年份（e.g. 資料開始年 / 當前年 · 樣本太少會誤讀）
+        const yearMonths = new Map();
+        returns.forEach((_, ym) => {
+            const y = ym.slice(0, 4);
+            yearMonths.set(y, (yearMonths.get(y) || 0) + 1);
+        });
+        const years = [...yearMonths.entries()]
+            .filter(([, count]) => count >= 6)   // 至少半年才納入
+            .map(([y]) => y)
+            .sort();
+        if (years.length < 2) return '';
+
+        const months = [1,2,3,4,5,6,7,8,9,10,11,12];
+
+        // 色階：以資料集最大絕對月報酬為基準
+        const vals = [...returns.values()];
+        const maxAbs = Math.max(0.05, Math.max(...vals.map(Math.abs)));
+        const colorFor = r => {
+            if (r === undefined || r === null) return '#f1f5f9';
+            const norm = Math.max(-1, Math.min(1, r / maxAbs));
+            const alpha = 0.15 + Math.abs(norm) * 0.75;
+            return norm >= 0
+                ? `rgba(22, 163, 74, ${alpha})`
+                : `rgba(220, 38, 38, ${alpha})`;
+        };
+        const textColor = r => {
+            if (r === undefined || r === null) return '#94a3b8';
+            return Math.abs(r) > maxAbs * 0.5 ? '#fff' : '#334155';
+        };
+
+        // 每年一列
+        let rowsHtml = '';
+        years.forEach(y => {
+            let cells = '';
+            let yearTotal = null, yearProduct = 1, yearN = 0;
+            months.forEach(m => {
+                const key = `${y}-${String(m).padStart(2, '0')}`;
+                const r = returns.get(key);
+                if (r === undefined) {
+                    cells += `<td class="heatmap-cell heatmap-empty">—</td>`;
+                } else {
+                    yearProduct *= (1 + r);
+                    yearN++;
+                    const pctStr = (r > 0 ? '+' : '') + (r * 100).toFixed(1) + '%';
+                    const bg = colorFor(r);
+                    const fg = textColor(r);
+                    const title = `${key} · 月報酬 ${pctStr}`;
+                    cells += `<td class="heatmap-cell" style="background:${bg};color:${fg}" title="${title}">${pctStr}</td>`;
+                }
+            });
+            const yearRet = yearN > 0 ? (yearProduct - 1) : null;
+            const yrStr = yearRet === null ? '—' : (yearRet > 0 ? '+' : '') + (yearRet * 100).toFixed(0) + '%';
+            const yrCls = yearRet === null ? '' : yearRet > 0 ? 'yoy-pos' : 'yoy-neg';
+            rowsHtml += `<tr><td class="heatmap-year">${y}</td>${cells}<td class="heatmap-year ${yrCls}" title="該年累計">${yrStr}</td></tr>`;
+        });
+
+        // 每月跨年平均 + 勝率
+        const monthStats = months.map(m => {
+            const rs = years.map(y => returns.get(`${y}-${String(m).padStart(2, '0')}`)).filter(v => v !== undefined);
+            if (rs.length === 0) return { avg: null, winRate: null, n: 0 };
+            const avg = rs.reduce((a, b) => a + b, 0) / rs.length;
+            const wins = rs.filter(v => v > 0).length;
+            return { avg, winRate: wins / rs.length, n: rs.length };
+        });
+
+        // 找本命月 / 弱勢月 · 需要跨年平均差 > 3% 才有意義
+        let bestIdx = -1, worstIdx = -1;
+        monthStats.forEach((s, i) => {
+            if (s.avg !== null) {
+                if (bestIdx === -1 || s.avg > monthStats[bestIdx].avg) bestIdx = i;
+                if (worstIdx === -1 || s.avg < monthStats[worstIdx].avg) worstIdx = i;
+            }
+        });
+        let insight = '';
+        if (bestIdx >= 0 && worstIdx >= 0 && bestIdx !== worstIdx) {
+            const bestAvg = monthStats[bestIdx].avg * 100;
+            const worstAvg = monthStats[worstIdx].avg * 100;
+            const gap = bestAvg - worstAvg;
+            const bestWin = (monthStats[bestIdx].winRate * 100).toFixed(0);
+            const worstWin = (monthStats[worstIdx].winRate * 100).toFixed(0);
+            if (gap > 3) {
+                insight = `🎯 <b>${bestIdx + 1} 月最強</b>（跨年平均 ${bestAvg > 0 ? '+' : ''}${bestAvg.toFixed(1)}% · 勝率 ${bestWin}%）· <b>${worstIdx + 1} 月最弱</b>（平均 ${worstAvg.toFixed(1)}% · 勝率 ${worstWin}%）· 月度差 ${gap.toFixed(1)}pp · 有明顯股價季節性`;
+            } else {
+                insight = `📊 各月平均差距僅 ${gap.toFixed(1)}pp · <b>股價沒明顯月度週期</b>（漲跌均勻分布）· 無法靠月份時機`;
+            }
+        }
+
+        // 底部 rows：平均月報酬 + 勝率
+        const avgRow = monthStats.map(s => {
+            if (s.avg === null) return '<td class="heatmap-cell heatmap-empty">—</td>';
+            const str = (s.avg > 0 ? '+' : '') + (s.avg * 100).toFixed(1) + '%';
+            const bg = colorFor(s.avg);
+            const fg = textColor(s.avg);
+            return `<td class="heatmap-cell heatmap-avg" style="background:${bg};color:${fg}" title="樣本 ${s.n} 年">${str}</td>`;
+        }).join('');
+        const winRow = monthStats.map(s => {
+            if (s.winRate === null) return '<td class="heatmap-cell heatmap-empty">—</td>';
+            const pct = s.winRate * 100;
+            const bg = pct >= 66 ? 'rgba(22,163,74,0.4)' : pct >= 55 ? 'rgba(22,163,74,0.2)' : pct <= 34 ? 'rgba(220,38,38,0.4)' : pct <= 45 ? 'rgba(220,38,38,0.2)' : '#f9fafb';
+            return `<td class="heatmap-cell heatmap-avg" style="background:${bg};color:#334155">${pct.toFixed(0)}%</td>`;
+        }).join('');
+
+        return `
+            <section class="panel heatmap-panel">
+                <h3>📈 股價月度熱區（近 ${years.length} 年月報酬）</h3>
+                <p class="hint">
+                    每格 = 該月首日買 → 末日賣的收盤報酬 %。<span style="background:rgba(22,163,74,0.7);color:#fff;padding:1px 6px;border-radius:3px">綠</span>深 = 該月上漲越猛 ·
+                    <span style="background:rgba(220,38,38,0.7);color:#fff;padding:1px 6px;border-radius:3px">紅</span>深 = 該月跌越兇。滑鼠停格看細節。<b>跨年平均</b>看「這股票哪個月固定強、哪個月常掉」· <b>勝率</b> = 該月上漲的年份 % · &gt; 66% 深綠 = 高機率上漲。
+                </p>
+                ${insight ? `<div class="heatmap-insight">${insight}</div>` : ''}
+                <div class="heatmap-scroll">
+                    <table class="monthly-heatmap">
+                        <thead>
+                            <tr><th></th>${months.map(m => `<th>${m}月</th>`).join('')}<th>全年</th></tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                        <tfoot>
+                            <tr><td class="heatmap-year">跨年月報酬</td>${avgRow}<td></td></tr>
+                            <tr><td class="heatmap-year">跨年勝率</td>${winRow}<td></td></tr>
+                        </tfoot>
+                    </table>
                 </div>
             </section>
         `;
