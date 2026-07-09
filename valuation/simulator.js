@@ -1731,19 +1731,23 @@
 
         $('result-panel').hidden = false;
         $('result-ticker').textContent = `${ticker} · ${stockName} · ETF`;
-        $('result-price').textContent = price !== null ? '$' + fmt(price, 2) : '—';
-        // 個股 UI 的 PE/PBR/Fwd cell 就顯示 「—」+ 說明
-        const pe = $('result-pe'); if (pe) pe.textContent = '—';
-        const pbr = $('result-pbr'); if (pbr) pbr.textContent = '—';
-        const fwd = $('result-cell-fwd-pe'); if (fwd) fwd.style.display = 'none';
 
-        // 隱藏所有個股專屬 panel · 只留 header
+        // 個股 UI 隱藏（PE/PBR 佔位 · verdict · 兩張 histogram · detail-box）
+        //   用 querySelectorAll 一次幹掉——不改 HTML · 個股模式下 renderResult 會 explicit 重新顯示
+        //   注意：不能整個 result-panel children 掃 hidden · 因為 ETF panel 是 result-panel 的 child · 會被誤傷
+        const panel = $('result-panel');
+        panel.querySelectorAll('.result-grid, .sample-warn, .verdict-box, .chart-block, .detail-box').forEach(el => {
+            el.hidden = true;
+            el.style.display = 'none';   // 有些用 style.display 顯示 · hidden 沒用 · 雙保險
+        });
+
+        // 隱藏所有個股專屬 panel · 只留 ETF panel
         const hidePanels = ['fund-panel', 'monthly-metrics-panel', 'trajectory-panel', 'seasonality-panel',
                             'heatmap-panel', 'foreign-signal-panel', 'inst-panel', 'margin-panel',
                             'dividend-panel', 'insider-panel', 'inst-own-panel', 'table-panel',
                             'mismatch-panel', 'radar-panel', 'growth-radar-panel', 'cf-panel',
                             'drilldown-panel', 'balance-sheet-panel', 'fmp-status-panel',
-                            'peer-panel', 'adr-panel'];
+                            'peer-panel', 'adr-panel', 'macro-panel'];
         hidePanels.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
 
         // 拿或建 ETF panel container
@@ -2051,6 +2055,16 @@
         const { ticker, name, price, currentPE, currentPBR, history, latestRatioDate, sector } = analysis;
 
         $('result-panel').hidden = false;
+        // 若上一次是 ETF 模式 · 個股元素被 hidden+display:none · 這裡先復原
+        //   （個股 UI 才是預設狀態 · 每次 renderResult 都主動 restore 一遍安全）
+        const resultPanel = $('result-panel');
+        resultPanel.querySelectorAll('.result-grid, .sample-warn, .verdict-box, .chart-block, .detail-box').forEach(el => {
+            el.hidden = false;
+            el.style.display = '';
+        });
+        // 隱藏 ETF panel（若上次是 ETF 模式）
+        const etfEl = document.getElementById('etf-panel');
+        if (etfEl) etfEl.hidden = true;
         $('result-ticker').textContent = `${ticker}${name && name !== ticker ? ' · ' + name : ''}${sector ? ' · ' + sector : ''}`;
         $('result-price').textContent = price !== null ? '$' + fmt(price, 2) : '—';
         $('result-pe').textContent = currentPE !== null && isFinite(currentPE) ? fmt(currentPE, 1) : '—';
@@ -5366,12 +5380,20 @@
                 stockPromise = fetchStockData(ticker, fmpKey, years);
             }
 
-            // 平行抓總體 / 匯率 / 融資 + 股利 + ADR counterpart + Yahoo quote（都 optional）
+            // 先 await stockPromise · 判 ETF 早退——避免 ETF 情況下跑一堆用不到的 fetch（buyback / fx / margin）
+            // 雖然多 1 RTT 但個股情況下差異不到 500ms · 對 ETF 情況換來 console 乾淨值得
+            const stockPreview = await stockPromise;
+            if (stockPreview && stockPreview.__isEtf) {
+                renderEtf(stockPreview.etf);
+                setStatus('success', `✅ ${stockPreview.etf.stockName} (${stockPreview.etf.ticker}) · ETF 分析`);
+                return;
+            }
+
+            // 平行抓總體 / 匯率 / 融資 + 股利 + ADR counterpart + Yahoo quote（都 optional · 只個股才需要）
             // VIX 從 macro.vix（FRED VIXCLS）拿，FMP 只當 fallback
             // ADR counterpart：查 US 股時若命中 ADR_MAP、順便抓對應台股價（例：TSM → 2330）
             // Yahoo quote：只對美股抓 · 補 Forward PE + 短興趣
-            const [data, macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote, peersComparison, twDivHist, twBuyback] = await Promise.all([
-                stockPromise,
+            const [macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote, peersComparison, twDivHist, twBuyback] = await Promise.all([
                 fetchMacroFred(fredKey),
                 fetchForexUsdTwd(fmpKey),
                 fetchVixHistoryFmp(fmpKey),
@@ -5383,13 +5405,7 @@
                 (isFinmind && finmindToken) ? fetchTwDividendHistory(ticker, finmindToken) : Promise.resolve(null),
                 (isFinmind && finmindToken) ? fetchTwBuyback(ticker, finmindToken) : Promise.resolve(null),
             ]);
-
-            // ETF 分支：走 renderEtf · 不吃 macro / marginTW / peers
-            if (data && data.__isEtf) {
-                renderEtf(data.etf);
-                setStatus('success', `✅ ${data.etf.stockName} (${data.etf.ticker}) · ETF 分析`);
-                return;
-            }
+            const data = stockPreview;
 
             // VIX 優先 FRED（免額度、更穩定）→ 失敗 fallback FMP
             const vix = (macro && macro.vix && macro.vix.length) ? macro.vix : vixFmpFallback;
