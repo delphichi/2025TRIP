@@ -1,0 +1,130 @@
+{
+  "date": "2026-07-09",
+  "generated_at": "2026-07-09T09:29:35+08:00",
+  "consensus_date": "2026-07-09",
+  "funds": [
+    {
+      "code": "00991A",
+      "name": "復華未來50",
+      "snapshot": "00991A_20260708.csv",
+      "snapshot_date": "2026-07-08",
+      "holdings_count": 50,
+      "actions": {
+        "new": [],
+        "drop": [],
+        "add": [
+          {
+            "code": "3026",
+            "name": "禾伸堂企",
+            "pct": 100.0,
+            "weight": 2.326
+          },
+          {
+            "code": "2059",
+            "name": "川湖科技",
+            "pct": 6.451612903225806,
+            "weight": 3.622
+          },
+          {
+            "code": "2345",
+            "name": "智邦科技",
+            "pct": 5.454545454545454,
+            "weight": 3.798
+          },
+          {
+            "code": "2330",
+            "name": "台灣積體",
+            "pct": 2.631578947368421,
+            "weight": 13.034
+          }
+        ],
+        "reduce": [],
+        "build": []
+      }
+    },
+    {
+      "code": "00981A",
+      "name": "統一台股增長",
+      "snapshot": "00981A_20260709.csv",
+      "snapshot_date": "2026-07-09",
+      "holdings_count": 50,
+      "actions": {
+        "new": [],
+        "drop": [],
+        "add": [
+          {
+            "code": "6223",
+            "name": "旺矽",
+            "pct": 2.5608732157850547,
+            "weight": 5.77
+          }
+        ],
+        "reduce": [],
+        "build": []
+      }
+    },
+    {
+      "code": "00403A",
+      "name": "統一升級50",
+      "snapshot": "00403A_20260709.csv",
+      "snapshot_date": "2026-07-09",
+      "holdings_count": 50,
+      "actions": {
+        "new": [],
+        "drop": [],
+        "add": [
+          {
+            "code": "8046",
+            "name": "南電",
+            "pct": 32.075471698113205,
+            "weight": 0.72
+          },
+          {
+            "code": "6488",
+            "name": "環球晶",
+            "pct": 5.0,
+            "weight": 1.6
+          },
+          {
+            "code": "1303",
+            "name": "南亞",
+            "pct": 4.900662251655629,
+            "weight": 0.89
+          }
+        ],
+        "reduce": [
+          {
+            "code": "3529",
+            "name": "力旺",
+            "pct": -40.520446096654275,
+            "weight": 0.26
+          },
+          {
+            "code": "2327",
+            "name": "國巨*",
+            "pct": -10.44776119402985,
+            "weight": 4.95
+          }
+        ],
+        "build": []
+      }
+    },
+    {
+      "code": "00988A",
+      "name": "統一全球創新",
+      "snapshot": "00988A_20260709.csv",
+      "snapshot_date": "2026-07-09",
+      "holdings_count": 11,
+      "actions": {
+        "new": [],
+        "drop": [],
+        "add": [],
+        "reduce": [],
+        "build": []
+      }
+    }
+  ],
+  "consensus_buy": [],
+  "consensus_sell": [],
+  "divergence": []
+}
