@@ -32,11 +32,16 @@ MANIFEST_PATH = os.path.join(OUTDIR, "latest.json")
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 
 # 主動式 ETF 監看清單(台股權益型;經理人選股)
+# 若某檔連續多日回 0 檔 → 該檔的 house/etf/fc 參數可能錯 · 用開發者工具 Network 面板抓 Excel 下載連結對照
 FUNDS = [
     {"code": "00991A", "name": "復華未來50",   "house": "fhtrust", "etf": "ETF23"},
-    {"code": "00998A", "name": "復華金融股息", "house": "fhtrust", "etf": "ETF24"},
+    # 復華金融股息 (00998A) ETF ID 待確認 · 之前 ETF24 每天都回 0 · 暫時拿掉 · 若你找到正確 ID 直接加回
+    # {"code": "00998A", "name": "復華金融股息", "house": "fhtrust", "etf": "ETF??"},
     {"code": "00981A", "name": "統一台股增長", "house": "ezmoney", "fc": "49YTW"},
     {"code": "00403A", "name": "統一升級50",   "house": "ezmoney", "fc": "63YTW"},
+    # 新監看 (user 提供 URL: https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=61YTW)
+    # ezmoney 擋 WebFetch · 中文名待人工補 · 目前 placeholder
+    {"code": "00988A", "name": "統一 00988A",   "house": "ezmoney", "fc": "61YTW"},
 ]
 
 # 台股 stock code regex: 4-6 digits + optional letter suffix

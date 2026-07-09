@@ -516,9 +516,9 @@
     // key: TW ETF code · value: display name（fallback · 若 manifest 沒到再用）
     const ACTIVE_ETF_MONITORED = {
         '00991A': '復華未來50',
-        '00998A': '復華金融股息',
         '00981A': '統一台股增長',
         '00403A': '統一升級50',
+        '00988A': '統一 00988A',   // 中文名待補
     };
 
     // ---------- 主動 ETF 持股 fetch（走 GH Pages 靜態 CSV · 由 CI 每日更新）----------
