@@ -512,6 +512,63 @@
         };
     }
 
+    // 主動式 ETF 監看清單 · 有經理人持股 CSV 可讀（.github/workflows/etf-holdings.yml 每日更新）
+    // key: TW ETF code · value: display name（fallback · 若 manifest 沒到再用）
+    const ACTIVE_ETF_MONITORED = {
+        '00991A': '復華未來50',
+        '00998A': '復華金融股息',
+        '00981A': '統一台股增長',
+        '00403A': '統一升級50',
+    };
+
+    // ---------- 主動 ETF 持股 fetch（走 GH Pages 靜態 CSV · 由 CI 每日更新）----------
+    // Manifest schema 見 scripts/etf_holdings_monitor.py::write_manifest
+    async function fetchEtfHoldings(ticker) {
+        if (!ACTIVE_ETF_MONITORED[ticker]) return null;
+        try {
+            const manifestRes = await fetch('../data/etf_holdings/latest.json', { cache: 'no-cache' });
+            if (!manifestRes.ok) return { available: false, reason: `manifest HTTP ${manifestRes.status}` };
+            const manifest = await manifestRes.json();
+            const fund = (manifest.funds || []).find(f => f.code === ticker);
+            if (!fund) return { available: false, reason: 'ticker 不在 manifest 中（可能 CI 還沒跑第一次）', manifest };
+            // 拉這檔的 snapshot CSV
+            const csvRes = await fetch(`../data/etf_holdings/${fund.snapshot}`, { cache: 'no-cache' });
+            if (!csvRes.ok) return { available: false, reason: `csv HTTP ${csvRes.status}`, manifest };
+            const text = await csvRes.text();
+            const holdings = parseHoldingsCsv(text);
+            return { available: true, manifest, fund, holdings };
+        } catch (e) {
+            return { available: false, reason: e.message };
+        }
+    }
+
+    // Mini CSV parser · schema：代號, 名稱, 股數, 權重（utf-8-sig · Python 寫的）
+    // TW 股名無逗號 · 直接 split 安全
+    function parseHoldingsCsv(text) {
+        const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) return [];
+        const header = lines[0].split(',').map(h => h.trim());
+        const idx = {
+            code: header.indexOf('代號'),
+            name: header.indexOf('名稱'),
+            shares: header.indexOf('股數'),
+            weight: header.indexOf('權重'),
+        };
+        const rows = [];
+        for (const line of lines.slice(1)) {
+            const cells = line.split(',');
+            if (cells.length < 2 || !cells[idx.code]) continue;
+            rows.push({
+                code: (cells[idx.code] || '').trim(),
+                name: (cells[idx.name] || '').trim(),
+                shares: parseFloat(cells[idx.shares]) || 0,
+                weight: parseFloat(cells[idx.weight]) || 0,
+            });
+        }
+        rows.sort((a, b) => b.weight - a.weight);
+        return rows;
+    }
+
     // ---------- ETF 專屬 fetch ----------
     // 為什麼分開：ETF 沒有 PER/PBR/EPS/財報 · 走個股路徑會拿一堆空 array 觸發空指標判斷 crash
     // ETF 分析重點：配息 + 法人買賣（尤其投信）+ 大戶散戶籌碼 · 完全不同的看法
@@ -522,12 +579,13 @@
         setStatus('loading', `📡 ${ticker} 是 ETF · 抓專屬資料中……`);
         const startDate = todayMinusYears(Math.min(years, 3));   // ETF 只需近 3 年 · 太久沒意義
         const endDate = todayStr();
-        const [priceData, dividendData, institutional, holdingSharesPer, marginData] = await Promise.all([
+        const [priceData, dividendData, institutional, holdingSharesPer, marginData, activeHoldings] = await Promise.all([
             finMindFetch('TaiwanStockPrice', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockDividend', ticker, todayMinusYears(5), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockInstitutionalInvestorsBuySell', ticker, todayMinusYears(0.5), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockHoldingSharesPer', ticker, todayMinusYears(2), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockMarginPurchaseShortSale', ticker, todayMinusYears(0.5), endDate, token).catch(() => []),
+            fetchEtfHoldings(ticker),   // 只有 monitored ETF 才有 · null / {available:false} 都可以
         ]);
 
         const info = (prefetchedInfo && prefetchedInfo.length > 0) ? prefetchedInfo[prefetchedInfo.length - 1] : {};
@@ -768,6 +826,8 @@
             technical: { ma20, ma60, ma120, rsi14, pricePct },
             risk: { annualVol, mdd1y, return1y, return3y },
             margin: { marginSeries, marginLast, margin60dChange, shortMarginRatio },
+            // 主動 ETF 持股 · null 或 {available:false} 都可以（前端優雅降級）
+            activeHoldings,
         };
     }
 
@@ -1834,7 +1894,12 @@
             inst60d, inst20d, instSeries,
             chipBuckets, chipLatestDate, whaleTrend,
             technical, risk, margin,
+            activeHoldings,
         } = etf;
+        // 從 CSV / JSON 進來的字串 · escape HTML 進 innerHTML 前防 XSS
+        const escapeAttr = s => String(s || '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        }[c]));
 
         $('result-panel').hidden = false;
         $('result-ticker').textContent = `${ticker} · ${stockName} · ETF`;
@@ -2099,6 +2164,97 @@
             ${whaleTrend.length > 3 ? '<canvas id="etf-whale-chart" width="800" height="180"></canvas>' : ''}
         `;
 
+        // Panel 4.5 · 📦 經理人持股 Top 10（若 monitored 且有資料）
+        // Panel 4.6 · 🔥 跨基金共識（若有 manifest）
+        let holdingsPanelHtml = '';
+        let consensusPanelHtml = '';
+        if (activeHoldings) {
+            if (activeHoldings.available && activeHoldings.holdings && activeHoldings.holdings.length > 0) {
+                const snapshotDate = activeHoldings.manifest?.date || '—';
+                const generatedAt = activeHoldings.manifest?.generated_at || '';
+                const holdingsCount = activeHoldings.fund?.holdings_count || activeHoldings.holdings.length;
+                const top10 = activeHoldings.holdings.slice(0, 10);
+                const top10WeightSum = top10.reduce((s, h) => s + h.weight, 0);
+                const rows = top10.map((h, i) => `
+                    <tr>
+                        <td class="rank">${i + 1}</td>
+                        <td>${escapeAttr(h.code)}</td>
+                        <td>${escapeAttr(h.name)}</td>
+                        <td class="num-cell">${h.shares.toLocaleString()}</td>
+                        <td class="num-cell"><b>${h.weight.toFixed(2)}%</b></td>
+                        <td><a href="index.html?ticker=${encodeURIComponent(h.code)}" title="切估值分析">🔎</a></td>
+                    </tr>
+                `).join('');
+                // 顯示近期動作（從 manifest.funds.actions）
+                const actions = activeHoldings.fund?.actions || {};
+                const actionsChips = [];
+                (actions.new || []).slice(0, 5).forEach(a => actionsChips.push(`<span class="holding-chip chip-new">🟢新 ${a.code} ${a.name}</span>`));
+                (actions.build || []).slice(0, 5).forEach(a => actionsChips.push(`<span class="holding-chip chip-new">🆕建 ${a.code} ${a.name}</span>`));
+                (actions.add || []).slice(0, 5).forEach(a => actionsChips.push(`<span class="holding-chip chip-add">⬆️加 ${a.code} ${a.name} ${a.pct >= 0 ? '+' : ''}${a.pct.toFixed(0)}%</span>`));
+                (actions.reduce || []).slice(0, 5).forEach(a => actionsChips.push(`<span class="holding-chip chip-reduce">⬇️減 ${a.code} ${a.name} ${a.pct.toFixed(0)}%</span>`));
+                (actions.drop || []).slice(0, 5).forEach(a => actionsChips.push(`<span class="holding-chip chip-drop">🔴剔 ${a.code} ${a.name}</span>`));
+                const actionsHtml = actionsChips.length > 0
+                    ? `<div class="holdings-actions"><div class="holdings-actions-label">📊 vs 前一日快照</div><div class="holdings-actions-chips">${actionsChips.join('')}</div></div>`
+                    : '<p class="hint hint-mini">📊 vs 前一日無變化（或還沒累積 2 個快照）</p>';
+
+                holdingsPanelHtml = `
+                    <h3>📦 經理人持股 Top 10 · <span class="holdings-freshness">${snapshotDate}</span></h3>
+                    <div class="holdings-summary">
+                        <span>總持股：<b>${holdingsCount}</b> 檔</span>
+                        <span>Top 10 集中度：<b>${top10WeightSum.toFixed(1)}%</b></span>
+                        ${generatedAt ? `<span class="holdings-generated">🕒 資料時間：${generatedAt.slice(0, 16)}</span>` : ''}
+                    </div>
+                    <div class="table-scroll">
+                        <table class="result-table holdings-table">
+                            <thead><tr><th>#</th><th>代號</th><th>名稱</th><th>股數</th><th>權重</th><th>估值</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                    ${actionsHtml}
+                    <p class="hint hint-mini">💡 主動 ETF · 這是<b>經理人的實際部位</b>——每日 PCF 公告 · 資料由 GitHub Actions 每日 18:30 抓 · 快照差異即經理人的<b>買賣決策</b></p>
+                `;
+            } else if (activeHoldings.reason) {
+                holdingsPanelHtml = `
+                    <h3>📦 經理人持股（資料尚未就緒）</h3>
+                    <p class="hint" style="padding:12px 14px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px">
+                        ⚠️ ${escapeAttr(activeHoldings.reason)}<br>
+                        <small>若剛 deploy · CI 需等到隔天 18:30 才會有第一個快照。可到 <a href="https://github.com/delphichi/2025trip/actions/workflows/etf-holdings.yml" target="_blank" rel="noopener">Actions → etf-holdings-daily</a> 手動觸發 <b>Run workflow</b>（設 backfill_days=7 建立初始資料）</small>
+                    </p>
+                `;
+            }
+
+            // 跨基金共識 · 只要 manifest 抓到就顯示（不需 fund 存在）
+            const manifest = activeHoldings.manifest;
+            if (manifest && (manifest.consensus_buy?.length > 0 || manifest.consensus_sell?.length > 0 || manifest.divergence?.length > 0)) {
+                const buyItems = (manifest.consensus_buy || []).map(c => `
+                    <div class="consensus-item consensus-buy">
+                        <span class="consensus-badge">🟢 買</span>
+                        <a href="index.html?ticker=${encodeURIComponent(c.stock_id)}">${escapeAttr(c.stock_id)} ${escapeAttr(c.name || '')}</a>
+                        <span class="consensus-funds">${c.funds.length} 檔：${c.funds.join(' / ')}</span>
+                    </div>
+                `).join('');
+                const sellItems = (manifest.consensus_sell || []).map(c => `
+                    <div class="consensus-item consensus-sell">
+                        <span class="consensus-badge">🔴 賣</span>
+                        <a href="index.html?ticker=${encodeURIComponent(c.stock_id)}">${escapeAttr(c.stock_id)} ${escapeAttr(c.name || '')}</a>
+                        <span class="consensus-funds">${c.funds.length} 檔：${c.funds.join(' / ')}</span>
+                    </div>
+                `).join('');
+                const divItems = (manifest.divergence || []).map(c => `
+                    <div class="consensus-item consensus-div">
+                        <span class="consensus-badge">⚖️ 分歧</span>
+                        <a href="index.html?ticker=${encodeURIComponent(c.stock_id)}">${escapeAttr(c.stock_id)} ${escapeAttr(c.name || '')}</a>
+                        <span class="consensus-funds">買：${(c.buy_funds || []).join(',')} · 砍：${(c.sell_funds || []).join(',')}</span>
+                    </div>
+                `).join('');
+                consensusPanelHtml = `
+                    <h3>🔥 跨基金共識 · <span class="holdings-freshness">${manifest.date}</span></h3>
+                    <p class="hint hint-mini" style="margin-bottom:10px">💡 監看 <b>${manifest.funds?.length || 0} 檔主動 ETF</b> · ≥ 2 檔同向 = 共識（法人共同看法）· 一買一砍 = 分歧（有爭議）</p>
+                    ${buyItems || sellItems || divItems ? `<div class="consensus-grid">${buyItems}${sellItems}${divItems}</div>` : '<p class="hint">📊 今日無跨基金共識或分歧訊號</p>'}
+                `;
+            }
+        }
+
         // Panel 5: 外部工具引導
         const issuerHint = getEtfIssuerHint(ticker);
         const externalPanelHtml = `
@@ -2130,6 +2286,8 @@
             + instPanelHtml
             + marginPanelHtml
             + chipPanelHtml
+            + holdingsPanelHtml
+            + consensusPanelHtml
             + externalPanelHtml;
 
         // 畫 chart（法人累計 + 融資餘額 + 巨鯨趨勢）

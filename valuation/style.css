@@ -2451,3 +2451,102 @@ textarea {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
 }
+
+/* ============================================================ */
+/* 主動 ETF 持股 panel（CI 每日抓經理人 PCF · 見 scripts/etf_holdings_monitor.py）  */
+/* ============================================================ */
+.holdings-freshness {
+    font-family: ui-monospace, monospace;
+    font-size: 0.85em;
+    color: #64748b;
+    font-weight: 500;
+}
+.holdings-summary {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: #eff6ff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 0.92em;
+    color: #1e3a8a;
+}
+.holdings-summary b { color: #1e40af; font-size: 1.05em; }
+.holdings-generated { margin-left: auto; color: #64748b; font-size: 0.85em; }
+
+.holdings-table th { background: #eff6ff; color: #1e3a8a; }
+.holdings-table td.rank { color: #94a3b8; font-family: ui-monospace, monospace; text-align: right; }
+.holdings-table a { color: #4338ca; text-decoration: none; font-size: 1.1em; }
+.holdings-table a:hover { text-decoration: underline; }
+
+.holdings-actions {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+.holdings-actions-label {
+    font-size: 0.85em;
+    color: #6b7280;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.holdings-actions-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.holding-chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.82em;
+    font-weight: 600;
+    line-height: 1.4;
+}
+.holding-chip.chip-new { background: #dcfce7; color: #14532d; }
+.holding-chip.chip-add { background: #dbeafe; color: #1e3a8a; }
+.holding-chip.chip-reduce { background: #fef3c7; color: #78350f; }
+.holding-chip.chip-drop { background: #fee2e2; color: #7f1d1d; }
+
+/* 跨基金共識 · consensus */
+.consensus-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.consensus-item {
+    display: grid;
+    grid-template-columns: 60px 1.5fr 2fr;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: #f8fafc;
+    border-left: 4px solid #cbd5e1;
+    font-size: 0.92em;
+}
+.consensus-item.consensus-buy { border-left-color: #16a34a; background: #f0fdf4; }
+.consensus-item.consensus-sell { border-left-color: #dc2626; background: #fef2f2; }
+.consensus-item.consensus-div { border-left-color: #f59e0b; background: #fffbeb; }
+.consensus-badge {
+    font-weight: 700;
+    font-size: 0.9em;
+    text-align: center;
+}
+.consensus-item a {
+    color: #0f172a;
+    font-weight: 700;
+    text-decoration: none;
+}
+.consensus-item a:hover { color: #4338ca; text-decoration: underline; }
+.consensus-funds {
+    color: #64748b;
+    font-size: 0.88em;
+}
+@media (max-width: 700px) {
+    .consensus-item { grid-template-columns: 50px 1fr; }
+    .consensus-funds { grid-column: 1 / -1; }
+}

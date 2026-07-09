@@ -1,0 +1,79 @@
+name: etf-holdings-daily
+
+# 目的：每日抓 4 檔主動式 ETF 持股快照 · commit 到 data/etf_holdings/
+# 供 valuation 前端讀「經理人持股 / 跨基金共識」panel。
+#
+# 排程：台北時間 18:30 每日（=UTC 10:30）· PCF 通常在收盤後幾小時內公告
+#   若當天沒公告（假日 or 券商晚更）· pull_day 會回空 · 印「今日無資料」· 不會失敗
+#
+# 手動觸發：Actions → etf-holdings-daily → Run workflow · 可指定日期或回補 N 天
+
+on:
+  schedule:
+    # 台北 18:30 = UTC 10:30 · cron 用 UTC
+    - cron: '30 10 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '指定日期（YYYYMMDD · 空 = 今日）'
+        default: ''
+        required: false
+      backfill_days:
+        description: '回補近 N 天（>0 會覆蓋 date · 建立初始快照用 · e.g. 7）'
+        default: '0'
+        required: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 需要 fetch full history 才能 rebase-safe commit
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install pandas requests openpyxl
+
+      - name: Run monitor
+        env:
+          ETF_DATE: ${{ inputs.date }}
+          ETF_BACKFILL_DAYS: ${{ inputs.backfill_days || '0' }}
+        run: |
+          python scripts/etf_holdings_monitor.py 2>&1 | tee /tmp/etf-monitor.log
+
+      - name: Summary
+        run: |
+          echo "## 主動 ETF 持股監看 · $(date -u -d '+8 hours' '+%Y-%m-%d %H:%M TW')" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/etf-monitor.log | tail -80 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -f data/etf_holdings/latest.json ]; then
+            echo "### Manifest" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat data/etf_holdings/latest.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Commit snapshots
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/etf_holdings/ 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No new snapshots to commit"
+            exit 0
+          fi
+          git commit -m "chore(etf-holdings): daily snapshot $(date -u -d '+8 hours' '+%Y-%m-%d')"
+          # Push with retry (race on parallel workflows)
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && break
+            echo "Push attempt $i failed · sleep 5s"
+            sleep 5
+          done
