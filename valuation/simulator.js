@@ -2895,7 +2895,7 @@
         const fundHtml = renderFundamentalsHtml(analysis.fundamentals, { isFinancial });
         // Step 2 · 最後 12 月營收 / 4 季毛利+營益（值+增長率）· try/catch 保護
         let monthlyMetricsHtml = '';
-        try { monthlyMetricsHtml = renderMonthlyMetricsHtml(analysis.fundamentals); }
+        try { monthlyMetricsHtml = renderMonthlyMetricsHtml(analysis.fundamentals, { isFinancial }); }
         catch (e) { console.warn('renderMonthlyMetricsHtml failed:', e.message); }
         // Step B + C · 軌跡圖 + 季節性柱狀圖 · 金融股沒毛利率 · 兩張圖都不適用
         let trajectoryHtml = '', seasonalityHtml = '';
@@ -4941,10 +4941,12 @@
 
     // Step 2 · 12 個月營收 / 4 季毛利 / 4 季營益（值 + 增長率）
     // 兩張並排小表 · 因為月營收是月頻 · 毛利/營益是季頻 · 混不進同一列
-    function renderMonthlyMetricsHtml(fund) {
+    function renderMonthlyMetricsHtml(fund, opts) {
+        const isFin = opts && opts.isFinancial;
         const monthly = fund && fund.monthlyRevenue ? fund.monthlyRevenue.slice(0, 12) : [];
-        const quarterly = fund && fund.grossMargin ? fund.grossMargin.slice(0, 4) : [];
-        const opq = fund && fund.operatingMargin ? fund.operatingMargin.slice(0, 4) : [];
+        // 金融股沒 COGS · 4 季毛利/營益表全空 · 隱藏
+        const quarterly = (!isFin && fund && fund.grossMargin) ? fund.grossMargin.slice(0, 4) : [];
+        const opq = (!isFin && fund && fund.operatingMargin) ? fund.operatingMargin.slice(0, 4) : [];
         if (monthly.length === 0 && quarterly.length === 0) return '';
 
         const fmtRev = v => {
