@@ -522,11 +522,12 @@
         setStatus('loading', `📡 ${ticker} 是 ETF · 抓專屬資料中……`);
         const startDate = todayMinusYears(Math.min(years, 3));   // ETF 只需近 3 年 · 太久沒意義
         const endDate = todayStr();
-        const [priceData, dividendData, institutional, holdingSharesPer] = await Promise.all([
+        const [priceData, dividendData, institutional, holdingSharesPer, marginData] = await Promise.all([
             finMindFetch('TaiwanStockPrice', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockDividend', ticker, todayMinusYears(5), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockInstitutionalInvestorsBuySell', ticker, todayMinusYears(0.5), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockHoldingSharesPer', ticker, todayMinusYears(2), endDate, token).catch(() => []),
+            finMindFetch('TaiwanStockMarginPurchaseShortSale', ticker, todayMinusYears(0.5), endDate, token).catch(() => []),
         ]);
 
         const info = (prefetchedInfo && prefetchedInfo.length > 0) ? prefetchedInfo[prefetchedInfo.length - 1] : {};
@@ -540,6 +541,107 @@
             price30dAgo = priceData[targetIdx].close;
             if (price30dAgo) change30d = ((price - price30dAgo) / price30dAgo) * 100;
         }
+
+        // ---------- Tier 1 · 技術訊號 + 風險 + 融資 ----------
+        // 全部只用 priceData / marginData · 沒額外 API call
+        const closes = (priceData || []).map(p => p.close).filter(c => c > 0);
+
+        // 均線 (MA20 / MA60 / MA120)
+        const meanTail = (arr, n) => arr.length < n ? null : arr.slice(-n).reduce((s, v) => s + v, 0) / n;
+        const ma20 = meanTail(closes, 20);
+        const ma60 = meanTail(closes, 60);
+        const ma120 = meanTail(closes, 120);
+
+        // RSI 14
+        //   gain = 平均漲幅（僅正的日報酬）· loss = 平均跌幅（僅負的絕對值）
+        //   RS = gain / loss · RSI = 100 - 100/(1+RS)
+        //   標準值域：0-100 · <30 超賣 · >70 超買
+        let rsi14 = null;
+        if (closes.length >= 15) {
+            const period = 14;
+            let gain = 0, loss = 0;
+            for (let i = closes.length - period; i < closes.length; i++) {
+                const diff = closes[i] - closes[i - 1];
+                if (diff > 0) gain += diff;
+                else loss += -diff;
+            }
+            gain /= period; loss /= period;
+            if (loss === 0) rsi14 = 100;
+            else {
+                const rs = gain / loss;
+                rsi14 = 100 - 100 / (1 + rs);
+            }
+        }
+
+        // 近 1 年價位百分位（現價落在近 252 交易日的哪個 percentile）
+        let pricePct = null;
+        if (closes.length >= 30 && price !== null) {
+            const window = closes.slice(-Math.min(252, closes.length));
+            const belowCount = window.filter(c => c < price).length;
+            pricePct = (belowCount / window.length) * 100;
+        }
+
+        // 年化波動率（近 252 日 log return std × sqrt(252)）
+        //   為什麼 log return：對 compound 更精確 · 且對稱（20% 漲 vs 20% 跌）
+        //   annualize by sqrt(252) 是 daily → yearly 的標準做法
+        let annualVol = null;
+        if (closes.length >= 30) {
+            const window = closes.slice(-Math.min(252, closes.length));
+            const rets = [];
+            for (let i = 1; i < window.length; i++) {
+                rets.push(Math.log(window[i] / window[i - 1]));
+            }
+            const meanR = rets.reduce((s, v) => s + v, 0) / rets.length;
+            const variance = rets.reduce((s, v) => s + (v - meanR) ** 2, 0) / rets.length;
+            annualVol = Math.sqrt(variance) * Math.sqrt(252) * 100;
+        }
+
+        // Max drawdown（近 1 年）· 從 rolling peak 算最大跌幅
+        let mdd1y = null;
+        if (closes.length >= 30) {
+            const window = closes.slice(-Math.min(252, closes.length));
+            let peak = window[0], maxDD = 0;
+            for (const c of window) {
+                if (c > peak) peak = c;
+                const dd = (peak - c) / peak;
+                if (dd > maxDD) maxDD = dd;
+            }
+            mdd1y = maxDD * 100;
+        }
+
+        // 總報酬（1Y / 3Y）· 買入放到最新價
+        let return1y = null, return3y = null;
+        if (closes.length >= 252) {
+            const p252 = closes[closes.length - 252];
+            if (p252 > 0) return1y = ((price - p252) / p252) * 100;
+        }
+        if (closes.length >= 252 * 3) {
+            const p3y = closes[closes.length - 252 * 3];
+            if (p3y > 0) return3y = ((price - p3y) / p3y) * 100;
+        }
+
+        // 融資融券 · 近 60 天餘額 + 券資比
+        //   MarginPurchaseTodayBalance = 當日融資餘額（張數）
+        //   ShortSaleTodayBalance = 當日融券餘額（張數）
+        //   券資比 = 融券 / 融資 · 越高 = 空方越多 · 潛在軋空
+        const marginSeries = (marginData || [])
+            .filter(r => r.date)
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map(r => ({
+                date: r.date,
+                margin: r.MarginPurchaseTodayBalance || 0,
+                short: r.ShortSaleTodayBalance || 0,
+            }));
+        const marginLast = marginSeries[marginSeries.length - 1] || null;
+        const marginFirst60 = marginSeries.length >= 60 ? marginSeries[marginSeries.length - 60] : marginSeries[0];
+        // 60 天融資餘額變化 %
+        const margin60dChange = (marginLast && marginFirst60 && marginFirst60.margin > 0)
+            ? ((marginLast.margin - marginFirst60.margin) / marginFirst60.margin) * 100
+            : null;
+        // 券資比
+        const shortMarginRatio = (marginLast && marginLast.margin > 0)
+            ? (marginLast.short / marginLast.margin) * 100
+            : null;
 
         // 配息分析：近 12M 累計 + 頻率推算
         const now = Date.now();
@@ -662,6 +764,10 @@
             chipBuckets,
             chipLatestDate: holdingLatestDate,
             whaleTrend,
+            // Tier 1 新增
+            technical: { ma20, ma60, ma120, rsi14, pricePct },
+            risk: { annualVol, mdd1y, return1y, return3y },
+            margin: { marginSeries, marginLast, margin60dChange, shortMarginRatio },
         };
     }
 
@@ -1727,6 +1833,7 @@
             dividends, last12MSum, last12MCount, estYield, frequency,
             inst60d, inst20d, instSeries,
             chipBuckets, chipLatestDate, whaleTrend,
+            technical, risk, margin,
         } = etf;
 
         $('result-panel').hidden = false;
@@ -1776,6 +1883,80 @@
                 </div>
                 <p class="hint hint-mini">💡 估殖利率 = 近 12 個月現金配息累計 ÷ 現價 · 只計現金配息 · 除息前後可能失真</p>
             </div>
+        `;
+
+        // Panel 1.5: 技術訊號（Tier 1-A · 該不該進場）
+        const maCompare = (currentPrice, ma, label) => {
+            if (ma === null) return `<span class="ma-cell"><b>${label}</b> —</span>`;
+            const off = ((currentPrice - ma) / ma) * 100;
+            const cls = off >= 0 ? 'chg-up' : 'chg-down';
+            return `<span class="ma-cell"><b>${label}</b> $${fmt(ma, 2)} <span class="${cls}">${off >= 0 ? '+' : ''}${off.toFixed(2)}%</span></span>`;
+        };
+        const rsi = technical.rsi14;
+        let rsiVerdict = '', rsiCls = '';
+        if (rsi === null) { rsiVerdict = '—'; }
+        else if (rsi >= 70) { rsiVerdict = `${rsi.toFixed(1)} · <b>超買</b>（追高風險）`; rsiCls = 'chg-down'; }
+        else if (rsi <= 30) { rsiVerdict = `${rsi.toFixed(1)} · <b>超賣</b>（可能反彈）`; rsiCls = 'chg-up'; }
+        else if (rsi >= 60) { rsiVerdict = `${rsi.toFixed(1)} · 偏強`; rsiCls = 'chg-up'; }
+        else if (rsi <= 40) { rsiVerdict = `${rsi.toFixed(1)} · 偏弱`; rsiCls = 'chg-down'; }
+        else rsiVerdict = `${rsi.toFixed(1)} · 中性`;
+        const pctVerdict = technical.pricePct === null ? '—'
+            : technical.pricePct >= 80 ? `<b class="chg-down">${technical.pricePct.toFixed(0)}%</b>（近 1 年高位）`
+            : technical.pricePct <= 20 ? `<b class="chg-up">${technical.pricePct.toFixed(0)}%</b>（近 1 年低位）`
+            : `${technical.pricePct.toFixed(0)}%`;
+        const technicalPanelHtml = `
+            <h3>📊 技術訊號（該不該進場）</h3>
+            <div class="etf-tech-grid">
+                <div class="etf-tech-cell">
+                    <div class="etf-tech-label">現價 vs 均線</div>
+                    <div class="etf-ma-row">
+                        ${maCompare(price, technical.ma20, 'MA20')}
+                        ${maCompare(price, technical.ma60, 'MA60')}
+                        ${maCompare(price, technical.ma120, 'MA120')}
+                    </div>
+                </div>
+                <div class="etf-tech-cell">
+                    <div class="etf-tech-label">RSI 14</div>
+                    <div class="etf-tech-val ${rsiCls}">${rsiVerdict}</div>
+                </div>
+                <div class="etf-tech-cell">
+                    <div class="etf-tech-label">近 1 年價位百分位</div>
+                    <div class="etf-tech-val">${pctVerdict}</div>
+                </div>
+            </div>
+            <p class="hint hint-mini">💡 現價 &gt; MA120 = 中長期趨勢多方 · RSI &gt; 70 = 短期追高警訊 · 百分位 &gt; 80 = 近 1 年偏貴</p>
+        `;
+
+        // Panel 1.6: 風險指標（Tier 1-B · 心臟能扛多少）
+        const volCls = risk.annualVol === null ? '' : risk.annualVol >= 30 ? 'chg-down' : risk.annualVol >= 20 ? '' : 'chg-up';
+        const volLabel = risk.annualVol === null ? '—'
+            : risk.annualVol >= 30 ? `${risk.annualVol.toFixed(1)}% · 高波動`
+            : risk.annualVol >= 20 ? `${risk.annualVol.toFixed(1)}% · 中等`
+            : `${risk.annualVol.toFixed(1)}% · 低波動`;
+        const mddCls = risk.mdd1y === null ? '' : risk.mdd1y >= 25 ? 'chg-down' : '';
+        const r1yCls = risk.return1y === null ? '' : risk.return1y >= 0 ? 'chg-up' : 'chg-down';
+        const r3yCls = risk.return3y === null ? '' : risk.return3y >= 0 ? 'chg-up' : 'chg-down';
+        const riskPanelHtml = `
+            <h3>📉 風險 & 報酬（心臟能扛嗎）</h3>
+            <div class="etf-risk-grid">
+                <div class="etf-risk-cell">
+                    <div class="etf-risk-label">年化波動</div>
+                    <div class="etf-risk-val ${volCls}">${volLabel}</div>
+                </div>
+                <div class="etf-risk-cell">
+                    <div class="etf-risk-label">近 1 年最大回檔</div>
+                    <div class="etf-risk-val ${mddCls}">${risk.mdd1y !== null ? '-' + risk.mdd1y.toFixed(1) + '%' : '—'}</div>
+                </div>
+                <div class="etf-risk-cell">
+                    <div class="etf-risk-label">近 1 年報酬</div>
+                    <div class="etf-risk-val ${r1yCls}">${risk.return1y !== null ? (risk.return1y >= 0 ? '+' : '') + risk.return1y.toFixed(1) + '%' : '—'}</div>
+                </div>
+                <div class="etf-risk-cell">
+                    <div class="etf-risk-label">近 3 年報酬</div>
+                    <div class="etf-risk-val ${r3yCls}">${risk.return3y !== null ? (risk.return3y >= 0 ? '+' : '') + risk.return3y.toFixed(1) + '%' : '—'}</div>
+                </div>
+            </div>
+            <p class="hint hint-mini">💡 年化波動 &gt; 30% = 高波動（心跳快）· MDD &gt; 25% = 曾腰斬式回檔 · 3Y 報酬 vs 0050（近 3 年 ~+50%）判斷是否值得換股</p>
         `;
 
         // Panel 2: 配息紀錄表
@@ -1845,6 +2026,42 @@
             <p class="hint hint-mini">📊 累計淨買（60 天）· 3 條線由 0 開始加總每日 (buy − sell) · 上升 = 該法人持續買超</p>
         `;
 
+        // Panel 3.5: 融資融券（Tier 1-C · 散戶槓桿情緒）
+        // 融資 = 借錢買（做多的槓桿）· 融券 = 借券賣（做空）
+        // 融資餘額大幅上升 = 散戶追高警訊 · 大幅下降 = 融資殺出（可能觸底）
+        // 券資比 > 30% = 空方比例高 · 有軋空機會
+        const marginCurBalance = margin.marginLast ? margin.marginLast.margin : 0;
+        const shortCurBalance = margin.marginLast ? margin.marginLast.short : 0;
+        const margin60Cls = margin.margin60dChange === null ? '' : margin.margin60dChange >= 20 ? 'chg-down' : margin.margin60dChange <= -20 ? 'chg-up' : '';
+        const margin60Label = margin.margin60dChange === null ? '—'
+            : margin.margin60dChange >= 20 ? `+${margin.margin60dChange.toFixed(1)}% · 融資追高`
+            : margin.margin60dChange <= -20 ? `${margin.margin60dChange.toFixed(1)}% · 融資殺出`
+            : `${margin.margin60dChange >= 0 ? '+' : ''}${margin.margin60dChange.toFixed(1)}% · 平穩`;
+        const shortRatioCls = margin.shortMarginRatio === null ? '' : margin.shortMarginRatio >= 30 ? 'chg-down' : '';
+        const marginPanelHtml = `
+            <h3>🏦 融資融券（散戶槓桿情緒）</h3>
+            <div class="etf-margin-grid">
+                <div class="etf-margin-cell">
+                    <div class="etf-margin-label">融資餘額（今日）</div>
+                    <div class="etf-margin-val">${marginCurBalance.toLocaleString()} 張</div>
+                </div>
+                <div class="etf-margin-cell">
+                    <div class="etf-margin-label">融資 60 天變化</div>
+                    <div class="etf-margin-val ${margin60Cls}">${margin60Label}</div>
+                </div>
+                <div class="etf-margin-cell">
+                    <div class="etf-margin-label">融券餘額（今日）</div>
+                    <div class="etf-margin-val">${fmtNum(shortCurBalance)} 張</div>
+                </div>
+                <div class="etf-margin-cell">
+                    <div class="etf-margin-label">券資比</div>
+                    <div class="etf-margin-val ${shortRatioCls}">${margin.shortMarginRatio !== null ? margin.shortMarginRatio.toFixed(1) + '%' : '—'}</div>
+                </div>
+            </div>
+            ${margin.marginSeries.length > 20 ? '<canvas id="etf-margin-chart" width="800" height="200"></canvas>' : ''}
+            <p class="hint hint-mini">💡 融資增 &gt; 20% = 散戶追高（歷史上常在頂部）· 融資降 &gt; 20% = 融資斷頭殺出（歷史上常在底部）· 券資比 &gt; 30% = 空方多 · 有軋空可能</p>
+        `;
+
         // Panel 4: 大戶散戶結構
         const chipPct = chipBuckets;
         const chipTotal = chipPct.retail + chipPct.small + chipPct.mid + chipPct.big + chipPct.whale;
@@ -1906,11 +2123,19 @@
             </div>
         `;
 
-        etfContainer.innerHTML = headerHtml + dividendPanelHtml + instPanelHtml + chipPanelHtml + externalPanelHtml;
+        etfContainer.innerHTML = headerHtml
+            + technicalPanelHtml
+            + riskPanelHtml
+            + dividendPanelHtml
+            + instPanelHtml
+            + marginPanelHtml
+            + chipPanelHtml
+            + externalPanelHtml;
 
-        // 畫 chart（法人累計 + 巨鯨趨勢）
+        // 畫 chart（法人累計 + 融資餘額 + 巨鯨趨勢）
         setTimeout(() => {
             drawEtfInstChart(instSeries);
+            if (margin.marginSeries.length > 20) drawEtfMarginChart(margin.marginSeries);
             if (whaleTrend.length > 3) drawEtfWhaleChart(whaleTrend);
         }, 50);
     }
@@ -1989,6 +2214,83 @@
         ctx.fillStyle = '#334155'; ctx.fillText('投信', padL + 86, legendY - 2);
         ctx.fillStyle = '#8b5cf6'; ctx.fillRect(padL + 140, legendY - 8, 12, 4);
         ctx.fillStyle = '#334155'; ctx.fillText('自營商', padL + 156, legendY - 2);
+    }
+
+    function drawEtfMarginChart(marginSeries) {
+        // 融資 + 融券餘額趨勢（雙 y-axis 覺得太複雜 · 直接雙線 · scale 相同）
+        // 為什麼放一起：可以看融資 vs 融券 的相對變化 · 兩者背離時是訊號
+        const canvas = document.getElementById('etf-margin-chart');
+        if (!canvas || marginSeries.length === 0) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        const padL = 60, padR = 20, padT = 20, padB = 40;
+        const plotW = W - padL - padR, plotH = H - padT - padB;
+
+        const marginVals = marginSeries.map(d => d.margin);
+        const shortVals = marginSeries.map(d => d.short);
+        const allVals = [...marginVals, ...shortVals, 0];
+        const max = Math.max(...allVals) * 1.05;
+        const min = 0;
+        const range = (max - min) || 1;
+        const yScale = v => padT + plotH - ((v - min) / range) * plotH;
+        const xScale = i => padL + (i / Math.max(1, marginSeries.length - 1)) * plotW;
+
+        // Grid
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        [max, max * 0.5, 0].forEach(v => {
+            ctx.beginPath();
+            ctx.moveTo(padL, yScale(v));
+            ctx.lineTo(W - padR, yScale(v));
+            ctx.stroke();
+        });
+        ctx.setLineDash([]);
+
+        // 融資 line（橘）
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        marginSeries.forEach((d, i) => {
+            const x = xScale(i), y = yScale(d.margin);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // 融券 line（紫）
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        marginSeries.forEach((d, i) => {
+            const x = xScale(i), y = yScale(d.short);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Y labels
+        ctx.fillStyle = '#64748b';
+        ctx.font = '11px ui-monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText((max / 1000).toFixed(0) + 'K 張', padL - 5, padT + 10);
+        ctx.fillText('0', padL - 5, yScale(0) + 3);
+
+        // Date labels
+        ctx.textAlign = 'center';
+        if (marginSeries.length >= 2) {
+            ctx.fillText(marginSeries[0].date.slice(5), padL, H - padB + 20);
+            ctx.fillText(marginSeries[marginSeries.length - 1].date.slice(5), W - padR, H - padB + 20);
+        }
+
+        // Legend
+        ctx.textAlign = 'left';
+        const legendY = H - 8;
+        ctx.fillStyle = '#f97316'; ctx.fillRect(padL, legendY - 8, 12, 4);
+        ctx.fillStyle = '#334155'; ctx.fillText('融資餘額', padL + 16, legendY - 2);
+        ctx.fillStyle = '#8b5cf6'; ctx.fillRect(padL + 90, legendY - 8, 12, 4);
+        ctx.fillStyle = '#334155'; ctx.fillText('融券餘額', padL + 106, legendY - 2);
     }
 
     function drawEtfWhaleChart(whaleTrend) {
