@@ -1017,13 +1017,15 @@
             const etfData = await fetchTwEtfData(ticker, token, years, infoProbe);
             return { __isEtf: true, etf: etfData };
         }
-        // 平行抓：PER 歷史 + 股價 + 公司資訊 + 財報成長性 + 現金流 + 法人買賣超
+        // 平行抓：PER 歷史 + 股價 + 財報成長性 + 現金流 + 法人買賣超
         // 股價改抓 startDate（full 歷史）· 為了月度熱區用 · 之前只抓 0.05 年只夠顯示現價
         //   FinMind quota 一次 call 幾百 rows 不成本問題 · TaiwanStockPrice 也沒收費限制
-        const [perData, priceData, infoData, fundamentals, cashFlow, institutional, dividendResult, capitalReduction, newsList] = await Promise.all([
+        // Fix: 拿掉重複的 TaiwanStockInfo call · 改用 infoProbe · FinMind 300/hour 配額省 1 次 · 避免多次測試後
+        //   第二次 info call 靜默失敗 · 導致 sector='' · detectFinancial() 誤判非金融股
+        const infoData = infoProbe;
+        const [perData, priceData, fundamentals, cashFlow, institutional, dividendResult, capitalReduction, newsList] = await Promise.all([
             finMindFetch('TaiwanStockPER', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockPrice', ticker, startDate, endDate, token),
-            finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []),
             fetchFinMindFundamentals(ticker, token),
             fetchFinMindCashFlow(ticker, token),
             fetchInstitutionalTW(ticker, token),
