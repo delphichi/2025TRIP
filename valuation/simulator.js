@@ -354,13 +354,25 @@
 
                     // 應收帳款 · 存貨 · 權益 · 股本 quarterly 時序
                     //   給 drill-down 表 + 金融股 BV/share · 股本擴張追蹤用
-                    //   股本 ShareCapital 是面值 × 流通股數 · TW 面值固定 10 元 · shares = ShareCapital / 10
-                    //   BV/share = equity / shares = equity × 10 / ShareCapital
-                    // bsDates 已是新→舊 · 直接 map · 存原始值 · QoQ 在 render 層算
+                    //   股本面值 × 流通股數 · TW 面值固定 10 元 · shares = 股本 / 10
+                    //   BV/share = equity / shares = equity × 10 / 股本
+                    // FinMind 對股本用的 type 名依產業不同：
+                    //   一般：ShareCapital
+                    //   銀行/金控：CapitalStock · PaidInCapital · IssuedCapital · OrdinaryShareCapital
+                    //   舊 IAS：CommonStock
+                    const scCandidates = ['ShareCapital', 'CapitalStock', 'PaidInCapital', 'IssuedCapital', 'OrdinaryShareCapital', 'PaidInCapitalOfCommonStocks', 'CommonStock'];
+                    let scHitField = null;
                     result.balanceSheetSeries = bsDates.slice(0, 10).map(d => {
                         const flat = bsByDate.get(d);
                         const eq = flat.Equity ?? flat.EquityAttributableToOwnersOfParent ?? null;
-                        const sc = flat.ShareCapital ?? flat.CommonStock ?? null;
+                        let sc = null;
+                        for (const c of scCandidates) {
+                            if (flat[c] !== undefined && flat[c] !== null && isFinite(flat[c]) && flat[c] > 0) {
+                                sc = flat[c];
+                                scHitField = scHitField || c;
+                                break;
+                            }
+                        }
                         const shares = (sc && sc > 0) ? (sc / 10) : null;
                         const bvps = (eq && shares) ? (eq / shares) : null;
                         return {
@@ -372,6 +384,12 @@
                             bvps,
                         };
                     });
+                    // debug · 若股本未匹配 · 印出可用 BS type 幫使用者回報
+                    if (!scHitField) {
+                        const bsTypes = Object.keys(bsByDate.get(bsDates[0]) || {}).sort();
+                        const capLike = bsTypes.filter(t => /capital|stock|share/i.test(t));
+                        console.info(`[金融股 · 股本] ${ticker} 未匹配到股本 type · 疑似欄位:`, capLike, '· 全部 BS types:', bsTypes);
+                    }
 
                     // 金融股專屬 · 歷史 TTM ROE 序列（最近 8 季 · 每季用該季末權益 + 過去 4 季淨利）
                     // 銀行/保險 EPS 波動大 · ROE 才是資本效率穩定度的核心
@@ -440,11 +458,48 @@
                         return null;
                     };
                     // net = 收入 - 費用（若無 net · 直接算 gross · 記錄 fallback）
-                    const interestB = bucket(['NetInterestIncome', 'NetInterestRevenue', 'InterestIncomeNet', 'InterestRevenue', 'InterestIncome']);
-                    const feesB     = bucket(['NetFeesAndCommissionsIncome', 'NetFeesAndCommissionIncome', 'NetServiceFeeIncome', 'NetServiceFeeRevenue', 'FeesAndCommissionsIncome', 'ServiceFeeIncome', 'FeesAndCommissionIncome']);
-                    const premiumB  = bucket(['NetInsuranceRevenue', 'NetInsurancePremiumRevenue', 'EarnedInsurancePremiumsNet', 'InsurancePremiumRevenue', 'PremiumIncome', 'NetEarnedPremium']);
-                    const investB   = bucket(['NetGainsLossesOnFinancialInstruments', 'GainsLossesOnFinancialAssetsMeasuredAtFairvalueThroughProfitOrLoss', 'NetGainOnFinancialAssetsAtFairValueThroughProfitOrLoss', 'InvestmentIncome', 'GainLossOnFairValueChangeOfInvestmentProperty', 'ShareOfProfitsOfAssociatesAndJointVentures']);
+                    // Alias 依 IFRS 17 / 9 · 舊 IAS 39 都試（金融股常混用）
+                    const interestB = bucket([
+                        'NetInterestIncome', 'NetInterestRevenue', 'InterestIncomeNet',
+                        'InterestRevenue', 'InterestIncome',
+                        'NetInterestAndDividendIncome', 'NetInterestIncomeExpense',
+                    ]);
+                    const feesB = bucket([
+                        'NetFeesAndCommissionsIncome', 'NetFeesAndCommissionIncome',
+                        'NetServiceFeeIncome', 'NetServiceFeeRevenue',
+                        'NetFeeIncome', 'FeeIncome',
+                        'ServiceFeeAndCommissionIncome', 'FeesAndCommissionsIncome',
+                        'ServiceFeeIncome', 'FeesAndCommissionIncome',
+                        'NetCommissionIncome',
+                    ]);
+                    const premiumB = bucket([
+                        'NetInsuranceRevenue', 'NetInsurancePremiumRevenue',
+                        'InsuranceRevenue', 'InsuranceServiceResult',      // IFRS 17
+                        'EarnedInsurancePremiumsNet', 'InsurancePremiumRevenue',
+                        'PremiumIncome', 'NetEarnedPremium',
+                        'RetainedPremium', 'NetPremiumIncome',
+                        'TotalInsuranceRevenue', 'NetInsuranceServiceResult',
+                    ]);
+                    const investB = bucket([
+                        'NetGainsLossesOnFinancialInstruments',
+                        'GainsLossesOnFinancialAssetsMeasuredAtFairvalueThroughProfitOrLoss',
+                        'NetGainOnFinancialAssetsAtFairValueThroughProfitOrLoss',
+                        'NetProfitOnFinancialInstrumentsAtFVTPL',
+                        'InvestmentIncome',
+                        'GainOnDisposalOfFinancialAssets', 'GainLossOnDisposalOfInvestments',
+                        'RealizedGainsAndLossesOnAvailableForSaleFinancialAssets',
+                        'IncomeFromFinancialAssetsAtFairValueThroughOtherComprehensiveIncome',
+                        'GainLossOnFairValueChangeOfInvestmentProperty',
+                        'ShareOfProfitsOfAssociatesAndJointVentures',
+                    ]);
                     const totalRev  = wideRows[0]?.revenue ?? bucket(['NetRevenue', 'Revenue', 'OperatingRevenue', 'TotalRevenue'])?.value ?? null;
+
+                    // 永遠 log 一次 · 讓使用者可以幫我補漏的 alias
+                    const allFsTypes = Object.keys(latestFsFlat).sort();
+                    const revLike = allFsTypes.filter(t => /interest|fee|commission|insurance|premium|investment|revenue|income|gain/i.test(t));
+                    console.info(`[金融股收入拆解] ${ticker} 匹配狀態:`,
+                        { interest: interestB?.field, fees: feesB?.field, premium: premiumB?.field, invest: investB?.field },
+                        '· 該季所有收入相關 type:', revLike);
 
                     if ((interestB || feesB || premiumB || investB) && totalRev) {
                         const buckets = [
@@ -462,10 +517,8 @@
                             date: dates[0],
                             totalRevenue: totalRev,
                             buckets,
+                            allTypes: allFsTypes,   // render 層要有 · 顯示給用戶做 debug
                         };
-                    } else {
-                        // 沒找到 · dump 所有 type 名到 console 幫 debug
-                        console.info(`[金融股收入拆解] ${ticker} 未匹配到收入細項 · 該季 FS types:`, Object.keys(latestFsFlat).sort());
                     }
 
                     // === B1 · 殖利率序列（給歷史百分位用）===
@@ -3698,17 +3751,22 @@
     //   1. ROE 8 季走勢——EPS 波動大 · ROE 才穩定看資本效率
     //   2. BV per share = price / PBR——金融股評價核心是 book value 成長
     //   3. 資本適足率 CAR + 逾放比 NPL 外連——FinMind 沒收 · 直連監理報表
-    // 子類細分（B2）· 用公司名 + 產業帶頭判斷 · 決定 hint 焦點
-    function detectFinancialSubType(name, sector) {
-        const n = String(name || '') + String(sector || '');
+    // 子類細分（B2）· 只用 name · 不併 sector · 避免 sector = '金融保險' 誤觸「保險」regex
+    //   富邦金 · 國泰金 · 玉山金 → 金控（結尾「金」or 含「金控」）
+    //   台新銀行 · 兆豐商銀 · 玉山商銀 → 銀行
+    //   國泰人壽 · 中壽 → 壽險
+    //   富邦產險 → 產險
+    //   凱基證券 · 元大證券 → 證券
+    // 順序重要：先金控（因為「XX金控」也含「金」）· 再具名子類 · 最後 fallback 保險 / 其他
+    function detectFinancialSubType(name) {
+        const n = String(name || '');
+        if (/金融控股|金控|Financial Holdings?/i.test(n)) return { key: 'holdings', label: '🏢 金控' };
+        if (/^\S{1,4}金$/.test(n)) return { key: 'holdings', label: '🏢 金控' };   // 台股金控簡稱：2-4 字 + 「金」（富邦金 / 玉山金 / 兆豐金）
         if (/銀行|商銀|Bank/i.test(n)) return { key: 'bank', label: '🏦 銀行' };
         if (/人壽|壽險|Life/i.test(n)) return { key: 'life', label: '🛡 壽險' };
         if (/產險|Property|Casualty/i.test(n)) return { key: 'pnc', label: '🚗 產險' };
-        if (/保險|Insurance/i.test(n)) return { key: 'insurance', label: '🛡 保險' };
         if (/證券|投顧|Securities/i.test(n)) return { key: 'securities', label: '📊 證券' };
-        if (/金融控股|金控|Financial Holdings?/i.test(n)) return { key: 'holdings', label: '🏢 金控' };
-        // 台股常帶「金」結尾（富邦金 / 國泰金 / 玉山金）
-        if (/金$/.test(name)) return { key: 'holdings', label: '🏢 金控' };
+        if (/保險|Insurance/i.test(n)) return { key: 'insurance', label: '🛡 保險' };
         return { key: 'other', label: '💰 其他金融' };
     }
 
@@ -3727,7 +3785,7 @@
         const revMix = fund.financialsRevMix;
         const niCV = fund.netIncomeCV;
         const scYoY = fund.shareCapYoY;
-        const subType = detectFinancialSubType(analysis.name, analysis.sector);
+        const subType = detectFinancialSubType(analysis.name);
         // BV per share：優先 balance-sheet 直算（equity / shares）· fallback price/PBR
         const bvpsLatest = (bsSeries.find(s => s.bvps)?.bvps) ?? ((price && pbr && pbr > 0) ? (price / pbr) : null);
         const bvps = bvpsLatest;   // 舊變數名 alias · 給下方摘要卡片沿用
@@ -3820,6 +3878,14 @@
             `;
         } else {
             revMixHtml = `<p class="hint-mini" style="margin-top:12px">📊 <b>收入結構未匹配到 FinMind 欄位</b> · 該公司 FS 可能沒揭露細項 · 或欄位名不在我抓的 alias 清單。F12 Console 有印該季所有可用 type · 幫我報回。</p>`;
+        }
+        // 若「其他」佔比 &gt; 20%（表示很多沒拆出來）· 加 debug 提示 · 幫用戶回報缺 alias
+        if (revMix && revMix.buckets) {
+            const otherBucket = revMix.buckets.find(b => b.key === 'other');
+            if (otherBucket && (otherBucket.value / revMix.totalRevenue) > 0.20 && revMix.allTypes) {
+                const revLike = revMix.allTypes.filter(t => /interest|fee|commission|insurance|premium|investment|income|gain/i.test(t));
+                revMixHtml += `<details style="margin-top:8px"><summary class="hint-mini">⚠️ 「其他」佔 ${(otherBucket.value / revMix.totalRevenue * 100).toFixed(0)}% · 收入 alias 可能沒抓全 · 展開看該季所有可用 type（幫我補 alias）</summary><pre class="hint-mini" style="max-height:200px;overflow:auto;background:#f8fafc;padding:8px;border-radius:4px;margin-top:6px;white-space:pre-wrap">${revLike.join('\n')}</pre></details>`;
+            }
         }
 
         // ROE / P/B / BV per share 摘要
