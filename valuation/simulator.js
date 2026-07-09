@@ -519,6 +519,19 @@
         // 統一格式：去掉 .TW 後綴
         const ticker = rawTicker.replace(/\.TW$/i, '').replace(/^tw/i, '').trim();
         if (!/^\d{2,6}[A-Z]?$/.test(ticker)) throw new Error(`FinMind 台股 ticker 必須是數字（可帶 A/B/L/R 尾綴 · 例：2330、0050、00981A、00631L），你輸入 "${ticker}"`);
+
+        // ETF 早退：這個工具做 PER/PBR 估值 · ETF 沒有這概念（一籃股票的 P/E 是無意義的加權）
+        //   00xx / 006xx / 009xx 開頭皆為 ETF · 尾綴 A/B/L/R 也算（主動 / 特別 / 槓桿 / 反向）
+        //   給人話錯誤 · 指到對的工具（rotation 看動能 · 或找 ETF 專屬平台看折溢價/持股）
+        if (/^00\d/.test(ticker) || /^006\d/.test(ticker) || /^009\d/.test(ticker)) {
+            throw new Error(
+                `🎯 <b>${ticker} 是 ETF · 不適用 PER/PBR 估值</b><br><br>` +
+                `ETF 是一籃股票 · 傳統本益比 / 淨值比對它沒意義（加權平均後失真）· FinMind 也不收 ETF 的 PER。<br><br>` +
+                `→ 想看動能：切「<a href="../rotation/index.html?ticker=${ticker}" style="color:inherit;text-decoration:underline">🎯 動能雷達</a>」· 支援 ETF<br>` +
+                `→ 想看折溢價 / 持股 / 配息：MoneyDJ ETF / 券商 App / 發行商官網（e.g. yuantaetfs.com）`
+            );
+        }
+
         const startDate = todayMinusYears(years);
         const endDate = todayStr();
         // 平行抓：PER 歷史 + 股價 + 公司資訊 + 財報成長性 + 現金流 + 法人買賣超
