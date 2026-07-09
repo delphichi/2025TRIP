@@ -4789,6 +4789,37 @@
     // 但瀏覽器因 CORS 走 allorigins.win proxy，並發 7 個請求會被 proxy IP 限流
     // → 用戶實測 4/7 通、3/7 失敗（DGS10 T10Y2Y HY spread 通，FEDFUNDS/CPI/VIX 或其他變化中）
     // 改成 sequential + 250ms 間隔穩定通過，代價是 7 × 250ms = ~1.75s 額外延遲，可接受
+    // FinMind macro fallback · 免 FRED key · 補 US 10Y / 2Y / FED rate
+    //   GovernmentBondsYield data_id 用 "United States 10-Year" 這種字串
+    //   InterestRate data_id="FED" 拿 FED funds rate（只回 change events · 需要自己延伸）
+    // 10Y-2Y spread FinMind 沒有直接數據 · 但我們可以 compute from series
+    async function fetchMacroFinMind(finmindToken) {
+        if (!finmindToken) return null;
+        const start = todayMinusYears(2);
+        const end = todayStr();
+        try {
+            const [us10y, us2y, fedRate] = await Promise.all([
+                finMindFetch('GovernmentBondsYield', 'United States 10-Year', start, end, finmindToken).catch(() => []),
+                finMindFetch('GovernmentBondsYield', 'United States 2-Year', start, end, finmindToken).catch(() => []),
+                finMindFetch('InterestRate', 'FED', start, end, finmindToken).catch(() => []),
+            ]);
+            // 10Y-2Y spread · align by date
+            const twoY = new Map((us2y || []).map(r => [r.date, r.value]));
+            const spread = (us10y || [])
+                .map(r => ({ date: r.date, value: twoY.has(r.date) ? r.value - twoY.get(r.date) : null }))
+                .filter(r => r.value !== null && isFinite(r.value));
+            return {
+                dgs10: (us10y || []).map(r => ({ date: r.date, value: r.value })),
+                dgs2: (us2y || []).map(r => ({ date: r.date, value: r.value })),
+                t10y2y: spread,
+                fedfunds: (fedRate || []).map(r => ({ date: r.date, value: r.interest_rate })),
+            };
+        } catch (e) {
+            console.warn('FinMind macro fetch failed:', e.message);
+            return null;
+        }
+    }
+
     async function fetchMacroFred(apiKey) {
         fredLastError = null;
         fredFailedSeries = [];
@@ -4820,13 +4851,35 @@
         return result;
     }
 
-    // USD/TWD 匯率 · 資料源優先順序（都免費，無 key）：
-    //   1. Yahoo Finance TWD=X（有 2 年+ 歷史、無 key、走同一組 CORS proxy chain）
-    //   2. FMP historical-price-eod/full?symbol=USDTWD（fallback · 需 key + 額度）
+    // USD/TWD 匯率 · 資料源優先順序：
+    //   1. FinMind TaiwanExchangeRate（USD · 免費 · 有 CORS · 從 2006 開始）← 首選
+    //   2. Yahoo Finance TWD=X（有 2 年+ · 無 key · 但 CORS 常掛 · 走 proxy）
+    //   3. FMP historical-price-eod/full?symbol=USDTWD（fallback · 需 key + 額度）
+    // 為什麼把 FinMind 放第一：Yahoo CORS 2025 起越來越嚴 · Chrome console 一堆紅字
+    //   FinMind 直接 CORS OK · 且有官方文檔支援
     // 為什麼不用 Frankfurter？ECB reference rates 名單不含 TWD、直接 400/404
     // 為什麼不用 FRED？DEXTAIUS 2020 年已停更
-    async function fetchForexUsdTwd(fmpKey) {
-        // Try 1: Yahoo Finance TWD=X (v8/finance/chart JSON endpoint)
+    async function fetchForexUsdTwd(fmpKey, finmindToken) {
+        // Try 1: FinMind TaiwanExchangeRate · USD 對台幣
+        //   spot_sell = 即期賣出（銀行賣美元給你的價 · 民眾看到的「賣出」）· 用它作 close
+        //   有些日期 spot 是 -99（未報價 · 通常是假日）· filter 掉
+        if (finmindToken) {
+            try {
+                const today = new Date().toISOString().slice(0, 10);
+                const twoYearsAgo = new Date(Date.now() - 730 * 86400 * 1000).toISOString().slice(0, 10);
+                const rows = await finMindFetch('TaiwanExchangeRate', 'USD', twoYearsAgo, today, finmindToken);
+                if (rows && rows.length > 0) {
+                    const series = rows
+                        .filter(r => r.spot_sell > 0)   // filter -99 (holiday / no quote)
+                        .map(r => ({ date: r.date, value: r.spot_sell }));
+                    if (series.length > 100) return series;   // 一年 240 個交易日 · 100 已能畫圖
+                }
+            } catch (e) {
+                console.warn('FinMind USD/TWD failed:', e.message);
+            }
+        }
+
+        // Try 2: Yahoo Finance TWD=X (v8/finance/chart JSON endpoint)
         try {
             const now = Math.floor(Date.now() / 1000);
             const twoYearsAgo = now - 730 * 24 * 3600;
@@ -5457,18 +5510,30 @@
             const hasFx = fx && fx.length;
             const hasVix = vix && vix.length;
             const parts = [];
-            // 判斷 FRED 狀態：全通 / 部分失敗 / 全空
-            let fredStatus;
-            if (!fredKey) {
-                fredStatus = '<span class="src-warn">⚠️ FRED（設定區塊填 key 才會抓）</span>';
-            } else if (!hasFred && fredFailedSeries.length === 0) {
-                fredStatus = `<span class="src-err">❌ FRED${fredLastError ? '（' + fredLastError + '）' : '（未知錯誤）'}</span>`;
-            } else if (fredFailedSeries.length > 0) {
-                fredStatus = `<span class="src-warn">⚠️ FRED 部分失敗（${fredFailedSeries.join(', ')} · CORS proxy 限流? 重跑一次）</span>`;
+            // 判斷 macro 狀態：先看有沒有拿到任何 DGS10 資料（不管 FRED / FinMind）
+            //   有資料 → ✅（順便標來源）· 沒資料 → 判斷是缺 key / 失敗 / 未設
+            let macroStatus;
+            const hasMacro = hasFred;   // dgs10 是所有 macro 指標的最小指標 · 有 = pipeline 通了
+            const finmindTokenSet = !!($('cfg-finmind-token') && $('cfg-finmind-token').value.trim());
+            if (hasMacro) {
+                // 判斷資料源：若 FRED 全通 → FRED · 若 FRED 掛但有 macro → 是 FinMind fallback
+                if (fredKey && fredFailedSeries.length === 0) {
+                    macroStatus = '<span class="src-ok">✅ Macro（FRED）</span>';
+                } else if (fredKey && fredFailedSeries.length > 0) {
+                    macroStatus = `<span class="src-warn">⚠️ FRED 部分失敗（${fredFailedSeries.join(', ')}）· 已用 FinMind 補</span>`;
+                } else {
+                    macroStatus = '<span class="src-ok">✅ Macro（FinMind fallback · 無 FRED key）</span>';
+                }
             } else {
-                fredStatus = '<span class="src-ok">✅ FRED 全通</span>';
+                if (!fredKey && !finmindTokenSet) {
+                    macroStatus = '<span class="src-warn">⚠️ Macro（需 FRED 或 FinMind key）</span>';
+                } else if (fredKey) {
+                    macroStatus = `<span class="src-err">❌ FRED${fredLastError ? '（' + fredLastError + '）' : ''} · FinMind 也無法補</span>`;
+                } else {
+                    macroStatus = '<span class="src-err">❌ FinMind macro 無資料（token 錯 or backer only）</span>';
+                }
             }
-            parts.push(fredStatus);
+            parts.push(macroStatus);
             parts.push(hasFx ? '<span class="src-ok">✅ USD/TWD 匯率</span>'
                 : '<span class="src-warn">⚠️ USD/TWD（Yahoo TWD=X + FMP fallback 都失敗 · 開 devtools console 看細節）</span>');
             parts.push(hasVix ? '<span class="src-ok">✅ VIX</span>'
@@ -6025,9 +6090,10 @@
             // VIX 從 macro.vix（FRED VIXCLS）拿，FMP 只當 fallback
             // ADR counterpart：查 US 股時若命中 ADR_MAP、順便抓對應台股價（例：TSM → 2330）
             // Yahoo quote：只對美股抓 · 補 Forward PE + 短興趣
-            const [macro, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote, peersComparison, twDivHist, twBuyback] = await Promise.all([
+            const [macro, macroFinmind, fx, vixFmpFallback, marginTW, dividendsTW, adrCounterpart, yahooQuote, peersComparison, twDivHist, twBuyback] = await Promise.all([
                 fetchMacroFred(fredKey),
-                fetchForexUsdTwd(fmpKey),
+                fetchMacroFinMind(finmindToken),
+                fetchForexUsdTwd(fmpKey, finmindToken),
                 fetchVixHistoryFmp(fmpKey),
                 (isFinmind && finmindToken) ? fetchMarginTW(ticker, finmindToken) : Promise.resolve(null),
                 (isFinmind && finmindToken) ? fetchDividendTW(ticker, finmindToken) : Promise.resolve([]),
@@ -6053,8 +6119,18 @@
                 if (twDivHist) data.fundamentals.dividendHistory = twDivHist;
                 if (twBuyback) data.fundamentals.buybackHistory = twBuyback;
             }
+            // 合併 FRED + FinMind macro：FRED 有就用 FRED · FRED 缺就用 FinMind
+            //   目的：若使用者只有 FinMind 沒有 FRED · macro panel 也能運作
+            const mergedMacro = macro || {};
+            if (macroFinmind) {
+                ['dgs10', 'dgs2', 't10y2y', 'fedfunds'].forEach(k => {
+                    if ((!mergedMacro[k] || mergedMacro[k].length === 0) && macroFinmind[k] && macroFinmind[k].length > 0) {
+                        mergedMacro[k] = macroFinmind[k];
+                    }
+                });
+            }
             renderResult(data);
-            renderMacroPanel(macro, fx, vix);
+            renderMacroPanel(mergedMacro, fx, vix);
         } catch (e) {
             setStatus('error', `❌ ${e.message}`);
             console.error(e);
