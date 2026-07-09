@@ -3085,7 +3085,8 @@
         // Tier 2 · 金融股專屬 panel（ROE 走勢 + BV/share + 監理外連）· 只對金融股觸發
         let financialStockHtml = '';
         try { financialStockHtml = renderFinancialStockHtml(analysis); }
-        catch (e) { console.warn('renderFinancialStockHtml failed:', e.message); }
+        catch (e) { console.warn('renderFinancialStockHtml failed:', e.message, e.stack); }
+        console.info('[金融 panel 診斷] financialStockHtml 長度:', financialStockHtml.length, '· 前 200 字:', financialStockHtml.slice(0, 200));
         // Feature · 內部人持股 + 歷年配息/庫藏股 + 13F 機構持股集中度
         let insiderHtml = '', dividendHtml = '', instOwnHtml = '';
         try { insiderHtml = renderInsiderTradingHtml(analysis); }
@@ -3147,7 +3148,14 @@
             radarHtml = renderRadarSvg(analysis);
             growthRadarHtml = renderGrowthRadarSvg(analysis);
         }
-        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + financialStockHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        // 金融股 · 把金融 panel 拉到最頂 · 加醒目背景 · 讓使用者一定看得到
+        const financialTop = (isFinancial && financialStockHtml) ? `<div style="border:3px solid #f59e0b;border-radius:8px;padding:4px;margin-bottom:12px;background:#fffbeb">${financialStockHtml}</div>` : '';
+        $('detail-box').innerHTML = financialTop + fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + (isFinancial ? '' : financialStockHtml) + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        // 診斷：塞完後查 DOM 有沒有這個 h3
+        const finPanelInDom = document.querySelector('#detail-box section h3');
+        const allH3 = Array.from(document.querySelectorAll('#detail-box h3')).map(h => h.textContent.trim());
+        console.info('[金融 panel 診斷] innerHTML 塞完 · #detail-box 內所有 h3 標題:', allH3);
+        console.info('[金融 panel 診斷] 含「金融股專屬指標」的 h3:', allH3.filter(t => t.includes('金融股專屬指標')));
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
