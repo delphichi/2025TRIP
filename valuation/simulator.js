@@ -3833,22 +3833,32 @@
     }
 
     function renderFinancialStockHtml(analysis) {
-        if (!analysis.isFinancial) return '';
+        console.info('[renderFinancialStockHtml] entry:', {
+            ticker: analysis.ticker,
+            isFinancial: analysis.isFinancial,
+            hasFund: !!analysis.fundamentals,
+            fundKeys: analysis.fundamentals ? Object.keys(analysis.fundamentals).slice(0, 20) : null,
+            hasRevMix: !!(analysis.fundamentals && analysis.fundamentals.financialsRevMix),
+            hasRoe: analysis.fundamentals && analysis.fundamentals.roe !== null && analysis.fundamentals.roe !== undefined,
+            hasBs: !!(analysis.fundamentals && analysis.fundamentals.balanceSheetSnapshot),
+        });
+        if (!analysis.isFinancial) {
+            console.info('[renderFinancialStockHtml] EARLY RETURN: not financial');
+            return '';
+        }
         const fund = analysis.fundamentals;
-        if (!fund) return '';
-        // 注意：以前有 `if (!fund.balanceSheetSnapshot) return ''` 的 guard · 太嚴
-        //   → 只要 FinMind BS 抓不到 · 整個 panel 消失 · 即使 ROE / 收入拆解 / 淨利 CV 都有值
-        //   → 這 function 根本沒用 bs · 只用 fund.* · 放寬即可
+        // 就算 fund 完全沒抓到 · 還是要渲染「金融股面板 + 提示訊號」· 不能空手退出
+        // （之前 `if (!fund) return ''` 造成 台新金 2887 面板完全消失 · 即使 sector 判定成功）
 
         const price = analysis.price;
         const pbr = analysis.currentPBR;
         const pe = analysis.currentPE;
-        const roeLatest = fund.roe;
-        const roeSeries = fund.roeSeries || [];
-        const bsSeries = fund.balanceSheetSeries || [];
-        const revMix = fund.financialsRevMix;
-        const niCV = fund.netIncomeCV;
-        const scYoY = fund.shareCapYoY;
+        const roeLatest = fund?.roe ?? null;
+        const roeSeries = fund?.roeSeries || [];
+        const bsSeries = fund?.balanceSheetSeries || [];
+        const revMix = fund?.financialsRevMix ?? null;
+        const niCV = fund?.netIncomeCV ?? null;
+        const scYoY = fund?.shareCapYoY ?? null;
         const subType = detectFinancialSubType(analysis.name);
         // BV per share：優先 balance-sheet 直算（equity / shares）· fallback price/PBR
         const bvpsLatest = (bsSeries.find(s => s.bvps)?.bvps) ?? ((price && pbr && pbr > 0) ? (price / pbr) : null);
@@ -3988,6 +3998,9 @@
         const scNote = (scYoY === null || scYoY === undefined) ? '' :
             Math.abs(scYoY) < 2 ? '🟢 極小' : Math.abs(scYoY) < 5 ? '🟡 溫和' : '🔴 明顯稀釋';
 
+        const degradedBanner = !fund
+            ? `<div class="bs-note" style="margin-top:8px;background:#fef3c7;padding:8px;border-radius:4px">⚠️ <b>降級模式</b>：FinMind 基本面資料未抓到（可能 API 額度用盡 · 或該公司欄位變動）· 只能顯示監理外連清單 · 請 F12 Console 對照 <code>[fetchTwStockData]</code> 錯誤訊息</div>`
+            : '';
         return `
             <section class="panel">
                 <h3>💼 金融股專屬指標 · ${subType.label}（${analysis.name}）</h3>
@@ -3996,12 +4009,13 @@
                     <b>①</b> ROE 是否穩定 10-15% 以上（資本效率）· <b>②</b> P/B 是否合理（book value 折溢價）· <b>③</b> BV per share 是否年年成長（真實股東價值）·
                     <b>④</b> 收入結構是否多元（利息 / 手續費 / 保費 / 投資）· <b>⑤</b> 淨利穩定度 CV（EPS 波動基期）· <b>⑥</b> 股本擴張速度（稀釋 EPS）· <b>⑦</b> 資本適足率 &amp; 逾放比（監理數字）。
                 </p>
+                ${degradedBanner}
                 <div class="bs-metrics-row">
                     <div class="bs-metric" title="近 4 季淨利 / 最新期末權益"><div class="bs-metric-label">TTM ROE</div><div class="bs-metric-val">${roeLatest !== null && isFinite(roeLatest) ? roeLatest.toFixed(1) + '%' : '—'}</div></div>
                     <div class="bs-metric" title="Price / Book"><div class="bs-metric-label">P/B</div><div class="bs-metric-val">${fmtNum(pbr)}×</div></div>
                     <div class="bs-metric" title="BV per share = 權益 / 股數（股本 / 10）· 若無 fallback price / PBR"><div class="bs-metric-label">BV / share</div><div class="bs-metric-val">${bvps !== null ? '$' + bvps.toFixed(2) : '—'}</div></div>
                     <div class="bs-metric" title="TTM PE"><div class="bs-metric-label">P/E</div><div class="bs-metric-val">${fmtNum(pe)}×</div></div>
-                    <div class="bs-metric" title="近 ${fund.netIncomeYears || 3}Y 年淨利標準差 ÷ 平均 · &lt; 20% 穩 &gt; 40% 波動大"><div class="bs-metric-label">淨利 CV</div><div class="bs-metric-val">${(niCV !== null && niCV !== undefined && isFinite(niCV)) ? niCV.toFixed(0) + '%' : '—'}</div></div>
+                    <div class="bs-metric" title="近 ${(fund?.netIncomeYears) || 3}Y 年淨利標準差 ÷ 平均 · &lt; 20% 穩 &gt; 40% 波動大"><div class="bs-metric-label">淨利 CV</div><div class="bs-metric-val">${(niCV !== null && niCV !== undefined && isFinite(niCV)) ? niCV.toFixed(0) + '%' : '—'}</div></div>
                     <div class="bs-metric" title="股本年增 · 抓稀釋速度"><div class="bs-metric-label">股本 YoY</div><div class="bs-metric-val">${(scYoY !== null && scYoY !== undefined && isFinite(scYoY)) ? (scYoY > 0 ? '+' : '') + scYoY.toFixed(1) + '%' : '—'}</div></div>
                 </div>
                 <div class="bs-note" style="margin-top:8px">
