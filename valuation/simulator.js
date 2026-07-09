@@ -352,15 +352,24 @@
                         };
                     }
 
-                    // 應收帳款 · 存貨 · 權益 quarterly 時序（給 drill-down 表 + 金融股 BV/ROE 走勢用）
+                    // 應收帳款 · 存貨 · 權益 · 股本 quarterly 時序
+                    //   給 drill-down 表 + 金融股 BV/share · 股本擴張追蹤用
+                    //   股本 ShareCapital 是面值 × 流通股數 · TW 面值固定 10 元 · shares = ShareCapital / 10
+                    //   BV/share = equity / shares = equity × 10 / ShareCapital
                     // bsDates 已是新→舊 · 直接 map · 存原始值 · QoQ 在 render 層算
                     result.balanceSheetSeries = bsDates.slice(0, 10).map(d => {
                         const flat = bsByDate.get(d);
+                        const eq = flat.Equity ?? flat.EquityAttributableToOwnersOfParent ?? null;
+                        const sc = flat.ShareCapital ?? flat.CommonStock ?? null;
+                        const shares = (sc && sc > 0) ? (sc / 10) : null;
+                        const bvps = (eq && shares) ? (eq / shares) : null;
                         return {
                             date: d,
                             accountsReceivable: flat.AccountsReceivableNet ?? null,
                             inventories: flat.Inventories ?? null,
-                            equity: flat.Equity ?? flat.EquityAttributableToOwnersOfParent ?? null,
+                            equity: eq,
+                            shareCapital: sc,
+                            bvps,
                         };
                     });
 
@@ -383,6 +392,86 @@
                         if (ok) roeSeries.push({ date: qDate, ttmRoe: (ttmNi / eq) * 100, equity: eq, ttmNetIncome: ttmNi });
                     }
                     result.roeSeries = roeSeries;   // 新→舊
+
+                    // === B1 · 淨利 5Y 變動係數 CV（金融股 EPS 波動大 · 看穩定度） ===
+                    // 把 wideRows 4 季一組加總成年淨利 · 取近 5 年 · 算 std / mean
+                    // CV < 20% 穩 · > 40% 波動巨大
+                    const yearlyNi = [];
+                    for (let i = 0; i + 3 < wideRows.length; i += 4) {
+                        let sum = 0, ok = true;
+                        for (let j = 0; j < 4; j++) {
+                            const v = wideRows[i + j].netIncome;
+                            if (v === null || !isFinite(v)) { ok = false; break; }
+                            sum += v;
+                        }
+                        if (ok) yearlyNi.push(sum);
+                    }
+                    if (yearlyNi.length >= 3) {
+                        const mean = yearlyNi.reduce((a, b) => a + b, 0) / yearlyNi.length;
+                        const variance = yearlyNi.reduce((a, b) => a + (b - mean) ** 2, 0) / yearlyNi.length;
+                        const std = Math.sqrt(variance);
+                        result.netIncomeCV = (mean > 0) ? (std / mean) * 100 : null;   // %
+                        result.netIncomeYears = yearlyNi.length;
+                    }
+
+                    // === B1 · 股本擴張追蹤（YoY）· 對照 EPS 成長 ===
+                    // 金融股常增發稀釋 EPS · 用 ShareCapital YoY 抓
+                    const shareCapSeries = result.balanceSheetSeries
+                        .filter(s => s.shareCapital && s.shareCapital > 0);
+                    if (shareCapSeries.length >= 5) {
+                        const latest = shareCapSeries[0];
+                        const yrAgo = shareCapSeries[4] || shareCapSeries[shareCapSeries.length - 1];   // 4 季 = 1 年
+                        result.shareCapYoY = ((latest.shareCapital / yrAgo.shareCapital) - 1) * 100;
+                    }
+
+                    // === B2 · 拆金融股收入結構 · 4 buckets（利息/手續費/保費/投資）+ 其他 ===
+                    // FinMind FS type 名稱因產業 IFRS 不同：試多個 alias
+                    //   銀行：NetInterestIncome / InterestIncome + FeesAndCommissionIncome
+                    //   保險：NetInsuranceRevenue / NetInsurancePremiumRevenue + InvestmentIncome
+                    //   證券：BrokerageFeeIncome + UnderwritingIncome
+                    // 用最新一季（bsDates[0]) 的 flat 去拆
+                    // 若某桶沒對應 type · 對應金額為 null · render 層跳過
+                    const latestFsFlat = byDate.get(dates[0]) || {};
+                    const bucket = (candidates) => {
+                        for (const c of candidates) {
+                            const v = latestFsFlat[c];
+                            if (v !== undefined && v !== null && isFinite(v)) return { value: v, field: c };
+                        }
+                        return null;
+                    };
+                    // net = 收入 - 費用（若無 net · 直接算 gross · 記錄 fallback）
+                    const interestB = bucket(['NetInterestIncome', 'NetInterestRevenue', 'InterestIncomeNet', 'InterestRevenue', 'InterestIncome']);
+                    const feesB     = bucket(['NetFeesAndCommissionsIncome', 'NetFeesAndCommissionIncome', 'NetServiceFeeIncome', 'NetServiceFeeRevenue', 'FeesAndCommissionsIncome', 'ServiceFeeIncome', 'FeesAndCommissionIncome']);
+                    const premiumB  = bucket(['NetInsuranceRevenue', 'NetInsurancePremiumRevenue', 'EarnedInsurancePremiumsNet', 'InsurancePremiumRevenue', 'PremiumIncome', 'NetEarnedPremium']);
+                    const investB   = bucket(['NetGainsLossesOnFinancialInstruments', 'GainsLossesOnFinancialAssetsMeasuredAtFairvalueThroughProfitOrLoss', 'NetGainOnFinancialAssetsAtFairValueThroughProfitOrLoss', 'InvestmentIncome', 'GainLossOnFairValueChangeOfInvestmentProperty', 'ShareOfProfitsOfAssociatesAndJointVentures']);
+                    const totalRev  = wideRows[0]?.revenue ?? bucket(['NetRevenue', 'Revenue', 'OperatingRevenue', 'TotalRevenue'])?.value ?? null;
+
+                    if ((interestB || feesB || premiumB || investB) && totalRev) {
+                        const buckets = [
+                            interestB ? { key: 'interest', label: '💰 利息淨收入', value: interestB.value, field: interestB.field } : null,
+                            feesB     ? { key: 'fees',     label: '💳 手續費淨收入', value: feesB.value,     field: feesB.field } : null,
+                            premiumB  ? { key: 'premium',  label: '📋 保費淨收入',   value: premiumB.value,  field: premiumB.field } : null,
+                            investB   ? { key: 'invest',   label: '📈 投資淨收益',   value: investB.value,   field: investB.field } : null,
+                        ].filter(Boolean);
+                        const knownSum = buckets.reduce((s, b) => s + b.value, 0);
+                        const other = totalRev - knownSum;
+                        if (other > totalRev * 0.02) {
+                            buckets.push({ key: 'other', label: '❓ 其他', value: other, field: '(推算)' });
+                        }
+                        result.financialsRevMix = {
+                            date: dates[0],
+                            totalRevenue: totalRev,
+                            buckets,
+                        };
+                    } else {
+                        // 沒找到 · dump 所有 type 名到 console 幫 debug
+                        console.info(`[金融股收入拆解] ${ticker} 未匹配到收入細項 · 該季 FS types:`, Object.keys(latestFsFlat).sort());
+                    }
+
+                    // === B1 · 殖利率序列（給歷史百分位用）===
+                    // history 已按 date+per+pbr 過 · 需 dividend_yield 每天 · 用 perData 原始
+                    // 之後在 fetchTwStockData 端補（perData 在那 scope）
+                    // 這裡先記一個 flag 讓 processed rows 保留 dividend_yield · 但這在 fetchTwStockData 端處理更乾淨
 
                     // Feature B · 資產負債結構 snapshot（最新一季）
                     // 用戶要的 8 資產項 + 4 負債項 + 權益 + ROE/ROA/ROIC/PB
@@ -915,6 +1004,7 @@
 
         // 直方圖的樣本：每一天的 PER / PBR（過濾非數字）
         // FMP 是「年度」樣本 5-20 筆，FinMind 是「每日」樣本 1000-5000 筆——分佈更細
+        // 補 dividend_yield（金融股殖利率百分位用）
         const history = perData
             .filter(r => r.PER !== null && isFinite(r.PER) && r.PER > 0)   // 濾掉負數 PER（虧損公司）+ 0
             .map(r => ({
@@ -922,6 +1012,7 @@
                 date: r.date,
                 pe: r.PER,
                 pbr: r.PBR,
+                dy: r.dividend_yield ?? null,
             }));
 
         if (history.length < 30) throw new Error(`歷史樣本太少（只 ${history.length} 天），可能是新股`);
@@ -3607,6 +3698,20 @@
     //   1. ROE 8 季走勢——EPS 波動大 · ROE 才穩定看資本效率
     //   2. BV per share = price / PBR——金融股評價核心是 book value 成長
     //   3. 資本適足率 CAR + 逾放比 NPL 外連——FinMind 沒收 · 直連監理報表
+    // 子類細分（B2）· 用公司名 + 產業帶頭判斷 · 決定 hint 焦點
+    function detectFinancialSubType(name, sector) {
+        const n = String(name || '') + String(sector || '');
+        if (/銀行|商銀|Bank/i.test(n)) return { key: 'bank', label: '🏦 銀行' };
+        if (/人壽|壽險|Life/i.test(n)) return { key: 'life', label: '🛡 壽險' };
+        if (/產險|Property|Casualty/i.test(n)) return { key: 'pnc', label: '🚗 產險' };
+        if (/保險|Insurance/i.test(n)) return { key: 'insurance', label: '🛡 保險' };
+        if (/證券|投顧|Securities/i.test(n)) return { key: 'securities', label: '📊 證券' };
+        if (/金融控股|金控|Financial Holdings?/i.test(n)) return { key: 'holdings', label: '🏢 金控' };
+        // 台股常帶「金」結尾（富邦金 / 國泰金 / 玉山金）
+        if (/金$/.test(name)) return { key: 'holdings', label: '🏢 金控' };
+        return { key: 'other', label: '💰 其他金融' };
+    }
+
     function renderFinancialStockHtml(analysis) {
         if (!analysis.isFinancial) return '';
         const fund = analysis.fundamentals;
@@ -3618,36 +3723,103 @@
         const pe = analysis.currentPE;
         const roeLatest = fund.roe;
         const roeSeries = fund.roeSeries || [];
-        // BV per share = price / PBR · 若兩者都有
-        const bvps = (price && pbr && pbr > 0) ? (price / pbr) : null;
+        const bsSeries = fund.balanceSheetSeries || [];
+        const revMix = fund.financialsRevMix;
+        const niCV = fund.netIncomeCV;
+        const scYoY = fund.shareCapYoY;
+        const subType = detectFinancialSubType(analysis.name, analysis.sector);
+        // BV per share：優先 balance-sheet 直算（equity / shares）· fallback price/PBR
+        const bvpsLatest = (bsSeries.find(s => s.bvps)?.bvps) ?? ((price && pbr && pbr > 0) ? (price / pbr) : null);
+        const bvps = bvpsLatest;   // 舊變數名 alias · 給下方摘要卡片沿用
 
-        // ROE 走勢 SVG（8 季 · 舊→新）
+        // B1.1 · ROE + BV/share 雙軸走勢（兩者一起看：ROE 穩 + BV 累積 = 金融股最健康型態）
         let roeChart = '';
+        const bvAsc = bsSeries.filter(s => s.bvps && s.bvps > 0).slice(0, 8).reverse();
         if (roeSeries.length >= 3) {
-            const asc = roeSeries.slice().reverse();
-            const roes = asc.map(r => r.ttmRoe);
-            const min = Math.min(...roes, 0);
-            const max = Math.max(...roes, 15);
-            const W = 640, H = 160, padL = 40, padR = 20, padT = 15, padB = 30;
+            const roeAsc = roeSeries.slice().reverse();
+            const dates = [...new Set([...roeAsc.map(r => r.date), ...bvAsc.map(r => r.date)])].sort();
+            const roeByDate = new Map(roeAsc.map(r => [r.date, r.ttmRoe]));
+            const bvByDate = new Map(bvAsc.map(r => [r.date, r.bvps]));
+            const roeVals = roeAsc.map(r => r.ttmRoe);
+            const bvVals = bvAsc.map(r => r.bvps);
+            const roeMin = Math.min(0, ...roeVals);
+            const roeMax = Math.max(15, ...roeVals);
+            const bvMin = bvVals.length > 0 ? Math.min(...bvVals) * 0.95 : 0;
+            const bvMax = bvVals.length > 0 ? Math.max(...bvVals) * 1.05 : 1;
+            const W = 640, H = 200, padL = 45, padR = 45, padT = 22, padB = 40;
             const plotW = W - padL - padR, plotH = H - padT - padB;
-            const xOf = i => padL + (asc.length > 1 ? i / (asc.length - 1) * plotW : plotW / 2);
-            const yOf = v => padT + (1 - (v - min) / (max - min || 1)) * plotH;
-            const pts = asc.map((r, i) => `${xOf(i)},${yOf(r.ttmRoe)}`).join(' ');
-            const dots = asc.map((r, i) => `<g><circle cx="${xOf(i).toFixed(1)}" cy="${yOf(r.ttmRoe).toFixed(1)}" r="4" fill="#0891b2"><title>${r.date}: TTM ROE ${r.ttmRoe.toFixed(1)}%</title></circle><text x="${xOf(i).toFixed(1)}" y="${(yOf(r.ttmRoe) - 8).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#0891b2">${r.ttmRoe.toFixed(1)}</text></g>`).join('');
-            const labels = asc.map((r, i) => `<text x="${xOf(i).toFixed(1)}" y="${H - 10}" text-anchor="middle" font-size="10" fill="#64748b">${r.date.slice(2, 7)}</text>`).join('');
-            const zero = min < 0 && max > 0 ? `<line x1="${padL}" y1="${yOf(0).toFixed(1)}" x2="${W - padR}" y2="${yOf(0).toFixed(1)}" stroke="#94a3b8" stroke-dasharray="3,3" stroke-width="1"/>` : '';
+            const xOf = i => padL + (dates.length > 1 ? i / (dates.length - 1) * plotW : plotW / 2);
+            const yRoe = v => padT + (1 - (v - roeMin) / (roeMax - roeMin || 1)) * plotH;
+            const yBv = v => padT + (1 - (v - bvMin) / (bvMax - bvMin || 1)) * plotH;
+            const roePts = dates.map((d, i) => roeByDate.has(d) ? `${xOf(i)},${yRoe(roeByDate.get(d))}` : null).filter(Boolean).join(' ');
+            const bvPts = dates.map((d, i) => bvByDate.has(d) ? `${xOf(i)},${yBv(bvByDate.get(d))}` : null).filter(Boolean).join(' ');
+            const roeDots = dates.map((d, i) => roeByDate.has(d) ? `<circle cx="${xOf(i).toFixed(1)}" cy="${yRoe(roeByDate.get(d)).toFixed(1)}" r="3.5" fill="#0891b2"><title>${d} · ROE ${roeByDate.get(d).toFixed(1)}%</title></circle>` : '').join('');
+            const bvDots = dates.map((d, i) => bvByDate.has(d) ? `<circle cx="${xOf(i).toFixed(1)}" cy="${yBv(bvByDate.get(d)).toFixed(1)}" r="3.5" fill="#f59e0b"><title>${d} · BV/share $${bvByDate.get(d).toFixed(2)}</title></circle>` : '').join('');
+            const xLabels = dates.map((d, i) => `<text x="${xOf(i).toFixed(1)}" y="${H - 22}" text-anchor="middle" font-size="10" fill="#64748b">${d.slice(2, 7)}</text>`).join('');
+            const roeTicks = [roeMin, (roeMin + roeMax) / 2, roeMax].map(v => `<text x="${padL - 6}" y="${(yRoe(v) + 4).toFixed(1)}" text-anchor="end" font-size="10" fill="#0891b2">${v.toFixed(0)}%</text>`).join('');
+            const bvTicks = bvVals.length > 0 ? [bvMin, (bvMin + bvMax) / 2, bvMax].map(v => `<text x="${W - padR + 6}" y="${(yBv(v) + 4).toFixed(1)}" text-anchor="start" font-size="10" fill="#f59e0b">${v.toFixed(1)}</text>`).join('') : '';
+            const bvLine = bvVals.length > 0 ? `<polyline points="${bvPts}" fill="none" stroke="#f59e0b" stroke-width="2"/>` : '';
+            const bvLegend = bvVals.length > 0 ? `<text x="${padL + 110}" y="12" font-size="10" font-weight="700" fill="#f59e0b">■ BV/share ($)</text>` : '';
             roeChart = `
                 <div class="fund-cell">
-                    <h4>📈 TTM ROE 近 8 季走勢</h4>
+                    <h4>📈 ROE + BV per share 近 8 季雙軸走勢</h4>
                     <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" xmlns="http://www.w3.org/2000/svg">
-                        ${zero}
-                        <polyline points="${pts}" fill="none" stroke="#0891b2" stroke-width="2"/>
-                        ${dots}
-                        ${labels}
+                        <polyline points="${roePts}" fill="none" stroke="#0891b2" stroke-width="2"/>
+                        ${bvLine}
+                        ${roeDots}${bvDots}
+                        ${roeTicks}${bvTicks}
+                        ${xLabels}
+                        <text x="${padL}" y="12" font-size="10" font-weight="700" fill="#0891b2">■ TTM ROE (%)</text>
+                        ${bvLegend}
                     </svg>
-                    <p class="hint-mini">EPS 波動大時（金融股 Q2/Q3 常有壽險投資部位認列）· ROE 走勢比 EPS YoY 穩定 · 判資本效率的核心。10% 以下偏弱 · 15% 以上偏強。</p>
+                    <p class="hint-mini">兩條同向上 = 資本效率穩 + book value 累積 · 金融股最健康型態。ROE 穩但 BV 沒漲 = 高配息政策抽走 retained earnings · BV 漲但 ROE 掉 = 資本膨脹但沒同步賺回。</p>
                 </div>
             `;
+        }
+
+        // B2.1 · 收入結構 100% 堆疊長條（利息 / 手續費 / 保費 / 投資 / 其他）
+        let revMixHtml = '';
+        if (revMix && revMix.buckets && revMix.buckets.length > 0) {
+            const total = revMix.totalRevenue;
+            const colors = { interest: '#0891b2', fees: '#f59e0b', premium: '#8b5cf6', invest: '#10b981', other: '#94a3b8' };
+            const W = 640, H = 42;
+            let x = 0;
+            const rects = [];
+            const labels = [];
+            revMix.buckets.forEach(b => {
+                const pct = b.value / total * 100;
+                if (pct <= 0) return;
+                const w = pct / 100 * W;
+                const color = colors[b.key] || '#94a3b8';
+                rects.push(`<rect x="${x.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${H}" fill="${color}" stroke="#fff" stroke-width="0.5"><title>${b.label}: ${pct.toFixed(1)}% (${(b.value / 1e9).toFixed(2)}B)</title></rect>`);
+                if (pct >= 6) {
+                    labels.push(`<text x="${(x + w / 2).toFixed(1)}" y="${(H / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${pct.toFixed(0)}%</text>`);
+                }
+                x += w;
+            });
+            const bar = `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">${rects.join('')}${labels.join('')}</svg>`;
+            const getPct = k => (revMix.buckets.find(b => b.key === k)?.value || 0) / total * 100;
+            const interestPct = getPct('interest'), feesPct = getPct('fees'), premiumPct = getPct('premium'), investPct = getPct('invest');
+            let mixVerdict = '';
+            if (interestPct >= 60) mixVerdict = `🏦 <b>利息收入佔 ${interestPct.toFixed(0)}%</b> · 純銀行體質 · 對利差變化最敏感 · 升息週期直接受惠`;
+            else if (premiumPct >= 50) mixVerdict = `🛡 <b>保費收入佔 ${premiumPct.toFixed(0)}%</b> · 保險為主 · 看綜合成本率 &lt; 100% 承保才賺 · 剩下靠投資部位`;
+            else if (feesPct >= 30) mixVerdict = `💳 <b>手續費佔 ${feesPct.toFixed(0)}%</b> · 手續費多元化 · 對利率不敏感 · 但受經紀業務景氣影響`;
+            else if (investPct >= 30) mixVerdict = `📈 <b>投資收益佔 ${investPct.toFixed(0)}%</b> · 高比例投資部位 · EPS 隨股債市場波動大`;
+            else mixVerdict = `🏢 收入結構多元 · 金控典型形態 · 各業務都貢獻但無單一主宰`;
+            const detailTable = revMix.buckets.map(b => `<tr><td>${b.label}</td><td>${(b.value / 1e9).toFixed(2)}B</td><td>${(b.value / total * 100).toFixed(1)}%</td><td class="hint-mini">${b.field}</td></tr>`).join('');
+            revMixHtml = `
+                <div style="margin-top:14px">
+                    <h4>📊 收入結構（${revMix.date}）</h4>
+                    ${bar}
+                    <div class="bs-note" style="margin-top:6px">${mixVerdict}</div>
+                    <table class="fund-table" style="margin-top:6px">
+                        <tr><th>桶</th><th>金額</th><th>佔比</th><th>FinMind 欄位</th></tr>
+                        ${detailTable}
+                    </table>
+                </div>
+            `;
+        } else {
+            revMixHtml = `<p class="hint-mini" style="margin-top:12px">📊 <b>收入結構未匹配到 FinMind 欄位</b> · 該公司 FS 可能沒揭露細項 · 或欄位名不在我抓的 alias 清單。F12 Console 有印該季所有可用 type · 幫我報回。</p>`;
         }
 
         // ROE / P/B / BV per share 摘要
@@ -3674,25 +3846,34 @@
             </div>
         `;
 
+        const cvNote = (niCV === null || niCV === undefined) ? '' :
+            niCV < 20 ? '🟢 穩' : niCV < 40 ? '🟡 中性' : '🔴 大波動';
+        const scNote = (scYoY === null || scYoY === undefined) ? '' :
+            Math.abs(scYoY) < 2 ? '🟢 極小' : Math.abs(scYoY) < 5 ? '🟡 溫和' : '🔴 明顯稀釋';
+
         return `
             <section class="panel">
-                <h3>💼 金融股專屬指標（ROE + BV per share + P/B）</h3>
+                <h3>💼 金融股專屬指標 · ${subType.label}（${analysis.name}）</h3>
                 <p class="hint">
                     <b>金融股不看毛利率 / 營益率 / Rule of 40</b>——那些是製造/科技的評分。金融股評價核心：
-                    <b>①</b> ROE 是否穩定在 10-15% 以上（資本效率）· <b>②</b> P/B 是否合理（book value 折溢價）· <b>③</b> BV per share 是否年年成長（真實股東價值）· <b>④</b> 資本適足率 &amp; 逾放比（監理數字）。
+                    <b>①</b> ROE 是否穩定 10-15% 以上（資本效率）· <b>②</b> P/B 是否合理（book value 折溢價）· <b>③</b> BV per share 是否年年成長（真實股東價值）·
+                    <b>④</b> 收入結構是否多元（利息 / 手續費 / 保費 / 投資）· <b>⑤</b> 淨利穩定度 CV（EPS 波動基期）· <b>⑥</b> 股本擴張速度（稀釋 EPS）· <b>⑦</b> 資本適足率 &amp; 逾放比（監理數字）。
                 </p>
                 <div class="bs-metrics-row">
                     <div class="bs-metric" title="近 4 季淨利 / 最新期末權益"><div class="bs-metric-label">TTM ROE</div><div class="bs-metric-val">${roeLatest !== null && isFinite(roeLatest) ? roeLatest.toFixed(1) + '%' : '—'}</div></div>
                     <div class="bs-metric" title="Price / Book"><div class="bs-metric-label">P/B</div><div class="bs-metric-val">${fmtNum(pbr)}×</div></div>
-                    <div class="bs-metric" title="BV per share = price / PBR"><div class="bs-metric-label">BV / share</div><div class="bs-metric-val">${bvps !== null ? '$' + bvps.toFixed(2) : '—'}</div></div>
+                    <div class="bs-metric" title="BV per share = 權益 / 股數（股本 / 10）· 若無 fallback price / PBR"><div class="bs-metric-label">BV / share</div><div class="bs-metric-val">${bvps !== null ? '$' + bvps.toFixed(2) : '—'}</div></div>
                     <div class="bs-metric" title="TTM PE"><div class="bs-metric-label">P/E</div><div class="bs-metric-val">${fmtNum(pe)}×</div></div>
+                    <div class="bs-metric" title="近 ${fund.netIncomeYears || 3}Y 年淨利標準差 ÷ 平均 · &lt; 20% 穩 &gt; 40% 波動大"><div class="bs-metric-label">淨利 CV</div><div class="bs-metric-val">${(niCV !== null && niCV !== undefined && isFinite(niCV)) ? niCV.toFixed(0) + '%' : '—'}</div></div>
+                    <div class="bs-metric" title="股本年增 · 抓稀釋速度"><div class="bs-metric-label">股本 YoY</div><div class="bs-metric-val">${(scYoY !== null && scYoY !== undefined && isFinite(scYoY)) ? (scYoY > 0 ? '+' : '') + scYoY.toFixed(1) + '%' : '—'}</div></div>
                 </div>
                 <div class="bs-note" style="margin-top:8px">
-                    ROE: ${roeNote} · P/B: ${pbNote}
+                    ROE: ${roeNote} · P/B: ${pbNote} · 淨利穩定: ${cvNote} · 股本稀釋: ${scNote}
                 </div>
                 <div class="fund-grid" style="margin-top:12px">
                     ${roeChart}
                 </div>
+                ${revMixHtml}
                 ${finExternalLinks}
             </section>
         `;
