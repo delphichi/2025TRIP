@@ -352,7 +352,7 @@
                         };
                     }
 
-                    // 應收帳款 · 存貨 quarterly 時序（給 drill-down 表用）
+                    // 應收帳款 · 存貨 · 權益 quarterly 時序（給 drill-down 表 + 金融股 BV/ROE 走勢用）
                     // bsDates 已是新→舊 · 直接 map · 存原始值 · QoQ 在 render 層算
                     result.balanceSheetSeries = bsDates.slice(0, 10).map(d => {
                         const flat = bsByDate.get(d);
@@ -360,8 +360,29 @@
                             date: d,
                             accountsReceivable: flat.AccountsReceivableNet ?? null,
                             inventories: flat.Inventories ?? null,
+                            equity: flat.Equity ?? flat.EquityAttributableToOwnersOfParent ?? null,
                         };
                     });
+
+                    // 金融股專屬 · 歷史 TTM ROE 序列（最近 8 季 · 每季用該季末權益 + 過去 4 季淨利）
+                    // 銀行/保險 EPS 波動大 · ROE 才是資本效率穩定度的核心
+                    const netIncomeByDate = new Map(wideRows.map(r => [r.date, r.netIncome]));
+                    const roeSeries = [];
+                    for (let i = 0; i < Math.min(8, bsDates.length); i++) {
+                        const qDate = bsDates[i];
+                        const eq = bsByDate.get(qDate)?.Equity || bsByDate.get(qDate)?.EquityAttributableToOwnersOfParent;
+                        if (!eq || eq <= 0) continue;
+                        const wIdx = wideRows.findIndex(r => r.date === qDate);
+                        if (wIdx < 0 || wIdx + 3 >= wideRows.length) continue;
+                        let ttmNi = 0, ok = true;
+                        for (let j = 0; j < 4; j++) {
+                            const ni = wideRows[wIdx + j].netIncome;
+                            if (ni === null || !isFinite(ni)) { ok = false; break; }
+                            ttmNi += ni;
+                        }
+                        if (ok) roeSeries.push({ date: qDate, ttmRoe: (ttmNi / eq) * 100, equity: eq, ttmNetIncome: ttmNi });
+                    }
+                    result.roeSeries = roeSeries;   // 新→舊
 
                     // Feature B · 資產負債結構 snapshot（最新一季）
                     // 用戶要的 8 資產項 + 4 負債項 + 權益 + ROE/ROA/ROIC/PB
@@ -2550,9 +2571,27 @@
         ctx.fillText('🐋 巨鯨（>1000 張）持股 % 走勢', padL, 14);
     }
 
+    // 金融保險股偵測 · 銀行 / 保險 / 金控 · 用製造/科技標準判讀會全錯：
+    //   ✕ 沒 COGS · 毛利率/營益率整片空
+    //   ✕ 沒 CapEx · FCF 整片空
+    //   ✕ 高槓桿是業態 · 「92% 負債」警訊誤導
+    //   ✕ CF vs 淨利差距大是正常（放款 + 投資部位變動）· 不是應收膨脹
+    //   ✕ 月營收會被壽險投資認列時點扭曲 · 假季節性
+    //   ✕ 6 軸雷達（Rule of 40 / 毛利趨勢）都不適用
+    // 該看的：ROE / BV per share / P/B / 資本適足率 CAR / 逾放比（NPL）· 保費/NII
+    function detectFinancial(sector) {
+        if (!sector) return false;
+        const s = String(sector).toLowerCase();
+        return /金融|保險|銀行|證券/.test(sector)
+            || /financial|banks?|insurance|capital markets/.test(s);
+    }
+
     // ---------- Rendering ----------
     function renderResult(analysis) {
         const { ticker, name, price, currentPE, currentPBR, history, latestRatioDate, sector } = analysis;
+        // 金融股：Tier 1 隱藏誤判 panel · Tier 2 加專屬 panel
+        const isFinancial = detectFinancial(sector);
+        analysis.isFinancial = isFinancial;
 
         $('result-panel').hidden = false;
         // 若上一次是 ETF 模式 · 個股元素被 hidden+display:none · 這裡先復原
@@ -2828,7 +2867,7 @@
         //                → 財報成長性 → 法人買賣超 → 融資餘額 → 歷年 ratio
         const peerHtml = renderPeerComparisonHtml(analysis);
         const adrHtml = renderAdrPremiumHtml(analysis, analysis.fxSeries);
-        const cfHtml = renderCashFlowHtml(analysis.cashFlow);
+        const cfHtml = renderCashFlowHtml(analysis.cashFlow, { isFinancial });
         // 應收/存貨/CapEx drill-down · 緊接 CF · try/catch 保護
         let drilldownHtml = '';
         try { drilldownHtml = renderQuarterlyDrilldown(analysis.cashFlow, analysis.fundamentals); }
@@ -2837,6 +2876,10 @@
         let balanceSheetHtml = '';
         try { balanceSheetHtml = renderBalanceSheetHtml(analysis); }
         catch (e) { console.warn('renderBalanceSheetHtml failed:', e.message); }
+        // Tier 2 · 金融股專屬 panel（ROE 走勢 + BV/share + 監理外連）· 只對金融股觸發
+        let financialStockHtml = '';
+        try { financialStockHtml = renderFinancialStockHtml(analysis); }
+        catch (e) { console.warn('renderFinancialStockHtml failed:', e.message); }
         // Feature · 內部人持股 + 歷年配息/庫藏股 + 13F 機構持股集中度
         let insiderHtml = '', dividendHtml = '', instOwnHtml = '';
         try { insiderHtml = renderInsiderTradingHtml(analysis); }
@@ -2849,21 +2892,26 @@
         let fmpStatusHtml = '';
         try { fmpStatusHtml = renderFmpStatusHtml(analysis); }
         catch (e) { console.warn('renderFmpStatusHtml failed:', e.message); }
-        const fundHtml = renderFundamentalsHtml(analysis.fundamentals);
+        const fundHtml = renderFundamentalsHtml(analysis.fundamentals, { isFinancial });
         // Step 2 · 最後 12 月營收 / 4 季毛利+營益（值+增長率）· try/catch 保護
         let monthlyMetricsHtml = '';
         try { monthlyMetricsHtml = renderMonthlyMetricsHtml(analysis.fundamentals); }
         catch (e) { console.warn('renderMonthlyMetricsHtml failed:', e.message); }
-        // Step B + C · 軌跡圖 + 季節性柱狀圖
+        // Step B + C · 軌跡圖 + 季節性柱狀圖 · 金融股沒毛利率 · 兩張圖都不適用
         let trajectoryHtml = '', seasonalityHtml = '';
-        try { trajectoryHtml = renderMarginTrajectoryHtml(analysis.fundamentals); }
-        catch (e) { console.warn('renderMarginTrajectoryHtml failed:', e.message); }
-        try { seasonalityHtml = renderQuarterlySeasonalityHtml(analysis.fundamentals); }
-        catch (e) { console.warn('renderQuarterlySeasonalityHtml failed:', e.message); }
+        if (!isFinancial) {
+            try { trajectoryHtml = renderMarginTrajectoryHtml(analysis.fundamentals); }
+            catch (e) { console.warn('renderMarginTrajectoryHtml failed:', e.message); }
+            try { seasonalityHtml = renderQuarterlySeasonalityHtml(analysis.fundamentals); }
+            catch (e) { console.warn('renderQuarterlySeasonalityHtml failed:', e.message); }
+        }
         // 月度熱區（TW 專用 · C 選項 · 獨立 panel · 不動舊圖）
+        // 金融股月營收被壽險投資部位認列時點扭曲 · 假季節性 · 隱藏
         let heatmapHtml = '';
-        try { heatmapHtml = renderMonthlyHeatmapHtml(analysis.fundamentals); }
-        catch (e) { console.warn('renderMonthlyHeatmapHtml failed:', e.message); }
+        if (!isFinancial) {
+            try { heatmapHtml = renderMonthlyHeatmapHtml(analysis.fundamentals); }
+            catch (e) { console.warn('renderMonthlyHeatmapHtml failed:', e.message); }
+        }
         // 股價月度熱區（TW + US 通用 · 用 priceSeries · 看週期規律）
         let priceHeatmapHtml = '';
         try { priceHeatmapHtml = renderPriceHeatmapHtml(analysis); }
@@ -2884,10 +2932,16 @@
         const marginHtml = renderMarginHtml(analysis.marginTW, analysis.dividendsTW);
         // Phase 7 · 兩張雷達 stacked（B 選項）· 價值派在上、成長派在下
         // Phase 7.2 · 落差偵測（gap ≥ 30 顯示 · 置於兩雷達最上方）
-        const mismatchHtml = detectFrameworkMismatch(analysis);
-        const radarHtml = renderRadarSvg(analysis);
-        const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        // 金融股：兩張雷達（毛利率 / 營益率 / Rule of 40 等軸）都不適用 · 換成一句話 + 導引
+        let mismatchHtml = '', radarHtml = '', growthRadarHtml = '';
+        if (isFinancial) {
+            radarHtml = `<section class="panel"><h3>🎯 估值雷達</h3><div class="divergence-banner divergence-ok">🏦 <b>金融股不套 6 軸雷達</b> · 價值派用毛利率 / 成長派用 Rule of 40 · 兩個軸都不適用金融股。改看下方 <b>💼 金融股專屬指標</b> panel（ROE + BV per share + P/B + 資本適足率外連）· 金融股評價核心是「book value 成長 + ROE 穩定度」· 不是 EPS 波動。</div></section>`;
+        } else {
+            mismatchHtml = detectFrameworkMismatch(analysis);
+            radarHtml = renderRadarSvg(analysis);
+            growthRadarHtml = renderGrowthRadarSvg(analysis);
+        }
+        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + financialStockHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -3238,8 +3292,9 @@
         return `<div class="divergence-banner ${cls}">${severity} <b>非營運項目佔稅前獲利 ${pct.toFixed(0)}%</b>（近 4 季 TTM）——淨利被<b>非營運項目顯著${sign}</b>：常見來源包含<b>未實現投資利益</b>（例：Alphabet 對 Waymo/DeepMind/私募股權公允價值變動 · 外部融資輪推高帳面）· 一次性稅務利益 · 匯損 · 併購重估。<b>這些不轉成現金流</b>——想看核心業務真實成長率，得去 10-Q 的 <code>Other income (expense), net</code> 明細把它扣掉。<br><span class="hint-mini">💡 官方直接計算方式：核心稅前 = 稅前淨利 − OI&E 主要非經常項；核心 YoY = 用剔除後數字算。工具目前用 GAAP 表面數字算 PEG · 若這個比例大，PEG 分母會被膨脹、看起來假便宜。</span></div>`;
     }
 
-    function renderFundamentalsHtml(fund) {
+    function renderFundamentalsHtml(fund, opts) {
         if (!fund) return '<p class="hint">⚠️ 這個資料源 or 標的沒抓到季度財報，成長性表隱藏。</p>';
+        const isFin = opts && opts.isFinancial;
 
         // 判斷本次是否有任何有效資料
         const hasAny = ['eps', 'revenue', 'grossMargin', 'operatingMargin']
@@ -3289,18 +3344,20 @@
                 <span class="hint-mini">📌 <b>找不到去年同季 prior（FMP 免費 tier 只給 5 季）</b>時 fallback 到 <b>QoQ</b>（跟前一季比），會多一個 <span class="mode-tag mode-qoq">Q/Q</span> 標記 · <b>QoQ 有季節性</b>（Q4 常天生 &gt; Q1，別當成長率讀）· QoQ 值不套紅綠色，只有 YoY 才用色調傳達方向。</span>
             </p>
             ${renderNonOpBanner(fund)}
+            ${isFin ? '<div class="divergence-banner divergence-ok">🏦 <b>金融股沒 COGS / 產品毛利概念</b> · 毛利率 / 營益率隱藏 · 改看 ROE + BV per share（下方專屬 panel）· 銀行看 NIM 淨利差 · 保險看綜合成本率。</div>' : ''}
             <div class="fund-grid">
                 ${renderTable('💵 EPS <span class="acct-tag" title="美股走 GAAP diluted EPS / 台股 IFRS · 詳見 verdict 下方說明">GAAP</span>', fund.eps, false, v => v.toFixed(2))}
                 ${renderTable('💰 營收', fund.revenue, false, fmtRevenue)}
-                ${renderTable('📈 毛利率', fund.grossMargin, true, v => (v * 100).toFixed(1) + '%')}
-                ${renderTable('📉 營益率', fund.operatingMargin, true, v => (v * 100).toFixed(1) + '%')}
+                ${isFin ? '' : renderTable('📈 毛利率', fund.grossMargin, true, v => (v * 100).toFixed(1) + '%')}
+                ${isFin ? '' : renderTable('📉 營益率', fund.operatingMargin, true, v => (v * 100).toFixed(1) + '%')}
             </div>
         `;
     }
 
     // 現金流量 + 淨利背離渲染
-    function renderCashFlowHtml(cf) {
+    function renderCashFlowHtml(cf, opts) {
         if (!cf) return '';
+        const isFin = opts && opts.isFinancial;
         const fmtNum = v => {
             if (v === null || !isFinite(v)) return '—';
             if (Math.abs(v) >= 1e12) return (v / 1e12).toFixed(2) + '兆';
@@ -3329,10 +3386,14 @@
         };
 
         let divergenceBanner = '';
-        if (cf.divergence) {
+        if (cf.divergence && !isFin) {
             const d = cf.divergence;
             const cls = d.kind === 'warning' ? 'divergence-warn' : d.kind === 'positive' ? 'divergence-good' : 'divergence-ok';
             divergenceBanner = `<div class="divergence-banner ${cls}">${d.msg}</div>`;
+        }
+        // 金融股：CF vs 淨利差距是業態（放款、投資部位、準備金）· 不套製造業判讀
+        if (isFin) {
+            divergenceBanner = `<div class="divergence-banner divergence-ok">🏦 <b>金融股 CF vs 淨利差距是業態</b> · 銀行放款 · 保險準備金 · 投資部位公允價值變動都會讓 CF 高波動 · 不套「應收膨脹 = 獲利品質警訊」的製造業判讀。原始表保留供參 · 但不做背離結論。</div>`;
         }
 
         // SBC 佔 GAAP 淨利 TTM 比例（美股 FMP 才有 stockBasedCompensation 欄位）
@@ -3368,7 +3429,7 @@
             ${sbcBanner}
             <div class="fund-grid">
                 ${renderCol('🏭 營運現金流', cf.operatingCF)}
-                ${renderCol('🆓 自由現金流', cf.freeCF)}
+                ${isFin ? '' : renderCol('🆓 自由現金流', cf.freeCF)}
                 ${renderCol('📖 淨利（帳面）', cf.netIncome)}
                 ${cf.sbc ? renderCol('💸 股票薪酬 (SBC)', cf.sbc) : ''}
             </div>
@@ -3540,6 +3601,103 @@
         `;
     }
 
+    // 金融股專屬 panel · Tier 2
+    // 為什麼：銀行 / 保險 / 金控用一般框架分析全錯（見 detectFinancial 上方註解）
+    // 這個 panel 給金融股該看的三件事：
+    //   1. ROE 8 季走勢——EPS 波動大 · ROE 才穩定看資本效率
+    //   2. BV per share = price / PBR——金融股評價核心是 book value 成長
+    //   3. 資本適足率 CAR + 逾放比 NPL 外連——FinMind 沒收 · 直連監理報表
+    function renderFinancialStockHtml(analysis) {
+        if (!analysis.isFinancial) return '';
+        const fund = analysis.fundamentals;
+        const bs = fund && fund.balanceSheetSnapshot;
+        if (!bs) return '';
+
+        const price = analysis.price;
+        const pbr = analysis.currentPBR;
+        const pe = analysis.currentPE;
+        const roeLatest = fund.roe;
+        const roeSeries = fund.roeSeries || [];
+        // BV per share = price / PBR · 若兩者都有
+        const bvps = (price && pbr && pbr > 0) ? (price / pbr) : null;
+
+        // ROE 走勢 SVG（8 季 · 舊→新）
+        let roeChart = '';
+        if (roeSeries.length >= 3) {
+            const asc = roeSeries.slice().reverse();
+            const roes = asc.map(r => r.ttmRoe);
+            const min = Math.min(...roes, 0);
+            const max = Math.max(...roes, 15);
+            const W = 640, H = 160, padL = 40, padR = 20, padT = 15, padB = 30;
+            const plotW = W - padL - padR, plotH = H - padT - padB;
+            const xOf = i => padL + (asc.length > 1 ? i / (asc.length - 1) * plotW : plotW / 2);
+            const yOf = v => padT + (1 - (v - min) / (max - min || 1)) * plotH;
+            const pts = asc.map((r, i) => `${xOf(i)},${yOf(r.ttmRoe)}`).join(' ');
+            const dots = asc.map((r, i) => `<g><circle cx="${xOf(i).toFixed(1)}" cy="${yOf(r.ttmRoe).toFixed(1)}" r="4" fill="#0891b2"><title>${r.date}: TTM ROE ${r.ttmRoe.toFixed(1)}%</title></circle><text x="${xOf(i).toFixed(1)}" y="${(yOf(r.ttmRoe) - 8).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#0891b2">${r.ttmRoe.toFixed(1)}</text></g>`).join('');
+            const labels = asc.map((r, i) => `<text x="${xOf(i).toFixed(1)}" y="${H - 10}" text-anchor="middle" font-size="10" fill="#64748b">${r.date.slice(2, 7)}</text>`).join('');
+            const zero = min < 0 && max > 0 ? `<line x1="${padL}" y1="${yOf(0).toFixed(1)}" x2="${W - padR}" y2="${yOf(0).toFixed(1)}" stroke="#94a3b8" stroke-dasharray="3,3" stroke-width="1"/>` : '';
+            roeChart = `
+                <div class="fund-cell">
+                    <h4>📈 TTM ROE 近 8 季走勢</h4>
+                    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" xmlns="http://www.w3.org/2000/svg">
+                        ${zero}
+                        <polyline points="${pts}" fill="none" stroke="#0891b2" stroke-width="2"/>
+                        ${dots}
+                        ${labels}
+                    </svg>
+                    <p class="hint-mini">EPS 波動大時（金融股 Q2/Q3 常有壽險投資部位認列）· ROE 走勢比 EPS YoY 穩定 · 判資本效率的核心。10% 以下偏弱 · 15% 以上偏強。</p>
+                </div>
+            `;
+        }
+
+        // ROE / P/B / BV per share 摘要
+        const fmtNum = v => (v === null || !isFinite(v)) ? '—' : v.toFixed(2);
+        const roeNote = roeLatest === null ? '' :
+            roeLatest >= 15 ? '🟢 強' :
+            roeLatest >= 10 ? '🟡 中性' :
+            roeLatest >= 6 ? '⚠️ 偏弱' : '🔴 弱';
+        const pbNote = pbr === null ? '' :
+            pbr < 1 ? '🟢 &lt; 1× · 帳面折價（金融股常見機會 · 但要問是否有隱藏減值）' :
+            pbr < 1.5 ? '🟡 合理' :
+            pbr < 2 ? '⚠️ 偏貴' : '🔴 &gt; 2× · 貴（金融股很難撐得住）';
+
+        // 資本強度 / 資產品質評估——FinMind 沒直接欄位 · 只能點資料源
+        const finExternalLinks = `
+            <div style="margin-top:12px">
+                <h4>🔗 需人工查的金融股關鍵指標（FinMind 沒收）</h4>
+                <p class="hint-mini">
+                    · <a href="https://mops.twse.com.tw/mops/#/web/t164sb04" target="_blank" rel="noopener">MOPS · 個別公司資本適足率</a>（銀行 / 金控查 <b>CAR / Tier 1</b> · 保險查 <b>RBC</b>）—— 金融股資本強度的核心 · 監理下限 10.5% · 20% 以上很穩<br>
+                    · <a href="https://survey.banking.gov.tw/statis/stmain.jsp?sys=100" target="_blank" rel="noopener">金管會 · 本國銀行逾放比 NPL</a>——資產品質 · &lt; 0.3% 優秀 · &gt; 1% 警訊<br>
+                    · <a href="https://www.tii.org.tw/tii/information/information1/" target="_blank" rel="noopener">保險發展中心 · 綜合成本率</a>（產險看 combined ratio · &lt; 100% 承保賺錢）<br>
+                    · <a href="https://mops.twse.com.tw/mops/#/web/t05st01" target="_blank" rel="noopener">MOPS · 法人說明會</a>——金融股法說會揭露的 NIM（淨利差）· 手續費收入 / 資產配置變動比財報摘要清楚
+                </p>
+            </div>
+        `;
+
+        return `
+            <section class="panel">
+                <h3>💼 金融股專屬指標（ROE + BV per share + P/B）</h3>
+                <p class="hint">
+                    <b>金融股不看毛利率 / 營益率 / Rule of 40</b>——那些是製造/科技的評分。金融股評價核心：
+                    <b>①</b> ROE 是否穩定在 10-15% 以上（資本效率）· <b>②</b> P/B 是否合理（book value 折溢價）· <b>③</b> BV per share 是否年年成長（真實股東價值）· <b>④</b> 資本適足率 &amp; 逾放比（監理數字）。
+                </p>
+                <div class="bs-metrics-row">
+                    <div class="bs-metric" title="近 4 季淨利 / 最新期末權益"><div class="bs-metric-label">TTM ROE</div><div class="bs-metric-val">${roeLatest !== null && isFinite(roeLatest) ? roeLatest.toFixed(1) + '%' : '—'}</div></div>
+                    <div class="bs-metric" title="Price / Book"><div class="bs-metric-label">P/B</div><div class="bs-metric-val">${fmtNum(pbr)}×</div></div>
+                    <div class="bs-metric" title="BV per share = price / PBR"><div class="bs-metric-label">BV / share</div><div class="bs-metric-val">${bvps !== null ? '$' + bvps.toFixed(2) : '—'}</div></div>
+                    <div class="bs-metric" title="TTM PE"><div class="bs-metric-label">P/E</div><div class="bs-metric-val">${fmtNum(pe)}×</div></div>
+                </div>
+                <div class="bs-note" style="margin-top:8px">
+                    ROE: ${roeNote} · P/B: ${pbNote}
+                </div>
+                <div class="fund-grid" style="margin-top:12px">
+                    ${roeChart}
+                </div>
+                ${finExternalLinks}
+            </section>
+        `;
+    }
+
     // Feature B · 資產負債結構 · 水平堆疊長條 + 表格 + ROE/ROA/ROIC/PB 摘要
     // 兩張 100% 長條（都以 TotalAssets 為分母 · 因為資產 = 負債 + 權益 · 兩張長度相等）
     // 上面：資產怎麼組成（現金 / 應收 / 存貨 / 其他流動 / 固定 / 無形 / 長期投資 / 其他）
@@ -3547,6 +3705,7 @@
     function renderBalanceSheetHtml(analysis) {
         const bs = analysis.fundamentals && analysis.fundamentals.balanceSheetSnapshot;
         if (!bs || !bs.totalAssets || bs.totalAssets <= 0) return '';
+        const isFin = analysis.isFinancial;
 
         const TA = bs.totalAssets;
         const pct = v => (v === null || v === undefined || !isFinite(v)) ? 0 : (v / TA * 100);
@@ -3647,7 +3806,10 @@
 
         // 結構解讀
         let structNote = '';
-        if (equityPct >= 60) structNote = `💪 <b>權益佔 ${equityPct.toFixed(0)}%</b> · 財務結構穩健 · 靠自有資本支撐 · 抗景氣衝擊能力強`;
+        if (isFin) {
+            // 金融股：高槓桿是業態（保費/存款 = 負債 · 投資部位 = 資產）· 不套製造業「權益低 = 危險」
+            structNote = `🏦 <b>金融股：權益佔 ${equityPct.toFixed(0)}% 是業態</b> · 負債裡多是保費 / 存款 / 準備金（不是借款）· 用資本適足率 CAR（Tier 1）判資本強度才對 · 見下方外連。`;
+        } else if (equityPct >= 60) structNote = `💪 <b>權益佔 ${equityPct.toFixed(0)}%</b> · 財務結構穩健 · 靠自有資本支撐 · 抗景氣衝擊能力強`;
         else if (equityPct >= 40) structNote = `⚖️ 權益佔 ${equityPct.toFixed(0)}% · 中性資本結構 · 有借力也有自己撐`;
         else structNote = `⚠️ <b>權益僅佔 ${equityPct.toFixed(0)}%</b>（負債佔 ${totalLPct.toFixed(0)}%）· 高槓桿 · 利率上升時利息壓力大`;
 
@@ -4160,10 +4322,14 @@
         }
 
         // 摘要指標
-        const latestDiv = dh && dh[0] ? dh[0] : null;
+        // Fix：dh 是新→舊 · dh[0] 可能是「當年度尚未配息」的 zero row（例：富邦金 2026 年到 7 月才除息 · 前面 dh 有一筆 cash=0）
+        //   之前直接用 dh[0] 導致「最新配息 — · 5Y 成長 -100% · 減碼」的錯誤摘要
+        //   改：跳過 cash=0 的年度找真正的 latest · avg5 也只算有配息的年
+        const paidYears = (dh || []).filter(d => d.cash > 0);
+        const latestDiv = paidYears[0] || null;
         const totalLatestCash = latestDiv ? latestDiv.cash : 0;
         const yieldPct = (totalLatestCash > 0 && price > 0) ? (totalLatestCash / price * 100) : null;
-        const avg5Cash = dh && dh.length >= 3 ? dh.slice(0, Math.min(5, dh.length)).reduce((s, d) => s + d.cash, 0) / Math.min(5, dh.length) : null;
+        const avg5Cash = paidYears.length >= 3 ? paidYears.slice(0, Math.min(5, paidYears.length)).reduce((s, d) => s + d.cash, 0) / Math.min(5, paidYears.length) : null;
         const growth = (latestDiv && avg5Cash && avg5Cash > 0) ? ((latestDiv.cash / avg5Cash - 1) * 100) : null;
 
         // 庫藏股摘要
@@ -4186,14 +4352,19 @@
             buybackSummary = `<div style="margin-top:10px"><h4>🔄 庫藏股</h4><p class="hint-mini">📌 這公司近 10 年 cash flow 沒偵測到明顯 buyback（commonStockRepurchased ≈ 0）</p></div>`;
         }
 
-        // 配息穩定度 verdict
+        // 配息穩定度 verdict · 用「有配息的年」為分母 · 避開當年度未配息 zero row 誤判為「不穩定」
         let divVerdict = '';
         if (dh && dh.length >= 3) {
-            const posYears = dh.slice(0, 5).filter(d => d.cash > 0).length;
-            const total5 = Math.min(5, dh.length);
-            if (posYears === total5) divVerdict = `🟢 <b>近 ${total5} 年連續配息</b> · 穩定度高`;
-            else if (posYears >= total5 - 1) divVerdict = `🟡 近 ${total5} 年配息 ${posYears} 年 · 大致穩定`;
-            else divVerdict = `⚠️ 近 ${total5} 年只 ${posYears} 年有配息 · 不穩定 or 週期性`;
+            // dh[0] 若是當年度未配息 zero row · 跳過不算 · 從第一筆有配息的年開始往前算 5 年
+            const startIdx = dh.findIndex(d => d.cash > 0);
+            const window = startIdx >= 0 ? dh.slice(startIdx, startIdx + 5) : [];
+            const posYears = window.filter(d => d.cash > 0).length;
+            const total5 = window.length;
+            if (total5 >= 3) {
+                if (posYears === total5) divVerdict = `🟢 <b>近 ${total5} 年連續配息</b> · 穩定度高`;
+                else if (posYears >= total5 - 1) divVerdict = `🟡 近 ${total5} 年配息 ${posYears} 年 · 大致穩定`;
+                else divVerdict = `⚠️ 近 ${total5} 年只 ${posYears} 年有配息 · 不穩定 or 週期性`;
+            }
             if (growth !== null) {
                 const g = growth.toFixed(0);
                 divVerdict += growth > 20 ? ` · <b>最新 vs 5Y 平均 +${g}% · 加碼中</b>`
