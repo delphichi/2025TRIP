@@ -2051,7 +2051,7 @@
                 </div>
                 <div class="etf-margin-cell">
                     <div class="etf-margin-label">融券餘額（今日）</div>
-                    <div class="etf-margin-val">${fmtNum(shortCurBalance)} 張</div>
+                    <div class="etf-margin-val">${shortCurBalance.toLocaleString()} 張</div>
                 </div>
                 <div class="etf-margin-cell">
                     <div class="etf-margin-label">券資比</div>
