@@ -13,11 +13,6 @@ on:
     # 台北 18:30 = UTC 10:30 · cron 用 UTC
     - cron: '30 10 * * *'
   workflow_dispatch:
-
-# GH Actions 2022 起 default token 是 read-only · 要寫回 repo 得明給 contents: write
-# 只加最小必要權限 · 不擴大其他 scope
-permissions:
-  contents: write
     inputs:
       date:
         description: '指定日期（YYYYMMDD · 空 = 今日）'
@@ -27,6 +22,11 @@ permissions:
         description: '回補近 N 天（>0 會覆蓋 date · 建立初始快照用 · e.g. 7）'
         default: '0'
         required: false
+
+# GH Actions 2022 起 default token 是 read-only · 要寫回 repo 得明給 contents: write
+# 只加最小必要權限 · 不擴大其他 scope
+permissions:
+  contents: write
 
 jobs:
   fetch:
