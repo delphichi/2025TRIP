@@ -3835,8 +3835,10 @@
     function renderFinancialStockHtml(analysis) {
         if (!analysis.isFinancial) return '';
         const fund = analysis.fundamentals;
-        const bs = fund && fund.balanceSheetSnapshot;
-        if (!bs) return '';
+        if (!fund) return '';
+        // 注意：以前有 `if (!fund.balanceSheetSnapshot) return ''` 的 guard · 太嚴
+        //   → 只要 FinMind BS 抓不到 · 整個 panel 消失 · 即使 ROE / 收入拆解 / 淨利 CV 都有值
+        //   → 這 function 根本沒用 bs · 只用 fund.* · 放寬即可
 
         const price = analysis.price;
         const pbr = analysis.currentPBR;
