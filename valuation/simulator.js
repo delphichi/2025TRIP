@@ -512,6 +512,159 @@
         };
     }
 
+    // ---------- ETF 專屬 fetch ----------
+    // 為什麼分開：ETF 沒有 PER/PBR/EPS/財報 · 走個股路徑會拿一堆空 array 觸發空指標判斷 crash
+    // ETF 分析重點：配息 + 法人買賣（尤其投信）+ 大戶散戶籌碼 · 完全不同的看法
+    // FinMind 對 ETF 可回的 dataset（實測 0050）：
+    //   ✅ Info · Price · Dividend · Institutional · Margin · Shareholding · HoldingSharesPer
+    //   ❌ PER · Financial · CashFlow · BalanceSheet · MonthRevenue · Buyback · MarketValueWeight
+    async function fetchTwEtfData(ticker, token, years, prefetchedInfo) {
+        setStatus('loading', `📡 ${ticker} 是 ETF · 抓專屬資料中……`);
+        const startDate = todayMinusYears(Math.min(years, 3));   // ETF 只需近 3 年 · 太久沒意義
+        const endDate = todayStr();
+        const [priceData, dividendData, institutional, holdingSharesPer] = await Promise.all([
+            finMindFetch('TaiwanStockPrice', ticker, startDate, endDate, token),
+            finMindFetch('TaiwanStockDividend', ticker, todayMinusYears(5), endDate, token).catch(() => []),
+            finMindFetch('TaiwanStockInstitutionalInvestorsBuySell', ticker, todayMinusYears(0.5), endDate, token).catch(() => []),
+            finMindFetch('TaiwanStockHoldingSharesPer', ticker, todayMinusYears(2), endDate, token).catch(() => []),
+        ]);
+
+        const info = (prefetchedInfo && prefetchedInfo.length > 0) ? prefetchedInfo[prefetchedInfo.length - 1] : {};
+        const stockName = info.stock_name || ticker;
+
+        // 最新價 + 近 30 天漲跌
+        let price = null, price30dAgo = null, change30d = null;
+        if (priceData && priceData.length > 0) {
+            price = priceData[priceData.length - 1].close;
+            const targetIdx = Math.max(0, priceData.length - 22);   // ~30 曆日 = 22 交易日
+            price30dAgo = priceData[targetIdx].close;
+            if (price30dAgo) change30d = ((price - price30dAgo) / price30dAgo) * 100;
+        }
+
+        // 配息分析：近 12M 累計 + 頻率推算
+        const now = Date.now();
+        const dividends = (dividendData || [])
+            .map(d => ({
+                exDate: d.CashExDividendTradingDate || d.date,
+                payDate: d.CashDividendPaymentDate || '',
+                cash: d.CashEarningsDistribution || 0,
+                year: d.year || '',
+                announceDate: d.date || '',
+            }))
+            .filter(d => d.cash > 0)
+            .sort((a, b) => (b.exDate || '').localeCompare(a.exDate || ''));
+        const last12M = dividends.filter(d => {
+            const dt = new Date(d.exDate);
+            return !isNaN(dt) && (now - dt) < 365 * 86400 * 1000;
+        });
+        const last12MSum = last12M.reduce((s, d) => s + d.cash, 0);
+        const estYield = price ? (last12MSum / price) * 100 : null;
+        let frequency = null;
+        if (last12M.length >= 10) frequency = '月配';
+        else if (last12M.length >= 4) frequency = '季配';
+        else if (last12M.length >= 2) frequency = '半年配';
+        else if (last12M.length === 1) frequency = '年配';
+        else frequency = '近 12M 無配息';
+
+        // 法人買賣：近 60 天累計（買-賣） · 分投信 / 外資 / 自營商合計
+        // Investment_Trust 對 ETF 是主戰場（大部分主動 ETF 是投信發的 · 也常被投信推薦）
+        const inst60d = { Foreign_Investor: 0, Investment_Trust: 0, Dealer: 0 };
+        const inst20d = { Foreign_Investor: 0, Investment_Trust: 0, Dealer: 0 };
+        const cutoff60 = now - 60 * 86400 * 1000;
+        const cutoff20 = now - 20 * 86400 * 1000;
+        (institutional || []).forEach(r => {
+            const dt = new Date(r.date).getTime();
+            if (isNaN(dt)) return;
+            const net = (r.buy || 0) - (r.sell || 0);
+            let key;
+            if (r.name === 'Foreign_Investor' || r.name === 'Foreign_Dealer_Self') key = 'Foreign_Investor';
+            else if (r.name === 'Investment_Trust') key = 'Investment_Trust';
+            else if (r.name === 'Dealer_self' || r.name === 'Dealer_Hedging') key = 'Dealer';
+            else return;
+            if (dt >= cutoff60) inst60d[key] += net;
+            if (dt >= cutoff20) inst20d[key] += net;
+        });
+
+        // 每日累計 line 資料（近 60 天）· 給 chart 用
+        const instDaily = new Map();   // date → {foreign, trust, dealer}
+        (institutional || []).forEach(r => {
+            const dt = new Date(r.date).getTime();
+            if (isNaN(dt) || dt < cutoff60) return;
+            const dateStr = r.date;
+            if (!instDaily.has(dateStr)) instDaily.set(dateStr, { foreign: 0, trust: 0, dealer: 0 });
+            const bucket = instDaily.get(dateStr);
+            const net = (r.buy || 0) - (r.sell || 0);
+            if (r.name === 'Foreign_Investor' || r.name === 'Foreign_Dealer_Self') bucket.foreign += net;
+            else if (r.name === 'Investment_Trust') bucket.trust += net;
+            else if (r.name === 'Dealer_self' || r.name === 'Dealer_Hedging') bucket.dealer += net;
+        });
+        const instSeriesRaw = Array.from(instDaily.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([date, v]) => ({ date, ...v }));
+        // 累計
+        let cumForeign = 0, cumTrust = 0, cumDealer = 0;
+        const instSeries = instSeriesRaw.map(d => {
+            cumForeign += d.foreign;
+            cumTrust += d.trust;
+            cumDealer += d.dealer;
+            return { date: d.date, foreign: cumForeign, trust: cumTrust, dealer: cumDealer };
+        });
+
+        // 大戶散戶結構：拿最新一週的 HoldingSharesLevel
+        // FinMind 集保級距（19 級）· 我們合併成 4 桶：零散 / 小戶 / 中戶 / 大戶 / 巨鯨
+        // 為什麼合併：19 級太細 · 資訊分不清楚 · 4 桶剛好呈現「散戶 vs 大戶」對決
+        //   單位是 unit（總股數）· percent 是該級距佔總股數比例
+        const holdingLatestDate = (holdingSharesPer || []).reduce((max, r) => r.date > max ? r.date : max, '');
+        const holdingRows = (holdingSharesPer || []).filter(r => r.date === holdingLatestDate);
+        function bucketOf(level) {
+            // FinMind 級距字串 · e.g. "1-999" / "1,000-5,000" / "1,000,001+" / "1,000,001-"
+            // 抓下界的數字
+            const m = /^([\d,]+)/.exec(level || '');
+            if (!m) return 'other';
+            const low = parseInt(m[1].replace(/,/g, ''), 10);
+            if (low <= 5_000) return 'retail';        // 5 張以下 = 散戶
+            if (low <= 50_000) return 'small';        // 5-50 張 = 小戶
+            if (low <= 400_000) return 'mid';         // 50-400 張 = 中戶
+            if (low <= 1_000_000) return 'big';       // 400-1000 張 = 大戶
+            return 'whale';                            // 1000 張以上 = 巨鯨
+        }
+        const chipBuckets = { retail: 0, small: 0, mid: 0, big: 0, whale: 0 };
+        holdingRows.forEach(r => {
+            const b = bucketOf(r.HoldingSharesLevel);
+            if (chipBuckets[b] !== undefined) chipBuckets[b] += (r.percent || 0);
+        });
+
+        // 巨鯨趨勢：近 2 年每個 date 的 whale % 走勢
+        const whaleTrendMap = new Map();
+        (holdingSharesPer || []).forEach(r => {
+            if (bucketOf(r.HoldingSharesLevel) === 'whale') {
+                whaleTrendMap.set(r.date, (whaleTrendMap.get(r.date) || 0) + (r.percent || 0));
+            }
+        });
+        const whaleTrend = Array.from(whaleTrendMap.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([date, pct]) => ({ date, pct }));
+
+        return {
+            ticker,
+            stockName,
+            price,
+            change30d,
+            priceData: priceData || [],
+            dividends,
+            last12MSum,
+            last12MCount: last12M.length,
+            estYield,
+            frequency,
+            inst60d,
+            inst20d,
+            instSeries,
+            chipBuckets,
+            chipLatestDate: holdingLatestDate,
+            whaleTrend,
+        };
+    }
+
     // 從每日 PER/PBR array 建構出年度統計 + 全部日資料當歷史樣本
     // 直方圖用「全部日資料」→ 樣本量比 FMP 年報大 250 倍、分佈更細
     async function fetchTwStockData(rawTicker, token, years) {
@@ -519,21 +672,18 @@
         // 統一格式：去掉 .TW 後綴
         const ticker = rawTicker.replace(/\.TW$/i, '').replace(/^tw/i, '').trim();
         if (!/^\d{2,6}[A-Z]?$/.test(ticker)) throw new Error(`FinMind 台股 ticker 必須是數字（可帶 A/B/L/R 尾綴 · 例：2330、0050、00981A、00631L），你輸入 "${ticker}"`);
-
-        // ETF 早退：這個工具做 PER/PBR 估值 · ETF 沒有這概念（一籃股票的 P/E 是無意義的加權）
-        //   00xx / 006xx / 009xx 開頭皆為 ETF · 尾綴 A/B/L/R 也算（主動 / 特別 / 槓桿 / 反向）
-        //   給人話錯誤 · 指到對的工具（rotation 看動能 · 或找 ETF 專屬平台看折溢價/持股）
-        if (/^00\d/.test(ticker) || /^006\d/.test(ticker) || /^009\d/.test(ticker)) {
-            throw new Error(
-                `🎯 <b>${ticker} 是 ETF · 不適用 PER/PBR 估值</b><br><br>` +
-                `ETF 是一籃股票 · 傳統本益比 / 淨值比對它沒意義（加權平均後失真）· FinMind 也不收 ETF 的 PER。<br><br>` +
-                `→ 想看動能：切「<a href="../rotation/index.html?ticker=${ticker}" style="color:inherit;text-decoration:underline">🎯 動能雷達</a>」· 支援 ETF<br>` +
-                `→ 想看折溢價 / 持股 / 配息：MoneyDJ ETF / 券商 App / 發行商官網（e.g. yuantaetfs.com）`
-            );
-        }
-
         const startDate = todayMinusYears(years);
         const endDate = todayStr();
+
+        // 先抓 Info 判斷是不是 ETF · industry_category = "ETF" 才是可靠判定（regex 猜不準）
+        // 花 1 次 API call · 值得——路由到對的分析路徑
+        const infoProbe = await finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []);
+        const isEtf = infoProbe.length > 0 && infoProbe[0].industry_category === 'ETF';
+        if (isEtf) {
+            // 分岔到 ETF 專屬 fetch + render
+            const etfData = await fetchTwEtfData(ticker, token, years, infoProbe);
+            return { __isEtf: true, etf: etfData };
+        }
         // 平行抓：PER 歷史 + 股價 + 公司資訊 + 財報成長性 + 現金流 + 法人買賣超
         const [perData, priceData, infoData, fundamentals, cashFlow, institutional] = await Promise.all([
             finMindFetch('TaiwanStockPER', ticker, startDate, endDate, token),
@@ -1566,6 +1716,334 @@
                 </div>
             </section>
         `;
+    }
+
+    // ---------- ETF 專屬 rendering ----------
+    // 為什麼分開 renderResult：ETF 沒 PER/PBR · 個股 UI 的 stat card / heatmap / margin trend 都不 applicable
+    //   共享的只有 header 骨架 · 其他全部重寫
+    function renderEtf(etf) {
+        const {
+            ticker, stockName, price, change30d, priceData,
+            dividends, last12MSum, last12MCount, estYield, frequency,
+            inst60d, inst20d, instSeries,
+            chipBuckets, chipLatestDate, whaleTrend,
+        } = etf;
+
+        $('result-panel').hidden = false;
+        $('result-ticker').textContent = `${ticker} · ${stockName} · ETF`;
+        $('result-price').textContent = price !== null ? '$' + fmt(price, 2) : '—';
+        // 個股 UI 的 PE/PBR/Fwd cell 就顯示 「—」+ 說明
+        const pe = $('result-pe'); if (pe) pe.textContent = '—';
+        const pbr = $('result-pbr'); if (pbr) pbr.textContent = '—';
+        const fwd = $('result-cell-fwd-pe'); if (fwd) fwd.style.display = 'none';
+
+        // 隱藏所有個股專屬 panel · 只留 header
+        const hidePanels = ['fund-panel', 'monthly-metrics-panel', 'trajectory-panel', 'seasonality-panel',
+                            'heatmap-panel', 'foreign-signal-panel', 'inst-panel', 'margin-panel',
+                            'dividend-panel', 'insider-panel', 'inst-own-panel', 'table-panel',
+                            'mismatch-panel', 'radar-panel', 'growth-radar-panel', 'cf-panel',
+                            'drilldown-panel', 'balance-sheet-panel', 'fmp-status-panel',
+                            'peer-panel', 'adr-panel'];
+        hidePanels.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
+
+        // 拿或建 ETF panel container
+        let etfContainer = document.getElementById('etf-panel');
+        if (!etfContainer) {
+            etfContainer = document.createElement('div');
+            etfContainer.id = 'etf-panel';
+            etfContainer.className = 'panel etf-panel';
+            $('result-panel').appendChild(etfContainer);
+        }
+        etfContainer.hidden = false;
+
+        // Panel 1: Header 補充卡（現價 + 30d change + 3 個 KPI）
+        const change30dHtml = change30d !== null
+            ? `<span class="${change30d >= 0 ? 'chg-up' : 'chg-down'}">${change30d >= 0 ? '↑' : '↓'} ${Math.abs(change30d).toFixed(2)}%</span>`
+            : '—';
+        const headerHtml = `
+            <div class="etf-header-card">
+                <div class="etf-badge">ETF</div>
+                <div class="etf-header-grid">
+                    <div><div class="etf-kpi-label">現價</div><div class="etf-kpi-val">$${fmt(price, 2)}</div></div>
+                    <div><div class="etf-kpi-label">近 30 天</div><div class="etf-kpi-val">${change30dHtml}</div></div>
+                    <div><div class="etf-kpi-label">配息頻率</div><div class="etf-kpi-val">${frequency}</div></div>
+                    <div><div class="etf-kpi-label">近 12M 配息</div><div class="etf-kpi-val">$${fmt(last12MSum, 2)}</div></div>
+                    <div><div class="etf-kpi-label">估殖利率</div><div class="etf-kpi-val ${estYield && estYield >= 4 ? 'chg-up' : ''}">${estYield !== null ? estYield.toFixed(2) + '%' : '—'}</div></div>
+                </div>
+                <p class="hint hint-mini">💡 估殖利率 = 近 12 個月現金配息累計 ÷ 現價 · 只計現金配息 · 除息前後可能失真</p>
+            </div>
+        `;
+
+        // Panel 2: 配息紀錄表
+        const dividendRows = dividends.length === 0
+            ? '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">近 5 年無配息紀錄</td></tr>'
+            : dividends.slice(0, 20).map(d => {
+                const yr = d.year || '';
+                return `<tr>
+                    <td>${d.exDate || '—'}</td>
+                    <td>${d.payDate || '—'}</td>
+                    <td class="num-cell">$${fmt(d.cash, 4)}</td>
+                    <td>${yr}</td>
+                </tr>`;
+            }).join('');
+        const dividendPanelHtml = `
+            <h3>💰 配息紀錄（近 5 年 · 依除息日）</h3>
+            <div class="etf-div-summary">
+                <span>近 12M 次數：<b>${last12MCount}</b></span>
+                <span>近 12M 累計：<b>$${fmt(last12MSum, 2)}</b></span>
+                <span>估殖利率：<b>${estYield !== null ? estYield.toFixed(2) + '%' : '—'}</b></span>
+                <span>頻率：<b>${frequency}</b></span>
+            </div>
+            <div class="table-scroll">
+                <table class="result-table etf-div-table">
+                    <thead><tr><th>除息日</th><th>支付日</th><th>每股配息</th><th>年度</th></tr></thead>
+                    <tbody>${dividendRows}</tbody>
+                </table>
+            </div>
+        `;
+
+        // Panel 3: 法人買賣（60d / 20d 累計 + line chart）
+        const foreignBadge60 = inst60d.Foreign_Investor >= 0 ? 'inst-buy' : 'inst-sell';
+        const trustBadge60 = inst60d.Investment_Trust >= 0 ? 'inst-buy' : 'inst-sell';
+        const dealerBadge60 = inst60d.Dealer >= 0 ? 'inst-buy' : 'inst-sell';
+        const foreignBadge20 = inst20d.Foreign_Investor >= 0 ? 'inst-buy' : 'inst-sell';
+        const trustBadge20 = inst20d.Investment_Trust >= 0 ? 'inst-buy' : 'inst-sell';
+        const dealerBadge20 = inst20d.Dealer >= 0 ? 'inst-buy' : 'inst-sell';
+        // 換算成張數（1 張 = 1000 股）· UI 更易讀
+        const shareToBoard = n => (n / 1000).toFixed(0);
+
+        const instPanelHtml = `
+            <h3>📈 三大法人買賣超（累計淨買 / 賣）</h3>
+            <div class="etf-inst-grid">
+                <div class="etf-inst-cell">
+                    <div class="etf-inst-label">🌐 外資</div>
+                    <div class="etf-inst-vals">
+                        <span class="etf-inst-window">20d</span> <span class="etf-inst-badge ${foreignBadge20}">${inst20d.Foreign_Investor >= 0 ? '+' : ''}${shareToBoard(inst20d.Foreign_Investor)} 張</span><br>
+                        <span class="etf-inst-window">60d</span> <span class="etf-inst-badge ${foreignBadge60}">${inst60d.Foreign_Investor >= 0 ? '+' : ''}${shareToBoard(inst60d.Foreign_Investor)} 張</span>
+                    </div>
+                </div>
+                <div class="etf-inst-cell">
+                    <div class="etf-inst-label">🎯 投信（ETF 主戰場）</div>
+                    <div class="etf-inst-vals">
+                        <span class="etf-inst-window">20d</span> <span class="etf-inst-badge ${trustBadge20}">${inst20d.Investment_Trust >= 0 ? '+' : ''}${shareToBoard(inst20d.Investment_Trust)} 張</span><br>
+                        <span class="etf-inst-window">60d</span> <span class="etf-inst-badge ${trustBadge60}">${inst60d.Investment_Trust >= 0 ? '+' : ''}${shareToBoard(inst60d.Investment_Trust)} 張</span>
+                    </div>
+                </div>
+                <div class="etf-inst-cell">
+                    <div class="etf-inst-label">🏢 自營商合計</div>
+                    <div class="etf-inst-vals">
+                        <span class="etf-inst-window">20d</span> <span class="etf-inst-badge ${dealerBadge20}">${inst20d.Dealer >= 0 ? '+' : ''}${shareToBoard(inst20d.Dealer)} 張</span><br>
+                        <span class="etf-inst-window">60d</span> <span class="etf-inst-badge ${dealerBadge60}">${inst60d.Dealer >= 0 ? '+' : ''}${shareToBoard(inst60d.Dealer)} 張</span>
+                    </div>
+                </div>
+            </div>
+            <canvas id="etf-inst-chart" width="800" height="240"></canvas>
+            <p class="hint hint-mini">📊 累計淨買（60 天）· 3 條線由 0 開始加總每日 (buy − sell) · 上升 = 該法人持續買超</p>
+        `;
+
+        // Panel 4: 大戶散戶結構
+        const chipPct = chipBuckets;
+        const chipTotal = chipPct.retail + chipPct.small + chipPct.mid + chipPct.big + chipPct.whale;
+        const pctW = k => chipTotal > 0 ? (chipPct[k] / chipTotal * 100) : 0;
+        const chipPanelHtml = `
+            <h3>🎲 籌碼結構（${chipLatestDate || '—'} · 集保級距合併成 5 桶）</h3>
+            <div class="etf-chip-bars">
+                <div class="chip-bar-row">
+                    <span class="chip-bar-label">🐹 零散戶（&lt; 5 張）</span>
+                    <div class="chip-bar-track"><div class="chip-bar-fill chip-retail" style="width:${pctW('retail').toFixed(1)}%"></div></div>
+                    <span class="chip-bar-pct">${pctW('retail').toFixed(1)}%</span>
+                </div>
+                <div class="chip-bar-row">
+                    <span class="chip-bar-label">🐢 小戶（5-50 張）</span>
+                    <div class="chip-bar-track"><div class="chip-bar-fill chip-small" style="width:${pctW('small').toFixed(1)}%"></div></div>
+                    <span class="chip-bar-pct">${pctW('small').toFixed(1)}%</span>
+                </div>
+                <div class="chip-bar-row">
+                    <span class="chip-bar-label">🦊 中戶（50-400 張）</span>
+                    <div class="chip-bar-track"><div class="chip-bar-fill chip-mid" style="width:${pctW('mid').toFixed(1)}%"></div></div>
+                    <span class="chip-bar-pct">${pctW('mid').toFixed(1)}%</span>
+                </div>
+                <div class="chip-bar-row">
+                    <span class="chip-bar-label">🦁 大戶（400-1000 張）</span>
+                    <div class="chip-bar-track"><div class="chip-bar-fill chip-big" style="width:${pctW('big').toFixed(1)}%"></div></div>
+                    <span class="chip-bar-pct">${pctW('big').toFixed(1)}%</span>
+                </div>
+                <div class="chip-bar-row">
+                    <span class="chip-bar-label">🐋 巨鯨（&gt; 1000 張）</span>
+                    <div class="chip-bar-track"><div class="chip-bar-fill chip-whale" style="width:${pctW('whale').toFixed(1)}%"></div></div>
+                    <span class="chip-bar-pct">${pctW('whale').toFixed(1)}%</span>
+                </div>
+            </div>
+            <p class="hint hint-mini">💡 巨鯨 % 高 = 主力集中持有 · 資金流動性受少數大戶控制 · 散戶 % 高 = 分散持股</p>
+            ${whaleTrend.length > 3 ? '<canvas id="etf-whale-chart" width="800" height="180"></canvas>' : ''}
+        `;
+
+        // Panel 5: 外部工具引導
+        const issuerHint = getEtfIssuerHint(ticker);
+        const externalPanelHtml = `
+            <h3>🔗 這些工具做不到 · 去別處看</h3>
+            <div class="etf-external-grid">
+                <div class="etf-ext-card">
+                    <div class="etf-ext-title">📊 折溢價（NAV vs Price）</div>
+                    <div class="etf-ext-body">FinMind 沒收 · 但 TWSE 有免費 API（等我們接）· 或直接看 <a href="https://mis.twse.com.tw/stock/index" target="_blank" rel="noopener">TWSE 即時報價</a></div>
+                </div>
+                <div class="etf-ext-card">
+                    <div class="etf-ext-title">📦 持股 Top 10 + 費用率</div>
+                    <div class="etf-ext-body">${issuerHint}</div>
+                </div>
+                <div class="etf-ext-card">
+                    <div class="etf-ext-title">📉 追蹤誤差 / 相對報酬</div>
+                    <div class="etf-ext-body">看 MoneyDJ ETF：<a href="https://etf.moneydj.com/ETF/X/Basic/Basic0001.xdjhtm?etfid=${ticker}" target="_blank" rel="noopener">${ticker} · MoneyDJ</a></div>
+                </div>
+                <div class="etf-ext-card">
+                    <div class="etf-ext-title">🎯 動能分析</div>
+                    <div class="etf-ext-body"><a href="../rotation/index.html?ticker=${ticker}">切「動能雷達」→ 看 ${ticker} 相對 0050 的表現</a></div>
+                </div>
+            </div>
+        `;
+
+        etfContainer.innerHTML = headerHtml + dividendPanelHtml + instPanelHtml + chipPanelHtml + externalPanelHtml;
+
+        // 畫 chart（法人累計 + 巨鯨趨勢）
+        setTimeout(() => {
+            drawEtfInstChart(instSeries);
+            if (whaleTrend.length > 3) drawEtfWhaleChart(whaleTrend);
+        }, 50);
+    }
+
+    function getEtfIssuerHint(ticker) {
+        // 從 ticker 推發行商 · 給連結
+        const t = ticker;
+        if (/^005\d/.test(t) || /^006\d\d/.test(t)) return `元大投信官網：<a href="https://www.yuantaetfs.com/product/detail/${t}/rtnPerformance" target="_blank" rel="noopener">${t}</a>`;
+        if (/^008\d/.test(t) || /^009\d\d/.test(t)) return `國泰投信 or 群益投信 or 富邦投信官網 · 用 ticker 搜尋`;
+        if (/^0057/.test(t)) return `富邦投信官網 · <a href="https://websys.fsit.com.tw/FubonETF/" target="_blank" rel="noopener">FubonETF</a>`;
+        return `發行商官網（依 ticker 前綴查）· 或 <a href="https://etf.moneydj.com/ETF/X/Basic/Basic0004.xdjhtm?etfid=${t}" target="_blank" rel="noopener">MoneyDJ ETF · ${t}</a>`;
+    }
+
+    function drawEtfInstChart(series) {
+        const canvas = document.getElementById('etf-inst-chart');
+        if (!canvas || series.length === 0) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        const padL = 60, padR = 20, padT = 20, padB = 40;
+        const plotW = W - padL - padR, plotH = H - padT - padB;
+
+        const allVals = series.flatMap(d => [d.foreign, d.trust, d.dealer, 0]);
+        const min = Math.min(...allVals), max = Math.max(...allVals);
+        const range = (max - min) || 1;
+        const yScale = v => padT + plotH - ((v - min) / range) * plotH;
+        const xScale = i => padL + (i / Math.max(1, series.length - 1)) * plotW;
+
+        // Zero line
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(padL, yScale(0));
+        ctx.lineTo(W - padR, yScale(0));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Three lines: foreign / trust / dealer
+        const drawLine = (key, color, label) => {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            series.forEach((d, i) => {
+                const x = xScale(i), y = yScale(d[key]);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        };
+        drawLine('foreign', '#3b82f6', '外資');
+        drawLine('trust', '#f59e0b', '投信');
+        drawLine('dealer', '#8b5cf6', '自營商');
+
+        // Y label
+        ctx.fillStyle = '#64748b';
+        ctx.font = '11px ui-monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText((max / 1000).toFixed(0) + ' 張', padL - 5, padT + 10);
+        ctx.fillText('0', padL - 5, yScale(0) + 3);
+        ctx.fillText((min / 1000).toFixed(0) + ' 張', padL - 5, H - padB - 5);
+
+        // Date labels
+        ctx.textAlign = 'center';
+        if (series.length >= 2) {
+            ctx.fillText(series[0].date.slice(5), padL, H - padB + 20);
+            ctx.fillText(series[series.length - 1].date.slice(5), W - padR, H - padB + 20);
+        }
+
+        // Legend
+        ctx.textAlign = 'left';
+        const legendY = H - 8;
+        ctx.fillStyle = '#3b82f6'; ctx.fillRect(padL, legendY - 8, 12, 4);
+        ctx.fillStyle = '#334155'; ctx.fillText('外資', padL + 16, legendY - 2);
+        ctx.fillStyle = '#f59e0b'; ctx.fillRect(padL + 70, legendY - 8, 12, 4);
+        ctx.fillStyle = '#334155'; ctx.fillText('投信', padL + 86, legendY - 2);
+        ctx.fillStyle = '#8b5cf6'; ctx.fillRect(padL + 140, legendY - 8, 12, 4);
+        ctx.fillStyle = '#334155'; ctx.fillText('自營商', padL + 156, legendY - 2);
+    }
+
+    function drawEtfWhaleChart(whaleTrend) {
+        const canvas = document.getElementById('etf-whale-chart');
+        if (!canvas || whaleTrend.length === 0) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        const padL = 50, padR = 20, padT = 20, padB = 30;
+        const plotW = W - padL - padR, plotH = H - padT - padB;
+
+        const vals = whaleTrend.map(d => d.pct);
+        const min = Math.min(...vals) * 0.98, max = Math.max(...vals) * 1.02;
+        const range = (max - min) || 1;
+        const yScale = v => padT + plotH - ((v - min) / range) * plotH;
+        const xScale = i => padL + (i / Math.max(1, whaleTrend.length - 1)) * plotW;
+
+        // Grid
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        [min, (min + max) / 2, max].forEach(v => {
+            ctx.beginPath();
+            ctx.moveTo(padL, yScale(v));
+            ctx.lineTo(W - padR, yScale(v));
+            ctx.stroke();
+        });
+        ctx.setLineDash([]);
+
+        // Line + area
+        ctx.strokeStyle = '#0891b2';
+        ctx.fillStyle = 'rgba(8, 145, 178, 0.12)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(xScale(0), yScale(whaleTrend[0].pct));
+        whaleTrend.forEach((d, i) => ctx.lineTo(xScale(i), yScale(d.pct)));
+        ctx.stroke();
+        // Fill area under
+        ctx.lineTo(xScale(whaleTrend.length - 1), padT + plotH);
+        ctx.lineTo(xScale(0), padT + plotH);
+        ctx.closePath();
+        ctx.fill();
+
+        // Y labels
+        ctx.fillStyle = '#64748b';
+        ctx.font = '11px ui-monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(max.toFixed(1) + '%', padL - 5, padT + 10);
+        ctx.fillText(min.toFixed(1) + '%', padL - 5, padT + plotH);
+        ctx.textAlign = 'center';
+        if (whaleTrend.length >= 2) {
+            ctx.fillText(whaleTrend[0].date.slice(0, 7), padL, H - 8);
+            ctx.fillText(whaleTrend[whaleTrend.length - 1].date.slice(0, 7), W - padR, H - 8);
+        }
+        // Title
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#0891b2';
+        ctx.font = 'bold 12px system-ui';
+        ctx.fillText('🐋 巨鯨（>1000 張）持股 % 走勢', padL, 14);
     }
 
     // ---------- Rendering ----------
@@ -4905,6 +5383,13 @@
                 (isFinmind && finmindToken) ? fetchTwDividendHistory(ticker, finmindToken) : Promise.resolve(null),
                 (isFinmind && finmindToken) ? fetchTwBuyback(ticker, finmindToken) : Promise.resolve(null),
             ]);
+
+            // ETF 分支：走 renderEtf · 不吃 macro / marginTW / peers
+            if (data && data.__isEtf) {
+                renderEtf(data.etf);
+                setStatus('success', `✅ ${data.etf.stockName} (${data.etf.ticker}) · ETF 分析`);
+                return;
+            }
 
             // VIX 優先 FRED（免額度、更穩定）→ 失敗 fallback FMP
             const vix = (macro && macro.vix && macro.vix.length) ? macro.vix : vixFmpFallback;
