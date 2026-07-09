@@ -1,44 +1,75 @@
 {
   "date": "2026-07-09",
-  "generated_at": "2026-07-09T09:29:35+08:00",
+  "generated_at": "2026-07-09T21:29:10+08:00",
   "consensus_date": "2026-07-09",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260708.csv",
-      "snapshot_date": "2026-07-08",
+      "snapshot": "00991A_20260709.csv",
+      "snapshot_date": "2026-07-09",
       "holdings_count": 50,
       "actions": {
-        "new": [],
-        "drop": [],
+        "new": [
+          {
+            "code": "2883",
+            "name": "凱基金融",
+            "weight": 0.0
+          }
+        ],
+        "drop": [
+          {
+            "code": "3324",
+            "name": "雙鴻科技",
+            "weight": 0.001
+          }
+        ],
         "add": [
+          {
+            "code": "2492",
+            "name": "華新科技",
+            "pct": 12.5,
+            "weight": 2.224
+          },
           {
             "code": "3026",
             "name": "禾伸堂企",
-            "pct": 100.0,
-            "weight": 2.326
+            "pct": 11.11111111111111,
+            "weight": 2.668
           },
           {
-            "code": "2059",
-            "name": "川湖科技",
-            "pct": 6.451612903225806,
-            "weight": 3.622
+            "code": "2327",
+            "name": "國巨股份",
+            "pct": 7.8125,
+            "weight": 8.242
           },
           {
-            "code": "2345",
-            "name": "智邦科技",
+            "code": "2408",
+            "name": "南亞科技",
+            "pct": 5.555555555555555,
+            "weight": 5.491
+          },
+          {
+            "code": "2383",
+            "name": "台光電子",
             "pct": 5.454545454545454,
-            "weight": 3.798
+            "weight": 8.152
           },
           {
-            "code": "2330",
-            "name": "台灣積體",
-            "pct": 2.631578947368421,
-            "weight": 13.034
+            "code": "3037",
+            "name": "欣興電子",
+            "pct": 2.564102564102564,
+            "weight": 4.645
           }
         ],
-        "reduce": [],
+        "reduce": [
+          {
+            "code": "5274",
+            "name": "信驊科技",
+            "pct": -20.55335968379447,
+            "weight": 1.823
+          }
+        ],
         "build": []
       }
     },
@@ -126,5 +157,16 @@
   ],
   "consensus_buy": [],
   "consensus_sell": [],
-  "divergence": []
+  "divergence": [
+    {
+      "stock_id": "2327",
+      "buy_funds": [
+        "復華未來50"
+      ],
+      "sell_funds": [
+        "統一升級50"
+      ],
+      "name": "國巨股份"
+    }
+  ]
 }
