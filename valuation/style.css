@@ -2562,3 +2562,61 @@ textarea {
     display: inline-block;
     vertical-align: middle;
 }
+
+/* Tier A · 個股新聞 timeline */
+.news-panel h3 { border-bottom: 2px solid #a5f3fc; }
+.news-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+.news-group {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #e2e8f0;
+}
+.news-group:last-child { border-bottom: 0; }
+.news-date {
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    color: #0891b2;
+    font-size: 0.9em;
+}
+.news-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.news-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    line-height: 1.5;
+}
+.news-item a {
+    color: #0f172a;
+    text-decoration: none;
+    flex: 1;
+}
+.news-item a:hover {
+    color: #0891b2;
+    text-decoration: underline;
+}
+.news-source {
+    color: #94a3b8;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+@media (max-width: 700px) {
+    .news-group { grid-template-columns: 1fr; }
+    .news-date { margin-bottom: 4px; }
+    .news-item { flex-direction: column; align-items: flex-start; gap: 2px; }
+}
+
+/* Tier A · 除息填息 · 減資 panels */
+.dividend-result-panel h3 { border-bottom: 2px solid #fbbf24; }
+.capital-reduction-panel h3 { border-bottom: 2px solid #ef4444; }

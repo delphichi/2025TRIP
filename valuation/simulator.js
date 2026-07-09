@@ -857,16 +857,17 @@
         // 平行抓：PER 歷史 + 股價 + 公司資訊 + 財報成長性 + 現金流 + 法人買賣超
         // 股價改抓 startDate（full 歷史）· 為了月度熱區用 · 之前只抓 0.05 年只夠顯示現價
         //   FinMind quota 一次 call 幾百 rows 不成本問題 · TaiwanStockPrice 也沒收費限制
-        const [perData, priceData, infoData, fundamentals, cashFlow, institutional, dividendResult, capitalReduction] = await Promise.all([
+        const [perData, priceData, infoData, fundamentals, cashFlow, institutional, dividendResult, capitalReduction, newsList] = await Promise.all([
             finMindFetch('TaiwanStockPER', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockPrice', ticker, startDate, endDate, token),
             finMindFetch('TaiwanStockInfo', ticker, '2020-01-01', endDate, token).catch(() => []),
             fetchFinMindFundamentals(ticker, token),
             fetchFinMindCashFlow(ticker, token),
             fetchInstitutionalTW(ticker, token),
-            // Tier A 新增：除息填息 · 減資
+            // Tier A 新增：除息填息 · 減資 · 新聞
             finMindFetch('TaiwanStockDividendResult', ticker, todayMinusYears(5), endDate, token).catch(() => []),
             finMindFetch('TaiwanStockCapitalReductionReferencePrice', ticker, todayMinusYears(10), endDate, token).catch(() => []),
+            fetchTwNews(ticker, token, 14),
         ]);
 
         if (!perData || perData.length === 0) throw new Error(`FinMind 找不到 ${ticker} 的 PER/PBR 資料（可能是新股或未收）`);
@@ -928,6 +929,8 @@
             dividendResults: enrichDividendResults(dividendResult, priceData),
             // Tier A · 減資紀錄
             capitalReductions: capitalReduction || [],
+            // Tier A · 近 14 天過濾後的重要新聞
+            newsList: newsList || [],
         };
     }
 
@@ -2865,12 +2868,14 @@
         let priceHeatmapHtml = '';
         try { priceHeatmapHtml = renderPriceHeatmapHtml(analysis); }
         catch (e) { console.warn('renderPriceHeatmapHtml failed:', e.message); }
-        // Tier A · 除息填息 · 減資紀錄（TW-only · 用 FinMind DividendResult + CapitalReduction）
-        let dividendResultHtml = '', capitalReductionHtml = '';
+        // Tier A · 除息填息 · 減資紀錄 · 新聞（TW-only · 用 FinMind DividendResult + CapitalReduction + News）
+        let dividendResultHtml = '', capitalReductionHtml = '', newsHtml = '';
         try { dividendResultHtml = renderDividendResultHtml(analysis); }
         catch (e) { console.warn('renderDividendResultHtml failed:', e.message); }
         try { capitalReductionHtml = renderCapitalReductionHtml(analysis); }
         catch (e) { console.warn('renderCapitalReductionHtml failed:', e.message); }
+        try { newsHtml = renderNewsHtml(analysis); }
+        catch (e) { console.warn('renderNewsHtml failed:', e.message); }
         // Step 3 · 外資訊號警報 · try/catch 保護
         let foreignSignalHtml = '';
         try { foreignSignalHtml = renderForeignSignalHtml(analysis.institutional); }
@@ -2882,7 +2887,7 @@
         const mismatchHtml = detectFrameworkMismatch(analysis);
         const radarHtml = renderRadarSvg(analysis);
         const growthRadarHtml = renderGrowthRadarSvg(analysis);
-        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
@@ -3088,6 +3093,35 @@
     }
 
     // ---------- 台股法人買賣超（層次 5：市場情緒） ----------
+    // Tier A · 個股新聞（TaiwanStockNews · 每 request 只回一天 · 14 天 parallel · 過濾關鍵字）
+    // 為什麼 14 天：涵蓋兩週市場動能事件（法說會 / 財報 / 併購）· 平均每檔股票每天新聞 5-15 則
+    //   14 parallel calls 對 FinMind 免費 tier 是可承受（quota 300/hour · 一次分析用 ~15 call 沒事）
+    // 過濾關鍵字：只保留重要事件相關 · 篩掉 SEO 新聞 / 例行 / 廣告推薦 · 讓 timeline 有 signal
+    async function fetchTwNews(ticker, token, days = 14) {
+        const dates = [];
+        for (let i = 0; i < days; i++) {
+            const d = new Date(Date.now() - i * 86400 * 1000);
+            dates.push(d.toISOString().slice(0, 10));
+        }
+        try {
+            const results = await Promise.all(dates.map(d =>
+                finMindFetch('TaiwanStockNews', ticker, d, d, token).catch(() => [])
+            ));
+            const all = results.flat();
+            // 關鍵字過濾（title 含以下才留 · 濾掉 SEO 新聞 / 廣告）
+            const EVENT_KEYWORDS = /法說會|投資人|財報|除息|除權|併購|合併|裁員|分割|新產品|訂單|重大訊息|股東會|營收|EPS|季報|年報|處分|買回|股利|停止交易|恢復交易|收購|入股/;
+            const filtered = all
+                .filter(n => n.title && EVENT_KEYWORDS.test(n.title))
+                .filter((n, i, arr) => arr.findIndex(m => m.title === n.title) === i)   // dedupe same title
+                .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+                .slice(0, 30);
+            return filtered;
+        } catch (e) {
+            console.warn('fetchTwNews failed:', e.message);
+            return [];
+        }
+    }
+
     async function fetchInstitutionalTW(ticker, token) {
         try {
             // Step 3 · 拉到近 4 個月 · 給 60 日 rolling 用（原 3 個月剛好夠 · 加 buffer）
@@ -4022,6 +4056,55 @@
                 </div>
             </section>
         `;
+    }
+
+    // Tier A · 個股新聞 timeline（近 14 天 · 只留關鍵字命中的事件）
+    // 為什麼不列全部 news：typical 台積電一天 20-30 則新聞 · 90% 是 SEO 洗版 · 過濾後才有 signal
+    function renderNewsHtml(analysis) {
+        const news = analysis.newsList;
+        if (!Array.isArray(news) || news.length === 0) return '';
+        // 依日期 group · 每天最多顯示 5 則
+        const byDate = new Map();
+        news.forEach(n => {
+            const d = (n.date || '').slice(0, 10);
+            if (!byDate.has(d)) byDate.set(d, []);
+            byDate.get(d).push(n);
+        });
+        const sortedDates = [...byDate.keys()].sort().reverse();
+        const groups = sortedDates.slice(0, 14).map(d => {
+            const items = byDate.get(d).slice(0, 5);
+            const rows = items.map(n => {
+                // 用來源標籤上色 · 讓 timeline 有可讀性
+                const src = (n.source || '未知').replace(/[　\s]+$/, '');
+                const link = n.link || '#';
+                return `<div class="news-item">
+                    <a href="${link}" target="_blank" rel="noopener">${escapeAttr(n.title || '')}</a>
+                    <span class="news-source">${escapeAttr(src)}</span>
+                </div>`;
+            }).join('');
+            return `<div class="news-group">
+                <div class="news-date">${d}</div>
+                <div class="news-items">${rows}</div>
+            </div>`;
+        }).join('');
+        return `
+            <section class="panel news-panel">
+                <h3>📰 近 14 天重要新聞（過濾 · 只留法說/財報/除息/併購等關鍵字）</h3>
+                <p class="hint">
+                    每天平均 5-30 則新聞 · 我們留下「法說會 / 投資人 / 財報 / 除息 / 除權 / 併購 / 合併 / 裁員 / 分割 / 訂單 / 重大訊息 / 股東會 / 營收 / EPS / 買回 / 收購 / 入股」的標題 ·
+                    其他 SEO 洗版全丟。點連結看原文。
+                    <span class="hint-mini">FinMind <code>TaiwanStockNews</code> · 14 天 parallel fetch</span>
+                </p>
+                <div class="news-timeline">${groups}</div>
+            </section>
+        `;
+    }
+
+    // Local escapeAttr for news (renderResult 沒定義 · 這裡自帶)
+    function escapeAttr(s) {
+        return String(s || '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        }[c]));
     }
 
     // Feature · 歷年配息 + 庫藏股（TW + US 通用）
