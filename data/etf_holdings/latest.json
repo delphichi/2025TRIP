@@ -1,7 +1,7 @@
 {
-  "date": "2026-07-09",
-  "generated_at": "2026-07-09T21:30:14+08:00",
-  "consensus_date": "2026-07-09",
+  "date": "2026-07-10",
+  "generated_at": "2026-07-10T20:40:07+08:00",
+  "consensus_date": "2026-07-10",
   "funds": [
     {
       "code": "00991A",
@@ -76,18 +76,36 @@
     {
       "code": "00981A",
       "name": "統一台股增長",
-      "snapshot": "00981A_20260709.csv",
-      "snapshot_date": "2026-07-09",
+      "snapshot": "00981A_20260710.csv",
+      "snapshot_date": "2026-07-10",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
         "add": [
           {
-            "code": "6223",
-            "name": "旺矽",
-            "pct": 2.5608732157850547,
-            "weight": 5.77
+            "code": "3711",
+            "name": "日月光投控",
+            "pct": 15.915868780411238,
+            "weight": 3.64
+          },
+          {
+            "code": "3037",
+            "name": "欣興",
+            "pct": 3.7887259093599948,
+            "weight": 5.03
+          },
+          {
+            "code": "8046",
+            "name": "南電",
+            "pct": 2.23488657950609,
+            "weight": 4.05
+          },
+          {
+            "code": "2383",
+            "name": "台光電",
+            "pct": 1.2181857733304329,
+            "weight": 8.97
           }
         ],
         "reduce": [],
@@ -97,8 +115,8 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260709.csv",
-      "snapshot_date": "2026-07-09",
+      "snapshot": "00403A_20260710.csv",
+      "snapshot_date": "2026-07-10",
       "holdings_count": 50,
       "actions": {
         "new": [],
@@ -107,34 +125,46 @@
           {
             "code": "8046",
             "name": "南電",
-            "pct": 32.075471698113205,
-            "weight": 0.72
-          },
-          {
-            "code": "6488",
-            "name": "環球晶",
-            "pct": 5.0,
-            "weight": 1.6
+            "pct": 16.761904761904763,
+            "weight": 0.92
           },
           {
             "code": "1303",
             "name": "南亞",
-            "pct": 4.900662251655629,
-            "weight": 0.89
+            "pct": 7.3232323232323235,
+            "weight": 0.95
+          },
+          {
+            "code": "8996",
+            "name": "高力",
+            "pct": 2.564102564102564,
+            "weight": 1.21
+          },
+          {
+            "code": "6488",
+            "name": "環球晶",
+            "pct": 2.4761904761904763,
+            "weight": 1.79
           }
         ],
         "reduce": [
           {
-            "code": "3529",
-            "name": "力旺",
-            "pct": -40.520446096654275,
-            "weight": 0.26
+            "code": "6147",
+            "name": "頎邦",
+            "pct": -99.9,
+            "weight": 0.0
           },
           {
-            "code": "2327",
-            "name": "國巨*",
-            "pct": -10.44776119402985,
-            "weight": 4.95
+            "code": "3529",
+            "name": "力旺",
+            "pct": -68.75,
+            "weight": 0.08
+          },
+          {
+            "code": "6196",
+            "name": "帆宣",
+            "pct": -55.800000000000004,
+            "weight": 0.15
           }
         ],
         "build": []
@@ -143,30 +173,41 @@
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260709.csv",
-      "snapshot_date": "2026-07-09",
+      "snapshot": "00988A_20260710.csv",
+      "snapshot_date": "2026-07-10",
       "holdings_count": 11,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [],
+        "add": [
+          {
+            "code": "6223",
+            "name": "旺矽",
+            "pct": 26.08695652173913,
+            "weight": 1.56
+          },
+          {
+            "code": "2330",
+            "name": "台積電",
+            "pct": 22.22222222222222,
+            "weight": 2.27
+          }
+        ],
         "reduce": [],
         "build": []
       }
     }
   ],
-  "consensus_buy": [],
-  "consensus_sell": [],
-  "divergence": [
+  "consensus_buy": [
     {
-      "stock_id": "2327",
-      "buy_funds": [
-        "復華未來50"
+      "stock_id": "8046",
+      "funds": [
+        "統一升級50",
+        "統一台股增長"
       ],
-      "sell_funds": [
-        "統一升級50"
-      ],
-      "name": "國巨股份"
+      "name": "南電"
     }
-  ]
+  ],
+  "consensus_sell": [],
+  "divergence": []
 }
