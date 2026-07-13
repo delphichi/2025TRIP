@@ -3298,6 +3298,10 @@
         let capitalEfficiencyHtml = '';
         try { capitalEfficiencyHtml = renderCapitalEfficiencyHtml(analysis); }
         catch (e) { console.warn('renderCapitalEfficiencyHtml failed:', e.message); }
+        // 新增 · 合理股價反推 panel（4 種方法：相對估值 / DDM / 淨資產底線 / 反向 DCF）
+        let fairValueHtml = '';
+        try { fairValueHtml = renderFairValueHtml(analysis); }
+        catch (e) { console.warn('renderFairValueHtml failed:', e.message); }
         // Tier 2 · 金融股專屬 panel（ROE 走勢 + BV/share + 監理外連）· 只對金融股觸發
         let financialStockHtml = '';
         try { financialStockHtml = renderFinancialStockHtml(analysis); }
@@ -3366,7 +3370,7 @@
         }
         // 金融股 · 把金融 panel 拉到最頂 · 加醒目背景 · 讓使用者一定看得到
         const financialTop = (isFinancial && financialStockHtml) ? `<div style="border:3px solid #f59e0b;border-radius:8px;padding:4px;margin-bottom:12px;background:#fffbeb">${financialStockHtml}</div>` : '';
-        $('detail-box').innerHTML = financialTop + fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + capitalEfficiencyHtml + (isFinancial ? '' : financialStockHtml) + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = financialTop + fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + capitalEfficiencyHtml + fairValueHtml + (isFinancial ? '' : financialStockHtml) + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
         // 診斷：塞完後查 DOM 有沒有這個 h3
         const finPanelInDom = document.querySelector('#detail-box section h3');
         const allH3 = Array.from(document.querySelectorAll('#detail-box h3')).map(h => h.textContent.trim());
@@ -4578,6 +4582,278 @@
                     ${rows}
                 </table>
                 ${daNote}
+            </section>
+        `;
+    }
+
+    // 合理股價反推 · 4 種方法整合 panel
+    // 用戶要求：相對估值反推 + DDM + 淨資產底線 + 反向 DCF
+    // 全部用現成數據 · 零新 API call · 純算術
+    function renderFairValueHtml(analysis) {
+        const fund = analysis.fundamentals;
+        const price = analysis.price;
+        if (!fund || !price || price <= 0) return '';
+
+        // === 基礎數據抽取 ===
+        // TTM EPS：優先用 currentPE 反推 · 不然用 fund.eps 最近 4 季
+        let ttmEps = null;
+        if (analysis.currentPE && analysis.currentPE > 0) {
+            ttmEps = price / analysis.currentPE;
+        } else if (Array.isArray(fund.eps) && fund.eps.length >= 4) {
+            ttmEps = fund.eps.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
+        }
+        // BV/share：金融股 fund.balanceSheetSeries[0].bvps · 一般股用 currentPBR 反推
+        let bvps = null;
+        if (Array.isArray(fund.balanceSheetSeries) && fund.balanceSheetSeries[0]?.bvps) {
+            bvps = fund.balanceSheetSeries[0].bvps;
+        } else if (analysis.currentPBR && analysis.currentPBR > 0) {
+            bvps = price / analysis.currentPBR;
+        }
+        // TTM EBITDA/share（TW 用 ebitdaSeries[0].ttmEbitda / shares · US 用 evEbitda 反推）
+        let ttmEbitdaPerShare = null;
+        if (Array.isArray(fund.ebitdaSeries) && fund.ebitdaSeries[0]) {
+            const e = fund.ebitdaSeries[0];
+            if (e.ttmEbitda && e.shares) ttmEbitdaPerShare = e.ttmEbitda / e.shares;
+        }
+        // TTM FCF（TW + US 都適用）
+        const cf = analysis.cashFlow;
+        let ttmFcf = null;
+        if (cf && Array.isArray(cf.freeCF) && cf.freeCF.length >= 4) {
+            ttmFcf = cf.freeCF.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
+        }
+
+        // === 歷史中位倍數 ===
+        const median = arr => {
+            const sorted = arr.slice().sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+        };
+        const history = analysis.history || [];
+        const peList = history.map(h => h.pe).filter(v => v !== null && isFinite(v) && v > 0 && v < 200);   // 濾掉異常
+        const pbrList = history.map(h => h.pbr).filter(v => v !== null && isFinite(v) && v > 0 && v < 50);
+        const medPE = peList.length >= 30 ? median(peList) : null;
+        const medPBR = pbrList.length >= 30 ? median(pbrList) : null;
+        // EV/EBITDA 中位（用 evEbitdaSeries · 需 ≥ 4 筆）
+        const evList = (fund.evEbitdaSeries || []).map(s => s.evEbitda).filter(v => v !== null && isFinite(v) && v > 0 && v < 100);
+        const medEv = evList.length >= 4 ? median(evList) : null;
+
+        // === 方法 1：相對估值反推 ===
+        const fmt = (v, dec = 2) => (v === null || !isFinite(v)) ? '—' : v.toFixed(dec);
+        const fairPE = (medPE && ttmEps && ttmEps > 0) ? medPE * ttmEps : null;
+        const fairPBR = (medPBR && bvps && bvps > 0) ? medPBR * bvps : null;
+        const fairEvEbitda = (medEv && ttmEbitdaPerShare && ttmEbitdaPerShare > 0)
+            ? medEv * ttmEbitdaPerShare : null;
+        // 若 EPS 為負 · P/E 反推無意義 · 標記為 null 並附警訊
+        const peNote = (ttmEps !== null && ttmEps <= 0)
+            ? `<span class="hint-mini">⚠️ EPS ${fmt(ttmEps)} 為負或零 · P/E 反推無意義</span>` : '';
+
+        const fairPrices = [
+            { method: 'P/E · 歷史中位', formula: `${fmt(medPE)}× × TTM EPS ${fmt(ttmEps)}`, price: fairPE },
+            { method: 'P/B · 歷史中位', formula: `${fmt(medPBR)}× × BV/share ${fmt(bvps)}`, price: fairPBR },
+            { method: 'EV/EBITDA · 歷史中位', formula: `${fmt(medEv)}× × TTM EBITDA/股 ${fmt(ttmEbitdaPerShare)}`, price: fairEvEbitda },
+        ].filter(f => f.price !== null && f.price > 0);
+        const validPrices = fairPrices.map(f => f.price);
+        const priceMin = validPrices.length ? Math.min(...validPrices) : null;
+        const priceMax = validPrices.length ? Math.max(...validPrices) : null;
+        const priceMedium = validPrices.length ? median(validPrices) : null;
+        // vs 當前價的位置
+        const gapPct = (priceMedium && price)
+            ? ((price / priceMedium) - 1) * 100 : null;
+        const gapVerdict = gapPct === null ? '' :
+            gapPct < -30 ? '🟢 極便宜（低估 30%+）' :
+            gapPct < -10 ? '🟢 便宜（低估 10-30%）' :
+            gapPct < 10 ? '🟡 合理（± 10%）' :
+            gapPct < 30 ? '⚠️ 偏貴（溢價 10-30%）' :
+            gapPct < 50 ? '🔴 貴（溢價 30-50%）' : '🔴 極端貴（溢價 50%+）';
+
+        const relTable = fairPrices.map(f => `
+            <tr>
+                <td>${f.method}</td>
+                <td class="hint-mini">${f.formula}</td>
+                <td><b>$${fmt(f.price)}</b></td>
+            </tr>
+        `).join('');
+        const relPanel = fairPrices.length === 0
+            ? '<p class="hint-mini">📉 相對估值反推：數據不足（歷史 P/E / P/B / EV/EBITDA 樣本不夠 · 或 EPS 為負）</p>'
+            : `
+                <h4>🎯 方法 1 · 相對估值反推合理價</h4>
+                <table class="fund-table" style="margin-top:6px">
+                    <tr><th>方法</th><th>公式</th><th>合理價</th></tr>
+                    ${relTable}
+                </table>
+                <div class="bs-note" style="margin-top:8px">
+                    <b>合理區間 $${fmt(priceMin)} ~ $${fmt(priceMax)}</b> · 中位 $${fmt(priceMedium)}
+                    · 當前 $${fmt(price)} · <b>${gapVerdict}</b>（差 ${gapPct >= 0 ? '+' : ''}${fmt(gapPct, 1)}%）
+                </div>
+                ${peNote}
+                <p class="hint-mini" style="margin-top:6px">用「這公司自己歷史中位倍數」× 「當前財務」反推 · 只解決<b>「相對自己歷史貴不貴」</b> · 不解決「歷史中位本身合不合理」問題。景氣週期股在低點的中位可能就是虛胖 · 高成長股的中位會被最近幾季的高倍數拉高。</p>
+            `;
+
+        // === 方法 2：DDM 股利折現 ===
+        const dh = fund.dividendHistory || [];
+        const recentDivs = dh.slice(0, 5).map(d => d.cash + (d.stock || 0)).filter(v => v > 0);
+        let ddmPanel = '';
+        if (recentDivs.length >= 3 && ttmEps && ttmEps > 0) {
+            const avgDiv = recentDivs.reduce((a, b) => a + b, 0) / recentDivs.length;
+            const payoutRatio = avgDiv / ttmEps;
+            // g：近 5 年 CAGR · 但上限 4%（成熟公司 · 避免 g ≥ r 爆炸）
+            const oldest = recentDivs[recentDivs.length - 1];
+            const newest = recentDivs[0];
+            const years = recentDivs.length - 1;
+            let g = 0;
+            if (oldest > 0 && years >= 2) {
+                g = Math.pow(newest / oldest, 1 / years) - 1;
+                g = Math.min(0.04, Math.max(-0.02, g));   // 上限 4% · 下限 -2%
+            }
+            // 預期 D1 = newest × (1+g)
+            const d1 = newest * (1 + g);
+            // 3 個 r 情境：6% / 8% / 10%
+            const scenarios = [0.06, 0.08, 0.10].map(r => {
+                if (r - g <= 0.001) return { r, price: null, note: 'r ≤ g · 公式無解' };
+                return { r, price: d1 / (r - g), note: '' };
+            });
+            const applicable = payoutRatio >= 0.20;   // 配息率 < 20% 不套 DDM
+            const scenarioTable = scenarios.map(s => `
+                <tr>
+                    <td>要求報酬率 r = ${(s.r * 100).toFixed(0)}%</td>
+                    <td>${s.price !== null ? '$' + fmt(s.price) : `<span class="hint-mini">${s.note}</span>`}</td>
+                </tr>
+            `).join('');
+            ddmPanel = `
+                <h4 style="margin-top:16px">💰 方法 2 · 股利折現 DDM</h4>
+                ${applicable ? `
+                    <p class="hint-mini">公式：P = D₁ / (r − g)。近 5 年平均配息 <b>${fmt(avgDiv)}</b> · 配息率 <b>${(payoutRatio * 100).toFixed(0)}%</b> · 股利成長率 g = <b>${(g * 100).toFixed(1)}%</b>（近 5Y CAGR · 上限 4%）· 預期 D₁ = <b>${fmt(d1)}</b>。</p>
+                    <table class="fund-table" style="margin-top:6px">
+                        <tr><th>要求報酬率情境</th><th>合理股價</th></tr>
+                        ${scenarioTable}
+                    </table>
+                    <div class="bs-note" style="margin-top:8px">
+                        當前 $${fmt(price)} · DDM 隱含要求報酬率 = ${d1 && price ? (((d1 / price) + g) * 100).toFixed(1) : '—'}%（即當前價 hold 需要股利成長率不變 · 你能接受這個報酬率嗎？）
+                    </div>
+                ` : `
+                    <p class="hint-mini">📉 該公司配息率 ${(payoutRatio * 100).toFixed(0)}% < 20% · DDM 不適用（成長股 / 沒配息公司 · 用相對估值 / DCF 判讀）</p>
+                `}
+            `;
+        } else {
+            ddmPanel = `<h4 style="margin-top:16px">💰 方法 2 · 股利折現 DDM</h4><p class="hint-mini">📉 歷年配息紀錄不足 3 年 · 或 EPS 為負 · 無法算 DDM</p>`;
+        }
+
+        // === 方法 3：淨資產底線 ===
+        let assetFloorPanel = '';
+        if (bvps && bvps > 0) {
+            const gapToBv = ((price / bvps) - 1) * 100;
+            const gapToBvVerdict = gapToBv > 200 ? '🔴 距離淨值極遠（成長股泡沫特徵）' :
+                                    gapToBv > 100 ? '⚠️ 距離淨值遠（成長股常態）' :
+                                    gapToBv > 50 ? '🟡 中度溢價' :
+                                    gapToBv > 0 ? '🟢 小幅溢價' :
+                                    '🟢 帳面折價（金融/傳產機會 · 但要問是否有隱藏減值）';
+            assetFloorPanel = `
+                <h4 style="margin-top:16px">🏗 方法 3 · 淨資產底線（清算價假設）</h4>
+                <div class="bs-metrics-row">
+                    <div class="bs-metric"><div class="bs-metric-label">當前價</div><div class="bs-metric-val">$${fmt(price)}</div></div>
+                    <div class="bs-metric"><div class="bs-metric-label">BV/share</div><div class="bs-metric-val">$${fmt(bvps)}</div></div>
+                    <div class="bs-metric"><div class="bs-metric-label">P/B</div><div class="bs-metric-val">${fmt(price / bvps)}×</div></div>
+                    <div class="bs-metric"><div class="bs-metric-label">距 BV 下跌空間</div><div class="bs-metric-val">${gapToBv > 0 ? '-' : '+'}${fmt(Math.abs(gapToBv), 1)}%</div></div>
+                </div>
+                <div class="bs-note" style="margin-top:8px"><b>${gapToBvVerdict}</b> · 若市場給 P/B 1.0×（帳面清算價）· 底線 $${fmt(bvps)}</div>
+                <p class="hint-mini" style="margin-top:6px">這個「底線」是<b>極端悲觀情境</b>——假設市場不再給任何溢價 · 只看帳面淨資產。實務上健康公司永遠 P/B > 1 · 但當作最壞情境的錨點可以。<b>景氣循環股 / 金融股 / 傳產</b>做安全邊際下限最好用 · 成長股沒意義（TSM P/B 10× · 跌到 1× 表示公司已崩潰）。</p>
+            `;
+        }
+
+        // === 方法 4：反向 DCF · 隱含成長率 ===
+        // 給定當前 market cap · 反推「市場相信 FCF 未來 5 年成長率是多少」
+        // 用 2-stage：5 年高速 + terminal 3% · WACC 假設 10%（可調）
+        let reverseDcfPanel = '';
+        if (ttmFcf && ttmFcf > 0 && bvps && bvps > 0 && analysis.currentPBR > 0) {
+            const shares = analysis.marketCap
+                ? analysis.marketCap / price
+                : (fund.balanceSheetSeries?.[0]?.shareCapital ? fund.balanceSheetSeries[0].shareCapital / 10 : null);
+            if (shares && shares > 0) {
+                const marketCap = price * shares;
+                const WACC = 0.10;
+                const terminalG = 0.03;
+                // 用二分搜尋反解成長率 g · 使 DCF(g) = marketCap
+                const dcfPV = (g) => {
+                    let pv = 0;
+                    let fcf = ttmFcf;
+                    for (let y = 1; y <= 5; y++) {
+                        fcf *= (1 + g);
+                        pv += fcf / Math.pow(1 + WACC, y);
+                    }
+                    // terminal value @ year 5：fcf_year5 × (1 + terminalG) / (WACC - terminalG)
+                    const tv = fcf * (1 + terminalG) / (WACC - terminalG);
+                    pv += tv / Math.pow(1 + WACC, 5);
+                    return pv;
+                };
+                // 二分搜：g 從 -20% 到 100%
+                let lo = -0.20, hi = 1.00;
+                for (let iter = 0; iter < 60; iter++) {
+                    const mid = (lo + hi) / 2;
+                    const pv = dcfPV(mid);
+                    if (pv < marketCap) lo = mid; else hi = mid;
+                }
+                const impliedG = (lo + hi) / 2;
+                // 對照歷史實際 FCF CAGR（近 3-5 年）
+                const fcfQuarters = (cf.freeCF || []).map(e => e.value || 0);
+                let histFcfCagr = null;
+                if (fcfQuarters.length >= 8) {
+                    const recent4 = fcfQuarters.slice(0, 4).reduce((a, b) => a + b, 0);
+                    const old4 = fcfQuarters.slice(4, 8).reduce((a, b) => a + b, 0);
+                    if (old4 > 0 && recent4 > 0) {
+                        histFcfCagr = (recent4 / old4) - 1;   // 1 年 YoY · 有 12 季就換 3Y CAGR
+                    }
+                    if (fcfQuarters.length >= 16) {
+                        const oldest4 = fcfQuarters.slice(12, 16).reduce((a, b) => a + b, 0);
+                        if (oldest4 > 0 && recent4 > 0) {
+                            histFcfCagr = Math.pow(recent4 / oldest4, 1 / 3) - 1;
+                        }
+                    }
+                }
+                const gDiff = histFcfCagr !== null ? (impliedG - histFcfCagr) * 100 : null;
+                const gVerdict = gDiff === null ? '' :
+                    gDiff < -5 ? '🟢 市場預期比歷史保守 · 有超越空間' :
+                    Math.abs(gDiff) <= 5 ? '🟡 市場預期跟歷史一致 · price-in fair' :
+                    gDiff < 15 ? '⚠️ 市場預期高於歷史 · 需成長加速兌現' :
+                    '🔴 市場已 price-in 極端加速 · 空間極小 · 略失望就修正';
+
+                reverseDcfPanel = `
+                    <h4 style="margin-top:16px">🔮 方法 4 · 反向 DCF · 市場隱含成長率</h4>
+                    <div class="bs-metrics-row">
+                        <div class="bs-metric"><div class="bs-metric-label">當前市值</div><div class="bs-metric-val">$${fmt(marketCap / 1e9, 1)}B</div></div>
+                        <div class="bs-metric"><div class="bs-metric-label">TTM FCF</div><div class="bs-metric-val">$${fmt(ttmFcf / 1e9, 2)}B</div></div>
+                        <div class="bs-metric" title="市場當前定價隱含的未來 5 年 FCF 年成長率"><div class="bs-metric-label">隱含 g</div><div class="bs-metric-val">${fmt(impliedG * 100, 1)}%/年</div></div>
+                        <div class="bs-metric" title="近 3 年實際 FCF CAGR"><div class="bs-metric-label">歷史 g</div><div class="bs-metric-val">${histFcfCagr === null ? '—' : fmt(histFcfCagr * 100, 1) + '%'}</div></div>
+                    </div>
+                    ${gDiff !== null ? `<div class="bs-note" style="margin-top:8px">
+                        <b>市場隱含成長率 ${(impliedG * 100).toFixed(1)}%/年 · 歷史實際 ${(histFcfCagr * 100).toFixed(1)}%</b>
+                        · 差距 ${gDiff >= 0 ? '+' : ''}${fmt(gDiff, 1)} pp · <b>${gVerdict}</b>
+                    </div>` : `<p class="hint-mini" style="margin-top:6px">歷史 FCF CAGR 樣本不足 · 無法對照隱含成長率</p>`}
+                    <p class="hint-mini" style="margin-top:6px">
+                        <b>假設：</b> WACC ${(WACC * 100).toFixed(0)}% · terminal growth ${(terminalG * 100).toFixed(0)}% · 2-stage 模型（5 年高速 + 永續 3%）。
+                        <br><b>反向 DCF 的價值：</b>不預測未來（那是 forward DCF 的死路）· 反問「市場相信什麼」· 你評估這個 belief 合不合理。
+                        <br>市場隱含 <b>${(impliedG * 100).toFixed(1)}%</b> 成長率 · 你相信這公司未來 5 年 FCF 每年成長 ${(impliedG * 100).toFixed(1)}% 嗎？可以 → 合理。不行 → 高估。
+                    </p>
+                `;
+            }
+        } else {
+            reverseDcfPanel = `<h4 style="margin-top:16px">🔮 方法 4 · 反向 DCF · 市場隱含成長率</h4><p class="hint-mini">📉 TTM FCF 為負或缺 · 無法反向 DCF（虧損公司 / SaaS 早期 / 資本重公司）</p>`;
+        }
+
+        return `
+            <section class="panel">
+                <h3>💵 合理股價反推（4 種方法對照）</h3>
+                <p class="hint">
+                    <b>單一「合理價」是假的</b> · 4 種方法各有適用情境 · 一起看才誠實：
+                    <b>①</b> 相對估值反推（用自己歷史）· <b>②</b> DDM 股利折現（配息穩定公司）· <b>③</b> 淨資產底線（清算價下限）· <b>④</b> 反向 DCF（市場隱含成長率照妖鏡）。
+                    <b>不要加總平均</b>——這 4 個給的是不同角度的問題 · 平均會蓋掉矛盾訊號。
+                </p>
+                ${relPanel}
+                ${ddmPanel}
+                ${assetFloorPanel}
+                ${reverseDcfPanel}
+                <div class="bs-note" style="margin-top:14px;background:#fef3c7;padding:10px;border-radius:6px">
+                    ⚠️ <b>都是估計 · 不是預言</b>：<b>①</b> 歷史中位倍數會被最近幾年拉高 / 拉低（TSM 近年 P/E 都在 20+ · 早年 10+）· <b>②</b> DDM 假設「配息成長率永遠不變」實際不可能 · <b>③</b> 資產底線只是最悲觀錨點 · 健康公司永遠不會跌到那 · <b>④</b> 反向 DCF WACC / terminal growth 都是拍腦袋 · ± 2pp 差 50% 合理價。這 4 個是幫你<b>問對問題</b>的工具 · 不是給答案。
+                </div>
             </section>
         `;
     }
