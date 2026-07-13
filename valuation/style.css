@@ -1588,6 +1588,17 @@ textarea {
     background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
     border-color: #f59e0b;
 }
+.radar-mismatch.mismatch-elite {
+    background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+    border-color: #10b981;
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.25);
+}
+.radar-mismatch.mismatch-elite .radar-mismatch-title {
+    color: #065f46;
+}
+.radar-mismatch.mismatch-elite .radar-mismatch-body {
+    color: #064e3b;
+}
 .radar-mismatch-header {
     display: flex;
     align-items: center;

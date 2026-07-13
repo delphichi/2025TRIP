@@ -2257,7 +2257,71 @@
         if (valueAvg === null || growthAvg === null) return '';
         const v = Math.round(valueAvg), g = Math.round(growthAvg);
         const gap = Math.abs(g - v);
-        if (gap < 30) return '';
+
+        // 特殊 case 1：兩派都 ≥ 80 = 罕見全能公司（價值派+成長派雙修 · 例如 AAPL / GOOGL 早期）
+        if (v >= 80 && g >= 80) {
+            return `
+                <section class="panel radar-mismatch mismatch-elite">
+                    <div class="radar-mismatch-header">
+                        <span class="radar-mismatch-icon">🌟</span>
+                        <span class="radar-mismatch-title">罕見全能公司 · 價值派 ${v} + 成長派 ${g} 雙修</span>
+                    </div>
+                    <div class="radar-mismatch-body">
+                        <p>
+                            這支股票<b>兩張雷達都 ≥ 80 分</b> · 極少數的兼修體質——通常代表：
+                            <b>估值不算貴 + 成長還在跑 + 品質紮實</b>。這種形狀在 mature 大型股裡罕見（新興成長股常會犧牲估值 · 純價值股常會犧牲成長）·
+                            但仍要問「未來成長率能不能維持」——見下方 PEG / Rule of 40。
+                        </p>
+                    </div>
+                </section>
+            `;
+        }
+
+        // 特殊 case 2：成長派 ≥ 80 但價值派 < 70 = 一線成長股（TSM / NVDA / AMD 典型）
+        // 不看 gap · 只要成長派夠強 · 就打「一線成長股」正名 banner
+        if (g >= 80 && v < 70) {
+            return `
+                <section class="panel radar-mismatch mismatch-growth">
+                    <div class="radar-mismatch-header">
+                        <span class="radar-mismatch-icon">🚀</span>
+                        <span class="radar-mismatch-title">一線成長股定位 · 成長派 ${g} 分（價值派 ${v} 分是類別錯位 · 不是壞公司）</span>
+                    </div>
+                    <div class="radar-mismatch-body">
+                        <p>
+                            <b>成長派評分 ${g} 分達到「成長股模範生」等級</b>（PEG 便宜 + 營收持續加速 + 毛利趨勢向上 + Rule of 40 高分）
+                            · 這就是<b>教科書級的成長股訊號</b>。
+                        </p>
+                        <p>
+                            <b>不要被價值派 ${v} 分嚇到</b>——PB &gt; 10× / 殖利率 &lt; 1% 在成長股裡很普遍（TSM / NVDA / GOOGL 都是這樣）·
+                            這不代表公司體質差 · 是「用製造業 + 傳統銀行的量尺量科技股」的類別錯位。用<b>成長派</b>看就好·
+                            下方雷達也請主要看<b>綠色那張</b>。
+                        </p>
+                    </div>
+                </section>
+            `;
+        }
+
+        // 特殊 case 3：價值派 ≥ 80 但成長派 < 50 = 純傳統價值股（低估值 · 高股息 · 但成長已停）
+        if (v >= 80 && g < 50) {
+            return `
+                <section class="panel radar-mismatch mismatch-value">
+                    <div class="radar-mismatch-header">
+                        <span class="radar-mismatch-icon">🏛</span>
+                        <span class="radar-mismatch-title">純傳統價值股定位 · 價值派 ${v} 分 · 成長派 ${g} 分（成長已停 · 靠估值 + 股息 hold）</span>
+                    </div>
+                    <div class="radar-mismatch-body">
+                        <p>
+                            典型的「便宜 + 高股息 + 但已成熟」定位——傳統銀行、公用事業、成熟消費品常見。用<b>價值派</b>看就好·
+                            但要問「是不是價值陷阱」（PE 低 + PB 低 + 毛利率下滑 = 市場提前定價的衰退）· 上方 <b>紙上獲利 vs 現金流</b>
+                            有沒有背離 · 是關鍵驗證。
+                        </p>
+                    </div>
+                </section>
+            `;
+        }
+
+        // 一般 case：gap ≥ 20（原本 30 · 拉低 threshold · 抓更多邊緣 case）
+        if (gap < 20) return '';
 
         const growthLeans = g > v;
         const label = growthLeans ? '成長股' : '價值股';
