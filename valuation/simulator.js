@@ -48,18 +48,46 @@
     }
 
     // FMP：/income-statement?symbol=X&period=quarter
-    // Feature B · FMP 資產負債表 + key metrics TTM · 給資產負債結構 panel 用
+    // Feature B · FMP 資產負債表 + key metrics TTM + key metrics quarterly · 給資產負債結構 panel 用
+    // 新增第 3 個 fetch：/key-metrics?period=quarter 給 8 季 EV/EBITDA · ROA · ROIC 歷史 series
     async function fetchFmpBalanceSheet(ticker, apiKey) {
         if (!apiKey) return null;
         try {
-            const [bsRows, kmTtm] = await Promise.all([
+            const [bsRows, kmTtm, kmQuarterly] = await Promise.all([
                 fmpFetch(`/balance-sheet-statement?symbol=${ticker}&period=quarter`, apiKey).catch(() => null),
                 fmpFetch(`/key-metrics-ttm?symbol=${ticker}`, apiKey).catch(() => null),
+                fmpFetch(`/key-metrics?symbol=${ticker}&period=quarter&limit=8`, apiKey).catch(() => null),
             ]);
             if (!bsRows || !Array.isArray(bsRows) || bsRows.length === 0) return null;
             bsRows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             const latest = bsRows[0];
             const km = (Array.isArray(kmTtm) && kmTtm[0]) ? kmTtm[0] : {};
+
+            // 歷史 series（新→舊）· evEbitda / roa / roic 各 8 季
+            // FMP quarterly key-metrics 欄位：enterpriseValueOverEBITDA / roe / returnOnTangibleAssets / roic
+            // 舊版可能叫 evToEBITDA / evEBITDA · 都吃
+            const kmQ = Array.isArray(kmQuarterly) ? kmQuarterly.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')) : [];
+            const pickEvEbitda = r => r.enterpriseValueOverEBITDA ?? r.evToEBITDA ?? r.evEBITDA ?? null;
+            const pickRoe = r => r.roe ?? r.returnOnEquity ?? null;
+            const pickRoa = r => r.returnOnTangibleAssets ?? r.returnOnAssets ?? null;
+            const pickRoic = r => r.roic ?? r.returnOnInvestedCapital ?? null;
+            const evEbitdaSeries = kmQ.map(r => {
+                const v = pickEvEbitda(r);
+                return (v !== null && isFinite(v)) ? { date: r.date, evEbitda: v } : null;
+            }).filter(Boolean);
+            const roeSeries = kmQ.map(r => {
+                const v = pickRoe(r);
+                return (v !== null && isFinite(v)) ? { date: r.date, ttmRoe: v * 100 } : null;
+            }).filter(Boolean);
+            const roaSeries = kmQ.map(r => {
+                const v = pickRoa(r);
+                return (v !== null && isFinite(v)) ? { date: r.date, ttmRoa: v * 100 } : null;
+            }).filter(Boolean);
+            const roicSeries = kmQ.map(r => {
+                const v = pickRoic(r);
+                return (v !== null && isFinite(v)) ? { date: r.date, ttmRoic: v * 100 } : null;
+            }).filter(Boolean);
+
             return {
                 date: latest.date || null,
                 totalAssets: latest.totalAssets ?? null,
@@ -87,6 +115,13 @@
                 roa: km.returnOnTangibleAssetsTTM !== undefined ? km.returnOnTangibleAssetsTTM * 100
                      : (km.returnOnAssetsTTM !== undefined ? km.returnOnAssetsTTM * 100 : null),
                 roic: km.roicTTM !== undefined ? km.roicTTM * 100 : null,
+                // 新增 EV/EBITDA TTM · 抓 3 種可能欄位名
+                evEbitda: km.enterpriseValueOverEBITDATTM ?? km.evToEBITDATTM ?? km.enterpriseValueOverEBITDA ?? null,
+                // 歷史 series（新→舊 · 最多 8 筆）
+                evEbitdaSeries,
+                roeSeriesFmp: roeSeries,     // 用 Fmp suffix 避免跟 TW roeSeries 撞名（雖然實際 attach 位置不同）
+                roaSeries,
+                roicSeries,
                 source: 'FMP',
             };
         } catch (e) {
@@ -393,23 +428,91 @@
 
                     // 金融股專屬 · 歷史 TTM ROE 序列（最近 8 季 · 每季用該季末權益 + 過去 4 季淨利）
                     // 銀行/保險 EPS 波動大 · ROE 才是資本效率穩定度的核心
+                    // 順便同時算 ROA / ROIC / EV/EBITDA 各 8 季 series · 資本效率退化訊號要看時序 · 不是單一 TTM
                     const netIncomeByDate = new Map(wideRows.map(r => [r.date, r.netIncome]));
                     const roeSeries = [];
+                    const roaSeries = [];
+                    const roicSeries = [];
+                    const ebitdaSeries = [];         // 給 caller 拼 EV/EBITDA · 帶 debt / cash / shares 一起
+                    // D&A 常見欄位（FinMind IS/CF 都可能揭露 · 但只有部分公司有拆）
+                    const daCandidates = ['DepreciationAndAmortization', 'DepreciationAmortization', 'DepreciationAmortizationExpenses'];
                     for (let i = 0; i < Math.min(8, bsDates.length); i++) {
                         const qDate = bsDates[i];
-                        const eq = bsByDate.get(qDate)?.Equity || bsByDate.get(qDate)?.EquityAttributableToOwnersOfParent;
+                        const bsFlat = bsByDate.get(qDate) || {};
+                        const eq = bsFlat.Equity || bsFlat.EquityAttributableToOwnersOfParent;
                         if (!eq || eq <= 0) continue;
                         const wIdx = wideRows.findIndex(r => r.date === qDate);
                         if (wIdx < 0 || wIdx + 3 >= wideRows.length) continue;
-                        let ttmNi = 0, ok = true;
+                        // TTM 淨利 + TTM 營益 + TTM D&A
+                        let ttmNi = 0, ttmOpInc = 0, ttmDA = 0, niOk = true, opOk = true, daOk = true;
                         for (let j = 0; j < 4; j++) {
-                            const ni = wideRows[wIdx + j].netIncome;
-                            if (ni === null || !isFinite(ni)) { ok = false; break; }
-                            ttmNi += ni;
+                            const w = wideRows[wIdx + j];
+                            const fsFlat = byDate.get(w.date) || {};
+                            const ni = w.netIncome;
+                            if (ni === null || !isFinite(ni)) { niOk = false; }
+                            else ttmNi += ni;
+                            const opInc = fsFlat.OperatingIncome || fsFlat.OperatingProfit;
+                            if (opInc === null || opInc === undefined || !isFinite(opInc)) { opOk = false; }
+                            else ttmOpInc += opInc;
+                            let da = null;
+                            for (const c of daCandidates) {
+                                if (fsFlat[c] !== undefined && fsFlat[c] !== null && isFinite(fsFlat[c])) { da = fsFlat[c]; break; }
+                            }
+                            if (da === null) { daOk = false; }
+                            else ttmDA += da;
                         }
-                        if (ok) roeSeries.push({ date: qDate, ttmRoe: (ttmNi / eq) * 100, equity: eq, ttmNetIncome: ttmNi });
+                        // ROE · 靠 TTM 淨利 + 期末權益
+                        if (niOk) roeSeries.push({ date: qDate, ttmRoe: (ttmNi / eq) * 100, equity: eq, ttmNetIncome: ttmNi });
+                        // ROA · TTM 淨利 / 該季末總資產
+                        const ta = bsFlat.TotalAssets;
+                        if (niOk && ta && ta > 0) {
+                            roaSeries.push({ date: qDate, ttmRoa: (ttmNi / ta) * 100, ttmNetIncome: ttmNi, totalAssets: ta });
+                        }
+                        // ROIC · NOPAT ≈ OpInc × (1 - 20% TW 稅) / (權益 + 長期債)
+                        // 長期債 = LongtermBorrowings + BondsPayable + CurrentPortionOfLongtermBorrowings
+                        const ltDebt = (bsFlat.LongtermBorrowings || 0) + (bsFlat.BondsPayable || 0);
+                        const investedCap = eq + ltDebt;
+                        if (opOk && investedCap > 0) {
+                            roicSeries.push({ date: qDate, ttmRoic: (ttmOpInc * 0.80 / investedCap) * 100, ttmNopat: ttmOpInc * 0.80, investedCapital: investedCap });
+                        }
+                        // EBITDA components · 給 caller 拼 EV/EBITDA · 需 price × shares
+                        // shares = ShareCapital / 10（面額 10 · TW 慣例）
+                        const shareCapField = ['ShareCapital', 'CapitalStock', 'PaidInCapital', 'IssuedCapital', 'OrdinaryShareCapital', 'OrdinaryShare', 'PaidInCapitalOfCommonStocks', 'CommonStock']
+                            .find(c => bsFlat[c] !== undefined && bsFlat[c] !== null && isFinite(bsFlat[c]) && bsFlat[c] > 0);
+                        const shares = shareCapField ? (bsFlat[shareCapField] / 10) : null;
+                        const cash = bsFlat.CashAndCashEquivalents || 0;
+                        const totalDebt = ltDebt
+                            + (bsFlat.ShortTermBorrowings || 0)
+                            + (bsFlat.ShortTermNotesAndBillsPayable || 0)
+                            + (bsFlat.CurrentPortionOfLongtermBorrowings || 0);
+                        if (opOk && shares && daOk) {
+                            ebitdaSeries.push({
+                                date: qDate,
+                                ttmEbitda: ttmOpInc + ttmDA,          // 完整 EBITDA
+                                ttmOpInc,
+                                ttmDA,
+                                shares,
+                                totalDebt,
+                                cash,
+                            });
+                        } else if (opOk && shares) {
+                            // D&A 找不到 · 退回 EBIT 近似（有些公司 IS 沒拆 D&A · 得靠 CF 補）
+                            ebitdaSeries.push({
+                                date: qDate,
+                                ttmEbitda: ttmOpInc,                  // 只有 EBIT
+                                ttmOpInc,
+                                ttmDA: null,
+                                shares,
+                                totalDebt,
+                                cash,
+                                daMissing: true,
+                            });
+                        }
                     }
-                    result.roeSeries = roeSeries;   // 新→舊
+                    result.roeSeries = roeSeries;      // 新→舊
+                    result.roaSeries = roaSeries;
+                    result.roicSeries = roicSeries;
+                    result.ebitdaSeries = ebitdaSeries;  // caller 用 · 帶 price 才能算 EV
 
                     // === B1 · 淨利 5Y 變動係數 CV（金融股 EPS 波動大 · 看穩定度） ===
                     // 把 wideRows 4 季一組加總成年淨利 · 取近 5 年 · 算 std / mean
@@ -1108,6 +1211,37 @@
             price = priceData[priceData.length - 1].close;
         }
 
+        // TW EV/EBITDA · 用 fundamentals.ebitdaSeries + 每季末當時的收盤價 拼歷史比
+        // 有 priceSeries 就走「每季找最近一天收盤」· 沒有就退回全部用當前價（不完美但有值）
+        if (fundamentals && Array.isArray(fundamentals.ebitdaSeries) && fundamentals.ebitdaSeries.length > 0) {
+            const priceByDate = new Map((priceData || []).filter(p => p.close > 0).map(p => [p.date, p.close]));
+            const sortedPriceDates = Array.from(priceByDate.keys()).sort();
+            const priceAtOrBefore = (qDate) => {
+                // 用 binary-search 也行 · 這裡短 · 反向掃即可
+                for (let k = sortedPriceDates.length - 1; k >= 0; k--) {
+                    if (sortedPriceDates[k] <= qDate) return priceByDate.get(sortedPriceDates[k]);
+                }
+                return null;
+            };
+            const evEbitdaSeries = fundamentals.ebitdaSeries.map(e => {
+                if (!e.ttmEbitda || e.ttmEbitda <= 0) return null;
+                const p = priceAtOrBefore(e.date) ?? price;
+                if (!p) return null;
+                const marketCap = p * e.shares;
+                const ev = marketCap + e.totalDebt - e.cash;
+                return {
+                    date: e.date,
+                    evEbitda: ev / e.ttmEbitda,
+                    ev,
+                    ebitda: e.ttmEbitda,
+                    priceUsed: p,
+                    daMissing: e.daMissing || false,
+                };
+            }).filter(Boolean);
+            fundamentals.evEbitdaSeries = evEbitdaSeries;
+            fundamentals.evEbitdaLatest = evEbitdaSeries[0]?.evEbitda ?? null;   // 最新一季
+        }
+
         // 公司名 & 產業
         let name = ticker;
         let sector = '';
@@ -1294,6 +1428,20 @@
         const fmpBalanceSheet = bsR.ok ? bsR.value : null;
         if (fundamentals && fmpBalanceSheet) {
             fundamentals.balanceSheetSnapshot = fmpBalanceSheet;
+            // 新增 · 把 FMP 的 EV/EBITDA + ROA/ROIC 8 季 series 提到 fundamentals 頂層
+            // 這樣 render 層直接 fundamentals.evEbitdaSeries 就有 · 跟 TW 版一致
+            if (Array.isArray(fmpBalanceSheet.evEbitdaSeries) && fmpBalanceSheet.evEbitdaSeries.length > 0) {
+                fundamentals.evEbitdaSeries = fmpBalanceSheet.evEbitdaSeries;
+                fundamentals.evEbitdaLatest = fmpBalanceSheet.evEbitda ?? fmpBalanceSheet.evEbitdaSeries[0]?.evEbitda ?? null;
+            } else if (fmpBalanceSheet.evEbitda !== null && fmpBalanceSheet.evEbitda !== undefined) {
+                fundamentals.evEbitdaLatest = fmpBalanceSheet.evEbitda;
+            }
+            if (Array.isArray(fmpBalanceSheet.roaSeries) && fmpBalanceSheet.roaSeries.length > 0) {
+                fundamentals.roaSeries = fmpBalanceSheet.roaSeries;
+            }
+            if (Array.isArray(fmpBalanceSheet.roicSeries) && fmpBalanceSheet.roicSeries.length > 0) {
+                fundamentals.roicSeries = fmpBalanceSheet.roicSeries;
+            }
         }
 
         // Feature · 內部人持股變化 + 配息歷史 + 13F 機構持股 attach 到 fundamentals
@@ -3082,6 +3230,10 @@
         let balanceSheetHtml = '';
         try { balanceSheetHtml = renderBalanceSheetHtml(analysis); }
         catch (e) { console.warn('renderBalanceSheetHtml failed:', e.message); }
+        // 新增 · EV/EBITDA + ROA/ROIC/ROE 8 季 series panel · 資本效率退化趨勢
+        let capitalEfficiencyHtml = '';
+        try { capitalEfficiencyHtml = renderCapitalEfficiencyHtml(analysis); }
+        catch (e) { console.warn('renderCapitalEfficiencyHtml failed:', e.message); }
         // Tier 2 · 金融股專屬 panel（ROE 走勢 + BV/share + 監理外連）· 只對金融股觸發
         let financialStockHtml = '';
         try { financialStockHtml = renderFinancialStockHtml(analysis); }
@@ -3150,7 +3302,7 @@
         }
         // 金融股 · 把金融 panel 拉到最頂 · 加醒目背景 · 讓使用者一定看得到
         const financialTop = (isFinancial && financialStockHtml) ? `<div style="border:3px solid #f59e0b;border-radius:8px;padding:4px;margin-bottom:12px;background:#fffbeb">${financialStockHtml}</div>` : '';
-        $('detail-box').innerHTML = financialTop + fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + (isFinancial ? '' : financialStockHtml) + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
+        $('detail-box').innerHTML = financialTop + fmpStatusHtml + peerHtml + adrHtml + cfHtml + drilldownHtml + balanceSheetHtml + capitalEfficiencyHtml + (isFinancial ? '' : financialStockHtml) + fundHtml + monthlyMetricsHtml + trajectoryHtml + seasonalityHtml + heatmapHtml + priceHeatmapHtml + dividendResultHtml + capitalReductionHtml + newsHtml + foreignSignalHtml + instHtml + marginHtml + dividendHtml + insiderHtml + instOwnHtml + tableHtml + mismatchHtml + radarHtml + growthRadarHtml;
         // 診斷：塞完後查 DOM 有沒有這個 h3
         const finPanelInDom = document.querySelector('#detail-box section h3');
         const allH3 = Array.from(document.querySelectorAll('#detail-box h3')).map(h => h.textContent.trim());
@@ -4252,6 +4404,116 @@
                     ${renderTable('📈 資產項目', assetSlices)}
                     ${renderTable('📉 負債 + 權益', financeSlices)}
                 </div>
+            </section>
+        `;
+    }
+
+    // 資本效率 & 估值歷史 8 季 · EV/EBITDA + ROA + ROIC 走勢
+    // 用戶要的完整覆蓋：P/E · P/B（分佈已在上方）+ EV/EBITDA · PEG · ROE · ROA · ROIC
+    // 這 panel 專門補 EV/EBITDA + ROA + ROIC 三個之前只有最新一期 · 現在有 8 季 series
+    function renderCapitalEfficiencyHtml(analysis) {
+        const fund = analysis.fundamentals;
+        if (!fund) return '';
+        const evSeries = fund.evEbitdaSeries || [];
+        const roaSeries = fund.roaSeries || [];
+        const roicSeries = fund.roicSeries || [];
+        const roeSeries = fund.roeSeries || [];
+        // 至少一個 series 有 3 筆才顯示（否則 panel 空空）
+        const anyEnough = [evSeries, roaSeries, roicSeries, roeSeries].some(s => s.length >= 3);
+        if (!anyEnough) return '';
+
+        const evLatest = fund.evEbitdaLatest ?? evSeries[0]?.evEbitda ?? null;
+        const roaLatest = roaSeries[0]?.ttmRoa ?? (fund.balanceSheetSnapshot?.roa) ?? null;
+        const roicLatest = roicSeries[0]?.ttmRoic ?? (fund.balanceSheetSnapshot?.roic) ?? null;
+        const roeLatest = roeSeries[0]?.ttmRoe ?? fund.roe ?? null;
+
+        const fmt = (v, unit = '', decimals = 1) => {
+            if (v === null || v === undefined || !isFinite(v)) return '—';
+            return v.toFixed(decimals) + unit;
+        };
+        // EV/EBITDA verdict：< 10 便宜 · 10-15 合理 · 15-20 偏貴 · > 20 貴
+        const evNote = evLatest === null ? '' :
+            evLatest < 0 ? '🔴 負值（EBITDA 虧損 · 無意義）' :
+            evLatest < 10 ? '🟢 便宜' :
+            evLatest < 15 ? '🟡 合理' :
+            evLatest < 20 ? '⚠️ 偏貴' : '🔴 貴';
+        // ROIC verdict：> 15 極優 · 10-15 好 · 5-10 中等 · < 5 弱
+        const roicNote = roicLatest === null ? '' :
+            roicLatest >= 15 ? '🟢 極優' :
+            roicLatest >= 10 ? '🟡 好' :
+            roicLatest >= 5 ? '⚠️ 中等' : '🔴 弱（資本沒賺回成本）';
+
+        // Mini sparkline SVG for a series（新→舊 · 反轉成舊→新畫圖）
+        const spark = (series, pickKey, color = '#0891b2') => {
+            if (!series || series.length < 3) return '';
+            const asc = series.slice().reverse();
+            const vals = asc.map(s => s[pickKey]).filter(v => v !== null && isFinite(v));
+            if (vals.length < 3) return '';
+            const min = Math.min(...vals), max = Math.max(...vals);
+            const range = max - min || 1;
+            const W = 200, H = 40, pad = 4;
+            const pts = asc.map((s, i) => {
+                const v = s[pickKey];
+                if (v === null || !isFinite(v)) return null;
+                const x = pad + i / (asc.length - 1) * (W - pad * 2);
+                const y = H - pad - (v - min) / range * (H - pad * 2);
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            }).filter(Boolean).join(' ');
+            const first = vals[0], last = vals[vals.length - 1];
+            const trend = last > first ? '↗' : last < first ? '↘' : '→';
+            const trendColor = last > first ? '#10b981' : last < first ? '#ef4444' : '#94a3b8';
+            return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8"/>
+                <text x="${W - 4}" y="14" text-anchor="end" font-size="14" font-weight="700" fill="${trendColor}">${trend}</text>
+            </svg>`;
+        };
+        // 表格：每季一列 · 4 指標並排
+        const allDates = new Set();
+        [evSeries, roaSeries, roicSeries, roeSeries].forEach(s => s.forEach(x => allDates.add(x.date)));
+        const sortedDates = Array.from(allDates).sort().reverse().slice(0, 8);
+        const byDateEv = new Map(evSeries.map(s => [s.date, s.evEbitda]));
+        const byDateRoa = new Map(roaSeries.map(s => [s.date, s.ttmRoa]));
+        const byDateRoic = new Map(roicSeries.map(s => [s.date, s.ttmRoic]));
+        const byDateRoe = new Map(roeSeries.map(s => [s.date, s.ttmRoe]));
+        const rows = sortedDates.map(d => `<tr>
+            <td>${d}</td>
+            <td>${fmt(byDateEv.get(d), '×', 1)}</td>
+            <td>${fmt(byDateRoe.get(d), '%', 1)}</td>
+            <td>${fmt(byDateRoa.get(d), '%', 2)}</td>
+            <td>${fmt(byDateRoic.get(d), '%', 1)}</td>
+        </tr>`).join('');
+
+        // 資料來源 note · TW 有 daMissing 就標註
+        const twDaMissing = evSeries.some(s => s.daMissing);
+        const daNote = twDaMissing ? `<p class="hint-mini" style="margin-top:6px">⚠️ TW 部分季別 FinMind 財報未拆 D&A · 該季 EBITDA 用 EBIT 近似（低估 EBITDA · 高估 EV/EBITDA 比）· 精確值請對照 MOPS 財報附註。</p>` : '';
+
+        return `
+            <section class="panel">
+                <h3>📊 資本效率 &amp; 估值歷史（近 8 季）</h3>
+                <p class="hint">
+                    <b>EV/EBITDA · ROE · ROA · ROIC</b> 4 個核心資本效率 / 估值指標的走勢 · 補足上方單一 TTM 值看不出的<b>退化趨勢</b>。
+                    ROIC 從 15% 掉到 8% · 或 EV/EBITDA 從 12 漲到 22 · 是很強的品質退化 / 估值透支訊號 · 但單看最新一期看不出 · 必看時序。
+                </p>
+                <div class="bs-metrics-row">
+                    <div class="bs-metric" title="EV = 市值 + 總負債 - 現金 · EBITDA = 營益 + 折舊攤銷 · 抗會計調整"><div class="bs-metric-label">EV / EBITDA</div><div class="bs-metric-val">${fmt(evLatest, '×', 1)}</div></div>
+                    <div class="bs-metric" title="TTM 淨利 / 期末權益"><div class="bs-metric-label">ROE</div><div class="bs-metric-val">${fmt(roeLatest, '%', 1)}</div></div>
+                    <div class="bs-metric" title="TTM 淨利 / 期末總資產"><div class="bs-metric-label">ROA</div><div class="bs-metric-val">${fmt(roaLatest, '%', 2)}</div></div>
+                    <div class="bs-metric" title="NOPAT / (權益 + 長期債) · 資本真正的回報率"><div class="bs-metric-label">ROIC</div><div class="bs-metric-val">${fmt(roicLatest, '%', 1)}</div></div>
+                </div>
+                <div class="bs-note" style="margin-top:8px">
+                    EV/EBITDA: ${evNote} · ROIC: ${roicNote}
+                </div>
+                <div class="fund-grid" style="margin-top:12px">
+                    <div class="fund-cell"><h4>EV / EBITDA 走勢</h4>${spark(evSeries, 'evEbitda', '#8b5cf6')}</div>
+                    <div class="fund-cell"><h4>ROE 走勢</h4>${spark(roeSeries, 'ttmRoe', '#0891b2')}</div>
+                    <div class="fund-cell"><h4>ROA 走勢</h4>${spark(roaSeries, 'ttmRoa', '#f59e0b')}</div>
+                    <div class="fund-cell"><h4>ROIC 走勢</h4>${spark(roicSeries, 'ttmRoic', '#10b981')}</div>
+                </div>
+                <table class="fund-table" style="margin-top:12px">
+                    <tr><th>季度</th><th>EV/EBITDA</th><th>ROE</th><th>ROA</th><th>ROIC</th></tr>
+                    ${rows}
+                </table>
+                ${daNote}
             </section>
         `;
     }
