@@ -4741,11 +4741,15 @@
         // === 方法 3：淨資產底線 ===
         let assetFloorPanel = '';
         if (bvps && bvps > 0) {
-            const gapToBv = ((price / bvps) - 1) * 100;
-            const gapToBvVerdict = gapToBv > 200 ? '🔴 距離淨值極遠（成長股泡沫特徵）' :
-                                    gapToBv > 100 ? '⚠️ 距離淨值遠（成長股常態）' :
-                                    gapToBv > 50 ? '🟡 中度溢價' :
-                                    gapToBv > 0 ? '🟢 小幅溢價' :
+            // 兩個都算 · 分開顯示 · 別再搞混
+            //   溢價率 = (price - bvps) / bvps × 100 → 「當前價比帳面淨值貴多少」
+            //   跌至 BV 所需 = (price - bvps) / price × 100 → 「若要跌到帳面淨值 · 需跌多少 %」（上限 100%）
+            const premiumOverBv = ((price / bvps) - 1) * 100;
+            const dropToBvPct = ((price - bvps) / price) * 100;   // = (1 - bvps/price) × 100
+            const gapToBvVerdict = premiumOverBv > 200 ? '🔴 距離淨值極遠（成長股泡沫特徵）' :
+                                    premiumOverBv > 100 ? '⚠️ 距離淨值遠（成長股常態）' :
+                                    premiumOverBv > 50 ? '🟡 中度溢價' :
+                                    premiumOverBv > 0 ? '🟢 小幅溢價' :
                                     '🟢 帳面折價（金融/傳產機會 · 但要問是否有隱藏減值）';
             assetFloorPanel = `
                 <h4 style="margin-top:16px">🏗 方法 3 · 淨資產底線（清算價假設）</h4>
@@ -4753,10 +4757,11 @@
                     <div class="bs-metric"><div class="bs-metric-label">當前價</div><div class="bs-metric-val">$${fmt(price)}</div></div>
                     <div class="bs-metric"><div class="bs-metric-label">BV/share</div><div class="bs-metric-val">$${fmt(bvps)}</div></div>
                     <div class="bs-metric"><div class="bs-metric-label">P/B</div><div class="bs-metric-val">${fmt(price / bvps)}×</div></div>
-                    <div class="bs-metric"><div class="bs-metric-label">距 BV 下跌空間</div><div class="bs-metric-val">${gapToBv > 0 ? '-' : '+'}${fmt(Math.abs(gapToBv), 1)}%</div></div>
+                    <div class="bs-metric" title="當前價比帳面淨值貴多少（以 BV 為基準）"><div class="bs-metric-label">溢價 vs BV</div><div class="bs-metric-val">${premiumOverBv >= 0 ? '+' : ''}${fmt(premiumOverBv, 1)}%</div></div>
+                    <div class="bs-metric" title="若跌到 P/B 1.0× · 從當前價要跌多少 %（上限 100%）"><div class="bs-metric-label">跌至 BV 需</div><div class="bs-metric-val">${dropToBvPct > 0 ? '-' : '+'}${fmt(Math.abs(dropToBvPct), 1)}%</div></div>
                 </div>
-                <div class="bs-note" style="margin-top:8px"><b>${gapToBvVerdict}</b> · 若市場給 P/B 1.0×（帳面清算價）· 底線 $${fmt(bvps)}</div>
-                <p class="hint-mini" style="margin-top:6px">這個「底線」是<b>極端悲觀情境</b>——假設市場不再給任何溢價 · 只看帳面淨資產。實務上健康公司永遠 P/B > 1 · 但當作最壞情境的錨點可以。<b>景氣循環股 / 金融股 / 傳產</b>做安全邊際下限最好用 · 成長股沒意義（TSM P/B 10× · 跌到 1× 表示公司已崩潰）。</p>
+                <div class="bs-note" style="margin-top:8px"><b>${gapToBvVerdict}</b> · 若市場給 P/B 1.0×（帳面清算價）· 底線 $${fmt(bvps)} · 從 $${fmt(price)} 需跌 <b>${dropToBvPct > 0 ? '-' : '+'}${fmt(Math.abs(dropToBvPct), 1)}%</b></div>
+                <p class="hint-mini" style="margin-top:6px">兩個數字別搞混：<b>溢價</b>是「以帳面淨值為 1× 的倍率視角」（無上限 · 例如 P/B 10× = 溢價 +900%）· <b>下跌空間</b>是「以現價為 100% 的跌幅視角」（上限 -100%）。這個「底線」是<b>極端悲觀情境</b>——假設市場不再給任何溢價 · 只看帳面淨資產。實務上健康公司永遠 P/B > 1 · 當作最壞情境錨點可以。<b>景氣循環股 / 金融股 / 傳產</b>做安全邊際下限最好用 · 成長股沒意義（TSM P/B 10× · 跌到 1× 表示公司已崩潰）。</p>
             `;
         }
 
