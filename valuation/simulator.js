@@ -4769,6 +4769,7 @@
         // 給定當前 market cap · 反推「市場相信 FCF 未來 5 年成長率是多少」
         // 用 2-stage：5 年高速 + terminal 3% · WACC 假設 10%（可調）
         let reverseDcfPanel = '';
+        let scenarioPanel = '';   // 方法 5 · 4 情境機率加權合理價 · 跟方法 4 同 scope 共用 shares/dcfPV
         if (ttmFcf && ttmFcf > 0 && bvps && bvps > 0 && analysis.currentPBR > 0) {
             const shares = analysis.marketCap
                 ? analysis.marketCap / price
@@ -4839,6 +4840,88 @@
                         <br>市場隱含 <b>${(impliedG * 100).toFixed(1)}%</b> 成長率 · 你相信這公司未來 5 年 FCF 每年成長 ${(impliedG * 100).toFixed(1)}% 嗎？可以 → 合理。不行 → 高估。
                     </p>
                 `;
+
+                // === 方法 5 · 情境分析：4 種心態機率加權合理價 ===
+                // 給定 4 個成長率情境（超級牛市 / Base / 回歸歷史 / 黑天鵝）· 各自 DCF 算 fair price · 機率加權
+                // 對「大家爭論貴不貴」的成長股特別有用 · 逼你把「感覺很貴」翻譯成明確機率分佈
+                const dcfPricePerShare = (g) => dcfPV(g) / shares;
+                const histG = histFcfCagr !== null ? histFcfCagr : impliedG * 0.4;
+                const scenarios = [
+                    { emoji: '🐂', name: '超級牛市', prob: 0.20, g: impliedG,
+                      thesis: 'AI capex 續至 2030 · 護城河不被稀釋 · 市場信念完全兌現', color: '#10b981' },
+                    { emoji: '😐', name: 'Base case', prob: 0.50, g: (impliedG + histG) / 2,
+                      thesis: '合理加速 · 高速期後回歸歷史軌跡 · 最可能情境', color: '#f59e0b' },
+                    { emoji: '🐻', name: '回歸歷史', prob: 0.25, g: histG,
+                      thesis: '成長率均值回歸 · 熱潮退燒但公司體質仍在', color: '#ef4444' },
+                    { emoji: '☠️', name: '黑天鵝', prob: 0.05, g: -0.05,
+                      thesis: '成長停滯 · 大客戶垂直整合 / 對手追上 / 地緣衝突', color: '#7f1d1d' },
+                ];
+                scenarios.forEach(s => {
+                    s.fairPrice = dcfPricePerShare(s.g);
+                    s.gapPct = (s.fairPrice / price - 1) * 100;
+                });
+                const weightedFairPrice = scenarios.reduce((sum, s) => sum + s.prob * s.fairPrice, 0);
+                const weightedGap = (weightedFairPrice / price - 1) * 100;
+                const weightedVerdict =
+                    weightedGap > 20 ? '🟢 期望值 &gt; 現價 20%+ · 概率上便宜' :
+                    weightedGap > 5  ? '🟢 期望值略高於現價 · 有小幅安全邊際' :
+                    weightedGap > -5 ? '🟡 期望值接近現價 · 定價合理' :
+                    weightedGap > -20 ? '⚠️ 期望值 &lt; 現價 5-20% · 概率上偏貴' :
+                    '🔴 期望值 &lt; 現價 20%+ · 概率上很貴';
+                const scenarioRows = scenarios.map(s => `
+                    <tr>
+                        <td style="font-size:20px">${s.emoji}</td>
+                        <td><b>${s.name}</b></td>
+                        <td><b style="color:${s.color}">${(s.prob * 100).toFixed(0)}%</b></td>
+                        <td>${(s.g * 100).toFixed(1)}%/年</td>
+                        <td><b>$${fmt(s.fairPrice)}</b></td>
+                        <td style="color:${s.gapPct >= 0 ? '#10b981' : '#ef4444'}">${s.gapPct >= 0 ? '+' : ''}${fmt(s.gapPct, 1)}%</td>
+                        <td class="hint-mini">${s.thesis}</td>
+                    </tr>
+                `).join('');
+                // 4 情境 fair price 分佈的視覺（圓大小 = 機率 · 藍虛線 = 現價 · 紫實線 = 期望值）
+                const priceMinS = Math.min(...scenarios.map(s => s.fairPrice), price);
+                const priceMaxS = Math.max(...scenarios.map(s => s.fairPrice), price);
+                const rangeS = Math.max(priceMaxS - priceMinS, 1);
+                const xOf = v => 30 + (v - priceMinS) / rangeS * 340;
+                const dots = scenarios.map(s => {
+                    const x = xOf(s.fairPrice);
+                    const r = 4 + s.prob * 30;
+                    return `<circle cx="${x.toFixed(1)}" cy="30" r="${r.toFixed(1)}" fill="${s.color}" opacity="0.75"><title>${s.emoji} ${s.name} (${(s.prob * 100).toFixed(0)}%) $${fmt(s.fairPrice)}</title></circle>
+                            <text x="${x.toFixed(1)}" y="60" text-anchor="middle" font-size="10" fill="#334155">${s.emoji}</text>`;
+                }).join('');
+                const priceLine = `<line x1="${xOf(price).toFixed(1)}" y1="10" x2="${xOf(price).toFixed(1)}" y2="50" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4 3"/>
+                                   <text x="${xOf(price).toFixed(1)}" y="8" text-anchor="middle" font-size="10" fill="#3b82f6" font-weight="700">現價 $${fmt(price, 0)}</text>`;
+                const weightedLine = `<line x1="${xOf(weightedFairPrice).toFixed(1)}" y1="15" x2="${xOf(weightedFairPrice).toFixed(1)}" y2="45" stroke="#8b5cf6" stroke-width="2"/>
+                                       <text x="${xOf(weightedFairPrice).toFixed(1)}" y="80" text-anchor="middle" font-size="10" fill="#8b5cf6" font-weight="700">期望 $${fmt(weightedFairPrice, 0)}</text>`;
+
+                scenarioPanel = `
+                    <h4 style="margin-top:16px">🎯 方法 5 · 情境分析 · 4 種心態機率加權合理價</h4>
+                    <p class="hint-mini">
+                        <b>問題不是「合理價多少」· 而是「你信哪個劇本 · 各多少信」</b>。4 種情境對應 4 個 FCF 成長率假設 · 各自跑 DCF 得 fair price · 用機率加權出「期望合理價」。
+                        機率預設是<b>成長股常見的 20/50/25/5</b> · 你可以在心裡調（例：你更悲觀 · 就把 base case 挪到 bear）· <b>期望值 vs 現價</b>就是你的定價 verdict。
+                    </p>
+                    <svg viewBox="0 0 400 90" width="100%" style="max-width:400px;margin:12px 0" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="30" y1="30" x2="370" y2="30" stroke="#cbd5e1" stroke-width="1"/>
+                        ${priceLine}
+                        ${weightedLine}
+                        ${dots}
+                    </svg>
+                    <table class="fund-table">
+                        <tr><th>情境</th><th>名稱</th><th>機率</th><th>假設 g</th><th>fair price</th><th>vs 現價</th><th>劇本</th></tr>
+                        ${scenarioRows}
+                    </table>
+                    <div class="bs-note" style="margin-top:10px;background:#f0f9ff;padding:10px;border-radius:6px">
+                        <b>機率加權期望合理價：$${fmt(weightedFairPrice)}</b> · vs 現價 $${fmt(price)} · <b>${weightedGap >= 0 ? '+' : ''}${fmt(weightedGap, 1)}%</b> · <b>${weightedVerdict}</b>
+                        <br>公式：Σ (機率 × 該情境 fair price) = ${scenarios.map(s => `${(s.prob * 100).toFixed(0)}% × $${fmt(s.fairPrice, 0)}`).join(' + ')} = $${fmt(weightedFairPrice)}
+                    </div>
+                    <p class="hint-mini" style="margin-top:6px">
+                        <b>怎麼用？</b>
+                        <br>• 若你相信 AI capex 續到 2030 · 提高 🐂 到 40%+ · 期望值拉近現價 → 合理
+                        <br>• 若你擔心 hyperscaler 自研 ASIC + 中美升溫 · 提高 🐻/☠️ · 期望值下修 → 現價變貴
+                        <br>• <b>這 panel 逼你把「感覺很貴 / 很便宜」翻譯成明確的機率分佈</b> · 不再只是嘴巴說
+                    </p>
+                `;
             }
         } else {
             reverseDcfPanel = `<h4 style="margin-top:16px">🔮 方法 4 · 反向 DCF · 市場隱含成長率</h4><p class="hint-mini">📉 TTM FCF 為負或缺 · 無法反向 DCF（虧損公司 / SaaS 早期 / 資本重公司）</p>`;
@@ -4846,18 +4929,19 @@
 
         return `
             <section class="panel">
-                <h3>💵 合理股價反推（4 種方法對照）</h3>
+                <h3>💵 合理股價反推（5 種方法對照）</h3>
                 <p class="hint">
-                    <b>單一「合理價」是假的</b> · 4 種方法各有適用情境 · 一起看才誠實：
-                    <b>①</b> 相對估值反推（用自己歷史）· <b>②</b> DDM 股利折現（配息穩定公司）· <b>③</b> 淨資產底線（清算價下限）· <b>④</b> 反向 DCF（市場隱含成長率照妖鏡）。
-                    <b>不要加總平均</b>——這 4 個給的是不同角度的問題 · 平均會蓋掉矛盾訊號。
+                    <b>單一「合理價」是假的</b> · 5 種方法各有適用情境 · 一起看才誠實：
+                    <b>①</b> 相對估值反推（用自己歷史）· <b>②</b> DDM 股利折現（配息穩定公司）· <b>③</b> 淨資產底線（清算價下限）· <b>④</b> 反向 DCF（市場隱含成長率照妖鏡）· <b>⑤</b> 情境分析（4 心態機率加權）。
+                    <b>不要加總平均</b>——這 5 個給的是不同角度的問題 · 平均會蓋掉矛盾訊號。
                 </p>
                 ${relPanel}
                 ${ddmPanel}
                 ${assetFloorPanel}
                 ${reverseDcfPanel}
+                ${scenarioPanel}
                 <div class="bs-note" style="margin-top:14px;background:#fef3c7;padding:10px;border-radius:6px">
-                    ⚠️ <b>都是估計 · 不是預言</b>：<b>①</b> 歷史中位倍數會被最近幾年拉高 / 拉低（TSM 近年 P/E 都在 20+ · 早年 10+）· <b>②</b> DDM 假設「配息成長率永遠不變」實際不可能 · <b>③</b> 資產底線只是最悲觀錨點 · 健康公司永遠不會跌到那 · <b>④</b> 反向 DCF WACC / terminal growth 都是拍腦袋 · ± 2pp 差 50% 合理價。這 4 個是幫你<b>問對問題</b>的工具 · 不是給答案。
+                    ⚠️ <b>都是估計 · 不是預言</b>：<b>①</b> 歷史中位倍數會被最近幾年拉高 / 拉低（TSM 近年 P/E 都在 20+ · 早年 10+）· <b>②</b> DDM 假設「配息成長率永遠不變」實際不可能 · <b>③</b> 資產底線只是最悲觀錨點 · 健康公司永遠不會跌到那 · <b>④</b> 反向 DCF WACC / terminal growth 都是拍腦袋 · ± 2pp 差 50% 合理價 · <b>⑤</b> 情境分析機率是預設值 · 你自己心裡的分佈才算數。這 5 個是幫你<b>問對問題</b>的工具 · 不是給答案。
                 </div>
             </section>
         `;
