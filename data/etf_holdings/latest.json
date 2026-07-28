@@ -1,88 +1,99 @@
 {
-  "date": "2026-07-27",
-  "generated_at": "2026-07-27T21:24:40+08:00",
-  "consensus_date": "2026-07-27",
+  "date": "2026-07-28",
+  "generated_at": "2026-07-28T20:20:11+08:00",
+  "consensus_date": "2026-07-28",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260727.csv",
-      "snapshot_date": "2026-07-27",
+      "snapshot": "00991A_20260728.csv",
+      "snapshot_date": "2026-07-28",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [
-          {
-            "code": "2059",
-            "name": "川湖科技",
-            "pct": 5.0,
-            "weight": 4.676
-          }
-        ],
+        "add": [],
         "reduce": [],
-        "build": []
+        "build": [
+          {
+            "code": "2449",
+            "name": "京元電子",
+            "weight": 0.003
+          }
+        ]
       }
     },
     {
       "code": "00981A",
       "name": "統一台股增長",
-      "snapshot": "00981A_20260727.csv",
-      "snapshot_date": "2026-07-27",
+      "snapshot": "00981A_20260728.csv",
+      "snapshot_date": "2026-07-28",
       "holdings_count": 51,
       "actions": {
-        "new": [
-          {
-            "code": "4979",
-            "name": "華星光",
-            "weight": 0.3
-          }
-        ],
+        "new": [],
         "drop": [],
         "add": [],
-        "reduce": [],
+        "reduce": [
+          {
+            "code": "5439",
+            "name": "高技",
+            "pct": -13.83219954648526,
+            "weight": 0.2
+          }
+        ],
         "build": []
       }
     },
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260727.csv",
-      "snapshot_date": "2026-07-27",
+      "snapshot": "00403A_20260728.csv",
+      "snapshot_date": "2026-07-28",
       "holdings_count": 50,
       "actions": {
-        "new": [],
-        "drop": [],
+        "new": [
+          {
+            "code": "3450",
+            "name": "聯鈞",
+            "weight": 0.05
+          }
+        ],
+        "drop": [
+          {
+            "code": "6147",
+            "name": "頎邦",
+            "weight": 0.0
+          }
+        ],
         "add": [
+          {
+            "code": "1560",
+            "name": "中砂",
+            "pct": 33.33333333333333,
+            "weight": 0.42
+          },
           {
             "code": "3665",
             "name": "貿聯-KY",
-            "pct": 13.333333333333334,
-            "weight": 0.93
+            "pct": 10.294117647058822,
+            "weight": 0.99
           },
           {
-            "code": "6239",
-            "name": "力成",
-            "pct": 10.638297872340425,
-            "weight": 0.45
+            "code": "2383",
+            "name": "台光電",
+            "pct": 2.2556390977443606,
+            "weight": 4.01
           }
         ],
-        "reduce": [
-          {
-            "code": "2368",
-            "name": "金像電",
-            "pct": -12.62135922330097,
-            "weight": 1.0
-          }
-        ],
+        "reduce": [],
         "build": []
       }
     },
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260727.csv",
-      "snapshot_date": "2026-07-27",
+      "snapshot": "00988A_20260728.csv",
+      "snapshot_date": "2026-07-28",
       "holdings_count": 11,
       "actions": {
         "new": [],
@@ -91,16 +102,16 @@
           {
             "code": "3665",
             "name": "貿聯-KY",
-            "pct": 47.199999999999996,
-            "weight": 1.41
+            "pct": 19.565217391304348,
+            "weight": 1.72
           }
         ],
         "reduce": [
           {
             "code": "2303",
             "name": "聯電",
-            "pct": -25.0,
-            "weight": 1.05
+            "pct": -44.44444444444444,
+            "weight": 0.57
           }
         ],
         "build": []
