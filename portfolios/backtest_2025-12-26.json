@@ -1,0 +1,317 @@
+{
+  "portfolio_id": "backtest_2025-12-26_baseline",
+  "entry_date": "2025-12-26",
+  "variant": "baseline",
+  "rules": {
+    "require_di_full": true,
+    "composite_max_rank": 3,
+    "per_sector_max": 1
+  },
+  "note": "回測 · pipeline 規則套在歷史資料 · S&P500 用今日清單（有 survivorship bias · demo 可接受）",
+  "regime_at_entry": {
+    "as_of_date": "2025-12-26",
+    "quadrant": "🔥+🟢",
+    "trend_label": "🟢",
+    "vs_50ma_label": "🔥",
+    "voo": {
+      "price": 631.0,
+      "vs_60d_pct": 3.59,
+      "ma50": 617.4,
+      "vs_50ma_pct": 2.2
+    },
+    "vix": 13.600000381469727,
+    "tnx_pct": 4.136000156402588,
+    "tnx_boost_sectors": [
+      "XLE",
+      "XLF",
+      "XLV"
+    ],
+    "tnx_penalty_sectors": [
+      "XLK",
+      "XLRE",
+      "XLU"
+    ],
+    "allocation_caps": {
+      "core": 40,
+      "momentum": 35,
+      "sprint": 15,
+      "cash": 10
+    }
+  },
+  "positions": [
+    {
+      "symbol": "HST",
+      "name": "Host Hotels & Resorts",
+      "sector": "Real Estate",
+      "tier": "core",
+      "weight_pct": 13.33,
+      "entry_price": 17.24,
+      "signals": {
+        "point": 12.74,
+        "vp_score_stock": 93.92,
+        "vp_ratio_stock": 1.329,
+        "vcp": 1,
+        "pct_from_high": -1.5,
+        "cum_ret_4w": 3.95,
+        "cum_ret_13w": 7.39,
+        "cum_ret_26w": 19.81,
+        "composite_rank_in_sector": 1
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-01-26",
+          "price": 17.85,
+          "return_pct": 3.55
+        },
+        "3m": {
+          "date": "2026-03-26",
+          "price": 18.51,
+          "return_pct": 7.37
+        },
+        "6m": {
+          "date": "2026-06-24",
+          "price": 23.67,
+          "return_pct": 37.35
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    },
+    {
+      "symbol": "EA",
+      "name": "Electronic Arts",
+      "sector": "Communication Services",
+      "tier": "core",
+      "weight_pct": 13.33,
+      "entry_price": 204.4,
+      "signals": {
+        "point": 22.45,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.242,
+        "vcp": 1,
+        "pct_from_high": -0.02,
+        "cum_ret_4w": 1.52,
+        "cum_ret_13w": 22.49,
+        "cum_ret_26w": 32.9,
+        "composite_rank_in_sector": 6
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-01-26",
+          "price": 204.01,
+          "return_pct": -0.19
+        },
+        "3m": {
+          "date": "2026-03-26",
+          "price": 201.72,
+          "return_pct": -1.31
+        },
+        "6m": {
+          "date": "2026-06-24",
+          "price": 204.52,
+          "return_pct": 0.06
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    },
+    {
+      "symbol": "RF",
+      "name": "Regions Financial Corporation",
+      "sector": "Financials",
+      "tier": "core",
+      "weight_pct": 13.33,
+      "entry_price": 27.26,
+      "signals": {
+        "point": 16.55,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.048,
+        "vcp": 1,
+        "pct_from_high": -0.68,
+        "cum_ret_4w": 10.34,
+        "cum_ret_13w": 5.34,
+        "cum_ret_26w": 25.25,
+        "composite_rank_in_sector": 9
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-01-26",
+          "price": 27.22,
+          "return_pct": -0.18
+        },
+        "3m": {
+          "date": "2026-03-26",
+          "price": 25.27,
+          "return_pct": -7.32
+        },
+        "6m": {
+          "date": "2026-06-24",
+          "price": 29.49,
+          "return_pct": 8.16
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    },
+    {
+      "symbol": "HAL",
+      "name": "Halliburton",
+      "sector": "Energy",
+      "tier": "momentum",
+      "weight_pct": 10,
+      "entry_price": 27.71,
+      "signals": {
+        "point": 24.31,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.377,
+        "vcp": 0,
+        "pct_from_high": -11.13,
+        "cum_ret_4w": 9.1,
+        "cum_ret_13w": 15.13,
+        "cum_ret_26w": 36.5,
+        "composite_rank_in_sector": 2
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-01-26",
+          "price": 33.85,
+          "return_pct": 22.17
+        },
+        "3m": {
+          "date": "2026-03-26",
+          "price": 38.63,
+          "return_pct": 39.41
+        },
+        "6m": {
+          "date": "2026-06-24",
+          "price": 33.9,
+          "return_pct": 22.35
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    },
+    {
+      "symbol": "C",
+      "name": "Citigroup",
+      "sector": "Financials",
+      "tier": "momentum",
+      "weight_pct": 10,
+      "entry_price": 119.23,
+      "signals": {
+        "point": 35.99,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.354,
+        "vcp": 0,
+        "pct_from_high": -1.97,
+        "cum_ret_4w": 17.48,
+        "cum_ret_13w": 19.17,
+        "cum_ret_26w": 53.65,
+        "composite_rank_in_sector": 1
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-01-26",
+          "price": 113.69,
+          "return_pct": -4.65
+        },
+        "3m": {
+          "date": "2026-03-26",
+          "price": 111.88,
+          "return_pct": -6.17
+        },
+        "6m": {
+          "date": "2026-06-24",
+          "price": 143.59,
+          "return_pct": 20.43
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    },
+    {
+      "symbol": "MRNA",
+      "name": "Moderna",
+      "sector": "Health Care",
+      "tier": "momentum",
+      "weight_pct": 10,
+      "entry_price": 31.2,
+      "signals": {
+        "point": 22.1,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.109,
+        "vcp": 0,
+        "pct_from_high": -36.22,
+        "cum_ret_4w": 24.75,
+        "cum_ret_13w": 20.56,
+        "cum_ret_26w": 21.54,
+        "composite_rank_in_sector": 2
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-01-26",
+          "price": 47.99,
+          "return_pct": 53.81
+        },
+        "3m": {
+          "date": "2026-03-26",
+          "price": 53.57,
+          "return_pct": 71.7
+        },
+        "6m": {
+          "date": "2026-06-24",
+          "price": 60.42,
+          "return_pct": 93.65
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    }
+  ],
+  "total_invested_pct": 69.99,
+  "cash_pct": 30.01,
+  "checkpoint_returns": {
+    "portfolio": {
+      "1m": 10.8,
+      "3m": 14.75,
+      "6m": 28.17,
+      "1y": null
+    },
+    "VOO": {
+      "1m": 0.35,
+      "3m": -6.29,
+      "6m": 6.77,
+      "1y": null
+    },
+    "QQQ": {
+      "1m": 0.25,
+      "3m": -7.91,
+      "6m": 14.17,
+      "1y": null
+    },
+    "vs_voo_bps": {
+      "1m": 1045,
+      "3m": 2104,
+      "6m": 2140
+    }
+  },
+  "generated_at": "2026-08-03T23:37:36.777719+00:00"
+}
