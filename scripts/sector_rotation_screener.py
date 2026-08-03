@@ -120,9 +120,20 @@ def fetch_weekly_returns(tickers):
         raise RuntimeError("yfinance 沒抓到任何資料")
 
     all_close = all_close.dropna(how="all").sort_index()
+
+    # T-1 保護：擋掉「今天」的 partial weekly bar
+    # 盤中跑 yfinance 會回傳當週還沒結束的 partial 資料
+    today_utc = datetime.now(timezone.utc).date()
+    idx = pd.to_datetime(all_close.index)
+    before_today = idx.date < today_utc
+    dropped = int((~before_today).sum())
+    if dropped:
+        log(f"  · 擋掉 {dropped} 根「今天/未來」的 partial weekly bar")
+    all_close = all_close.loc[before_today]
+
     log(f"  → close matrix: {all_close.shape[0]} weeks × {all_close.shape[1]} tickers")
 
-    # T-1 基準：使用抓到的最後一根 close 的日期（非 today）
+    # T-1 基準：使用抓到的最後一根 close 的日期
     as_of_date = all_close.index[-1].strftime("%Y-%m-%d")
     log(f"  → as_of_date (T-1) = {as_of_date}")
 

@@ -46,20 +46,14 @@ jobs:
         run: |
           python scripts/sector_scorecard.py 2>&1 | tee /tmp/scorecard.log
 
-      - name: Decide if stage 2 should run
-        id: decide
-        run: |
-          # 週五 22:00 cron OR 手動勾選 → 跑 stage 2
-          IS_FRI_LATE=$([ "$(date -u +%u)" = "5" ] && [ "$(date -u +%H)" -ge "22" ] && echo "yes" || echo "no")
-          MANUAL="${{ inputs.run_stage2 }}"
-          if [ "$IS_FRI_LATE" = "yes" ] || [ "$MANUAL" = "true" ]; then
-            echo "run_stage2=true" >> $GITHUB_OUTPUT
-          else
-            echo "run_stage2=false" >> $GITHUB_OUTPUT
-          fi
-
+      # Stage 2 只在下列情境跑：
+      #   1) 週五 UTC 22:00 排程（cron 明確為 '0 22 * * 5'）
+      #   2) 手動觸發且勾了 run_stage2（boolean input 直接判 truthy）
+      # 用 GitHub Actions 原生 expression · 不走 shell env（之前 bash 判斷失效）
       - name: Run S&P 500 individual screener (stage 2)
-        if: steps.decide.outputs.run_stage2 == 'true'
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
         run: |

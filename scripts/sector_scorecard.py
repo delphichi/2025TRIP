@@ -114,7 +114,25 @@ def fetch_data():
         tickers, period="9mo", interval="1wk",
         auto_adjust=True, progress=False, threads=True, group_by="ticker",
     )
+    # T-1 保護：擋掉「今天」的 partial bar
+    # 盤中跑（US 09:30-16:00 ET）yfinance 會回傳當日的日內 partial 資料
+    # 我們要 T-1 完整收盤 · 所以 filter 掉 date >= today (UTC / ET 都比較保守)
+    daily = _drop_today_bar(daily, "daily")
+    weekly = _drop_today_bar(weekly, "weekly")
     return daily, weekly
+
+
+def _drop_today_bar(df_bulk, label):
+    """把 index 日期是「今天或以後」的 row 丟掉 · 保證所有計算用的都是完整收盤"""
+    if df_bulk is None or df_bulk.empty:
+        return df_bulk
+    today_utc = datetime.now(timezone.utc).date()
+    idx = pd.to_datetime(df_bulk.index)
+    mask = idx.date < today_utc
+    dropped = int((~mask).sum())
+    if dropped:
+        log(f"  · {label}: 擋掉 {dropped} 根「今天」的 partial bar → 剩 {int(mask.sum())} 根")
+    return df_bulk.loc[mask]
 
 
 def extract_ohlcv(df_bulk, ticker):
