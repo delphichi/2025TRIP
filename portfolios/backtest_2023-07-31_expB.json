@@ -1,0 +1,99 @@
+{
+  "portfolio_id": "backtest_2023-07-31",
+  "entry_date": "2023-07-31",
+  "note": "回測 · pipeline 規則套在歷史資料 · S&P500 用今日清單（有 survivorship bias · demo 可接受）",
+  "regime_at_entry": {
+    "as_of_date": "2023-07-31",
+    "quadrant": "🔥+🟢",
+    "trend_label": "🟢",
+    "vs_50ma_label": "🔥",
+    "voo": {
+      "price": 404.48,
+      "vs_60d_pct": 12.66,
+      "ma50": 385.5,
+      "vs_50ma_pct": 4.92
+    },
+    "vix": 13.630000114440918,
+    "tnx_pct": 3.9590001106262207,
+    "tnx_boost_sectors": [],
+    "tnx_penalty_sectors": [],
+    "allocation_caps": {
+      "core": 40,
+      "momentum": 35,
+      "sprint": 15,
+      "cash": 10
+    }
+  },
+  "positions": [
+    {
+      "symbol": "JCI",
+      "name": "Johnson Controls",
+      "sector": "Industrials",
+      "tier": "core",
+      "weight_pct": 15,
+      "entry_price": 66.28,
+      "signals": {
+        "point": 8.77,
+        "vp_score_stock": 87.06,
+        "vp_ratio_stock": 1.168,
+        "vcp": 1,
+        "pct_from_high": -0.73,
+        "cum_ret_4w": 2.07,
+        "cum_ret_13w": 22.09,
+        "cum_ret_26w": 5.46,
+        "composite_rank_in_sector": 50
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2023-08-30",
+          "price": 56.25,
+          "return_pct": -15.13
+        },
+        "3m": {
+          "date": "2023-10-30",
+          "price": 46.64,
+          "return_pct": -29.62
+        },
+        "6m": {
+          "date": "2024-01-29",
+          "price": 54.72,
+          "return_pct": -17.43
+        },
+        "1y": {
+          "date": "2024-07-30",
+          "price": 67.43,
+          "return_pct": 1.74
+        }
+      }
+    }
+  ],
+  "total_invested_pct": 15,
+  "cash_pct": 85,
+  "checkpoint_returns": {
+    "portfolio": {
+      "1m": -15.13,
+      "3m": -29.62,
+      "6m": -17.43,
+      "1y": 1.74
+    },
+    "VOO": {
+      "1m": -1.5,
+      "3m": -8.88,
+      "6m": 8.18,
+      "1y": 20.15
+    },
+    "QQQ": {
+      "1m": -1.78,
+      "3m": -8.85,
+      "6m": 12.03,
+      "1y": 20.07
+    },
+    "vs_voo_bps": {
+      "1m": -1363,
+      "3m": -2074,
+      "6m": -2561,
+      "1y": -1841
+    }
+  },
+  "generated_at": "2026-08-03T20:05:48.187237+00:00"
+}
