@@ -306,18 +306,20 @@ def build_portfolio_picks(df, market_ctx):
     ].copy()
     core_cands = core_cands.sort_values("composite_in_sector", na_position="last")
 
-    # 動能：sector 在 TNX boost + VP>=1 + 4W正 + composite top 3 in sector
+    # 動能：sector 在 TNX boost + VP>=1 + 4W正 + composite top 5 in sector
+    # 【實驗 B 修改】原本 top 3 · 現在 top 5 · 每 sector 取 2 檔（原本 1 檔）
+    # 目的：拿掉單一 sector 只挑第 1 名的過度集中 · 讓動能區至少 4-6 檔分散
     momentum_cands = df[
         (df["sector"].isin(tnx_boost_gics))
         & (df["vp_ratio_stock"] >= 1.0)
         & (df["cum_ret_4w"] > 0)
         & (df["di"] == 1.0)
-        & (df["composite_rank_in_sector"] <= 3)
+        & (df["composite_rank_in_sector"] <= 5)
     ].copy()
     momentum_cands = momentum_cands.sort_values(["sector", "composite_in_sector"], na_position="last")
 
-    # 每 sector 動能挑第 1 名 · 避免同 sector 過度暴露
-    momentum_picks = momentum_cands.groupby("sector").head(1).reset_index(drop=True)
+    # 每 sector 動能挑前 2 名（改自 head(1)）
+    momentum_picks = momentum_cands.groupby("sector").head(2).reset_index(drop=True)
 
     # 核心最多 3 檔 · 避免 over-concentrated（單一 VCP 15%）
     core_picks = core_cands.head(3)
@@ -532,7 +534,9 @@ def main():
         return
 
     os.makedirs(OUTDIR, exist_ok=True)
-    path = os.path.join(OUTDIR, f"backtest_{as_of.isoformat()}.json")
+    # 用 rule variant 分檔（不同規則版本互不覆蓋）· 允許 env var 指定 suffix
+    variant = os.environ.get("BACKTEST_VARIANT", "expB")
+    path = os.path.join(OUTDIR, f"backtest_{as_of.isoformat()}_{variant}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(_json_safe(out), f, ensure_ascii=False, indent=2, allow_nan=False)
     log(f"✅ saved {path}")
