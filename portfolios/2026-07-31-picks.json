@@ -145,7 +145,8 @@
     {"symbol": "BBY", "reason": "Consumer Disc 綜合分 #1 · Point 32.2 · 13W +45.56% 極強 · 同上等板塊翻紅"},
     {"symbol": "NUE", "reason": "Materials 綜合分 #1 · Point 30.5 · vp=100 · 距高點 -4.8% 快到 core 條件"},
     {"symbol": "HST", "reason": "Real Estate 綜合分 #1 · Point 28.9 · vp=100 · 但 XLRE 被 TNX penalty"},
-    {"symbol": "EIX", "reason": "Utilities 綜合分 #1 · vol_ratio 2.36x 量能爆 · 但 XLU 被 TNX penalty"}
+    {"symbol": "EIX", "reason": "Utilities 綜合分 #1 · vol_ratio 2.36x 量能爆 · 但 XLU 被 TNX penalty"},
+    {"symbol": "AES", "reason": "全 universe 3 檔 VCP 之一 · vp_score=100 · L1 EPS surprise +108% · 振幅 0.85% 極度收斂 · 但兩個 hard fail 讓 pipeline skip：(1) 距高點 -14.79% 明顯 fail 核心「>-5%」條件（早期 base building 不是 breakout）(2) XLU 是 TNX penalty · 追蹤點：下月若距高點縮到 -5% 內就可進核心"}
   ],
   "benchmarks": [
     {"symbol": "VOO", "name": "S&P 500 ETF", "entry_price": 686.65},
