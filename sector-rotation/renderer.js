@@ -1,0 +1,228 @@
+/* ============================================================
+ * 板塊量價評分排行 · renderer.js
+ * Stage 1: sector scorecard  ← 主要
+ * Stage 2: S&P 500 個股熱區榜  ← 折疊區
+ * ============================================================ */
+
+const SCORECARD_URL = "../data/sector_rotation/scorecard_latest.json?_=" + Date.now();
+const STAGE2_URL    = "../data/sector_rotation/latest.json?_=" + Date.now();
+
+const STATE = {
+    scorecard: null,
+    stage2: null,
+    stage2Tab: "4w",
+};
+
+// ---------- utils ----------
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+
+function fmtPct(v) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "NA";
+    return (v > 0 ? "+" : "") + Number(v).toFixed(2) + "%";
+}
+function fmtNum(v, digits = 2) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "NA";
+    return Number(v).toFixed(digits);
+}
+function fmtVol(v) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "NA";
+    v = Number(v);
+    if (v >= 1e9) return (v / 1e9).toFixed(2) + "B";
+    if (v >= 1e6) return (v / 1e6).toFixed(2) + "M";
+    if (v >= 1e3) return (v / 1e3).toFixed(1) + "K";
+    return String(v);
+}
+function fmtPrice(v) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "NA";
+    return Number(v).toFixed(2);
+}
+
+// heatmap 色：報酬用 綠(+)→黃(0)→紅(-)
+function heatBgRet(v) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "transparent";
+    const c = Math.max(-30, Math.min(30, Number(v)));
+    let hue;
+    if (c >= 0) hue = 45 + (c / 30) * (130 - 45);
+    else        hue = 45 + (c / 30) * 45;
+    const lightness = 88 - Math.min(28, Math.abs(c) * 0.9);
+    return `hsl(${hue.toFixed(0)}, 68%, ${lightness.toFixed(0)}%)`;
+}
+// 量比：>1 綠、<1 紅（中心=1）
+function heatBgVolRatio(v) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "transparent";
+    const delta = (Number(v) - 1) * 30; // 1 → 0，2 → +30，0 → -30
+    return heatBgRet(delta);
+}
+// score 0-100：紅→黃→綠
+function heatBgScore(v) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "transparent";
+    const c = (Number(v) - 50) * 0.6; // 0→-30，100→+30
+    return heatBgRet(c);
+}
+function heatText(v) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "var(--text-dim)";
+    return "#0f172a";
+}
+
+// ---------- load ----------
+async function loadScorecard() {
+    const status = $("#load-status");
+    status.textContent = "📡 讀取 scorecard_latest.json 中……";
+    try {
+        const r = await fetch(SCORECARD_URL, { cache: "no-store" });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        STATE.scorecard = await r.json();
+        status.textContent = "✅ 載入完成 · " + (STATE.scorecard.as_of_date || "");
+        setTimeout(() => { $("#load-status-row").style.display = "none"; }, 2000);
+        return STATE.scorecard;
+    } catch (e) {
+        status.textContent = `❌ 讀不到 scorecard_latest.json：${e.message} · 先跑 python scripts/sector_scorecard.py`;
+        status.classList.add("error");
+        throw e;
+    }
+}
+
+async function loadStage2Optional() {
+    try {
+        const r = await fetch(STAGE2_URL, { cache: "no-store" });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        STATE.stage2 = await r.json();
+        return STATE.stage2;
+    } catch (e) {
+        return null;
+    }
+}
+
+// ---------- render: status ----------
+function renderStatus() {
+    const m = STATE.scorecard;
+    if (!m) return;
+    $("#stat-asof").textContent = m.as_of_date || "—";
+    const rows = m.rows || [];
+    if (rows.length === 0) return;
+    const sorted = rows.slice().sort((a, b) => b.score - a.score);
+    const top = sorted[0], bot = sorted[sorted.length - 1];
+    $("#stat-top").innerHTML = `${top.sector} <span class="dim">${top.sector_name}</span> <b>${top.score}</b>`;
+    $("#stat-bot").innerHTML = `${bot.sector} <span class="dim">${bot.sector_name}</span> <b>${bot.score}</b>`;
+}
+
+// ---------- render: score table ----------
+function renderScoreTable() {
+    const rows = STATE.scorecard?.rows || [];
+    const tbody = $("#score-tbody");
+    tbody.innerHTML = "";
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="22" class="empty-row">沒資料 · 先跑 scripts/sector_scorecard.py</td></tr>`;
+        return;
+    }
+    const sorted = rows.slice().sort((a, b) => a.score_rank - b.score_rank);
+
+    sorted.forEach(r => {
+        const tr = document.createElement("tr");
+        if (r.score_rank <= 3) tr.classList.add("row-top3");
+        if (r.score_rank >= sorted.length - 2) tr.classList.add("row-bot3");
+        tr.innerHTML = `
+            <td class="rank-cell"><b>#${r.score_rank}</b></td>
+            <td class="sector-cell">
+                <b>${r.sector}</b>
+                <span class="sector-name-zh">${r.sector_name || ""}</span>
+            </td>
+            <td class="num price-t"><b>${fmtPrice(r.t_price)}</b></td>
+            <td class="num dim">${fmtPrice(r.p4w)}</td>
+            <td class="num dim">${fmtPrice(r.p13w)}</td>
+            <td class="num dim">${fmtPrice(r.p26w)}</td>
+            <td class="num heat" style="background:${heatBgRet(r.ret_4w)}; color:${heatText(r.ret_4w)}"><b>${fmtPct(r.ret_4w)}</b></td>
+            <td class="num heat" style="background:${heatBgRet(r.ret_13w)}; color:${heatText(r.ret_13w)}">${fmtPct(r.ret_13w)}</td>
+            <td class="num heat" style="background:${heatBgRet(r.ret_26w)}; color:${heatText(r.ret_26w)}">${fmtPct(r.ret_26w)}</td>
+            <td class="num pp-cell"><b>${fmtNum(r.price_point, 1)}</b></td>
+            <td class="num rank-cell">${r.price_rank}</td>
+            <td class="num dim">${fmtVol(r.vol_10d_avg)}</td>
+            <td class="num"><b>${fmtVol(r.vol_today)}</b></td>
+            <td class="num dim">${fmtVol(r.vol_3w_avg)}</td>
+            <td class="num heat" style="background:${heatBgVolRatio(r.vol_ratio)}; color:${heatText((r.vol_ratio-1)*30)}"><b>${fmtNum(r.vol_ratio, 2)}x</b></td>
+            <td class="num rank-cell">${r.vol_rank}</td>
+            <td class="num heat" style="background:${heatBgRet(r.ret_5d)}; color:${heatText(r.ret_5d)}">${fmtPct(r.ret_5d)}</td>
+            <td class="num heat" style="background:${heatBgRet(r.ret_20d)}; color:${heatText(r.ret_20d)}">${fmtPct(r.ret_20d)}</td>
+            <td class="num up-days">${r.up_days_20}</td>
+            <td class="num down-days">${r.down_days_20}</td>
+            <td class="num dim">${fmtVol(r.up_avg_vol)}</td>
+            <td class="num dim">${fmtVol(r.down_avg_vol)}</td>
+            <td class="num highlight-col"><b>${fmtNum(r.vp_ratio, 2)}</b></td>
+            <td class="num highlight-col"><b>${fmtNum(r.ud_ratio, 2)}</b></td>
+            <td class="num heat score-col" style="background:${heatBgScore(r.score)}; color:${heatText(r.score-50)}"><b>${fmtNum(r.score, 1)}</b></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ---------- render: stage 2 (S&P 500 個股) ----------
+function renderStage2() {
+    const msgEl = $("#stage2-msg");
+    if (!STATE.stage2) {
+        msgEl.innerHTML = "⚠ 還沒跑 stage 2 · 執行 <code>FMP_API_KEY=xxx python scripts/sector_rotation_screener.py</code>";
+        return;
+    }
+    msgEl.textContent = `✅ Stage 2 資料：${STATE.stage2.as_of_date} · ${STATE.stage2.counts?.after_earnings_filter ?? "?"} 檔通過雙篩`;
+    $("#stage2-tabs").style.display = "";
+    $("#heat-table").style.display = "";
+    $$(".tab-btn").forEach(b =>
+        b.addEventListener("click", () => renderStage2Tab(b.dataset.tab))
+    );
+    renderStage2Tab("4w");
+}
+
+function renderStage2Tab(tabKey) {
+    STATE.stage2Tab = tabKey;
+    $$(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabKey));
+    const rows = STATE.stage2?.top3?.[tabKey] || [];
+    const tbody = $("#heat-tbody");
+    tbody.innerHTML = "";
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-row">沒資料</td></tr>`;
+        return;
+    }
+    let prevSector = null;
+    rows.forEach(r => {
+        if (prevSector !== null && r.sector !== prevSector) {
+            const sep = document.createElement("tr");
+            sep.className = "sector-sep";
+            sep.innerHTML = `<td colspan="7"></td>`;
+            tbody.appendChild(sep);
+        }
+        prevSector = r.sector;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="sym"><b>${r.symbol}</b></td>
+            <td class="sector">${r.sector || ""}</td>
+            <td class="num heat" style="background:${heatBgRet(r.cum_ret_4w)}; color:${heatText(r.cum_ret_4w)}">${fmtPct(r.cum_ret_4w)}</td>
+            <td class="num heat" style="background:${heatBgRet(r.cum_ret_13w)}; color:${heatText(r.cum_ret_13w)}">${fmtPct(r.cum_ret_13w)}</td>
+            <td class="num heat" style="background:${heatBgRet(r.cum_ret_26w)}; color:${heatText(r.cum_ret_26w)}">${fmtPct(r.cum_ret_26w)}</td>
+            <td class="num heat" style="background:${heatBgRet(r.surprise_l1)}; color:${heatText(r.surprise_l1)}">${fmtPct(r.surprise_l1)}</td>
+            <td class="num heat" style="background:${heatBgRet(r.surprise_l2)}; color:${heatText(r.surprise_l2)}">${fmtPct(r.surprise_l2)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ---------- init ----------
+async function init() {
+    $("#btn-reload").addEventListener("click", () => location.reload());
+
+    try {
+        await loadScorecard();
+    } catch (e) {
+        return;
+    }
+    renderStatus();
+    renderScoreTable();
+
+    await loadStage2Optional();
+    renderStage2();
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+} else {
+    init();
+}

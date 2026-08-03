@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+S&P 500 板塊動能篩選器  scripts/sector_rotation_screener.py
+=====================================================================
+每月最後一個週五（CI 排程實作為每週五）跑一次：
+  1. 從 Wikipedia 抓 S&P 500 成分股 + GICS Sector
+  2. yfinance 抓週線收盤，算 4W / 13W / 26W 累積報酬（價格動能）
+  3. 依 4W / 13W / 26W 各自預篩每 sector 前 15 名（省 FMP 額度）
+  4. 對預篩到的 union 名單，用 FMP earnings-surprises 抓最近兩次 EPS surprise
+  5. 篩選規則（盈餘動能）：L1 & L2 皆為正、或 L1 > L2（改善趨勢）
+  6. 各 sector 依三個時間尺度分別選出前 3 名 → 三張熱區表
+  7. 輸出 CSV + latest.json manifest 供瀏覽器讀
+
+資料源：
+  價格：yfinance（Yahoo Finance，免 key，內建重試）
+  盈餘 surprise：FMP /api/v3/earnings-surprises/{ticker}?apikey=KEY
+                （前置：Repo Settings → Secrets → FMP_API_KEY）
+
+輸出：
+  data/sector_rotation/{YYYYMMDD}_all.csv          全 500 檔的價格動能明細
+  data/sector_rotation/{YYYYMMDD}_top3_{4w|13w|26w}.csv  三張榜單
+  data/sector_rotation/latest.json                 manifest（瀏覽器讀）
+
+手動跑：
+  FMP_API_KEY=xxx python scripts/sector_rotation_screener.py
+  （沒 key 也會跑，只是 surprise 欄位會是 NA、篩選會退回純價格動能）
+"""
+import os
+import sys
+import json
+import time
+from datetime import datetime, date, timedelta, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import pandas as pd
+import requests
+
+OUTDIR = "data/sector_rotation"
+MANIFEST_PATH = os.path.join(OUTDIR, "latest.json")
+FMP_KEY = os.environ.get("FMP_API_KEY", "").strip()
+
+# 每個 sector 進 FMP earnings 檢查的預篩名單大小
+# 15 名 × 11 sector × 3 時間尺度 union ≈ 200-300 unique ticker
+# 剛好在 FMP starter tier 每分鐘 300 call 的範圍內
+PRE_FILTER_PER_SECTOR = 15
+TOP_N = 3  # 每 sector 最終選出的名次
+
+# yfinance 一次批次下載的 chunk size（避免 400 URL too long）
+YF_BATCH = 80
+
+
+def log(msg):
+    ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    print(f"[{ts}] {msg}", flush=True)
+
+
+# ============================================================
+# 1. S&P 500 成分股
+# ============================================================
+def fetch_sp500_constituents():
+    """
+    從 Wikipedia 抓 S&P 500 成分股清單。
+    回傳 DataFrame[symbol, sector, name]
+    """
+    log("Fetching S&P 500 constituents from Wikipedia...")
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    headers = {"User-Agent": "Mozilla/5.0 (sector-rotation-screener)"}
+    r = requests.get(url, headers=headers, timeout=30)
+    r.raise_for_status()
+    tables = pd.read_html(r.text)
+    df = tables[0]
+    # 欄位可能叫 'Symbol' + 'GICS Sector' + 'Security'
+    col_sym = next(c for c in df.columns if "symbol" in c.lower())
+    col_sec = next(c for c in df.columns if "sector" in c.lower())
+    col_nm = next(c for c in df.columns if "security" in c.lower())
+    out = df[[col_sym, col_sec, col_nm]].copy()
+    out.columns = ["symbol", "sector", "name"]
+    # Wikipedia 的 dots 換 dashes 對齊 yfinance（BRK.B → BRK-B）
+    out["symbol"] = out["symbol"].str.replace(".", "-", regex=False)
+    log(f"  → {len(out)} tickers, {out['sector'].nunique()} sectors")
+    return out
+
+
+# ============================================================
+# 2. 週線價格 → 累積報酬
+# ============================================================
+def fetch_weekly_returns(tickers):
+    """
+    yfinance 批次抓 30 週的週線收盤，回傳 DataFrame[symbol, cum_ret_4w, cum_ret_13w, cum_ret_26w]
+    """
+    try:
+        import yfinance as yf
+    except ImportError:
+        sys.exit("需要 yfinance：pip install yfinance")
+
+    log(f"Downloading weekly prices for {len(tickers)} tickers via yfinance...")
+    all_close = None
+    for i in range(0, len(tickers), YF_BATCH):
+        chunk = tickers[i : i + YF_BATCH]
+        log(f"  batch {i // YF_BATCH + 1}/{(len(tickers) + YF_BATCH - 1) // YF_BATCH} ({len(chunk)} tickers)")
+        # 抓 28 週足夠算 26W；多抓 3 週 buffer 應付缺資料
+        data = yf.download(
+            chunk,
+            period="8mo",
+            interval="1wk",
+            auto_adjust=True,
+            progress=False,
+            threads=True,
+            group_by="ticker",
+        )
+        # yfinance 回傳格式因 chunk size 而異
+        if isinstance(data.columns, pd.MultiIndex):
+            close = pd.DataFrame({t: data[t]["Close"] for t in chunk if t in data.columns.get_level_values(0)})
+        else:
+            close = data[["Close"]].rename(columns={"Close": chunk[0]})
+        all_close = close if all_close is None else all_close.join(close, how="outer")
+
+    if all_close is None or all_close.empty:
+        raise RuntimeError("yfinance 沒抓到任何資料")
+
+    all_close = all_close.dropna(how="all").sort_index()
+    log(f"  → close matrix: {all_close.shape[0]} weeks × {all_close.shape[1]} tickers")
+
+    # 用最後一根週線（通常是本週五）為基準，回算 4/13/26 週前
+    last_row = all_close.iloc[-1]
+    rows = []
+    for sym in all_close.columns:
+        series = all_close[sym].dropna()
+        if len(series) < 27:  # 至少要 26 週前 + 現在
+            continue
+        cur = series.iloc[-1]
+        try:
+            r4 = cur / series.iloc[-5] - 1
+            r13 = cur / series.iloc[-14] - 1
+            r26 = cur / series.iloc[-27] - 1
+        except IndexError:
+            continue
+        rows.append({
+            "symbol": sym,
+            "cum_ret_4w": round(r4 * 100, 2),
+            "cum_ret_13w": round(r13 * 100, 2),
+            "cum_ret_26w": round(r26 * 100, 2),
+        })
+    out = pd.DataFrame(rows)
+    log(f"  → {len(out)} tickers with 27+ weeks of data")
+    return out
+
+
+# ============================================================
+# 3. Earnings Surprise via FMP
+# ============================================================
+def fetch_fmp_surprise(symbol, session):
+    """回傳 (l1_pct, l2_pct)，抓不到回 (None, None)"""
+    if not FMP_KEY:
+        return (None, None)
+    url = f"https://financialmodelingprep.com/api/v3/earnings-surprises/{symbol}?apikey={FMP_KEY}"
+    try:
+        r = session.get(url, timeout=15)
+        if r.status_code != 200:
+            return (None, None)
+        data = r.json()
+        if not isinstance(data, list) or len(data) == 0:
+            return (None, None)
+        # FMP 回傳照日期倒序（最新在前），欄位：actualEarningResult / estimatedEarning
+        def _pct(item):
+            est = item.get("estimatedEarning")
+            act = item.get("actualEarningResult")
+            if est is None or act is None or est == 0:
+                return None
+            return round((act - est) / abs(est) * 100, 2)
+        l1 = _pct(data[0]) if len(data) > 0 else None
+        l2 = _pct(data[1]) if len(data) > 1 else None
+        return (l1, l2)
+    except Exception as e:
+        log(f"  FMP surprise fail {symbol}: {e}")
+        return (None, None)
+
+
+def fetch_surprises_parallel(symbols):
+    """
+    平行呼叫 FMP。回傳 DataFrame[symbol, surprise_l1, surprise_l2]。
+    沒 FMP_KEY 就整欄 NA 直接回。
+    """
+    if not FMP_KEY:
+        log("⚠ FMP_API_KEY 沒設 → surprise 欄位全 NA，篩選會退回純價格動能")
+        return pd.DataFrame({
+            "symbol": symbols,
+            "surprise_l1": [None] * len(symbols),
+            "surprise_l2": [None] * len(symbols),
+        })
+    log(f"Fetching earnings surprises for {len(symbols)} tickers via FMP...")
+    session = requests.Session()
+    rows = []
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futs = {ex.submit(fetch_fmp_surprise, s, session): s for s in symbols}
+        done = 0
+        for fut in as_completed(futs):
+            sym = futs[fut]
+            l1, l2 = fut.result()
+            rows.append({"symbol": sym, "surprise_l1": l1, "surprise_l2": l2})
+            done += 1
+            if done % 50 == 0:
+                log(f"  {done}/{len(symbols)}")
+    return pd.DataFrame(rows)
+
+
+# ============================================================
+# 4. 篩選 + 排名
+# ============================================================
+def apply_earnings_filter(df):
+    """
+    盈餘動能篩選：
+      - 兩期都是正 surprise，或
+      - L1 > L2（改善趨勢）
+    有 FMP key 時才生效；沒 key（surprise 全 NA）直接回原表。
+    """
+    if df["surprise_l1"].isna().all():
+        return df
+    def keep(row):
+        l1, l2 = row.get("surprise_l1"), row.get("surprise_l2")
+        if l1 is None:
+            return False  # 至少要有 L1
+        if l2 is None:
+            return l1 > 0  # 只有 L1 就看 L1
+        if l1 > 0 and l2 > 0:
+            return True
+        if l1 > l2:  # 改善
+            return True
+        return False
+    mask = df.apply(keep, axis=1)
+    return df[mask].copy()
+
+
+def pick_top_n_per_sector(df, sort_col, top_n=TOP_N):
+    return (
+        df.sort_values(["sector", sort_col], ascending=[True, False])
+        .groupby("sector", as_index=False)
+        .head(top_n)
+        .sort_values(["sector", sort_col], ascending=[True, False])
+        .reset_index(drop=True)
+    )
+
+
+def pre_filter_union(df, per_sector=PRE_FILTER_PER_SECTOR):
+    """三個時間尺度各取每 sector 前 N 名的 union，餵給 FMP surprise 抓取"""
+    parts = []
+    for col in ("cum_ret_4w", "cum_ret_13w", "cum_ret_26w"):
+        parts.append(pick_top_n_per_sector(df, col, top_n=per_sector))
+    union = pd.concat(parts).drop_duplicates(subset=["symbol"])
+    return union["symbol"].tolist()
+
+
+# ============================================================
+# 5. 輸出
+# ============================================================
+def save_outputs(df_all, top3_4w, top3_13w, top3_26w):
+    os.makedirs(OUTDIR, exist_ok=True)
+    stamp = date.today().strftime("%Y%m%d")
+
+    files = {}
+    def _save(df, tag):
+        path = os.path.join(OUTDIR, f"{stamp}_{tag}.csv")
+        df.to_csv(path, index=False)
+        files[tag] = os.path.basename(path)
+        log(f"  saved {path} ({len(df)} rows)")
+
+    _save(df_all, "all")
+    _save(top3_4w, "top3_4w")
+    _save(top3_13w, "top3_13w")
+    _save(top3_26w, "top3_26w")
+
+    def _records(df):
+        return df.where(pd.notna(df), None).to_dict(orient="records")
+
+    manifest = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "as_of_date": stamp,
+        "counts": {
+            "universe": int(len(df_all)),
+            "after_earnings_filter": int(df_all["earnings_passed"].sum()) if "earnings_passed" in df_all else None,
+            "top3_4w": int(len(top3_4w)),
+            "top3_13w": int(len(top3_13w)),
+            "top3_26w": int(len(top3_26w)),
+        },
+        "files": files,
+        "top3": {
+            "4w": _records(top3_4w),
+            "13w": _records(top3_13w),
+            "26w": _records(top3_26w),
+        },
+        "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
+        "has_fmp_surprise": bool(FMP_KEY),
+    }
+    with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+    log(f"  saved manifest {MANIFEST_PATH}")
+
+
+# ============================================================
+# 6. main
+# ============================================================
+def main():
+    t0 = time.time()
+
+    # (1) universe
+    universe = fetch_sp500_constituents()
+
+    # (2) 價格動能
+    ret_df = fetch_weekly_returns(universe["symbol"].tolist())
+    price_df = universe.merge(ret_df, on="symbol", how="inner")
+
+    # (3) 預篩 union（三尺度各 sector 前 15）
+    pre_syms = pre_filter_union(price_df)
+    log(f"Pre-filter union: {len(pre_syms)} tickers → sent to FMP")
+
+    # (4) 抓 surprise
+    surp_df = fetch_surprises_parallel(pre_syms)
+    full_df = price_df.merge(surp_df, on="symbol", how="left")
+
+    # (5) 盈餘動能篩選（只對預篩過的 subset）
+    subset = full_df[full_df["symbol"].isin(pre_syms)].copy()
+    filtered = apply_earnings_filter(subset)
+    full_df["earnings_passed"] = full_df["symbol"].isin(filtered["symbol"])
+    log(f"After earnings filter: {len(filtered)} tickers pass")
+
+    # (6) 各時間尺度取 top 3
+    top3_4w = pick_top_n_per_sector(filtered, "cum_ret_4w")
+    top3_13w = pick_top_n_per_sector(filtered, "cum_ret_13w")
+    top3_26w = pick_top_n_per_sector(filtered, "cum_ret_26w")
+
+    # (7) 存檔
+    save_outputs(
+        full_df.sort_values(["sector", "cum_ret_4w"], ascending=[True, False]),
+        top3_4w, top3_13w, top3_26w,
+    )
+
+    log(f"Done in {time.time() - t0:.1f}s")
+
+
+if __name__ == "__main__":
+    main()

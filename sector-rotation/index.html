@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>板塊量價評分排行 · 11 Sector ETFs</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <script>document.write('<link rel="stylesheet" href="style.css?v=' + Date.now() + '">');</script>
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body class="rot-body">
+
+    <header class="rot-header">
+        <h1>🏆 板塊量價評分排行</h1>
+        <p class="rot-subtitle">11 個 SPDR sector ETF · <b>價格動能 × 成交量能</b> 雙重評分 · 追蹤資金輪動主線</p>
+    </header>
+
+    <main class="rot-main">
+
+        <section class="panel intro-panel">
+            <h2>📖 評分邏輯</h2>
+            <div class="score-formula">
+                <div class="formula-line">
+                    <b>綜合評分</b> =
+                    <span class="w w40">40%</span> × 價格動能排名（<code>price_point</code> = 4W×3 + 13W×2 + 26W×1）
+                </div>
+                <div class="formula-line">
+                    　　　　　　+
+                    <span class="w w20">20%</span> × 成交量比排名（<code>vol_ratio</code> = 當日量 / 3週均量）
+                </div>
+                <div class="formula-line">
+                    　　　　　　+
+                    <span class="w w20">20%</span> × 量價比排名（<code>VP</code> = 上漲日均量 / 下跌日均量）
+                </div>
+                <div class="formula-line">
+                    　　　　　　+
+                    <span class="w w20">20%</span> × 漲跌天數比排名（<code>UD</code> = 近 20 日上漲天數 / 下跌天數）
+                </div>
+            </div>
+            <p class="hint hint-mini">
+                🎯 <b>短線權重高：</b>4W 加權 3 倍反映最近一個月動能最重要 · 26W 只加權 1 倍避免過度看歷史 ·
+                成交量三個維度（量比 · VP · UD）各占 20% 抓「量能是否配合價格」。
+            </p>
+            <p class="hint hint-mini">
+                🕰 <b>更新頻率：</b>每交易日收盤後跑（CI）· 資料 commit 進 <code>data/sector_rotation/</code>·
+                瀏覽器直接讀 <code>scorecard_latest.json</code>· 純前端 · 無 backend · 離線也能看歷史。
+            </p>
+        </section>
+
+        <section class="panel status-panel">
+            <div class="status-row">
+                <div class="status-item">
+                    <span class="status-label">📅 資料截止</span>
+                    <span class="status-value" id="stat-asof">—</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">🏆 領先 sector</span>
+                    <span class="status-value" id="stat-top">—</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">🔻 落後 sector</span>
+                    <span class="status-value" id="stat-bot">—</span>
+                </div>
+                <div class="status-item status-refresh">
+                    <button id="btn-reload" class="btn-reload">↻ 重新載入</button>
+                </div>
+            </div>
+            <div class="status-row" id="load-status-row">
+                <div id="load-status" class="load-status">📡 讀取 scorecard_latest.json 中……</div>
+            </div>
+        </section>
+
+        <section class="panel table-panel">
+            <h2>📊 11 Sector ETF · 量價評分排行</h2>
+            <div class="table-wrap">
+                <table class="score-table" id="score-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Rank</th>
+                            <th rowspan="2">Sector</th>
+                            <th rowspan="2">t price</th>
+                            <th colspan="3" class="group-hdr group-price-past">歷史價格</th>
+                            <th colspan="3" class="group-hdr group-price-ret">價格動能 %</th>
+                            <th rowspan="2" class="group-hdr">
+                                價格<br>point
+                                <div class="th-hint">4W×3 + 13W×2 + 26W×1</div>
+                            </th>
+                            <th rowspan="2">價格<br>rank</th>
+                            <th colspan="4" class="group-hdr group-vol">成交量</th>
+                            <th rowspan="2">量比<br>rank</th>
+                            <th colspan="2" class="group-hdr">短線報酬 %</th>
+                            <th colspan="2" class="group-hdr">近 20 日</th>
+                            <th colspan="2" class="group-hdr">上/下漲日均量</th>
+                            <th rowspan="2" class="highlight-col">量價比<br>VP</th>
+                            <th rowspan="2" class="highlight-col">漲跌比<br>UD</th>
+                            <th rowspan="2" class="highlight-col score-col">
+                                🏆 綜合<br>評分
+                                <div class="th-hint">0-100</div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th>4w price</th>
+                            <th>13w price</th>
+                            <th>26w price</th>
+                            <th>4w</th>
+                            <th>13w</th>
+                            <th>26w</th>
+                            <th>10日均量</th>
+                            <th>當前量</th>
+                            <th>3週均量</th>
+                            <th>量比</th>
+                            <th>5日</th>
+                            <th>20日</th>
+                            <th>上漲天</th>
+                            <th>下跌天</th>
+                            <th>上漲日均</th>
+                            <th>下跌日均</th>
+                        </tr>
+                    </thead>
+                    <tbody id="score-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel table-panel">
+            <details>
+                <summary><h2 style="display:inline">📈 Stage 2 · S&amp;P 500 個股 top-3 熱區榜（每 sector）</h2></summary>
+                <p class="hint hint-mini">
+                    Stage 2 針對 Stage 1 挑出的強勢 sector · 進一步從 S&amp;P 500 個股層面篩「4W/13W/26W 動能 top 3 且盈餘 surprise 通過」·
+                    詳見 <code>scripts/sector_rotation_screener.py</code>· 需 <code>FMP_API_KEY</code> 才能抓 EPS surprise。
+                </p>
+                <div class="stage2-status" id="stage2-status">
+                    <span id="stage2-msg">📡 檢查 latest.json 中……</span>
+                </div>
+                <div class="tab-row" id="stage2-tabs" style="display:none">
+                    <button class="tab-btn active" data-tab="4w">Past 4W Top 3</button>
+                    <button class="tab-btn" data-tab="13w">Past 13W Top 3</button>
+                    <button class="tab-btn" data-tab="26w">Past 26W Top 3</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="heat-table" id="heat-table" style="display:none">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Sector</th>
+                                <th class="num">cum_ret_4w</th>
+                                <th class="num">cum_ret_13w</th>
+                                <th class="num">cum_ret_26w</th>
+                                <th class="num">L1 surprise %</th>
+                                <th class="num">L2 surprise %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="heat-tbody"></tbody>
+                    </table>
+                </div>
+            </details>
+        </section>
+
+        <footer class="rot-footer">
+            <p>
+                資料源：yfinance（Yahoo Finance）·
+                <a href="../rotation/index.html">← 資金輪動雷達</a> ·
+                <a href="../valuation/index.html">← 估值分析器</a> ·
+                <a href="../index.html">← 家族旅遊 PWA</a>
+            </p>
+        </footer>
+
+    </main>
+
+    <script>document.write('<script src="renderer.js?v=' + Date.now() + '"><\/script>');</script>
+</body>
+</html>
