@@ -1,0 +1,146 @@
+{
+  "portfolio_id": "backtest_2023-07-31_expA",
+  "entry_date": "2023-07-31",
+  "variant": "expA",
+  "rules": {
+    "require_di_full": false,
+    "composite_max_rank": 3,
+    "per_sector_max": 1
+  },
+  "note": "回測 · pipeline 規則套在歷史資料 · S&P500 用今日清單（有 survivorship bias · demo 可接受）",
+  "regime_at_entry": {
+    "as_of_date": "2023-07-31",
+    "quadrant": "🔥+🟢",
+    "trend_label": "🟢",
+    "vs_50ma_label": "🔥",
+    "voo": {
+      "price": 404.48,
+      "vs_60d_pct": 12.66,
+      "ma50": 385.5,
+      "vs_50ma_pct": 4.92
+    },
+    "vix": 13.630000114440918,
+    "tnx_pct": 3.9590001106262207,
+    "tnx_boost_sectors": [],
+    "tnx_penalty_sectors": [],
+    "allocation_caps": {
+      "core": 40,
+      "momentum": 35,
+      "sprint": 15,
+      "cash": 10
+    }
+  },
+  "positions": [
+    {
+      "symbol": "AME",
+      "name": "Ametek",
+      "sector": "Industrials",
+      "tier": "core",
+      "weight_pct": 15,
+      "entry_price": 155.56,
+      "signals": {
+        "point": 9.82,
+        "vp_score_stock": 90.7,
+        "vp_ratio_stock": 1.104,
+        "vcp": 1,
+        "pct_from_high": -2.51,
+        "cum_ret_4w": -2.03,
+        "cum_ret_13w": 18.79,
+        "cum_ret_26w": 11.25,
+        "composite_rank_in_sector": 33
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2023-08-30",
+          "price": 157.22,
+          "return_pct": 1.07
+        },
+        "3m": {
+          "date": "2023-10-30",
+          "price": 137.67,
+          "return_pct": -11.51
+        },
+        "6m": {
+          "date": "2024-01-29",
+          "price": 162.69,
+          "return_pct": 4.58
+        },
+        "1y": {
+          "date": "2024-07-30",
+          "price": 170.14,
+          "return_pct": 9.37
+        }
+      }
+    },
+    {
+      "symbol": "JCI",
+      "name": "Johnson Controls",
+      "sector": "Industrials",
+      "tier": "core",
+      "weight_pct": 15,
+      "entry_price": 66.28,
+      "signals": {
+        "point": 8.77,
+        "vp_score_stock": 87.06,
+        "vp_ratio_stock": 1.168,
+        "vcp": 1,
+        "pct_from_high": -0.73,
+        "cum_ret_4w": 2.07,
+        "cum_ret_13w": 22.09,
+        "cum_ret_26w": 5.46,
+        "composite_rank_in_sector": 50
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2023-08-30",
+          "price": 56.25,
+          "return_pct": -15.13
+        },
+        "3m": {
+          "date": "2023-10-30",
+          "price": 46.64,
+          "return_pct": -29.62
+        },
+        "6m": {
+          "date": "2024-01-29",
+          "price": 54.72,
+          "return_pct": -17.43
+        },
+        "1y": {
+          "date": "2024-07-30",
+          "price": 67.43,
+          "return_pct": 1.74
+        }
+      }
+    }
+  ],
+  "total_invested_pct": 30,
+  "cash_pct": 70,
+  "checkpoint_returns": {
+    "portfolio": {
+      "1m": -7.03,
+      "3m": -20.57,
+      "6m": -6.42,
+      "1y": 5.55
+    },
+    "VOO": {
+      "1m": -1.5,
+      "3m": -8.88,
+      "6m": 8.18,
+      "1y": 20.15
+    },
+    "QQQ": {
+      "1m": -1.78,
+      "3m": -8.85,
+      "6m": 12.03,
+      "1y": 20.07
+    },
+    "vs_voo_bps": {
+      "1m": -553,
+      "3m": -1169,
+      "6m": -1460,
+      "1y": -1460
+    }
+  },
+  "generated_at": "2026-08-03T20:15:25.761048+00:00"
+}
