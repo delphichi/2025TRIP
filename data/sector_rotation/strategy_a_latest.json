@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T17:35:09.139424+00:00",
+  "generated_at": "2026-08-03T18:09:51.942821+00:00",
   "as_of_date": "2026-07-31",
   "market_context": {
     "as_of_date": "2026-07-31",
@@ -163,8 +163,8 @@
         "surprise_l1": 120.63,
         "surprise_l2": 50.13,
         "pre_earnings_14d": true,
-        "tier": null,
-        "reason": null
+        "tier": "hold",
+        "reason": "財報 14 天內 · 暫緩 · 等公告後再評估"
       },
       {
         "symbol": "PSX",
@@ -184,8 +184,8 @@
         "surprise_l1": 225.68,
         "surprise_l2": 14.7,
         "pre_earnings_14d": true,
-        "tier": null,
-        "reason": null
+        "tier": "hold",
+        "reason": "財報 14 天內 · 暫緩 · 等公告後再評估"
       }
     ]
   },
