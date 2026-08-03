@@ -1,502 +1,502 @@
-symbol,sector,name,as_of_date,t_price,cum_ret_4w,cum_ret_13w,cum_ret_26w,point,di,cum_ret_4w_rank_in_sector,cum_ret_13w_rank_in_sector,cum_ret_26w_rank_in_sector,cms_a,surprise_l1,surprise_l2,pre_earnings_14d,above_50ma,ma50,amp_10d_pct,vp_ratio_stock,vcp,high_52w,pct_from_high,earnings_passed
-LYV,Communication Services,Live Nation Entertainment,2026-07-27,174.13,-6.68,10.03,19.72,10.7,0.667,20,2,1,10.8,82.89,-485.68,False,False,174.48,9.04,0.728,False,188.0,-7.38,True
-TTWO,Communication Services,Take-Two Interactive,2026-07-27,242.92,-4.73,12.45,10.27,7.06,0.667,17,1,2,9.2,38.21,-87.12,True,True,234.13,9.35,0.939,False,265.94,-8.66,True
-VZ,Communication Services,Verizon,2026-07-27,46.81,11.86,-1.04,8.54,6.98,0.667,2,7,3,3.7,2.71,5.81,False,True,44.95,13.38,0.946,False,50.06,-6.49,True
-NWSA,Communication Services,News Corp (Class A),2026-07-27,27.56,3.45,5.03,2.39,3.31,1.0,5,3,8,5.0,5.46,6.92,True,True,26.65,10.03,1.009,False,31.48,-12.45,True
-EA,Communication Services,Electronic Arts,2026-07-27,209.86,2.27,3.94,3.11,3.11,1.0,8,4,7,6.6,39.62,-76.4,True,True,204.94,0.73,1.386,True,209.93,-0.03,True
-OMC,Communication Services,Omnicom Group,2026-07-27,78.7,0.1,3.41,4.28,3.02,1.0,11,5,6,8.2,-0.39,3.13,False,True,76.95,13.55,0.704,False,87.41,-9.96,False
-NWS,Communication Services,News Corp (Class B),2026-07-27,31.27,3.65,2.83,0.92,2.08,1.0,4,6,9,5.6,5.46,6.92,True,True,30.29,11.0,1.183,False,35.34,-11.52,True
-GOOG,Communication Services,Alphabet Inc. (Class C),2026-07-27,356.65,0.13,-6.88,5.49,1.06,0.667,10,11,5,9.3,212.9,94.3,False,True,356.65,13.27,1.007,False,404.23,-11.77,True
-GOOGL,Communication Services,Alphabet Inc. (Class A),2026-07-27,356.13,-1.05,-7.61,5.5,0.59,0.333,13,12,4,10.9,214.23,91.59,False,False,358.68,13.31,0.91,False,408.37,-12.79,True
-WBD,Communication Services,Warner Bros. Discovery,2026-07-27,26.3,-0.68,-2.48,-4.5,-3.04,0.0,12,9,10,10.7,-1104.45,-2790.17,True,False,26.61,6.41,0.775,False,30.0,-12.33,True
-T,Communication Services,AT&T,2026-07-27,23.25,14.49,-9.8,-9.16,-3.41,0.333,1,16,11,7.5,10.49,3.42,False,True,22.64,16.17,1.216,False,28.75,-19.13,True
-TKO,Communication Services,TKO Group Holdings,2026-07-27,181.81,-6.49,-1.85,-9.54,-6.85,0.0,19,8,12,14.3,-32.11,-113.67,False,False,194.44,5.01,0.816,False,225.15,-19.25,True
-TMUS,Communication Services,T-Mobile US,2026-07-27,172.71,-2.71,-11.43,-11.52,-9.3,0.0,14,18,13,15.0,14.86,31.07,False,False,183.45,14.55,0.788,False,256.72,-32.72,True
-DIS,Communication Services,Walt Disney Company (The),2026-07-27,96.19,-3.33,-5.97,-14.07,-9.36,0.0,15,10,14,13.3,4.98,3.44,True,False,98.74,7.19,0.923,False,118.07,-18.53,True
-FOXA,Communication Services,Fox Corporation (Class A),2026-07-27,58.23,3.1,-8.08,-19.6,-11.05,0.333,6,13,17,10.3,36.35,58.6,True,False,58.32,8.05,1.11,False,76.02,-23.4,True
-CMCSA,Communication Services,Comcast,2026-07-27,23.96,0.71,-10.68,-17.42,-11.2,0.333,9,17,16,12.8,7.62,8.29,False,True,23.6,15.35,0.894,False,32.05,-25.23,True
-FOX,Communication Services,Fox Corporation (Class B),2026-07-27,51.94,2.73,-8.77,-20.36,-11.69,0.333,7,15,18,11.6,22.22,51.85,True,False,52.39,8.43,0.891,False,67.81,-23.4,True
-META,Communication Services,Meta Platforms,2026-07-27,556.71,-4.49,-8.46,-22.16,-14.32,0.0,16,14,19,16.0,-14.42,56.79,False,False,601.99,21.95,1.4,False,793.65,-29.85,False
-NFLX,Communication Services,Netflix,2026-07-27,71.71,-7.65,-22.11,-14.11,-14.49,0.0,21,20,15,19.5,1.45,-1.4,False,False,77.11,10.03,0.84,False,126.71,-43.41,True
-CHTR,Communication Services,Charter Communications,2026-07-27,144.98,5.67,-15.58,-29.66,-17.31,0.333,3,19,22,11.6,5.94,-9.07,False,True,136.25,26.35,0.821,False,285.82,-49.28,True
-ECHO,Communication Services,EchoStar,2026-07-27,84.09,-17.15,-31.73,-25.73,-25.09,0.0,22,23,20,21.9,,,,,,,,,,,False
-PSKY,Communication Services,Paramount Skydance Corporation,2026-07-27,7.96,-23.39,-27.88,-28.28,-26.96,0.0,23,22,21,22.3,,,,,,,,,,,False
-TTD,Communication Services,Trade Desk (The),2026-07-27,18.04,-5.55,-25.58,-40.52,-28.04,0.0,18,21,23,19.9,,,,,,,,,,,False
-GRMN,Consumer Discretionary,Garmin,2026-07-27,293.78,22.4,21.72,46.9,34.48,1.0,1,4,1,1.9,22.52,13.14,False,True,242.63,26.37,1.04,False,304.0,-3.36,True
-BBY,Consumer Discretionary,Best Buy,2026-07-27,86.26,10.6,45.56,36.31,32.2,1.0,8,1,2,4.7,4.32,5.83,False,True,77.39,9.42,0.976,False,91.27,-5.49,True
-ROST,Consumer Discretionary,Ross Stores,2026-07-27,251.07,17.64,9.93,33.63,23.71,1.0,2,13,3,5.5,17.42,4.91,False,True,229.22,10.35,1.006,False,255.3,-1.66,True
-MGM,Consumer Discretionary,MGM Resorts,2026-07-27,44.57,-5.37,15.77,32.89,19.04,0.667,34,9,4,20.5,1.95,1.31,False,False,46.06,7.05,0.923,False,51.59,-13.61,True
-EBAY,Consumer Discretionary,eBay Inc.,2026-07-27,114.01,-0.72,9.85,25.75,15.16,0.667,26,14,5,18.2,5.03,4.44,True,True,111.59,9.91,0.985,False,118.98,-4.18,True
-TPR,Consumer Discretionary,"Tapestry, Inc.",2026-07-27,152.37,5.66,7.05,20.73,13.54,1.0,12,15,6,11.7,27.77,20.67,True,True,143.63,11.73,0.89,False,161.08,-5.41,True
-WSM,Consumer Discretionary,"Williams-Sonoma, Inc.",2026-07-27,228.66,0.83,27.46,12.55,13.35,1.0,21,2,11,13.3,7.34,4.46,False,True,218.69,11.48,1.1,False,243.84,-6.22,True
-F,Consumer Discretionary,Ford Motor Company,2026-07-27,14.68,9.88,25.13,8.26,12.88,1.0,9,3,13,8.0,21.27,256.64,False,True,14.53,16.13,1.108,False,17.78,-17.44,True
-EXPE,Consumer Discretionary,Expedia Group,2026-07-27,294.74,9.7,17.28,11.77,12.63,1.0,10,8,12,9.8,42.34,12.21,True,True,250.72,22.08,0.964,False,312.4,-5.65,True
-GM,Consumer Discretionary,General Motors,2026-07-27,88.86,16.92,17.53,6.27,11.75,1.0,4,7,17,7.5,12.0,40.19,False,True,80.46,20.18,1.094,False,91.85,-3.26,True
-ABNB,Consumer Discretionary,Airbnb,2026-07-27,151.52,1.74,6.96,17.12,10.74,1.0,19,16,8,15.9,-14.13,-15.65,True,True,141.19,14.19,1.042,False,156.5,-3.18,True
-MAR,Consumer Discretionary,Marriott International,2026-07-27,372.83,-0.03,5.24,18.71,10.66,0.667,24,20,7,19.4,6.49,-1.51,False,False,378.91,6.29,0.852,False,410.98,-9.28,True
-AMZN,Consumer Discretionary,Amazon,2026-07-27,271.58,11.91,1.24,13.49,10.03,1.0,5,24,10,11.7,215.02,68.18,False,True,246.63,19.58,1.435,False,278.56,-2.51,True
-SBUX,Consumer Discretionary,Starbucks,2026-07-27,105.25,0.94,-0.03,15.88,8.17,0.667,20,27,9,19.9,30.79,14.51,False,True,102.34,6.27,1.325,False,109.23,-3.64,True
-HAS,Consumer Discretionary,Hasbro,2026-07-27,93.94,17.21,-0.59,6.78,7.54,0.667,3,29,16,13.4,12.8,29.52,False,True,84.65,17.66,1.418,False,105.38,-10.86,True
-RCL,Consumer Discretionary,Royal Caribbean Group,2026-07-27,318.3,7.42,20.49,-0.92,6.52,0.667,11,5,22,11.4,5.74,12.59,False,True,293.43,16.59,1.1,False,360.34,-11.67,True
-RL,Consumer Discretionary,Ralph Lauren Corporation,2026-07-27,380.34,-4.49,5.26,8.18,4.28,0.667,31,19,14,24.0,10.07,7.1,True,False,384.56,5.6,0.864,False,420.57,-9.57,True
-TJX,Consumer Discretionary,TJX Companies,2026-07-27,157.34,2.0,0.65,5.67,3.5,1.0,18,25,18,20.1,,,,,,,,,,,False
-DRI,Consumer Discretionary,Darden Restaurants,2026-07-27,203.58,0.44,5.37,3.74,3.32,1.0,22,18,19,20.2,,,,,,,,,,,False
-BKNG,Consumer Discretionary,Booking Holdings,2026-07-27,192.9,4.52,14.0,-3.12,3.07,0.667,14,10,23,14.6,5.67,0.27,True,True,174.83,18.05,1.109,False,229.86,-16.08,True
-HLT,Consumer Discretionary,Hilton Worldwide,2026-07-27,320.49,-5.21,0.64,7.46,2.59,0.667,33,26,15,27.3,0.78,1.78,False,False,333.1,6.84,0.67,False,358.0,-10.48,True
-CMG,Consumer Discretionary,Chipotle Mexican Grill,2026-07-27,37.22,5.17,12.86,-4.24,2.38,0.667,13,11,26,15.0,3.96,1.4,False,True,32.8,22.47,1.025,False,44.27,-15.93,True
-DASH,Consumer Discretionary,DoorDash,2026-07-27,196.16,2.16,11.56,-4.13,1.36,0.667,17,12,25,17.1,15.4,-17.73,True,True,174.69,17.86,1.022,False,285.5,-31.29,True
-PHM,Consumer Discretionary,PulteGroup,2026-07-27,126.47,-5.39,6.32,1.53,1.0,0.667,35,17,20,26.6,,,,,,,,,,,False
-GPC,Consumer Discretionary,Genuine Parts Company,2026-07-27,124.37,-6.19,19.75,-8.72,-0.97,0.333,38,6,30,26.8,3.47,1.26,False,True,112.4,18.11,0.86,False,148.58,-16.29,True
-CCL,Consumer Discretionary,Carnival Corporation,2026-07-27,27.81,-0.36,4.95,-6.36,-2.03,0.333,25,21,28,24.4,,,,,,,,,,,False
-YUM,Consumer Discretionary,Yum! Brands,2026-07-27,153.28,-6.95,-2.73,-0.49,-2.67,0.0,40,31,21,33.5,,,,,,,,,,,False
-DPZ,Consumer Discretionary,Domino's,2026-07-27,347.44,11.48,3.5,-14.37,-3.44,0.667,6,22,34,16.4,-2.38,-3.32,False,True,313.99,14.45,1.324,False,460.13,-24.49,True
-WYNN,Consumer Discretionary,Wynn Resorts,2026-07-27,99.31,3.54,-6.05,-7.13,-4.19,0.333,16,37,29,24.9,,,,,,,,,,,False
-LVS,Consumer Discretionary,Las Vegas Sands,2026-07-27,48.89,4.04,-8.58,-6.26,-4.26,0.333,15,42,27,25.5,-22.04,20.05,False,True,48.21,12.44,1.24,False,69.68,-29.84,False
-DHI,Consumer Discretionary,D. R. Horton,2026-07-27,143.06,-9.78,-4.33,-3.32,-5.19,0.0,46,34,24,38.0,,,,,,,,,,,False
-HD,Consumer Discretionary,Home Depot (The),2026-07-27,331.96,-7.25,3.26,-10.12,-6.06,0.333,41,23,32,33.8,,,,,,,,,,,False
-ORLY,Consumer Discretionary,O’Reilly Automotive,2026-07-27,89.35,-1.0,-7.57,-9.21,-6.75,0.0,27,40,31,31.7,,,,,,,,,,,False
-ULTA,Consumer Discretionary,Ulta Beauty,2026-07-27,512.83,11.16,-3.59,-20.78,-8.5,0.333,7,32,39,20.9,12.0,-0.21,False,True,479.09,9.22,0.989,False,714.97,-28.27,True
-MCD,Consumer Discretionary,McDonald's,2026-07-27,270.64,-3.56,-4.94,-13.02,-8.63,0.0,29,35,33,31.6,,,,,,,,,,,False
-NCLH,Consumer Discretionary,Norwegian Cruise Line Holdings,2026-07-27,18.53,-6.32,-1.49,-15.62,-9.76,0.0,39,30,35,35.5,,,,,,,,,,,False
-NVR,Consumer Discretionary,"NVR, Inc.",2026-07-27,6147.05,-8.94,-0.12,-19.5,-12.01,0.0,44,28,38,38.0,,,,,,,,,,,False
-DECK,Consumer Discretionary,Deckers Brands,2026-07-27,96.88,-7.46,-3.97,-18.82,-12.27,0.0,42,33,37,38.3,,,,,,,,,,,False
-AZO,Consumer Discretionary,AutoZone,2026-07-27,3016.25,-4.53,-16.08,-18.57,-14.44,0.0,32,45,36,36.7,,,,,,,,,,,False
-LEN,Consumer Discretionary,Lennar,2026-07-27,82.35,-6.09,-6.34,-23.5,-14.86,0.0,37,38,42,38.3,,,,,,,,,,,False
-LOW,Consumer Discretionary,Lowe's,2026-07-27,207.81,-8.09,-10.39,-21.33,-15.28,0.0,43,43,40,42.4,,,,,,,,,,,False
-APTV,Consumer Discretionary,Aptiv,2026-07-27,56.47,-4.11,-6.65,-25.45,-15.41,0.0,30,39,43,35.3,,,,,,,,,,,False
-CVNA,Consumer Discretionary,Carvana,2026-07-27,62.36,-9.1,-18.5,-22.27,-18.03,0.0,45,46,41,44.5,,,,,,,,,,,False
-NKE,Consumer Discretionary,"Nike, Inc.",2026-07-27,41.71,-5.4,-5.22,-31.46,-18.39,0.0,36,36,45,37.8,,,,,,,,,,,False
-LULU,Consumer Discretionary,Lululemon Athletica,2026-07-27,118.87,0.37,-11.01,-31.88,-18.6,0.333,23,44,46,33.9,,,,,,,,,,,False
-TSCO,Consumer Discretionary,Tractor Supply,2026-07-27,30.77,-3.12,-8.31,-38.76,-22.24,0.0,28,41,47,35.7,,,,,,,,,,,False
-TSLA,Consumer Discretionary,"Tesla, Inc.",2026-07-27,311.21,-20.9,-20.37,-27.69,-24.17,0.0,47,47,44,46.4,,,,,,,,,,,False
-TGT,Consumer Staples,Target Corporation,2026-07-27,144.49,10.97,13.16,39.7,25.88,1.0,1,10,2,3.9,17.31,12.97,False,True,132.61,10.82,1.134,False,147.77,-2.22,True
-CASY,Consumer Staples,Casey's,2026-07-27,871.0,9.31,4.27,43.82,25.31,1.0,3,20,1,7.7,32.11,16.87,False,True,823.93,5.27,1.166,False,927.15,-6.06,True
-MNST,Consumer Staples,Monster Beverage,2026-07-27,96.38,-1.25,24.97,19.34,15.6,0.667,21,2,4,11.9,10.16,-4.5,True,True,93.48,6.63,1.012,False,100.34,-3.95,True
-SJM,Consumer Staples,J.M. Smucker Company (The),2026-07-27,119.26,2.56,24.35,16.15,14.8,1.0,9,3,6,6.6,5.01,5.18,False,True,111.38,13.45,1.078,False,127.65,-6.57,True
-KO,Consumer Staples,Coca-Cola Company (The),2026-07-27,87.59,4.1,12.19,18.65,13.4,1.0,7,11,5,7.8,4.05,5.88,False,True,81.84,11.85,1.004,False,90.92,-3.66,True
-DLTR,Consumer Staples,Dollar Tree,2026-07-27,127.21,2.55,34.37,8.18,13.32,1.0,10,1,13,7.9,12.89,1.13,False,True,116.56,11.15,1.218,False,142.4,-10.67,True
-ADM,Consumer Staples,Archer Daniels Midland,2026-07-27,79.27,3.23,6.48,19.44,12.15,1.0,8,16,3,9.4,7.8,9.17,True,False,80.19,11.37,0.8,False,88.46,-10.39,True
-KHC,Consumer Staples,Kraft Heinz,2026-07-27,25.85,1.89,17.02,12.72,11.09,1.0,12,5,10,9.5,15.38,9.12,True,True,24.36,11.14,1.105,False,28.09,-7.97,True
-BF-B,Consumer Staples,Brown–Forman,2026-07-27,28.73,9.82,13.43,6.86,9.24,1.0,2,9,15,6.7,-62.65,24.68,False,True,26.37,15.46,1.032,False,31.11,-7.65,False
-PM,Consumer Staples,Philip Morris International,2026-07-27,190.82,4.69,15.64,8.18,9.17,1.0,5,7,13,7.2,7.31,7.07,False,True,182.89,10.56,1.018,False,207.76,-8.15,True
-KVUE,Consumer Staples,Kenvue,2026-07-27,19.24,-2.98,11.71,13.19,8.78,0.667,24,12,9,17.4,23.03,21.24,True,True,18.53,6.61,0.829,False,21.29,-9.65,True
-KMB,Consumer Staples,Kimberly-Clark,2026-07-27,109.31,-4.72,13.45,12.19,8.28,0.667,32,8,11,20.6,2.24,2.66,True,True,105.05,8.14,0.766,False,131.04,-16.59,True
-KDP,Consumer Staples,Keurig Dr Pepper,2026-07-27,31.12,-6.55,7.74,15.23,7.91,0.667,34,15,7,22.9,4.25,2.01,True,True,30.86,7.13,0.986,False,34.77,-10.5,True
-HRL,Consumer Staples,Hormel Foods,2026-07-27,25.01,1.24,18.66,4.31,7.13,1.0,13,4,16,10.9,12.87,6.12,False,True,24.14,6.7,0.865,False,27.89,-10.32,True
-SYY,Consumer Staples,Sysco,2026-07-27,85.24,0.48,15.87,3.1,5.64,1.0,14,6,18,12.4,-0.39,1.39,True,True,79.95,8.09,0.912,False,90.56,-5.88,False
-MDLZ,Consumer Staples,Mondelez International,2026-07-27,62.31,2.3,2.38,8.39,5.37,1.0,11,22,12,14.5,7.4,10.22,False,True,60.76,12.27,1.166,False,66.65,-6.51,True
-MO,Consumer Staples,Altria,2026-07-27,68.33,-6.02,-6.97,13.75,3.63,0.333,33,28,8,26.5,-1.17,5.92,False,False,71.44,14.13,0.962,False,77.06,-11.33,False
-CHD,Consumer Staples,Church & Dwight,2026-07-27,98.81,0.21,3.24,3.31,2.52,1.0,16,21,17,17.7,,,,,,,,,,,False
-CL,Consumer Staples,Colgate-Palmolive,2026-07-27,91.3,-3.48,5.23,2.33,1.6,0.667,27,18,19,22.7,,,,,,,,,,,False
-DG,Consumer Staples,Dollar General,2026-07-27,127.05,8.06,11.59,-10.55,-0.36,0.667,4,13,28,11.5,6.22,17.85,False,True,114.87,11.93,1.155,False,156.68,-18.91,True
-COST,Consumer Staples,Costco,2026-07-27,951.89,0.18,-5.76,1.55,-0.62,0.667,17,27,20,20.6,,,,,,,,,,,False
-PG,Consumer Staples,Procter & Gamble,2026-07-27,144.49,-3.86,-1.15,-3.36,-2.93,0.0,28,25,21,25.7,,,,,,,,,,,False
-TAP,Consumer Staples,Molson Coors Beverage Company,2026-07-27,41.56,4.47,-0.2,-11.55,-4.71,0.333,6,24,29,16.0,70.58,4.95,True,True,40.3,9.54,1.02,False,53.62,-22.49,True
-CLX,Consumer Staples,Clorox,2026-07-27,95.53,-1.78,9.67,-14.24,-5.15,0.333,23,14,30,21.7,6.16,-3.04,False,True,95.44,8.61,0.967,False,127.3,-24.95,True
-HSY,Consumer Staples,Hershey Company (The),2026-07-27,175.05,-3.89,-3.26,-8.83,-6.2,0.0,29,26,26,27.5,,,,,,,,,,,False
-BG,Consumer Staples,Bunge Global,2026-07-27,106.23,-0.22,-14.24,-5.62,-6.42,0.0,18,32,22,23.0,,,,,,,,,,,False
-PEP,Consumer Staples,PepsiCo,2026-07-27,139.56,-3.23,-10.41,-7.38,-7.1,0.0,26,30,25,27.0,,,,,,,,,,,False
-WMT,Consumer Staples,Walmart,2026-07-27,111.2,-0.57,-15.34,-6.29,-7.13,0.0,19,34,23,24.3,,,,,,,,,,,False
-TSN,Consumer Staples,Tyson Foods,2026-07-27,57.96,-1.58,-8.22,-9.81,-7.35,0.0,22,29,27,25.1,,,,,,,,,,,False
-KR,Consumer Staples,Kroger,2026-07-27,57.74,-0.82,-14.35,-7.18,-7.39,0.0,20,33,24,24.7,,,,,,,,,,,False
-MKC,Consumer Staples,McCormick & Company,2026-07-27,50.9,-3.91,2.23,-16.19,-8.51,0.333,30,23,32,28.3,,,,,,,,,,,False
-GIS,Consumer Staples,General Mills,2026-07-27,35.75,-3.2,4.75,-20.05,-9.64,0.333,25,19,33,24.8,,,,,,,,,,,False
-EL,Consumer Staples,Estée Lauder Companies (The),2026-07-27,83.9,0.23,6.21,-26.71,-11.75,0.667,15,17,34,19.4,40.2,6.6,False,True,83.81,8.85,0.897,False,120.79,-30.54,True
-STZ,Consumer Staples,Constellation Brands,2026-07-27,130.23,-4.52,-14.11,-15.68,-12.5,0.0,31,31,31,31.0,,,,,,,,,,,False
-MPC,Energy,Marathon Petroleum,2026-07-27,316.47,18.82,29.06,81.21,52.57,1.0,2,1,1,1.5,120.63,50.13,True,True,274.05,7.03,0.923,False,326.92,-3.2,True
-VLO,Energy,Valero Energy,2026-07-27,312.9,17.31,27.84,75.02,48.8,1.0,4,2,2,3.0,23.84,33.47,False,True,269.32,8.46,1.039,False,319.01,-1.91,True
-PSX,Energy,Phillips 66,2026-07-27,211.68,19.99,21.02,49.74,35.12,1.0,1,3,3,2.0,225.68,14.7,True,True,185.74,7.31,0.988,False,216.08,-2.04,True
-APA,Energy,APA Corporation,2026-07-27,37.32,16.14,-6.35,43.26,24.08,0.667,7,15,4,8.8,20.9,41.73,True,True,35.25,9.98,1.055,False,45.04,-17.14,True
-EOG,Energy,EOG Resources,2026-07-27,148.69,14.54,7.8,34.63,22.9,1.0,10,4,6,7.4,6.22,3.38,True,True,136.57,7.08,1.086,False,149.59,-0.6,True
-TRGP,Energy,Targa Resources,2026-07-27,270.37,4.93,6.83,35.83,20.86,1.0,14,5,5,9.5,7.4,12.12,True,True,268.4,11.35,0.899,False,289.68,-6.67,True
-OXY,Energy,Occidental Petroleum,2026-07-27,57.07,16.68,-2.34,26.91,17.04,0.667,5,12,7,7.5,80.35,83.77,True,True,54.69,9.32,1.227,False,67.14,-15.0,True
-FANG,Energy,Diamondback Energy,2026-07-27,202.95,17.97,-1.73,25.21,16.67,0.667,3,11,8,6.4,12.78,-13.16,False,True,191.79,10.27,1.001,False,213.34,-4.87,True
-COP,Energy,ConocoPhillips,2026-07-27,120.48,15.04,-1.47,17.36,12.07,0.667,8,10,10,9.0,11.52,-6.47,True,True,113.61,7.77,0.934,False,134.87,-10.67,True
-CVX,Energy,Chevron Corporation,2026-07-27,196.83,16.33,4.2,13.38,11.82,1.0,6,6,13,7.4,8.63,45.56,False,True,182.75,6.12,1.023,False,212.76,-7.49,True
-OKE,Energy,Oneok,2026-07-27,90.81,3.39,1.7,17.64,10.09,1.0,16,8,9,12.2,-5.66,3.85,False,True,89.33,9.04,0.936,False,96.07,-5.48,False
-XOM,Energy,ExxonMobil,2026-07-27,155.44,13.39,2.45,11.41,9.67,1.0,11,7,14,10.4,13.26,15.14,False,True,146.39,8.31,0.947,False,175.22,-11.29,True
-DVN,Energy,Devon Energy,2026-07-27,45.13,11.51,-10.1,13.62,7.16,0.667,12,18,12,13.8,-4.91,-0.81,True,True,43.78,8.58,0.965,False,52.34,-13.77,False
-TPL,Energy,Texas Pacific Land Corporation,2026-07-27,402.58,-1.13,-7.02,15.87,5.9,0.333,19,16,11,16.5,2.47,-50.22,True,True,395.6,14.59,0.982,False,545.74,-26.23,True
-BKR,Energy,Baker Hughes,2026-07-27,60.49,14.61,-12.19,8.71,4.96,0.667,9,19,15,13.2,31.47,17.94,False,True,59.78,14.23,1.197,False,70.18,-13.8,True
-KMI,Energy,Kinder Morgan,2026-07-27,32.18,0.37,-0.16,7.55,3.83,0.667,18,9,17,15.1,18.28,22.1,False,True,32.13,6.24,1.028,False,34.81,-7.56,True
-WMB,Energy,Williams Companies,2026-07-27,71.54,-2.19,-4.6,7.92,2.26,0.333,21,13,16,17.6,16.43,-1.37,False,False,73.46,9.86,0.921,False,79.49,-10.0,True
-SLB,Energy,Schlumberger,2026-07-27,49.59,9.88,-12.42,3.65,1.19,0.667,13,20,18,16.1,6.3,1.13,False,False,50.8,16.39,1.139,False,58.51,-15.25,True
-EQT,Energy,EQT Corporation,2026-07-27,53.29,1.29,-8.9,-7.17,-5.49,0.333,17,17,20,17.6,,,,,,,,,,,False
-HAL,Energy,Halliburton,2026-07-27,32.25,-2.15,-22.26,-2.91,-7.56,0.0,20,21,19,20.1,,,,,,,,,,,False
-EXE,Energy,Expand Energy,2026-07-27,94.03,3.65,-5.51,-15.39,-8.16,0.333,15,14,21,15.9,19.09,5.37,False,True,90.36,8.67,0.919,False,125.18,-24.88,True
-STT,Financials,State Street Corporation,2026-07-27,184.16,7.89,21.76,42.38,28.6,1.0,17,7,1,10.8,9.21,7.46,False,True,170.87,6.28,0.932,False,192.51,-4.34,True
-TRV,Financials,Travelers Companies (The),2026-07-27,374.36,9.36,23.37,32.61,24.49,1.0,11,4,4,7.5,86.12,8.93,False,True,328.87,9.57,1.088,False,398.7,-6.1,True
-ALL,Financials,Allstate,2026-07-27,264.08,5.49,22.57,34.08,24.06,1.0,26,5,3,15.1,47.01,40.74,True,True,235.08,11.47,0.92,False,277.22,-4.74,True
-BNY,Financials,BNY Mellon,2026-07-27,156.33,7.05,17.32,31.4,21.79,1.0,19,13,5,14.4,10.7,16.54,False,True,147.46,5.45,1.141,False,163.12,-4.16,True
-XYZ,Financials,"Block, Inc.",2026-07-27,81.24,3.06,13.13,34.44,21.27,1.0,35,30,2,26.9,25.55,0.15,True,True,75.43,10.35,1.0,False,84.08,-3.38,True
-GL,Financials,Globe Life,2026-07-27,182.25,1.16,19.55,30.52,20.44,1.0,43,11,6,26.0,-1.96,-1.35,False,True,170.48,10.01,0.739,False,191.55,-4.86,False
-CPAY,Financials,Corpay,2026-07-27,382.11,8.41,24.38,21.45,18.92,1.0,13,3,11,9.6,6.03,1.68,True,True,356.23,12.23,1.153,False,395.49,-3.38,True
-MET,Financials,MetLife,2026-07-27,96.13,6.74,20.74,23.68,18.71,1.0,22,9,8,15.3,6.65,6.3,True,True,88.47,6.8,0.989,False,97.8,-1.71,True
-BEN,Financials,Franklin Resources,2026-07-27,33.86,-0.73,14.61,30.35,18.65,0.667,56,23,7,36.3,8.28,28.64,False,True,32.4,8.87,1.318,False,34.92,-3.04,True
-WTW,Financials,Willis Towers Watson,2026-07-27,335.92,17.36,31.52,6.55,15.5,1.0,3,1,41,10.0,7.78,1.8,False,True,274.68,19.47,0.968,False,349.38,-3.85,True
-NTRS,Financials,Northern Trust,2026-07-27,182.19,3.22,11.28,23.18,15.21,1.0,32,37,9,28.9,-8.35,16.14,False,True,175.81,6.57,0.677,False,191.6,-4.91,False
-PFG,Financials,Principal Financial Group,2026-07-27,113.7,2.55,13.37,22.08,15.02,1.0,37,28,10,28.9,7.07,2.94,False,True,108.79,7.79,0.899,False,114.95,-1.09,True
-GPN,Financials,Global Payments,2026-07-27,84.08,6.93,16.64,18.04,14.91,1.0,20,16,13,17.4,5.43,0.62,True,True,73.67,14.26,1.199,False,89.46,-6.02,True
-PRU,Financials,Prudential Financial,2026-07-27,122.08,8.08,25.48,12.88,14.83,1.0,16,2,28,14.2,16.48,-24.33,True,True,110.51,6.42,1.075,False,124.57,-2.0,True
-PYPL,Financials,PayPal,2026-07-27,57.21,25.82,13.8,9.27,14.54,1.0,1,26,35,15.3,8.03,5.59,False,True,47.02,7.99,1.915,False,78.53,-27.15,True
-BAC,Financials,Bank of America,2026-07-27,61.95,5.48,16.96,17.71,14.47,1.0,27,15,15,21.0,7.74,8.78,False,True,57.19,4.74,1.019,False,62.99,-1.65,True
-AIZ,Financials,Assurant,2026-07-27,279.19,-0.1,21.01,18.12,14.29,0.667,52,8,12,30.8,11.71,1.94,True,True,265.99,5.35,0.962,False,284.64,-1.91,True
-CBOE,Financials,Cboe Global Markets,2026-07-27,310.23,24.6,-4.92,17.58,13.71,0.667,2,73,16,26.1,2.01,9.54,False,True,284.23,14.06,0.906,False,370.4,-16.25,True
-AFL,Financials,Aflac,2026-07-27,127.48,5.46,13.52,16.11,12.8,1.0,28,27,19,25.9,,,,,,,,,,,False
-JPM,Financials,JPMorgan Chase,2026-07-27,351.79,5.65,13.09,16.11,12.74,1.0,25,31,19,25.6,,,,,,,,,,,False
-CFG,Financials,Citizens Financial Group,2026-07-27,71.65,1.6,11.95,16.14,11.46,1.0,42,35,18,35.1,,,,,,,,,,,False
-IVZ,Financials,Invesco,2026-07-27,29.6,9.59,15.22,10.19,11.3,1.0,8,21,32,16.7,7.18,-1.21,False,True,28.2,9.44,0.825,False,31.02,-4.58,True
-USB,Financials,U.S. Bancorp,2026-07-27,63.01,2.07,12.88,14.43,10.95,1.0,39,33,22,33.8,,,,,,,,,,,False
-MTB,Financials,M&T Bank,2026-07-27,246.29,3.1,14.59,12.71,10.78,1.0,33,24,29,29.5,,,,,,,,,,,False
-MS,Financials,Morgan Stanley,2026-07-27,210.42,-1.1,11.26,16.37,10.72,0.667,58,38,17,43.8,,,,,,,,,,,False
-PNC,Financials,PNC Financial Services,2026-07-27,249.87,0.95,14.11,13.66,10.59,1.0,46,25,27,35.9,,,,,,,,,,,False
-V,Financials,Visa Inc.,2026-07-27,366.13,1.1,11.85,14.24,10.36,1.0,44,36,25,37.8,,,,,,,,,,,False
-IBKR,Financials,Interactive Brokers,2026-07-27,87.99,-3.66,9.47,17.75,10.33,0.667,65,43,14,48.2,7.98,0.1,False,False,90.28,10.92,0.913,False,97.84,-10.07,True
-FITB,Financials,Fifth Third Bancorp,2026-07-27,56.5,-1.15,12.83,14.33,10.08,0.667,59,34,23,44.3,,,,,,,,,,,False
-AMP,Financials,Ameriprise Financial,2026-07-27,545.84,11.59,17.26,4.22,9.32,1.0,6,14,48,16.8,2.37,10.25,False,True,483.59,7.99,0.886,False,553.46,-1.38,True
-EG,Financials,Everest Group,2026-07-27,374.15,0.75,6.45,14.33,8.96,1.0,48,51,23,43.9,,,,,,,,,,,False
-MA,Financials,Mastercard,2026-07-27,573.1,6.43,15.86,6.73,8.94,1.0,23,18,40,24.9,,,,,,,,,,,False
-RJF,Financials,Raymond James Financial,2026-07-27,175.98,8.19,13.06,6.88,8.75,1.0,14,32,38,24.2,7.84,0.54,False,True,158.67,8.9,0.815,False,178.28,-1.29,True
-RF,Financials,Regions Financial Corporation,2026-07-27,30.95,2.21,10.84,10.69,8.61,1.0,38,39,31,36.9,,,,,,,,,,,False
-CB,Financials,Chubb Limited,2026-07-27,350.68,-2.9,7.83,13.97,8.22,0.667,64,48,26,51.6,,,,,,,,,,,False
-FDS,Financials,FactSet,2026-07-27,263.2,5.24,16.22,4.52,7.62,1.0,29,17,47,29.0,,,,,,,,,,,False
-GS,Financials,Goldman Sachs,2026-07-27,1018.38,-0.26,10.73,9.93,7.58,0.667,53,40,34,45.3,,,,,,,,,,,False
-C,Financials,Citigroup,2026-07-27,132.45,-5.37,4.42,15.61,7.57,0.667,69,56,21,55.5,,,,,,,,,,,False
-SCHW,Financials,Charles Schwab Corporation,2026-07-27,105.24,8.49,15.38,1.98,6.96,1.0,12,20,51,22.2,4.55,2.48,False,True,95.16,7.09,0.954,False,106.76,-1.42,True
-CINF,Financials,Cincinnati Financial,2026-07-27,177.68,-7.47,10.25,11.7,6.54,0.667,73,42,30,55.1,,,,,,,,,,,False
-MRSH,Financials,Marsh McLennan,2026-07-27,189.69,6.85,14.79,1.89,6.35,1.0,21,22,52,27.5,,,,,,,,,,,False
-WRB,Financials,W. R. Berkley Corporation,2026-07-27,72.54,0.64,10.27,6.86,6.16,1.0,50,41,39,45.1,,,,,,,,,,,False
-L,Financials,Loews Corporation,2026-07-27,116.01,-0.44,3.92,10.02,5.88,0.667,54,58,33,51.0,,,,,,,,,,,False
-AON,Financials,Aon plc,2026-07-27,360.55,0.86,15.74,3.39,5.85,1.0,47,19,49,39.0,,,,,,,,,,,False
-BRK-B,Financials,Berkshire Hathaway,2026-07-27,511.54,0.74,8.15,6.45,5.45,1.0,49,47,42,47.0,,,,,,,,,,,False
-TROW,Financials,T. Rowe Price,2026-07-27,111.75,-5.74,9.35,8.61,5.21,0.667,70,45,36,55.7,,,,,,,,,,,False
-AJG,Financials,Arthur J. Gallagher & Co.,2026-07-27,249.42,-1.2,20.25,0.66,5.09,0.667,60,10,54,43.8,0.94,0.98,False,True,230.36,11.48,1.058,False,310.73,-19.73,True
-HIG,Financials,Hartford (The),2026-07-27,141.91,2.95,4.99,6.02,4.99,1.0,36,55,44,43.3,,,,,,,,,,,False
-BRO,Financials,Brown & Brown,2026-07-27,70.4,0.57,22.52,-1.85,4.85,0.667,51,6,57,38.7,-0.39,2.3,False,True,63.4,15.58,1.145,False,97.58,-27.86,False
-KEY,Financials,KeyCorp,2026-07-27,22.59,-1.87,4.32,7.06,4.14,0.667,62,57,37,55.5,,,,,,,,,,,False
-ACGL,Financials,Arch Capital Group,2026-07-27,100.53,-1.63,7.15,4.68,3.72,0.667,61,50,46,54.7,,,,,,,,,,,False
-AIG,Financials,American International Group,2026-07-27,78.58,-1.02,0.42,6.26,2.98,0.667,57,67,43,57.2,,,,,,,,,,,False
-NDAQ,Financials,"Nasdaq, Inc.",2026-07-27,94.19,11.26,3.51,-2.13,2.63,0.667,7,59,58,32.8,8.79,2.84,False,True,87.98,7.91,1.132,False,101.11,-6.84,True
-TFC,Financials,Truist Financial,2026-07-27,51.84,1.69,2.86,2.91,2.59,1.0,41,62,50,49.1,,,,,,,,,,,False
-SYF,Financials,Synchrony Financial,2026-07-27,75.79,-0.71,0.45,5.2,2.53,0.667,55,66,45,56.3,,,,,,,,,,,False
-BLK,Financials,BlackRock,2026-07-27,1090.39,9.51,3.28,-1.46,2.47,0.667,10,61,56,34.5,9.62,9.35,False,True,1032.05,7.41,1.042,False,1200.54,-9.18,True
-COF,Financials,Capital One,2026-07-27,209.01,1.9,9.38,-3.75,0.94,0.667,40,44,60,45.2,,,,,,,,,,,False
-WFC,Financials,Wells Fargo,2026-07-27,86.45,1.1,7.59,-3.45,0.45,0.667,44,49,59,48.5,,,,,,,,,,,False
-PGR,Financials,Progressive Corporation,2026-07-27,211.42,-8.96,6.12,1.74,0.16,0.667,74,52,53,63.2,,,,,,,,,,,False
-HBAN,Financials,Huntington Bancshares,2026-07-27,17.04,-4.59,3.39,-0.64,-0.62,0.333,67,60,55,62.5,,,,,,,,,,,False
-CME,Financials,CME Group,2026-07-27,267.79,13.18,-7.03,-4.65,-0.79,0.333,5,74,62,37.1,2.75,-0.25,False,True,252.45,12.83,0.877,False,319.82,-16.27,True
-ARES,Financials,Ares Management,2026-07-27,128.09,9.57,8.72,-12.38,-1.62,0.667,9,46,69,32.1,1.44,-6.57,False,True,123.32,11.2,1.146,False,188.31,-31.98,True
-AXP,Financials,American Express,2026-07-27,336.25,-4.46,5.47,-3.96,-1.73,0.333,66,53,61,61.1,,,,,,,,,,,False
-APO,Financials,Apollo Global Management,2026-07-27,125.59,5.88,-3.33,-5.88,-2.3,0.333,24,72,64,46.4,,,,,,,,,,,False
-ICE,Financials,Intercontinental Exchange,2026-07-27,152.48,14.66,-1.1,-11.65,-2.43,0.333,4,68,68,36.0,3.36,3.86,False,True,140.07,14.08,1.113,False,186.96,-18.44,True
-BX,Financials,Blackstone Inc.,2026-07-27,127.75,4.05,2.04,-8.42,-2.69,0.667,31,64,66,47.9,,,,,,,,,,,False
-MCO,Financials,Moody's Corporation,2026-07-27,478.38,-2.47,5.21,-6.79,-2.71,0.333,63,54,65,60.7,,,,,,,,,,,False
-KKR,Financials,KKR & Co.,2026-07-27,101.43,8.09,-1.98,-10.89,-3.92,0.333,15,69,67,41.6,14.23,10.28,False,True,95.96,8.9,1.209,False,151.29,-32.96,True
-MSCI,Financials,MSCI Inc.,2026-07-27,572.24,-5.12,-2.47,-5.36,-4.58,0.0,68,70,63,67.6,,,,,,,,,,,False
-ERIE,Financials,Erie Indemnity,2026-07-27,242.04,-6.1,13.24,-13.49,-4.96,0.333,71,29,72,58.6,,,,,,,,,,,False
-JKHY,Financials,Jack Henry & Associates,2026-07-27,154.04,4.88,0.46,-13.34,-5.34,0.667,30,65,71,48.7,,,,,,,,,,,False
-FIS,Financials,Fidelity National Information Services,2026-07-27,44.77,7.11,-2.7,-17.34,-7.57,0.333,18,71,75,45.3,,,,,,,,,,,False
-HOOD,Financials,Robinhood Markets,2026-07-27,86.56,-23.21,17.51,-12.99,-7.92,0.333,76,12,70,55.6,43.71,-1.98,False,False,96.64,25.6,0.882,False,153.86,-43.74,True
-SPGI,Financials,S&P Global,2026-07-27,411.93,-6.36,2.43,-17.12,-9.54,0.333,72,63,74,69.7,,,,,,,,,,,False
-FISV,Financials,Fiserv,2026-07-27,53.94,3.08,-13.2,-15.36,-10.21,0.333,34,75,73,54.1,,,,,,,,,,,False
-COIN,Financials,Coinbase,2026-07-27,146.26,-11.61,-23.52,-24.89,-21.23,0.0,75,76,76,75.5,,,,,,,,,,,False
-DVA,Health Care,DaVita,2026-07-27,240.09,2.21,58.32,119.58,74.92,1.0,28,1,1,14.5,23.18,6.51,True,True,216.86,6.12,0.868,False,244.49,-1.8,True
-HUM,Health Care,Humana,2026-07-27,363.86,-8.29,56.11,87.79,55.85,0.667,52,2,2,27.0,8.79,1.05,False,False,367.25,13.39,0.894,False,428.88,-15.16,True
-BAX,Health Care,Baxter International,2026-07-27,26.16,15.5,52.08,30.48,32.13,1.0,3,3,8,4.0,52.53,15.93,False,True,21.24,36.52,1.169,False,30.0,-12.8,True
-CVS,Health Care,CVS Health,2026-07-27,104.43,0.34,28.0,42.24,28.21,1.0,34,10,6,21.2,16.48,9.38,True,True,100.58,6.53,1.039,False,110.0,-5.06,True
-UNH,Health Care,UnitedHealth Group,2026-07-27,414.4,-2.58,13.01,46.38,25.8,0.667,45,33,4,33.2,29.8,9.52,False,True,409.41,6.07,1.454,False,461.62,-10.23,True
-WST,Health Care,West Pharmaceutical Services,2026-07-27,340.96,-6.71,13.47,47.73,25.56,0.667,51,31,3,35.4,13.86,27.07,False,True,337.98,17.65,0.878,False,385.75,-11.61,True
-CNC,Health Care,Centene Corporation,2026-07-27,62.22,-8.31,16.65,43.63,23.9,0.667,53,26,5,35.3,132.64,57.91,False,False,63.62,17.16,0.776,False,69.36,-10.29,True
-VTRS,Health Care,Viatris,2026-07-27,17.56,5.15,17.61,36.29,23.83,1.0,17,24,7,17.1,17.54,7.39,True,True,16.47,7.5,0.927,False,18.07,-2.82,True
-DXCM,Health Care,Dexcom,2026-07-27,83.45,17.12,36.02,14.25,20.41,1.0,1,6,17,5.7,15.11,18.99,False,True,73.13,20.01,1.311,False,84.7,-1.48,True
-DGX,Health Care,Quest Diagnostics,2026-07-27,233.01,8.45,21.43,25.64,20.29,1.0,10,15,9,11.3,10.51,5.61,False,True,206.4,16.01,1.968,False,240.13,-2.97,True
-BMY,Health Care,Bristol Myers Squibb,2026-07-27,65.31,12.35,13.44,21.21,17.06,1.0,5,32,11,14.3,27.74,11.18,False,True,57.76,9.38,1.153,False,65.66,-0.53,True
-IQV,Health Care,IQVIA,2026-07-27,235.02,13.51,48.96,2.12,16.68,1.0,4,4,37,10.6,3.94,2.96,False,True,193.95,24.48,1.645,False,251.36,-6.5,True
-INCY,Health Care,Incyte,2026-07-27,119.52,2.28,23.33,19.44,16.12,1.0,27,11,13,19.4,43.95,35.12,False,True,109.13,15.05,1.142,False,132.6,-9.86,True
-CRL,Health Care,Charles River Laboratories,2026-07-27,232.51,0.79,40.25,10.47,15.49,1.0,30,5,24,21.3,5.42,1.91,True,True,204.52,12.86,1.16,False,242.73,-4.21,True
-SOLV,Health Care,Solventum,2026-07-27,85.44,9.16,28.23,11.0,14.85,1.0,8,9,23,11.3,9.33,5.0,True,True,78.37,14.52,1.211,False,88.65,-3.62,True
-TECH,Health Care,Bio-Techne,2026-07-27,72.09,1.78,31.27,12.84,14.68,1.0,29,7,20,20.6,-0.82,5.84,True,True,62.34,1.28,1.121,True,72.37,-0.39,False
-LH,Health Care,Labcorp,2026-07-27,309.2,7.74,21.19,14.48,14.47,1.0,12,16,14,13.6,4.65,3.26,False,True,274.01,13.12,1.391,False,316.11,-2.19,True
-MRK,Health Care,Merck & Co.,2026-07-27,130.2,0.49,16.92,19.8,14.26,1.0,33,25,12,26.4,13.15,1.47,True,True,122.57,8.47,0.99,False,135.05,-3.59,True
-AMGN,Health Care,Amgen,2026-07-27,385.16,2.94,17.66,14.3,12.3,1.0,25,23,15,22.4,8.04,11.94,True,True,355.74,10.28,1.234,False,398.0,-3.23,True
-ABBV,Health Care,AbbVie,2026-07-27,250.94,-3.2,22.33,14.27,11.92,0.667,47,14,16,30.9,1.15,-0.77,False,True,236.86,7.96,0.941,False,267.47,-6.18,True
-HSIC,Health Care,Henry Schein,2026-07-27,85.75,-0.79,15.99,13.61,10.6,0.667,38,27,19,30.9,,,,,,,,,,,False
-JNJ,Health Care,Johnson & Johnson,2026-07-27,256.35,-2.54,13.48,14.06,9.76,0.667,44,30,18,34.6,,,,,,,,,,,False
-MRNA,Health Care,Moderna,2026-07-27,54.82,-31.27,20.83,24.39,9.59,0.667,59,18,10,36.9,4.33,12.37,False,False,58.41,16.01,1.033,False,85.6,-35.96,True
-ZBH,Health Care,Zimmer Biomet,2026-07-27,93.93,7.39,13.61,8.46,9.48,1.0,13,29,26,20.4,12.21,0.93,True,True,88.6,10.55,1.06,False,107.16,-12.35,True
-LLY,Health Care,Lilly (Eli),2026-07-27,1148.84,-5.36,19.46,11.14,9.1,0.667,49,19,22,34.6,,,,,,,,,,,False
-RVTY,Health Care,Revvity,2026-07-27,112.52,-1.03,29.89,3.56,9.0,0.667,40,8,32,28.8,4.47,7.8,True,True,105.97,12.28,1.367,False,118.13,-4.75,True
-A,Health Care,Agilent Technologies,2026-07-27,138.37,5.88,21.06,3.81,8.64,1.0,15,17,30,18.6,5.8,-0.6,False,True,131.55,12.71,1.076,False,159.31,-13.15,True
-REGN,Health Care,Regeneron Pharmaceuticals,2026-07-27,762.63,16.56,8.89,3.13,7.93,1.0,2,40,35,20.0,39.99,6.38,False,True,643.68,18.49,1.32,False,818.9,-6.87,True
-TMO,Health Care,Thermo Fisher Scientific,2026-07-27,574.3,9.72,22.52,-0.55,7.79,0.667,7,13,41,15.6,5.57,3.79,False,True,504.65,16.76,1.124,False,642.71,-10.64,True
-CAH,Health Care,Cardinal Health,2026-07-27,230.03,-3.73,18.08,7.54,7.36,0.667,48,22,27,36.0,,,,,,,,,,,False
-BIIB,Health Care,Biogen,2026-07-27,202.95,-6.09,8.49,12.82,7.01,0.667,50,41,21,41.5,,,,,,,,,,,False
-ABT,Health Care,Abbott Laboratories,2026-07-27,105.7,11.59,19.0,-1.99,6.65,0.667,6,20,42,17.4,2.61,0.33,False,True,92.83,10.32,1.44,False,134.38,-21.34,True
-BDX,Health Care,Becton Dickinson,2026-07-27,165.62,4.77,11.71,4.93,6.58,1.0,19,36,29,26.1,,,,,,,,,,,False
-MTD,Health Care,Mettler Toledo,2026-07-27,1416.3,8.24,11.78,3.14,6.57,1.0,11,35,34,22.8,6.06,2.33,False,True,1231.29,18.48,0.95,False,1525.17,-7.14,True
-WAT,Health Care,Waters Corporation,2026-07-27,377.31,-0.52,22.85,1.78,6.47,0.667,37,12,38,29.7,16.99,0.46,True,True,368.02,12.46,1.296,False,414.15,-8.9,True
-VEEV,Health Care,Veeva Systems,2026-07-27,203.78,5.73,18.75,-0.07,6.09,0.667,16,21,40,22.3,,,,,,,,,,,False
-MCK,Health Care,McKesson Corporation,2026-07-27,856.19,8.89,5.3,3.2,5.15,1.0,9,44,33,24.3,1.06,0.71,True,True,789.94,11.6,1.114,False,997.9,-14.2,True
-ELV,Health Care,Elevance Health,2026-07-27,375.84,-10.06,1.26,9.82,2.71,0.667,57,48,25,47.9,,,,,,,,,,,False
-VRTX,Health Care,Vertex Pharmaceuticals,2026-07-27,477.1,-9.65,12.54,1.53,1.49,0.667,56,34,39,46.0,,,,,,,,,,,False
-EW,Health Care,Edwards Lifesciences,2026-07-27,86.07,-8.8,2.49,5.79,1.32,0.667,55,47,28,47.2,,,,,,,,,,,False
-CI,Health Care,Cigna,2026-07-27,279.05,-3.03,-0.79,2.96,0.52,0.333,46,51,36,45.5,,,,,,,,,,,False
-PFE,Health Care,Pfizer,2026-07-27,25.01,4.64,-1.76,-2.16,-0.36,0.333,21,53,43,35.0,,,,,,,,,,,False
-ALGN,Health Care,Align Technology,2026-07-27,169.16,-8.32,-5.45,3.76,-1.56,0.333,54,54,31,49.4,,,,,,,,,,,False
-COO,Health Care,Cooper Companies (The),2026-07-27,72.32,-2.53,15.97,-11.13,-2.21,0.333,43,28,46,39.1,,,,,,,,,,,False
-DHR,Health Care,Danaher Corporation,2026-07-27,194.98,-1.49,11.55,-10.55,-2.76,0.333,41,37,45,40.6,,,,,,,,,,,False
-GEHC,Health Care,GE HealthCare,2026-07-27,68.02,3.8,11.52,-13.78,-3.06,0.667,23,38,50,32.9,,,,,,,,,,,False
-SYK,Health Care,Stryker Corporation,2026-07-27,325.7,-0.26,10.8,-11.39,-3.06,0.333,36,39,47,39.1,,,,,,,,,,,False
-STE,Health Care,Steris,2026-07-27,228.4,4.67,6.85,-12.54,-3.39,0.667,20,43,48,32.5,,,,,,,,,,,False
-GILD,Health Care,Gilead Sciences,2026-07-27,130.21,-0.81,-0.44,-7.14,-3.88,0.0,39,50,44,43.3,,,,,,,,,,,False
-COR,Health Care,Cencora,2026-07-27,311.34,5.0,2.65,-12.98,-4.58,0.667,18,46,49,32.6,,,,,,,,,,,False
-MDT,Health Care,Medtronic,2026-07-27,85.39,2.64,7.7,-15.63,-5.23,0.667,26,42,51,35.8,,,,,,,,,,,False
-UHS,Health Care,Universal Health Services,2026-07-27,168.44,6.39,1.0,-16.11,-6.21,0.667,14,49,52,32.1,-0.45,2.95,False,True,151.19,14.49,1.367,False,245.55,-31.4,False
-RMD,Health Care,ResMed,2026-07-27,210.98,0.64,3.21,-17.89,-7.98,0.667,31,45,55,40.0,,,,,,,,,,,False
-IDXX,Health Care,Idexx Laboratories,2026-07-27,559.07,0.23,-1.48,-16.61,-8.62,0.333,35,52,53,43.7,,,,,,,,,,,False
-HCA,Health Care,HCA Healthcare,2026-07-27,402.59,-1.93,-6.86,-17.26,-10.83,0.0,42,56,54,48.6,,,,,,,,,,,False
-PODD,Health Care,Insulet Corporation,2026-07-27,165.35,0.53,-5.54,-35.36,-18.93,0.333,32,55,57,43.9,,,,,,,,,,,False
-ISRG,Health Care,Intuitive Surgical,2026-07-27,353.33,-17.06,-22.82,-29.93,-24.93,0.0,58,58,56,57.6,,,,,,,,,,,False
-ZTS,Health Care,Zoetis,2026-07-27,77.29,4.05,-31.82,-37.38,-25.63,0.333,22,59,58,40.3,,,,,,,,,,,False
-BSX,Health Care,Boston Scientific,2026-07-27,46.73,3.52,-17.29,-50.04,-28.46,0.333,24,57,59,40.9,,,,,,,,,,,False
-FIX,Industrials,Comfort Systems USA,2026-07-27,1729.69,-0.67,-7.32,51.59,23.8,0.333,39,62,1,38.3,19.85,54.44,False,False,1817.66,22.67,0.768,False,2073.18,-16.57,True
-HWM,Industrials,Howmet Aerospace,2026-07-27,282.26,4.38,17.9,35.79,23.46,1.0,17,13,5,13.4,10.28,8.7,True,True,269.33,8.89,0.907,False,295.28,-4.41,True
-DAL,Industrials,Delta Air Lines,2026-07-27,87.44,-5.49,27.41,33.75,22.35,0.667,60,4,8,32.8,4.54,11.35,False,True,84.6,10.55,0.903,False,95.44,-8.39,True
-URI,Industrials,United Rentals,2026-07-27,1079.26,-1.76,13.93,38.6,22.34,0.667,45,19,3,28.8,10.11,8.63,False,True,1061.18,16.98,0.999,False,1177.67,-8.36,True
-CSX,Industrials,CSX Corporation,2026-07-27,50.4,3.09,12.12,34.32,20.96,1.0,25,21,7,20.2,4.19,10.6,False,True,48.12,8.31,1.043,False,53.6,-5.97,True
-GWW,Industrials,W. W. Grainger,2026-07-27,1382.22,2.92,20.58,28.49,20.12,1.0,28,11,10,19.3,14.08,-0.22,True,True,1331.85,5.65,0.835,False,1419.91,-2.65,True
-WAB,Industrials,Wabtec,2026-07-27,290.86,10.93,9.91,26.69,18.56,1.0,6,25,11,12.7,5.92,7.55,False,True,269.1,17.58,1.419,False,306.64,-5.15,True
-JBHT,Industrials,J.B. Hunt,2026-07-27,271.75,-4.93,9.46,34.57,18.42,0.667,58,27,6,38.3,9.55,3.09,False,False,279.58,10.68,1.134,False,299.76,-9.34,True
-PAYX,Industrials,Paychex,2026-07-27,116.84,11.01,28.55,15.95,17.86,1.0,5,3,25,8.4,0.91,2.31,False,True,103.14,14.4,1.025,False,135.9,-14.03,True
-PWR,Industrials,Quanta Services,2026-07-27,667.36,-0.14,-10.07,40.66,17.77,0.333,37,68,2,39.3,28.11,31.8,False,False,681.03,21.16,1.059,False,788.63,-15.38,True
-SWK,Industrials,Stanley Black & Decker,2026-07-27,94.58,2.92,21.73,22.87,17.6,1.0,28,9,15,19.7,29.86,34.6,False,True,85.72,10.56,0.819,False,96.04,-1.52,True
-MMM,Industrials,3M,2026-07-27,176.28,9.87,24.35,16.21,16.66,1.0,8,7,23,10.7,6.84,7.88,False,True,160.7,14.93,1.303,False,184.9,-4.66,True
-UNP,Industrials,Union Pacific Corporation,2026-07-27,292.13,3.5,10.26,25.56,16.22,1.0,21,24,12,20.1,5.17,2.42,False,True,277.18,10.54,1.0,False,315.99,-7.55,True
-UAL,Industrials,United Airlines Holdings,2026-07-27,121.33,-8.99,31.14,18.58,14.83,0.667,66,2,19,37.4,7.58,9.98,False,True,118.31,10.93,0.911,False,138.77,-12.57,True
-GE,Industrials,GE Aerospace,2026-07-27,360.07,-4.5,25.83,17.68,14.17,0.667,54,5,20,32.5,8.62,16.31,False,True,344.91,8.01,0.904,False,382.49,-5.86,True
-GEV,Industrials,GE Vernova,2026-07-27,990.29,-11.03,-6.79,36.49,13.79,0.333,68,61,4,53.1,-22.44,771.56,False,False,1024.64,24.33,0.781,False,1195.94,-17.2,False
-ADP,Industrials,Automatic Data Processing,2026-07-27,266.46,9.98,25.34,9.68,13.67,1.0,7,6,35,12.3,1.58,2.26,False,True,234.94,15.7,1.044,False,301.7,-11.68,True
-JCI,Industrials,Johnson Controls,2026-07-27,146.66,4.19,1.37,23.7,13.24,1.0,18,44,14,25.0,9.01,6.46,False,True,142.0,8.16,0.802,False,151.18,-2.99,True
-ROK,Industrials,Rockwell Automation,2026-07-27,480.08,1.78,18.19,14.61,12.3,1.0,32,12,26,24.8,14.55,10.73,True,True,463.64,6.97,0.887,False,497.36,-3.47,True
-CTAS,Industrials,Cintas,2026-07-27,204.63,12.82,20.98,7.46,12.18,1.0,1,10,43,12.1,2.35,0.4,False,True,182.94,11.21,1.092,False,224.62,-8.9,True
-RTX,Industrials,RTX Corporation,2026-07-27,215.22,8.02,24.21,7.92,12.01,1.0,9,8,42,15.3,13.71,16.95,False,True,190.41,15.01,1.157,False,221.34,-2.76,True
-ODFL,Industrials,Old Dominion,2026-07-27,212.14,-2.53,3.21,22.81,11.57,0.667,47,40,16,38.7,,,,,,,,,,,False
-IEX,Industrials,IDEX Corporation,2026-07-27,230.45,3.3,7.96,16.86,11.24,1.0,24,31,22,25.7,,,,,,,,,,,False
-NSC,Industrials,Norfolk Southern,2026-07-27,335.48,3.96,6.66,16.2,10.75,1.0,20,36,24,25.6,,,,,,,,,,,False
-PCAR,Industrials,Paccar,2026-07-27,132.68,11.03,14.66,8.57,10.7,1.0,4,16,40,14.8,5.39,-0.87,False,True,121.06,11.35,1.086,False,139.24,-4.71,True
-ITW,Industrials,Illinois Tool Works,2026-07-27,286.95,5.2,13.0,11.2,10.15,1.0,16,20,31,20.2,,,,,,,,,,,False
-ETN,Industrials,Eaton Corporation,2026-07-27,415.2,4.19,-2.16,18.85,9.93,0.667,18,52,18,28.2,,,,,,,,,,,False
-AXON,Industrials,Axon Enterprise,2026-07-27,527.76,-11.6,31.18,9.14,9.46,0.667,70,1,36,42.5,0.8,34.51,True,True,492.44,15.15,1.024,False,885.92,-40.43,True
-SNA,Industrials,Snap-on,2026-07-27,410.41,-0.41,8.63,13.58,8.85,0.667,38,30,27,33.4,,,,,,,,,,,False
-GD,Industrials,General Dynamics,2026-07-27,383.42,2.64,11.35,10.2,8.6,1.0,30,22,34,28.4,,,,,,,,,,,False
-FDX,Industrials,FedEx,2026-07-27,307.4,-1.79,-2.73,19.31,8.52,0.333,46,53,17,42.3,,,,,,,,,,,False
-FAST,Industrials,Fastenal,2026-07-27,47.71,-1.29,6.82,11.23,6.99,0.667,42,35,30,37.5,,,,,,,,,,,False
-NDSN,Industrials,Nordson Corporation,2026-07-27,297.78,2.55,5.45,9.11,6.55,1.0,31,37,38,34.2,,,,,,,,,,,False
-CAT,Industrials,Caterpillar Inc.,2026-07-27,814.81,-15.28,-8.24,24.42,6.33,0.333,74,64,13,58.8,19.3,9.51,True,False,918.69,15.63,0.844,False,1071.47,-23.95,True
-EXPD,Industrials,Expeditors International,2026-07-27,167.89,0.19,14.62,5.12,6.26,1.0,36,17,44,31.9,,,,,,,,,,,False
-AME,Industrials,Ametek,2026-07-27,241.71,3.02,5.03,8.25,6.14,1.0,26,38,41,32.6,,,,,,,,,,,False
-DE,Industrials,Deere & Company,2026-07-27,592.67,-4.6,2.94,12.87,6.02,0.667,56,41,28,45.9,,,,,,,,,,,False
-EMR,Industrials,Emerson Electric,2026-07-27,149.82,7.75,9.44,2.75,5.67,1.0,10,28,49,23.2,0.44,3.39,True,True,141.89,11.58,1.037,False,163.86,-8.57,True
-PH,Industrials,Parker Hannifin,2026-07-27,976.53,1.42,10.94,4.78,5.48,1.0,34,23,45,32.9,,,,,,,,,,,False
-HON,Industrials,Honeywell Technologies,2026-07-27,243.05,5.74,9.66,2.93,5.31,1.0,14,26,47,24.2,7.22,5.55,False,True,233.81,11.85,0.985,False,258.86,-6.11,True
-ALLE,Industrials,Allegion,2026-07-27,157.4,11.96,16.65,-4.08,5.12,0.667,3,14,57,17.1,8.29,-5.09,False,True,137.25,19.54,1.375,False,181.67,-13.36,True
-FTV,Industrials,Fortive,2026-07-27,59.21,-5.49,0.4,12.35,4.9,0.667,60,46,29,49.6,,,,,,,,,,,False
-VRT,Industrials,Vertiv,2026-07-27,241.57,-19.62,-26.4,29.81,3.4,0.333,75,78,9,62.7,6.42,15.67,False,False,305.72,33.82,0.975,False,379.86,-36.4,True
-CMI,Industrials,Cummins,2026-07-27,634.2,-4.16,-3.23,10.28,3.29,0.333,52,54,33,48.8,,,,,,,,,,,False
-EME,Industrials,Emcor,2026-07-27,797.43,2.99,-11.69,10.75,3.2,0.667,27,70,32,40.9,,,,,,,,,,,False
-J,Industrials,Jacobs Solutions,2026-07-27,134.93,5.5,4.99,0.33,2.79,1.0,15,39,52,29.6,7.09,1.78,True,True,125.57,9.77,0.756,False,167.07,-19.24,True
-LMT,Industrials,Lockheed Martin,2026-07-27,582.74,6.75,14.39,-7.03,1.77,0.667,12,18,60,23.4,10.29,-3.78,False,True,528.2,19.14,1.508,False,687.5,-15.24,True
-TT,Industrials,Trane Technologies,2026-07-27,454.95,-4.85,-6.27,8.68,1.56,0.333,57,58,39,53.7,,,,,,,,,,,False
-MAS,Industrials,Masco,2026-07-27,71.48,-13.64,0.82,9.14,1.36,0.667,72,45,36,56.7,,,,,,,,,,,False
-IR,Industrials,Ingersoll Rand,2026-07-27,83.38,3.46,6.94,-3.1,1.05,0.667,22,34,55,32.2,,,,,,,,,,,False
-WM,Industrials,Waste Management,2026-07-27,226.55,-1.67,-0.54,2.79,0.84,0.333,44,50,48,46.6,,,,,,,,,,,False
-VLTO,Industrials,Veralto,2026-07-27,94.17,1.75,7.62,-4.58,0.06,0.667,33,33,59,38.2,,,,,,,,,,,False
-LUV,Industrials,Southwest Airlines,2026-07-27,44.97,-10.51,16.53,-4.54,-0.77,0.333,67,15,58,49.6,80.17,-5.03,False,False,46.19,10.43,0.99,False,54.63,-17.69,True
-RSG,Industrials,Republic Services,2026-07-27,210.55,-3.12,2.23,-1.55,-1.0,0.333,50,42,53,48.2,,,,,,,,,,,False
-UPS,Industrials,United Parcel Service,2026-07-27,104.22,-5.82,-1.48,1.16,-1.24,0.333,62,51,51,56.5,,,,,,,,,,,False
-VRSK,Industrials,Verisk Analytics,2026-07-27,194.85,3.45,7.88,-9.93,-2.13,0.667,23,32,62,33.5,,,,,,,,,,,False
-DOV,Industrials,Dover Corporation,2026-07-27,204.62,-4.25,-9.15,2.04,-2.33,0.333,53,66,50,56.3,,,,,,,,,,,False
-CARR,Industrials,Carrier Global,2026-07-27,61.81,-11.47,-7.94,4.49,-2.61,0.333,69,63,46,62.6,,,,,,,,,,,False
-GNRC,Industrials,Generac,2026-07-27,197.11,-21.99,-24.0,17.3,-2.85,0.333,77,77,21,65.8,,,,,,,,,,,False
-HUBB,Industrials,Hubbell Incorporated,2026-07-27,472.55,-2.99,-6.78,-2.6,-3.74,0.0,49,60,54,53.3,,,,,,,,,,,False
-TDG,Industrials,TransDigm Group,2026-07-27,1254.38,-6.98,8.66,-12.13,-5.65,0.333,63,29,64,53.0,,,,,,,,,,,False
-TXT,Industrials,Textron,2026-07-27,85.26,-7.83,-9.97,-3.14,-6.02,0.0,64,67,56,63.3,,,,,,,,,,,False
-BA,Industrials,Boeing,2026-07-27,216.14,-4.57,-4.94,-7.52,-6.14,0.0,55,56,61,56.5,,,,,,,,,,,False
-EFX,Industrials,Equifax,2026-07-27,172.62,0.32,-0.37,-13.76,-6.89,0.333,35,49,65,45.2,,,,,,,,,,,False
-XYL,Industrials,Xylem Inc.,2026-07-27,116.97,-0.97,1.78,-14.54,-7.07,0.333,40,43,66,46.1,,,,,,,,,,,False
-BR,Industrials,Broadridge Financial Solutions,2026-07-27,153.95,6.95,-0.17,-20.93,-8.77,0.333,11,48,71,34.1,4.45,16.81,True,True,146.82,13.37,1.023,False,266.43,-42.22,True
-UBER,Industrials,Uber,2026-07-27,70.36,-5.47,-6.34,-12.1,-9.0,0.0,59,59,63,59.8,,,,,,,,,,,False
-OTIS,Industrials,Otis Worldwide,2026-07-27,71.95,-1.63,-6.09,-14.87,-9.36,0.0,43,57,67,52.0,,,,,,,,,,,False
-AOS,Industrials,A. O. Smith,2026-07-27,60.13,-3.55,0.24,-17.22,-9.44,0.333,51,47,69,53.4,,,,,,,,,,,False
-HII,Industrials,Huntington Ingalls Industries,2026-07-27,326.45,11.99,-9.08,-21.79,-10.17,0.333,2,65,73,35.1,,,,True,292.13,22.69,1.394,False,458.02,-28.73,False
-NOC,Industrials,Northrop Grumman,2026-07-27,542.48,-1.19,-4.1,-21.04,-11.84,0.0,41,55,72,51.4,,,,,,,,,,,False
-LHX,Industrials,L3Harris,2026-07-27,277.06,-8.28,-11.23,-18.58,-14.17,0.0,65,69,70,67.2,,,,,,,,,,,False
-CPRT,Industrials,Copart,2026-07-27,29.12,-2.97,-12.47,-28.24,-17.98,0.0,48,72,75,60.6,,,,,,,,,,,False
-LII,Industrials,Lennox International,2026-07-27,415.88,-27.04,-20.8,-15.55,-19.73,0.0,79,75,68,75.6,,,,,,,,,,,False
-CHRW,Industrials,C.H. Robinson,2026-07-27,147.73,-22.19,-16.39,-23.7,-21.5,0.0,78,73,74,75.7,,,,,,,,,,,False
-LDOS,Industrials,Leidos,2026-07-27,115.6,6.21,-22.26,-38.23,-23.13,0.333,13,76,77,44.7,7.56,5.91,True,True,113.84,13.68,0.911,False,204.08,-43.35,True
-PNR,Industrials,Pentair,2026-07-27,65.44,-14.33,-16.91,-37.43,-26.53,0.0,73,74,76,73.9,,,,,,,,,,,False
-BLDR,Industrials,Builders FirstSource,2026-07-27,66.44,-21.55,-12.26,-41.92,-29.41,0.0,76,71,79,75.1,,,,,,,,,,,False
-ROL,Industrials,"Rollins, Inc.",2026-07-27,37.97,-12.47,-30.45,-39.67,-30.56,0.0,71,79,78,74.8,,,,,,,,,,,False
-DELL,Information Technology,Dell Technologies,2026-07-27,405.37,2.97,93.2,255.9,151.99,1.0,30,1,1,15.5,63.99,10.74,False,True,398.45,23.37,1.087,False,468.7,-13.51,True
-HPE,Information Technology,Hewlett Packard Enterprise,2026-07-27,47.9,16.18,68.15,124.67,83.42,1.0,6,5,3,5.1,48.03,10.75,False,True,45.91,14.08,0.939,False,64.06,-25.23,True
-DDOG,Information Technology,Datadog,2026-07-27,267.97,2.92,90.69,107.21,77.01,1.0,31,2,7,17.5,18.25,6.33,True,True,244.87,16.06,1.09,False,278.76,-3.87,True
-FTNT,Information Technology,Fortinet,2026-07-27,161.95,3.65,87.68,99.3,72.48,1.0,26,3,9,15.7,20.53,32.63,False,True,149.67,16.45,1.281,False,170.35,-4.93,True
-MRVL,Information Technology,Marvell Technology,2026-07-27,187.56,-23.52,13.74,137.84,66.47,0.667,70,22,2,42.0,0.64,1.05,False,False,239.41,27.16,0.969,False,329.8,-43.13,True
-WDC,Information Technology,Western Digital,2026-07-27,544.84,1.08,26.29,117.9,65.79,1.0,35,15,4,22.8,13.57,10.47,True,False,561.26,30.53,0.916,False,799.87,-31.88,True
-PANW,Information Technology,Palo Alto Networks,2026-07-27,331.83,-4.66,83.25,87.51,63.4,0.667,46,4,12,26.6,6.62,9.94,False,True,305.27,17.59,1.074,False,368.8,-10.02,True
-NTAP,Information Technology,NetApp,2026-07-27,178.5,16.13,59.74,86.78,62.36,1.0,7,7,13,8.2,7.22,2.78,False,True,161.14,11.2,0.96,False,192.25,-7.15,True
-STX,Information Technology,Seagate Technology,2026-07-27,856.13,4.39,17.86,110.51,60.82,1.0,23,20,6,18.7,12.09,16.76,False,False,890.07,28.26,1.009,False,1144.18,-25.18,True
-MU,Information Technology,Micron Technology,2026-07-27,823.03,-15.62,51.82,98.49,58.29,0.667,61,8,10,34.9,21.25,33.21,False,False,964.75,30.9,0.871,False,1254.81,-34.41,True
-AMD,Information Technology,Advanced Micro Devices,2026-07-27,476.15,-8.05,32.07,101.14,56.57,0.667,54,11,8,31.9,5.82,15.98,True,False,512.21,27.47,0.906,False,584.73,-18.57,True
-CRWD,Information Technology,CrowdStrike,2026-07-27,190.86,-1.61,67.55,72.96,52.96,0.667,41,6,16,25.5,3.05,1.56,False,True,181.4,18.32,1.035,False,217.5,-12.25,True
-SNDK,Information Technology,Sandisk,2026-07-27,1214.83,-30.38,2.34,110.82,48.4,0.667,74,38,5,49.4,59.67,74.97,True,False,1709.22,51.67,0.732,False,2354.39,-48.4,True
-FLEX,Information Technology,Flex Ltd.,2026-07-27,113.75,-16.89,24.05,80.44,42.01,0.667,66,18,15,41.4,8.9,6.07,False,False,139.08,27.3,0.823,False,166.86,-31.83,True
-INTC,Information Technology,Intel,2026-07-27,90.2,-25.05,-9.46,94.1,38.42,0.333,72,57,11,55.3,92.49,2108.68,False,False,112.81,26.69,0.831,False,142.35,-36.64,True
-HPQ,Information Technology,HP Inc.,2026-07-27,27.27,24.35,32.51,44.29,36.36,1.0,2,10,23,8.6,20.26,5.61,False,True,24.55,19.48,0.994,False,29.29,-6.91,True
-LITE,Information Technology,Lumentum,2026-07-27,713.94,-1.97,-24.84,82.2,34.4,0.333,42,73,14,45.7,4.62,18.56,True,False,826.15,40.82,0.998,False,1085.68,-34.24,True
-AMAT,Information Technology,Applied Materials,2026-07-27,507.67,-15.81,30.64,57.9,32.66,0.667,62,12,17,38.0,6.5,7.89,True,False,543.57,27.05,1.0,False,739.67,-31.37,True
-CSCO,Information Technology,Cisco,2026-07-27,115.99,3.31,26.75,49.46,32.25,1.0,27,14,20,21.7,2.29,1.75,True,False,117.4,5.85,1.013,False,129.88,-10.7,True
-FFIV,Information Technology,"F5, Inc.",2026-07-27,402.57,-1.36,24.56,46.07,28.83,0.667,40,17,22,29.5,,,,,,,,,,,False
-TER,Information Technology,Teradyne,2026-07-27,367.69,-0.38,6.49,52.66,27.86,0.667,38,31,18,31.9,,,,,,,,,,,False
-ZBRA,Information Technology,Zebra Technologies,2026-07-27,293.82,9.97,29.39,25.04,22.36,1.0,18,13,33,19.5,11.88,-0.11,True,True,254.21,15.46,1.106,False,350.64,-16.2,True
-KEYS,Information Technology,Keysight Technologies,2026-07-27,319.08,1.66,-9.46,47.5,21.8,0.667,34,57,21,38.3,,,,,,,,,,,False
-GEN,Information Technology,Gen Digital,2026-07-27,27.45,2.92,42.47,15.65,19.17,1.0,31,9,41,26.4,3.4,1.43,True,True,25.6,11.84,0.984,False,31.6,-13.14,True
-ANET,Information Technology,Arista Networks,2026-07-27,180.35,12.73,4.43,27.24,17.91,1.0,12,35,31,22.7,7.73,8.17,True,True,166.58,15.52,0.932,False,189.82,-4.99,True
-CIEN,Information Technology,Ciena,2026-07-27,377.05,-10.75,-29.56,49.74,14.79,0.333,57,74,19,54.5,,,,,,,,,,,False
-VRSN,Information Technology,Verisign,2026-07-27,290.02,13.1,6.74,19.51,14.71,1.0,10,30,35,21.0,1.11,4.2,False,True,276.23,14.49,1.021,False,312.48,-7.19,True
-Q,Information Technology,Qnity Electronics,2026-07-27,131.18,-7.46,-8.43,36.55,14.3,0.333,52,56,24,47.6,,,,,,,,,,,False
-CDW,Information Technology,CDW Corporation,2026-07-27,147.81,10.83,9.3,18.23,14.15,1.0,13,28,39,22.7,-0.26,5.13,True,True,132.1,17.27,0.932,False,170.09,-13.1,False
-MPWR,Information Technology,Monolithic Power Systems,2026-07-27,1426.03,10.7,-9.81,27.3,13.88,0.667,16,60,30,32.0,,,,,,,,,,,False
-TXN,Information Technology,Texas Instruments,2026-07-27,275.74,-5.43,-0.88,29.23,13.04,0.333,48,47,28,43.7,,,,,,,,,,,False
-JBL,Information Technology,Jabil,2026-07-27,315.05,-7.69,-7.99,32.9,12.53,0.333,53,55,27,48.4,,,,,,,,,,,False
-AKAM,Information Technology,Akamai Technologies,2026-07-27,115.18,1.78,10.89,18.56,12.45,1.0,33,25,38,31.6,,,,,,,,,,,False
-LRCX,Information Technology,Lam Research,2026-07-27,293.02,-16.62,14.22,25.75,12.28,0.667,65,21,32,45.2,,,,,,,,,,,False
-AAPL,Information Technology,Apple Inc.,2026-07-27,308.91,0.09,10.37,19.27,12.25,1.0,37,26,36,33.5,,,,,,,,,,,False
-MSFT,Information Technology,Microsoft,2026-07-27,464.72,19.01,12.37,8.48,12.09,1.0,4,24,46,18.4,11.81,4.9,False,True,399.39,22.13,1.259,False,550.24,-15.54,True
-ON,Information Technology,ON Semiconductor,2026-07-27,81.61,-10.53,-20.79,36.27,10.3,0.333,56,70,25,54.0,,,,,,,,,,,False
-KLAC,Information Technology,KLA Corporation,2026-07-27,182.82,-22.39,6.04,28.36,10.09,0.667,68,33,29,49.7,,,,,,,,,,,False
-AVGO,Information Technology,Broadcom,2026-07-27,389.28,8.0,-7.45,17.93,9.1,0.667,19,53,40,33.4,,,,,,,,,,,False
-APH,Information Technology,Amphenol,2026-07-27,160.7,-2.36,13.1,11.92,8.65,0.667,43,23,44,37.2,,,,,,,,,,,False
-ROP,Information Technology,Roper Technologies,2026-07-27,391.97,7.89,9.7,6.12,7.46,1.0,20,27,47,27.5,,,,,,,,,,,False
-ADI,Information Technology,Analog Devices,2026-07-27,367.41,-2.59,-7.36,18.88,6.95,0.333,44,52,37,45.0,,,,,,,,,,,False
-WDAY,Information Technology,"Workday, Inc.",2026-07-27,160.34,18.42,26.29,-8.71,6.82,0.667,5,15,58,18.6,5.68,6.41,False,True,136.23,29.3,0.947,False,249.85,-35.83,True
-GLW,Information Technology,Corning Inc.,2026-07-27,138.25,-29.75,-12.51,34.35,6.61,0.333,73,61,26,60.0,,,,,,,,,,,False
-MSI,Information Technology,Motorola Solutions,2026-07-27,435.75,3.1,0.27,8.86,5.27,1.0,28,42,45,35.6,,,,,,,,,,,False
-CDNS,Information Technology,Cadence Design Systems,2026-07-27,340.02,-8.88,-0.27,14.73,5.08,0.333,55,44,42,49.1,,,,,,,,,,,False
-SWKS,Information Technology,Skyworks Solutions,2026-07-27,62.28,-0.45,-9.48,14.02,4.53,0.333,39,59,43,45.8,,,,,,,,,,,False
-NOW,Information Technology,ServiceNow,2026-07-27,111.23,4.62,22.02,-4.94,4.19,0.667,22,19,54,27.5,,,,,,,,,,,False
-NVDA,Information Technology,Nvidia,2026-07-27,200.75,3.04,1.28,5.16,3.66,1.0,29,39,49,36.0,,,,,,,,,,,False
-TDY,Information Technology,Teledyne Technologies,2026-07-27,655.57,0.54,2.38,5.69,3.57,1.0,36,37,48,38.7,,,,,,,,,,,False
-COHR,Information Technology,Coherent Corp.,2026-07-27,262.89,-21.14,-20.22,23.9,1.61,0.333,67,66,34,60.1,,,,,,,,,,,False
-SMCI,Information Technology,Supermicro,2026-07-27,28.4,4.34,4.84,-2.44,1.07,0.667,24,34,53,32.8,,,,,,,,,,,False
-ADSK,Information Technology,Autodesk,2026-07-27,234.2,12.88,-4.15,-7.38,-1.51,0.333,11,49,57,31.6,5.15,7.81,False,True,215.89,21.12,1.258,False,329.09,-28.83,True
-TEL,Information Technology,TE Connectivity,2026-07-27,205.69,4.18,-0.46,-7.03,-2.58,0.333,25,46,56,37.5,,,,,,,,,,,False
-PTC,Information Technology,PTC Inc.,2026-07-27,137.2,10.16,0.49,-12.12,-3.4,0.667,17,40,59,32.3,,,,,,,,,,,False
-CRM,Information Technology,Salesforce,2026-07-27,184.02,10.78,0.37,-12.88,-3.65,0.667,14,41,60,31.3,24.07,24.85,False,True,170.88,20.18,1.106,False,267.75,-31.27,True
-ADBE,Information Technology,Adobe Inc.,2026-07-27,250.41,13.97,-0.12,-14.61,-3.84,0.333,9,43,61,29.6,2.5,3.18,False,True,228.34,23.41,1.184,False,370.86,-32.48,True
-FSLR,Information Technology,First Solar,2026-07-27,211.03,-6.03,-0.32,-6.43,-4.8,0.0,49,45,55,49.0,,,,,,,,,,,False
-CTSH,Information Technology,Cognizant,2026-07-27,55.35,31.82,6.31,-31.73,-6.33,0.667,1,32,72,24.5,-0.66,4.98,False,True,47.57,30.96,1.172,False,85.98,-35.63,False
-NXPI,Information Technology,NXP Semiconductors,2026-07-27,229.16,-16.17,-22.12,2.21,-8.47,0.333,63,71,50,62.8,,,,,,,,,,,False
-MCHP,Information Technology,Microchip Technology,2026-07-27,74.29,-12.23,-20.53,-1.08,-8.73,0.0,60,69,51,60.9,,,,,,,,,,,False
-QCOM,Information Technology,Qualcomm,2026-07-27,147.61,-16.25,-16.3,-1.64,-8.96,0.0,64,64,52,61.6,,,,,,,,,,,False
-IT,Information Technology,Gartner,2026-07-27,151.02,10.78,3.16,-27.95,-10.49,0.667,14,36,71,32.0,13.64,12.21,True,True,145.57,26.59,0.945,False,337.29,-55.23,True
-TYL,Information Technology,Tyler Technologies,2026-07-27,309.6,-2.67,-7.72,-16.19,-10.69,0.0,45,54,63,51.3,,,,,,,,,,,False
-TRMB,Information Technology,Trimble Inc.,2026-07-27,56.58,6.67,-17.3,-16.3,-10.81,0.333,21,65,64,42.8,,,,,,,,,,,False
-GDDY,Information Technology,GoDaddy,2026-07-27,82.74,-6.52,-4.63,-17.69,-11.63,0.0,50,50,67,53.4,,,,,,,,,,,False
-FICO,Information Technology,Fair Isaac,2026-07-27,1122.97,-11.63,8.45,-23.25,-12.42,0.333,59,29,69,52.0,,,,,,,,,,,False
-PLTR,Information Technology,Palantir Technologies,2026-07-27,123.06,-4.83,-14.58,-16.05,-12.88,0.0,47,63,62,54.8,,,,,,,,,,,False
-ACN,Information Technology,Accenture,2026-07-27,165.92,22.25,-6.63,-35.77,-13.98,0.333,3,51,73,31.4,2.46,3.26,False,True,153.13,26.39,1.141,False,285.21,-41.83,True
-SNPS,Information Technology,Synopsys,2026-07-27,388.76,-11.07,-20.5,-16.42,-16.1,0.0,58,68,66,62.6,,,,,,,,,,,False
-APP,Information Technology,AppLovin,2026-07-27,395.9,-24.89,-13.93,-16.32,-17.86,0.0,71,62,65,67.1,,,,,,,,,,,False
-ORCL,Information Technology,Oracle Corporation,2026-07-27,129.87,-7.09,-24.16,-20.54,-18.08,0.0,51,72,68,60.7,,,,,,,,,,,False
-INTU,Information Technology,Intuit,2026-07-27,316.07,15.3,-20.44,-36.17,-19.37,0.333,8,67,74,38.9,1.84,12.69,False,True,291.14,19.16,1.146,False,785.27,-59.75,True
-IBM,Information Technology,IBM,2026-07-27,223.65,-22.75,-2.97,-26.12,-19.49,0.0,69,48,70,62.9,,,,,,,,,,,False
-NUE,Materials,Nucor,2026-07-27,257.29,16.55,14.1,45.62,30.48,1.0,1,4,1,1.9,6.94,14.67,False,True,242.39,16.19,0.997,False,270.24,-4.79,True
-STLD,Materials,Steel Dynamics,2026-07-27,251.26,14.01,9.84,40.67,26.3,1.0,3,8,2,4.3,0.56,-0.19,False,True,248.12,14.97,0.997,False,288.09,-12.78,True
-CF,Materials,CF Industries,2026-07-27,125.19,13.25,2.45,35.55,21.7,1.0,4,14,3,6.8,45.68,10.41,True,True,114.86,8.75,1.235,False,141.38,-11.45,True
-LYB,Materials,LyondellBasell,2026-07-27,62.08,16.34,-16.35,29.57,14.78,0.667,2,23,4,8.7,25.6,76.13,False,True,60.97,11.78,1.085,False,83.07,-25.27,True
-SW,Materials,Smurfit Westrock,2026-07-27,45.97,0.09,17.92,12.67,10.84,1.0,12,3,7,8.3,-16.91,-17.35,False,True,43.7,20.55,1.114,False,51.99,-11.58,True
-IP,Materials,International Paper,2026-07-27,40.83,5.26,30.48,3.8,10.83,1.0,6,1,16,6.5,205.43,5.41,False,True,36.57,21.96,1.248,False,49.02,-16.71,True
-PKG,Materials,Packaging Corporation of America,2026-07-27,245.84,3.21,13.49,11.85,10.1,1.0,8,5,9,7.3,1.62,12.54,False,True,229.98,14.89,1.238,False,258.81,-5.01,True
-BALL,Materials,Ball Corporation,2026-07-27,64.9,2.38,6.21,14.88,9.59,1.0,10,11,5,9.3,11.31,1.51,True,True,59.48,9.3,0.97,False,67.84,-4.33,True
-IFF,Materials,International Flavors & Fragrances,2026-07-27,79.22,-5.5,12.47,14.75,9.12,0.667,18,6,6,12.0,16.51,-3.81,True,True,76.64,10.64,0.759,False,83.83,-5.5,True
-AMCR,Materials,Amcor,2026-07-27,44.88,-0.27,20.87,4.47,7.38,0.667,13,2,14,9.9,0.55,2.47,True,True,41.62,11.28,0.752,False,49.46,-9.25,True
-FCX,Materials,Freeport-McMoRan,2026-07-27,62.63,2.97,11.02,4.47,5.73,1.0,9,7,14,9.4,18.5,21.95,False,False,63.47,11.62,0.838,False,72.1,-13.14,True
-APD,Materials,Air Products,2026-07-27,294.89,-6.14,-1.44,9.57,2.89,0.333,19,16,10,16.3,3.8,4.54,False,True,288.46,6.66,1.062,False,314.87,-6.35,True
-DOW,Materials,Dow Inc.,2026-07-27,30.29,9.31,-24.06,12.38,2.5,0.667,5,25,8,11.6,12.62,51.7,False,False,31.39,14.94,1.074,False,42.31,-28.41,True
-DD,Materials,DuPont,2026-07-27,137.0,-2.08,-0.85,4.81,1.67,0.333,15,15,13,14.6,13.58,6.6,True,False,139.85,5.61,0.611,False,156.73,-12.59,True
-CTVA,Materials,Corteva,2026-07-27,78.71,-8.26,-2.42,8.61,1.63,0.333,20,17,11,17.3,2.93,27.11,False,False,81.97,14.05,0.705,False,90.97,-13.48,True
-ECL,Materials,Ecolab,2026-07-27,277.63,-2.02,7.27,-1.01,0.81,0.333,14,10,17,13.4,0.48,0.17,False,True,268.18,8.87,1.067,False,307.6,-9.74,True
-SHW,Materials,Sherwin-Williams,2026-07-27,340.85,-3.3,7.46,-3.43,-0.67,0.333,16,9,19,14.5,5.13,3.56,False,True,323.23,17.02,1.122,False,376.95,-9.58,True
-LIN,Materials,Linde plc,2026-07-27,478.38,-12.49,-5.52,5.37,-1.82,0.333,25,19,12,20.6,0.66,1.4,False,False,514.18,10.89,0.852,False,548.2,-12.74,True
-AVY,Materials,Avery Dennison,2026-07-27,169.73,1.65,4.78,-7.46,-2.12,0.667,11,12,20,13.1,17.0,1.81,False,True,160.25,20.34,1.155,False,197.29,-13.97,True
-PPG,Materials,PPG Industries,2026-07-27,110.52,-11.82,3.47,-3.24,-3.71,0.333,23,13,18,19.0,-1.04,3.65,False,False,116.04,12.09,0.836,False,131.81,-16.15,False
-MOS,Materials,Mosaic Company (The),2026-07-27,22.12,4.69,-3.48,-18.06,-8.73,0.333,7,18,23,13.5,-77.32,-50.5,True,False,22.17,6.9,0.96,False,35.98,-38.52,False
-VMC,Materials,Vulcan Materials Company,2026-07-27,268.57,-11.42,-9.49,-10.29,-10.37,0.0,21,20,21,20.7,,,,,,,,,,,False
-NEM,Materials,Newmont,2026-07-27,93.71,-3.43,-13.53,-16.23,-12.35,0.0,17,21,22,19.2,,,,,,,,,,,False
-MLM,Materials,Martin Marietta Materials,2026-07-27,525.14,-12.39,-14.42,-19.24,-16.32,0.0,24,22,24,23.4,,,,,,,,,,,False
-CRH,Materials,CRH plc,2026-07-27,95.01,-11.64,-17.41,-21.83,-18.18,0.0,22,24,25,23.2,,,,,,,,,,,False
-ALB,Materials,Albemarle Corporation,2026-07-27,117.64,-13.22,-39.17,-30.71,-28.45,0.0,26,26,26,26.0,,,,,,,,,,,False
-HST,Real Estate,Host Hotels & Resorts,2026-07-27,25.13,7.62,23.49,42.32,28.94,1.0,2,3,1,2.1,116.0,4.07,True,True,23.56,7.59,1.066,False,25.71,-2.26,True
-DOC,Real Estate,Healthpeak Properties,2026-07-27,21.83,0.18,34.93,30.86,24.21,1.0,15,1,3,8.4,363.12,59.33,True,True,20.86,5.69,1.07,False,22.95,-4.88,True
-IRM,Real Estate,Iron Mountain,2026-07-27,122.32,4.4,-3.17,34.77,17.69,0.667,5,24,2,10.1,15.76,3.81,True,False,125.02,9.91,1.08,False,134.68,-9.18,True
-SPG,Real Estate,Simon Property Group,2026-07-27,229.37,1.46,14.55,22.61,15.31,1.0,10,5,8,8.1,-17.98,-47.1,True,True,217.8,6.21,0.841,False,238.5,-3.83,True
-FRT,Real Estate,Federal Realty Investment Trust,2026-07-27,124.09,1.97,8.6,25.13,15.21,1.0,8,8,6,7.6,35.3,165.2,False,True,122.06,4.03,0.849,False,128.21,-3.21,True
-WELL,Real Estate,Welltower,2026-07-27,234.44,-0.69,8.45,25.33,14.61,0.667,17,10,5,12.5,-16.88,9.38,False,True,223.98,9.26,1.037,False,255.2,-8.13,False
-KIM,Real Estate,Kimco Realty,2026-07-27,25.48,0.63,10.18,23.56,14.48,1.0,13,6,7,9.7,7.45,-3.69,True,True,25.04,5.2,0.855,False,26.65,-4.39,True
-VTR,Real Estate,Ventas,2026-07-27,93.51,1.07,6.86,21.88,12.92,1.0,12,12,9,11.4,51.73,-1.4,False,True,88.76,11.67,0.819,False,101.6,-7.96,True
-EQIX,Real Estate,Equinix,2026-07-27,1019.28,1.72,-5.6,25.46,11.76,0.667,9,27,4,13.4,6.33,-3.8,False,False,1054.28,9.99,0.994,False,1124.0,-9.32,True
-PSA,Real Estate,Public Storage,2026-07-27,324.17,-1.66,8.5,19.67,11.54,0.667,20,9,10,14.7,-2.93,2.19,False,True,315.88,8.75,0.866,False,335.55,-3.39,False
-BXP,Real Estate,"BXP, Inc.",2026-07-27,70.12,1.15,19.35,11.07,10.66,1.0,11,4,16,9.9,14.75,97.57,False,True,65.47,11.13,1.149,False,75.95,-7.67,True
-ESS,Real Estate,Essex Property Trust,2026-07-27,284.14,-4.76,8.85,15.04,8.54,0.667,27,7,12,18.0,-35.97,15.55,False,False,285.13,6.37,1.226,False,303.35,-6.33,False
-DLR,Real Estate,Digital Realty,2026-07-27,188.52,8.78,-5.44,15.14,8.4,0.667,1,26,11,10.5,-15.0,2.71,False,True,184.77,18.38,1.436,False,207.47,-9.13,False
-PLD,Real Estate,Prologis,2026-07-27,144.61,3.72,3.01,12.46,7.91,1.0,6,21,14,12.1,48.33,41.3,False,True,143.56,5.25,1.079,False,153.35,-5.7,True
-INVH,Real Estate,Invitation Homes,2026-07-27,29.72,-2.65,5.24,13.69,7.49,0.667,23,14,13,18.3,9.76,-14.31,False,True,29.48,4.33,1.005,False,30.73,-3.29,True
-REG,Real Estate,Regency Centers,2026-07-27,80.29,-0.83,3.05,12.31,6.71,0.667,18,19,15,17.7,3.59,9.38,False,True,79.39,4.18,0.96,False,83.66,-4.03,True
-EXR,Real Estate,Extra Space Storage,2026-07-27,148.04,-0.87,5.37,9.72,5.99,0.667,19,13,17,16.8,8.6,3.4,False,True,145.79,9.94,1.169,False,158.88,-6.82,True
-ARE,Real Estate,Alexandria Real Estate Equities,2026-07-27,51.45,-2.15,25.94,-3.1,4.4,0.333,22,2,28,17.2,1359.96,-2200.77,False,True,50.52,13.1,0.895,False,83.17,-38.14,True
-EQR,Real Estate,Equity Residential,2026-07-27,66.45,-4.84,3.02,9.04,4.07,0.667,28,20,18,23.6,,,,,,,,,,,False
-O,Real Estate,Realty Income,2026-07-27,63.87,0.47,1.4,7.15,4.04,1.0,14,23,19,17.7,-17.72,-18.46,True,True,62.31,4.71,0.917,False,66.87,-4.48,True
-AVB,Real Estate,AvalonBay Communities,2026-07-27,185.61,-4.31,2.12,6.62,2.76,0.667,26,22,20,23.6,,,,,,,,,,,False
-CPT,Real Estate,Camden Property Trust,2026-07-27,110.81,-5.49,7.06,3.67,2.23,0.667,29,11,22,22.2,-33.95,-196.43,False,False,111.68,6.96,1.08,False,119.81,-7.51,True
-WY,Real Estate,Weyerhaeuser,2026-07-27,25.03,5.21,5.23,-1.23,2.0,0.667,3,16,25,11.3,66.58,119.91,False,True,24.08,8.07,1.221,False,27.28,-8.24,True
-UDR,Real Estate,"UDR, Inc.",2026-07-27,38.16,-6.8,5.24,4.38,1.8,0.667,31,14,21,23.9,61.01,269.69,False,False,38.91,6.35,0.789,False,41.85,-8.82,True
-MAA,Real Estate,Mid-America Apartment Communities,2026-07-27,132.34,-5.85,4.13,0.9,0.02,0.667,30,17,23,24.7,,,,,,,,,,,False
-AMT,Real Estate,American Tower,2026-07-27,173.36,4.41,-3.63,-1.4,-0.51,0.333,4,25,26,14.7,20.65,17.04,False,False,175.81,10.22,0.997,False,206.8,-16.17,True
-VICI,Real Estate,Vici Properties,2026-07-27,26.35,-3.09,-6.25,-3.03,-3.85,0.0,24,28,27,25.8,,,,,,,,,,,False
-SBAC,Real Estate,SBA Communications,2026-07-27,180.98,-1.94,-16.7,-0.43,-4.88,0.0,21,30,24,24.3,,,,,,,,,,,False
-CBRE,Real Estate,CBRE Group,2026-07-27,146.81,3.69,3.53,-13.81,-5.1,0.667,7,18,30,14.9,5.77,42.05,False,True,135.8,13.28,1.522,False,174.27,-15.76,True
-CCI,Real Estate,Crown Castle,2026-07-27,76.3,-0.39,-13.52,-9.97,-8.46,0.0,16,29,29,22.5,,,,,,,,,,,False
-CSGP,Real Estate,CoStar Group,2026-07-27,28.76,-4.13,-17.17,-53.24,-31.94,0.0,25,31,31,28.0,,,,,,,,,,,False
-EIX,Utilities,Edison International,2026-07-27,73.37,-1.88,6.24,20.64,11.41,0.667,8,2,1,4.8,26.99,7.42,False,False,73.67,10.8,0.876,False,81.62,-10.11,True
-D,Utilities,Dominion Energy,2026-07-27,69.17,-0.83,9.26,17.35,10.78,0.667,5,1,2,3.2,17.2,4.37,False,True,68.66,4.02,1.391,False,72.99,-5.23,True
-PCG,Utilities,PG&E Corporation,2026-07-27,17.38,1.94,5.96,13.36,8.66,1.0,2,4,4,3.0,11.64,8.83,False,True,16.97,6.57,0.948,False,19.05,-8.77,True
-EVRG,Utilities,Evergy,2026-07-27,83.01,-5.81,1.33,10.01,3.88,0.667,22,8,5,14.4,13.81,-24.26,True,False,84.5,6.03,0.895,False,88.62,-6.33,True
-AWK,Utilities,American Water Works,2026-07-27,134.17,-1.97,6.08,5.36,3.71,0.667,10,3,14,8.7,3.97,-7.4,False,True,129.2,7.79,0.909,False,144.9,-7.41,True
-ETR,Utilities,Entergy,2026-07-27,107.62,-6.51,-7.57,13.59,3.28,0.333,25,27,3,21.2,2.39,2.26,False,False,112.22,7.96,0.824,False,118.45,-9.14,True
-FE,Utilities,FirstEnergy,2026-07-27,48.31,-0.45,4.02,4.09,2.94,0.667,4,6,19,7.6,-0.48,0.63,False,True,47.5,4.85,0.797,False,51.81,-6.75,False
-AES,Utilities,AES Corporation,2026-07-27,14.68,1.89,4.03,2.66,2.81,1.0,3,5,22,7.4,108.27,33.04,False,True,14.54,0.85,1.33,True,17.23,-14.79,True
-PNW,Utilities,Pinnacle West Capital,2026-07-27,100.99,-7.66,-1.6,9.97,2.67,0.333,27,12,6,18.3,814.01,162.15,True,False,104.39,8.02,0.781,False,111.16,-9.15,True
-SO,Utilities,Southern Company,2026-07-27,94.54,-3.51,-1.43,7.57,2.55,0.333,13,11,10,11.8,11.82,8.87,False,True,94.52,5.91,0.996,False,99.26,-4.76,True
-ES,Utilities,Eversource Energy,2026-07-27,71.59,-3.83,1.93,5.9,2.47,0.667,14,7,13,11.7,-0.33,6.21,False,False,71.73,7.07,0.763,False,76.57,-6.5,False
-AEE,Utilities,Ameren,2026-07-27,109.61,-4.7,-2.8,7.6,1.93,0.333,19,15,9,15.8,4.18,9.09,False,False,110.69,6.86,0.844,False,118.32,-7.36,True
-CNP,Utilities,CenterPoint Energy,2026-07-27,42.04,-5.76,-2.49,7.09,1.48,0.333,21,14,12,17.1,7.4,1.1,False,False,43.16,7.82,0.888,False,45.26,-7.11,True
-LNT,Utilities,Alliant Energy,2026-07-27,70.78,-8.6,-3.7,9.02,1.43,0.333,31,17,7,22.0,9.21,2.85,False,False,73.44,7.15,0.904,False,78.22,-9.51,True
-DUK,Utilities,Duke Energy,2026-07-27,125.43,-3.22,-1.62,5.14,1.36,0.333,12,13,15,12.9,7.24,0.49,True,False,125.55,6.28,0.878,False,133.34,-5.93,True
-EXC,Utilities,Exelon,2026-07-27,45.82,-4.3,-0.54,4.17,0.88,0.333,15,9,18,13.8,-3.93,2.6,False,False,46.16,8.04,0.933,False,50.18,-8.69,False
-AEP,Utilities,American Electric Power,2026-07-27,127.85,-7.7,-5.94,8.36,0.77,0.333,28,24,8,22.8,-8.2,4.61,False,False,131.63,7.4,0.848,False,140.58,-9.06,False
-DTE,Utilities,DTE Energy,2026-07-27,141.87,-7.91,-3.89,7.25,0.67,0.333,29,18,11,22.1,16.26,-4.14,False,False,146.79,7.07,0.979,False,155.75,-8.91,True
-ED,Utilities,Consolidated Edison,2026-07-27,108.85,-4.51,-0.66,3.75,0.58,0.333,16,10,20,15.0,-3.83,3.44,True,False,109.22,5.71,0.997,False,115.26,-5.57,False
-ATO,Utilities,Atmos Energy,2026-07-27,172.78,-2.31,-7.84,5.04,-0.02,0.333,11,28,16,17.1,1.84,0.07,True,False,173.73,5.89,0.911,False,191.43,-9.74,True
-XEL,Utilities,Xcel Energy,2026-07-27,78.2,-4.59,-4.59,4.35,-0.12,0.333,18,21,17,18.7,,,,,,,,,,,False
-SRE,Utilities,Sempra,2026-07-27,88.55,-4.85,-5.8,3.21,-1.05,0.333,20,23,21,21.1,,,,,,,,,,,False
-CMS,Utilities,CMS Energy,2026-07-27,71.99,-7.38,-4.58,2.24,-1.87,0.333,26,20,24,23.8,,,,,,,,,,,False
-NI,Utilities,NiSource,2026-07-27,44.43,-6.47,-6.97,2.32,-2.2,0.333,24,26,23,24.4,,,,,,,,,,,False
-NEE,Utilities,NextEra Energy,2026-07-27,86.92,-1.61,-9.69,0.29,-2.68,0.333,6,29,26,16.9,3.8,5.67,False,False,87.23,4.66,0.979,False,98.03,-11.34,True
-WEC,Utilities,WEC Energy Group,2026-07-27,109.42,-7.92,-6.05,0.56,-3.21,0.333,30,25,25,27.5,,,,,,,,,,,False
-PPL,Utilities,PPL Corporation,2026-07-27,35.21,-4.55,-5.6,-1.35,-3.22,0.0,17,22,27,20.5,,,,,,,,,,,False
-CEG,Utilities,Constellation Energy,2026-07-27,262.75,9.82,-14.51,-6.12,-4.23,0.333,1,31,29,15.6,5.3,2.41,True,False,263.2,10.65,0.925,False,411.04,-36.08,True
-VST,Utilities,Vistra Corp.,2026-07-27,148.19,-1.89,-4.43,-6.16,-4.66,0.0,9,19,30,16.2,53.35,-76.52,True,False,156.06,17.64,0.864,False,218.91,-32.31,True
-PEG,Utilities,Public Service Enterprise Group,2026-07-27,76.68,-6.05,-3.5,-5.33,-5.05,0.0,23,16,28,21.9,,,,,,,,,,,False
-NRG,Utilities,NRG Energy,2026-07-27,134.29,-1.76,-12.44,-11.47,-9.29,0.0,7,30,31,18.7,-14.04,16.38,True,False,135.61,16.19,1.08,False,189.38,-29.09,False
+symbol,sector,name,as_of_date,t_price,cum_ret_4w,cum_ret_13w,cum_ret_26w,point,di,cum_ret_4w_rank_in_sector,cum_ret_13w_rank_in_sector,cum_ret_26w_rank_in_sector,cms_a,surprise_l1,surprise_l2,pre_earnings_14d,above_50ma,ma50,amp_10d_pct,vp_ratio_stock,vcp,high_52w,pct_from_high,ret_5d,ret_20d,up_days_20,down_days_20,up_avg_vol,down_avg_vol,ud_ratio,vol_today,vol_10d_avg,vol_3w_avg,vol_ratio_stock_20d,vp_score_stock,point_rank_in_sector,vp_score_rank_in_sector,vol_rank_in_sector,composite_in_sector,composite_rank_in_sector,stock_gap_alert,earnings_passed
+LYV,Communication Services,Live Nation Entertainment,2026-07-27,174.13,-6.68,10.03,19.72,10.7,0.667,20,2,1,10.8,82.89,-485.68,False,False,174.48,9.04,0.728,False,188.0,-7.38,-1.75,-6.68,11.0,9.0,1724836.0,2370800.0,1.222,5029400.0,2266330.0,2031546.0,2.476,76.36,1,16,1,7.0,3,吃老本,True
+TTWO,Communication Services,Take-Two Interactive,2026-07-27,242.92,-4.73,12.45,10.27,7.06,0.667,17,1,2,9.2,43.47,47.51,True,True,234.13,9.35,0.939,False,265.94,-8.66,4.87,-4.73,8.0,12.0,1719562.0,1831200.0,0.667,1929800.0,1734150.0,1706993.0,1.131,75.54,2,18,10,10.0,10,吃老本,True
+VZ,Communication Services,Verizon,2026-07-27,46.81,11.86,-1.04,8.54,6.98,0.667,2,7,3,3.7,2.71,5.81,False,True,44.95,13.38,0.946,False,50.06,-6.49,0.93,11.86,11.0,9.0,28060781.0,29651400.0,1.222,28277600.0,28490130.0,27100173.0,1.043,92.38,3,3,11,4.6,2,,True
+NWSA,Communication Services,News Corp (Class A),2026-07-27,27.56,3.45,5.03,2.39,3.31,1.0,5,3,8,5.0,5.46,6.92,True,True,26.65,10.03,1.009,False,31.48,-12.45,2.99,3.45,9.0,10.0,3231833.0,3202360.0,0.9,4083600.0,3398580.0,3202433.0,1.275,84.43,4,10,8,7.2,4,吃老本,True
+EA,Communication Services,Electronic Arts,2026-07-27,209.86,2.27,3.94,3.11,3.11,1.0,8,4,7,6.6,-32.35,-76.4,True,True,204.94,0.73,1.386,True,209.93,-0.03,0.38,2.27,13.0,6.0,2831200.0,2042550.0,2.167,4850900.0,2960230.0,2909800.0,1.667,100.0,5,1,2,2.8,1,,True
+OMC,Communication Services,Omnicom Group,2026-07-27,78.7,0.1,3.41,4.28,3.02,1.0,11,5,6,8.2,-0.39,3.13,False,True,76.95,13.55,0.704,False,87.41,-9.96,-1.21,0.1,12.0,8.0,2848450.0,4048587.0,1.5,4238100.0,3702070.0,3442426.0,1.231,84.39,6,11,9,8.6,7,,False
+NWS,Communication Services,News Corp (Class B),2026-07-27,31.27,3.65,2.83,0.92,2.08,1.0,4,6,9,5.6,5.46,6.92,True,True,30.29,11.0,1.183,False,35.34,-11.52,3.58,3.65,9.0,11.0,1217322.0,1029154.0,0.818,885000.0,957410.0,1024960.0,0.863,86.59,7,7,15,8.6,7,,True
+GOOG,Communication Services,Alphabet Inc. (Class C),2026-07-27,356.65,0.13,-6.88,5.49,1.06,0.667,10,11,5,9.3,212.9,94.3,False,True,356.65,13.27,1.007,False,404.23,-11.77,11.77,0.13,9.0,11.0,20233155.0,20086909.0,0.818,30451400.0,23268960.0,21360766.0,1.426,84.69,8,9,4,7.6,6,,True
+GOOGL,Communication Services,Alphabet Inc. (Class A),2026-07-27,356.13,-1.05,-7.61,5.5,0.59,0.333,13,12,4,10.9,214.23,94.3,False,False,358.68,13.31,0.91,False,408.37,-12.79,11.38,-1.05,10.0,10.0,28595940.0,31428110.0,1.0,46425700.0,35074560.0,32287273.0,1.438,84.85,9,8,3,7.4,5,,True
+WBD,Communication Services,Warner Bros. Discovery,2026-07-27,26.3,-0.68,-2.48,-4.5,-3.04,0.0,12,9,10,10.7,-1110.3,-2790.17,True,False,26.61,6.41,0.775,False,30.0,-12.33,2.06,-0.68,10.0,9.0,21592660.0,27861855.0,1.111,37063000.0,27085760.0,27593746.0,1.343,80.64,10,13,6,10.4,12,,True
+T,Communication Services,AT&T,2026-07-27,23.25,14.49,-9.8,-9.16,-3.41,0.333,1,16,11,7.5,10.49,3.42,False,True,22.64,16.17,1.216,False,28.75,-19.13,-3.65,14.49,13.0,6.0,83956030.0,69035150.0,2.167,58132900.0,91591550.0,84972906.0,0.684,100.0,11,1,19,8.6,7,剛爆發,True
+TKO,Communication Services,TKO Group Holdings,2026-07-27,181.81,-6.49,-1.85,-9.54,-6.85,0.0,19,8,12,14.3,-32.11,-80.8,False,False,194.44,5.01,0.816,False,225.15,-19.25,0.66,-6.49,8.0,12.0,911837.0,1118008.0,0.667,893400.0,840700.0,972153.0,0.919,70.64,12,20,14,15.6,18,吃老本,True
+TMUS,Communication Services,T-Mobile US,2026-07-27,172.71,-2.71,-11.43,-11.52,-9.3,0.0,14,18,13,15.0,14.86,31.07,False,False,183.45,14.55,0.788,False,256.72,-32.72,-4.1,-2.71,11.0,9.0,4507690.0,5722222.0,1.222,6744400.0,5856280.0,5091466.0,1.325,78.85,13,14,7,12.2,14,,True
+DIS,Communication Services,Walt Disney Company (The),2026-07-27,96.19,-3.33,-5.97,-14.07,-9.36,0.0,15,10,14,13.3,4.98,3.44,True,False,98.74,7.19,0.923,False,118.07,-18.53,1.41,-3.33,8.0,12.0,10282200.0,11136591.0,0.667,11181500.0,11978910.0,10996040.0,1.017,74.73,14,19,12,15.6,18,,True
+FOXA,Communication Services,Fox Corporation (Class A),2026-07-27,58.23,3.1,-8.08,-19.6,-11.05,0.333,6,13,17,10.3,36.35,58.6,True,False,58.32,8.05,1.11,False,76.02,-23.4,5.28,3.1,11.0,9.0,4977663.0,4486033.0,1.222,3837700.0,3518740.0,4046120.0,0.948,91.72,15,4,13,10.2,11,剛爆發,True
+CMCSA,Communication Services,Comcast,2026-07-27,23.96,0.71,-10.68,-17.42,-11.2,0.333,9,17,16,12.8,7.62,8.29,False,True,23.6,15.35,0.894,False,32.05,-25.23,7.44,0.71,12.0,8.0,32588216.0,36435037.0,1.5,28194900.0,37584460.0,35189493.0,0.801,91.56,16,5,17,11.8,13,剛爆發,True
+FOX,Communication Services,Fox Corporation (Class B),2026-07-27,51.94,2.73,-8.77,-20.36,-11.69,0.333,7,15,18,11.6,22.22,51.85,True,False,52.39,8.43,0.891,False,67.81,-23.4,5.12,2.73,10.0,10.0,1163960.0,1306160.0,1.0,978500.0,1173410.0,1228206.0,0.797,84.28,17,12,18,15.2,17,,True
+META,Communication Services,Meta Platforms,2026-07-27,556.71,-4.49,-8.46,-22.16,-14.32,0.0,16,14,19,16.0,-14.42,7.2,False,False,601.99,21.95,1.4,False,793.65,-29.85,-6.47,-4.49,7.0,13.0,23339657.0,16673992.0,0.538,24202500.0,16943330.0,17540633.0,1.38,77.29,18,15,5,14.2,16,,False
+NFLX,Communication Services,Netflix,2026-07-27,71.71,-7.65,-22.11,-14.11,-14.49,0.0,21,20,15,19.5,1.45,-6.93,False,False,77.11,10.03,0.84,False,126.71,-43.41,2.31,-7.65,10.0,10.0,44789560.0,53348640.0,1.0,35818000.0,46487240.0,52378333.0,0.684,76.03,19,17,19,18.2,20,,True
+CHTR,Communication Services,Charter Communications,2026-07-27,144.98,5.67,-15.58,-29.66,-17.31,0.333,3,19,22,11.6,5.94,-9.07,False,True,136.25,26.35,0.821,False,285.82,-49.28,17.57,5.67,10.0,10.0,2784280.0,3392270.0,1.0,2826900.0,4103070.0,3389266.0,0.834,89.8,20,6,16,13.6,15,剛爆發,True
+ECHO,Communication Services,EchoStar,2026-07-27,84.09,-17.15,-31.73,-25.73,-25.09,0.0,22,23,20,21.9,,,,,,,,,,,,,,,,,,,,,,,21,21,21,,21,,False
+PSKY,Communication Services,Paramount Skydance Corporation,2026-07-27,7.96,-23.39,-27.88,-28.28,-26.96,0.0,23,22,21,22.3,,,,,,,,,,,,,,,,,,,,,,,22,21,21,,21,,False
+TTD,Communication Services,Trade Desk (The),2026-07-27,18.04,-5.55,-25.58,-40.52,-28.04,0.0,18,21,23,19.9,,,,,,,,,,,,,,,,,,,,,,,23,21,21,,21,,False
+GRMN,Consumer Discretionary,Garmin,2026-07-27,293.78,22.4,21.72,46.9,34.48,1.0,1,4,1,1.9,22.52,13.14,False,True,242.63,26.37,1.04,False,304.0,-3.36,20.88,22.4,11.0,9.0,1047463.0,1007422.0,1.222,1168100.0,1259730.0,1171240.0,0.997,100.0,1,1,8,2.4,2,,True
+BBY,Consumer Discretionary,Best Buy,2026-07-27,86.26,10.6,45.56,36.31,32.2,1.0,8,1,2,4.7,4.32,5.83,False,True,77.39,9.42,0.976,False,91.27,-5.49,0.97,10.6,13.0,7.0,3350361.0,3432785.0,1.857,3806500.0,2904930.0,3351813.0,1.136,100.0,2,1,4,2.0,1,,True
+ROST,Consumer Discretionary,Ross Stores,2026-07-27,251.07,17.64,9.93,33.63,23.71,1.0,2,13,3,5.5,16.67,5.13,False,True,229.22,10.35,1.006,False,255.3,-1.66,5.1,17.64,16.0,4.0,2325862.0,2311450.0,4.0,1610300.0,2221130.0,2174786.0,0.74,100.0,3,1,21,5.8,3,,True
+MGM,Consumer Discretionary,MGM Resorts,2026-07-27,44.57,-5.37,15.77,32.89,19.04,0.667,34,9,4,20.5,1.95,1.31,False,False,46.06,7.05,0.923,False,51.59,-13.61,-2.13,-5.37,7.0,13.0,2277000.0,2467907.0,0.538,3656300.0,2417930.0,2412726.0,1.515,70.15,4,25,3,12.2,12,吃老本,True
+EBAY,Consumer Discretionary,eBay Inc.,2026-07-27,114.01,-0.72,9.85,25.75,15.16,0.667,26,14,5,18.2,5.03,4.44,True,True,111.59,9.91,0.985,False,118.98,-4.18,4.22,-0.72,10.0,10.0,3372220.0,3423440.0,1.0,3675400.0,3708250.0,3798540.0,0.968,83.49,5,20,10,12.0,10,吃老本,True
+TPR,Consumer Discretionary,"Tapestry, Inc.",2026-07-27,152.37,5.66,7.05,20.73,13.54,1.0,12,15,6,11.7,27.77,20.67,True,True,143.63,11.73,0.89,False,161.08,-5.41,6.85,5.66,11.0,9.0,2068618.0,2324366.0,1.222,1750000.0,1926100.0,2240486.0,0.781,90.04,6,14,19,11.8,9,吃老本,True
+WSM,Consumer Discretionary,"Williams-Sonoma, Inc.",2026-07-27,228.66,0.83,27.46,12.55,13.35,1.0,21,2,11,13.3,7.34,4.78,False,True,218.69,11.48,1.1,False,243.84,-6.22,0.85,0.83,10.0,10.0,923160.0,839020.0,1.0,826200.0,761790.0,863086.0,0.957,85.09,7,18,12,12.4,13,吃老本,True
+F,Consumer Discretionary,Ford Motor Company,2026-07-27,14.68,9.88,25.13,8.26,12.88,1.0,9,3,13,8.0,21.27,256.64,False,True,14.53,16.13,1.108,False,17.78,-17.44,2.16,9.88,13.0,7.0,57059607.0,51487400.0,1.857,55987100.0,64166310.0,58120933.0,0.963,100.0,8,1,11,5.8,3,剛爆發,True
+EXPE,Consumer Discretionary,Expedia Group,2026-07-27,294.74,9.7,17.28,11.77,12.63,1.0,10,8,12,9.8,42.34,12.21,True,True,250.72,22.08,0.964,False,312.4,-5.65,13.39,9.7,11.0,9.0,1448272.0,1502722.0,1.222,1124600.0,1502900.0,1466926.0,0.767,96.37,9,11,20,12.0,10,,True
+GM,Consumer Discretionary,General Motors,2026-07-27,88.86,16.92,17.53,6.27,11.75,1.0,4,7,17,7.5,12.0,40.19,False,True,80.46,20.18,1.094,False,91.85,-3.26,7.53,16.92,13.0,7.0,7726138.0,7062842.0,1.857,6675100.0,9304490.0,7918640.0,0.843,100.0,10,1,15,7.4,6,剛爆發,True
+ABNB,Consumer Discretionary,Airbnb,2026-07-27,151.52,1.74,6.96,17.12,10.74,1.0,19,16,8,15.9,-14.13,-15.65,True,True,141.19,14.19,1.042,False,156.5,-3.18,7.38,1.74,8.0,12.0,3420212.0,3283125.0,0.667,2460700.0,3302150.0,3521886.0,0.699,82.23,11,21,23,17.4,19,吃老本,True
+MAR,Consumer Discretionary,Marriott International,2026-07-27,372.83,-0.03,5.24,18.71,10.66,0.667,24,20,7,19.4,6.49,-1.51,False,False,378.91,6.29,0.852,False,410.98,-9.28,-0.43,-0.03,13.0,7.0,1306192.0,1532728.0,1.857,1563500.0,1330560.0,1389940.0,1.125,92.58,12,13,5,11.0,8,,True
+AMZN,Consumer Discretionary,Amazon,2026-07-27,271.58,11.91,1.24,13.49,10.03,1.0,5,24,10,11.7,215.02,69.02,False,True,246.63,19.58,1.435,False,278.56,-2.51,17.0,11.91,9.0,11.0,54647522.0,38093563.0,0.818,128881300.0,53193370.0,48722306.0,2.645,100.0,13,1,1,5.8,3,剛爆發,True
+SBUX,Consumer Discretionary,Starbucks,2026-07-27,105.25,0.94,-0.03,15.88,8.17,0.667,20,27,9,19.9,30.79,14.51,False,True,102.34,6.27,1.325,False,109.23,-3.64,1.94,0.94,9.0,11.0,8893822.0,6713645.0,0.818,12390900.0,9206500.0,8143333.0,1.522,86.79,14,17,2,12.8,14,,True
+HAS,Consumer Discretionary,Hasbro,2026-07-27,93.94,17.21,-0.59,6.78,7.54,0.667,3,29,16,13.4,12.8,29.52,False,True,84.65,17.66,1.418,False,105.38,-10.86,5.8,17.21,11.0,9.0,2924000.0,2061866.0,1.222,2808600.0,3220640.0,2710380.0,1.036,100.0,15,1,6,7.6,7,剛爆發,True
+RCL,Consumer Discretionary,Royal Caribbean Group,2026-07-27,318.3,7.42,20.49,-0.92,6.52,0.667,11,5,22,11.4,5.74,12.59,False,True,293.43,16.59,1.1,False,360.34,-11.67,8.43,7.42,9.0,11.0,2632466.0,2392945.0,0.818,1948300.0,2808460.0,2687626.0,0.725,89.35,16,15,22,16.8,16,,True
+RL,Consumer Discretionary,Ralph Lauren Corporation,2026-07-27,380.34,-4.49,5.26,8.18,4.28,0.667,31,19,14,24.0,10.07,7.1,True,False,384.56,5.6,0.864,False,420.57,-9.57,1.81,-4.49,9.0,11.0,501522.0,580700.0,0.818,439200.0,467330.0,530513.0,0.828,75.42,17,23,16,19.2,22,吃老本,True
+TJX,Consumer Discretionary,TJX Companies,2026-07-27,157.34,2.0,0.65,5.67,3.5,1.0,18,25,18,20.1,,,,,,,,,,,,,,,,,,,,,,,18,26,26,,26,吃老本,False
+DRI,Consumer Discretionary,Darden Restaurants,2026-07-27,203.58,0.44,5.37,3.74,3.32,1.0,22,18,19,20.2,,,,,,,,,,,,,,,,,,,,,,,19,26,26,,26,吃老本,False
+BKNG,Consumer Discretionary,Booking Holdings,2026-07-27,192.9,4.52,14.0,-3.12,3.07,0.667,14,10,23,14.6,5.67,0.27,True,True,174.83,18.05,1.109,False,229.86,-16.08,8.7,4.52,9.0,11.0,6032822.0,5442327.0,0.818,4598400.0,5747140.0,5855840.0,0.785,87.86,20,16,17,17.8,20,,True
+HLT,Consumer Discretionary,Hilton Worldwide,2026-07-27,320.49,-5.21,0.64,7.46,2.59,0.667,33,26,15,27.3,0.78,1.78,False,False,333.1,6.84,0.67,False,358.0,-10.48,-1.38,-5.21,11.0,9.0,1701890.0,2541166.0,1.222,2285500.0,2083030.0,2330560.0,0.981,76.37,21,22,9,19.0,21,,True
+CMG,Consumer Discretionary,Chipotle Mexican Grill,2026-07-27,37.22,5.17,12.86,-4.24,2.38,0.667,13,11,26,15.0,3.96,1.4,False,True,32.8,22.47,1.025,False,44.27,-15.93,17.08,5.17,10.0,10.0,17744890.0,17309600.0,1.0,14346000.0,17808300.0,18264833.0,0.785,92.87,22,12,17,17.0,17,剛爆發,True
+DASH,Consumer Discretionary,DoorDash,2026-07-27,196.16,2.16,11.56,-4.13,1.36,0.667,17,12,25,17.1,7.71,-17.73,True,True,174.69,17.86,1.022,False,285.5,-31.29,13.45,2.16,8.0,12.0,3714300.0,3635075.0,0.667,3101700.0,3579220.0,3484946.0,0.89,84.56,23,19,14,19.6,23,,True
+PHM,Consumer Discretionary,PulteGroup,2026-07-27,126.47,-5.39,6.32,1.53,1.0,0.667,35,17,20,26.6,,,,,,,,,,,,,,,,,,,,,,,24,26,26,,26,,False
+GPC,Consumer Discretionary,Genuine Parts Company,2026-07-27,124.37,-6.19,19.75,-8.72,-0.97,0.333,38,6,30,26.8,3.47,1.26,False,True,112.4,18.11,0.86,False,148.58,-16.29,0.13,-6.19,8.0,12.0,1774825.0,2063916.0,0.667,1219300.0,1810090.0,1805546.0,0.675,71.39,25,24,24,24.4,25,,True
+CCL,Consumer Discretionary,Carnival Corporation,2026-07-27,27.81,-0.36,4.95,-6.36,-2.03,0.333,25,21,28,24.4,,,,,,,,,,,,,,,,,,,,,,,26,26,26,,26,,False
+YUM,Consumer Discretionary,Yum! Brands,2026-07-27,153.28,-6.95,-2.73,-0.49,-2.67,0.0,40,31,21,33.5,,,,,,,,,,,,,,,,,,,,,,,27,26,26,,26,,False
+DPZ,Consumer Discretionary,Domino's,2026-07-27,347.44,11.48,3.5,-14.37,-3.44,0.667,6,22,34,16.4,-2.38,-3.32,False,True,313.99,14.45,1.324,False,460.13,-24.49,4.35,11.48,10.0,9.0,1171340.0,884400.0,1.111,652400.0,1124420.0,1119106.0,0.583,98.47,28,10,25,20.2,24,剛爆發,True
+WYNN,Consumer Discretionary,Wynn Resorts,2026-07-27,99.31,3.54,-6.05,-7.13,-4.19,0.333,16,37,29,24.9,,,,,,,,,,,,,,,,,,,,,,,29,26,26,,26,,False
+LVS,Consumer Discretionary,Las Vegas Sands,2026-07-27,48.89,4.04,-8.58,-6.26,-4.26,0.333,15,42,27,25.5,-22.04,20.05,False,True,48.21,12.44,1.24,False,69.68,-29.84,6.1,4.04,12.0,8.0,5701775.0,4597137.0,1.5,5837400.0,6562940.0,5761113.0,1.013,99.07,30,9,7,17.0,17,剛爆發,False
+DHI,Consumer Discretionary,D. R. Horton,2026-07-27,143.06,-9.78,-4.33,-3.32,-5.19,0.0,46,34,24,38.0,,,,,,,,,,,,,,,,,,,,,,,31,26,26,,26,,False
+HD,Consumer Discretionary,Home Depot (The),2026-07-27,331.96,-7.25,3.26,-10.12,-6.06,0.333,41,23,32,33.8,,,,,,,,,,,,,,,,,,,,,,,32,26,26,,26,剛爆發,False
+ORLY,Consumer Discretionary,O’Reilly Automotive,2026-07-27,89.35,-1.0,-7.57,-9.21,-6.75,0.0,27,40,31,31.7,,,,,,,,,,,,,,,,,,,,,,,33,26,26,,26,剛爆發,False
+ULTA,Consumer Discretionary,Ulta Beauty,2026-07-27,512.83,11.16,-3.59,-20.78,-8.5,0.333,7,32,39,20.9,12.28,-0.21,False,True,479.09,9.22,0.989,False,714.97,-28.27,7.88,11.16,13.0,7.0,544615.0,550457.0,1.857,511300.0,554850.0,561753.0,0.91,100.0,34,1,13,16.6,15,剛爆發,True
+MCD,Consumer Discretionary,McDonald's,2026-07-27,270.64,-3.56,-4.94,-13.02,-8.63,0.0,29,35,33,31.6,,,,,,,,,,,,,,,,,,,,,,,35,26,26,,26,剛爆發,False
+NCLH,Consumer Discretionary,Norwegian Cruise Line Holdings,2026-07-27,18.53,-6.32,-1.49,-15.62,-9.76,0.0,39,30,35,35.5,,,,,,,,,,,,,,,,,,,,,,,36,26,26,,26,剛爆發,False
+NVR,Consumer Discretionary,"NVR, Inc.",2026-07-27,6147.05,-8.94,-0.12,-19.5,-12.01,0.0,44,28,38,38.0,,,,,,,,,,,,,,,,,,,,,,,37,26,26,,26,剛爆發,False
+DECK,Consumer Discretionary,Deckers Brands,2026-07-27,96.88,-7.46,-3.97,-18.82,-12.27,0.0,42,33,37,38.3,,,,,,,,,,,,,,,,,,,,,,,38,26,26,,26,剛爆發,False
+AZO,Consumer Discretionary,AutoZone,2026-07-27,3016.25,-4.53,-16.08,-18.57,-14.44,0.0,32,45,36,36.7,,,,,,,,,,,,,,,,,,,,,,,39,26,26,,26,剛爆發,False
+LEN,Consumer Discretionary,Lennar,2026-07-27,82.35,-6.09,-6.34,-23.5,-14.86,0.0,37,38,42,38.3,,,,,,,,,,,,,,,,,,,,,,,40,26,26,,26,剛爆發,False
+LOW,Consumer Discretionary,Lowe's,2026-07-27,207.81,-8.09,-10.39,-21.33,-15.28,0.0,43,43,40,42.4,,,,,,,,,,,,,,,,,,,,,,,41,26,26,,26,剛爆發,False
+APTV,Consumer Discretionary,Aptiv,2026-07-27,56.47,-4.11,-6.65,-25.45,-15.41,0.0,30,39,43,35.3,,,,,,,,,,,,,,,,,,,,,,,42,26,26,,26,剛爆發,False
+CVNA,Consumer Discretionary,Carvana,2026-07-27,62.36,-9.1,-18.5,-22.27,-18.03,0.0,45,46,41,44.5,,,,,,,,,,,,,,,,,,,,,,,43,26,26,,26,剛爆發,False
+NKE,Consumer Discretionary,"Nike, Inc.",2026-07-27,41.71,-5.4,-5.22,-31.46,-18.39,0.0,36,36,45,37.8,,,,,,,,,,,,,,,,,,,,,,,44,26,26,,26,剛爆發,False
+LULU,Consumer Discretionary,Lululemon Athletica,2026-07-27,118.87,0.37,-11.01,-31.88,-18.6,0.333,23,44,46,33.9,,,,,,,,,,,,,,,,,,,,,,,45,26,26,,26,剛爆發,False
+TSCO,Consumer Discretionary,Tractor Supply,2026-07-27,30.77,-3.12,-8.31,-38.76,-22.24,0.0,28,41,47,35.7,,,,,,,,,,,,,,,,,,,,,,,46,26,26,,26,剛爆發,False
+TSLA,Consumer Discretionary,"Tesla, Inc.",2026-07-27,311.21,-20.9,-20.37,-27.69,-24.17,0.0,47,47,44,46.4,,,,,,,,,,,,,,,,,,,,,,,47,26,26,,26,剛爆發,False
+TGT,Consumer Staples,Target Corporation,2026-07-27,144.49,10.97,13.16,39.7,25.88,1.0,1,10,2,3.9,17.31,12.97,False,True,132.61,10.82,1.134,False,147.77,-2.22,5.64,10.97,9.0,11.0,4005088.0,3530745.0,0.818,3311000.0,3057530.0,3468986.0,0.954,90.96,1,5,12,4.8,1,,True
+CASY,Consumer Staples,Casey's,2026-07-27,871.0,9.31,4.27,43.82,25.31,1.0,3,20,1,7.7,32.11,16.87,False,True,823.93,5.27,1.166,False,927.15,-6.06,1.16,9.31,11.0,9.0,382436.0,327877.0,1.222,218800.0,284680.0,311580.0,0.702,94.8,2,1,18,4.8,1,,True
+MNST,Consumer Staples,Monster Beverage,2026-07-27,96.38,-1.25,24.97,19.34,15.6,0.667,21,2,4,11.9,10.16,-4.5,True,True,93.48,6.63,1.012,False,100.34,-3.95,3.09,-1.25,8.0,12.0,5653850.0,5588491.0,0.667,3881300.0,4974550.0,5613720.0,0.691,78.19,3,17,19,11.8,11,吃老本,True
+SJM,Consumer Staples,J.M. Smucker Company (The),2026-07-27,119.26,2.56,24.35,16.15,14.8,1.0,9,3,6,6.6,5.01,5.18,False,True,111.38,13.45,1.078,False,127.65,-6.57,0.79,2.56,11.0,9.0,1606900.0,1490811.0,1.222,1794800.0,1620740.0,1566986.0,1.145,89.05,4,7,8,6.0,3,,True
+KO,Consumer Staples,Coca-Cola Company (The),2026-07-27,87.59,4.1,12.19,18.65,13.4,1.0,7,11,5,7.8,4.05,5.88,False,True,81.84,11.85,1.004,False,90.92,-3.66,6.49,4.1,10.0,10.0,17378660.0,17302800.0,1.0,14709600.0,17431180.0,17956646.0,0.819,87.63,5,8,16,8.4,7,,True
+DLTR,Consumer Staples,Dollar Tree,2026-07-27,127.21,2.55,34.37,8.18,13.32,1.0,10,1,13,7.9,12.89,1.13,False,True,116.56,11.15,1.218,False,142.4,-10.67,5.61,2.55,11.0,9.0,2908190.0,2387933.0,1.222,1537000.0,2359590.0,2604393.0,0.59,93.42,6,3,20,7.6,6,,True
+ADM,Consumer Staples,Archer Daniels Midland,2026-07-27,79.27,3.23,6.48,19.44,12.15,1.0,8,16,3,9.4,7.8,9.17,True,False,80.19,11.37,0.8,False,88.46,-10.39,-7.74,3.23,12.0,8.0,3222350.0,4027575.0,1.5,7587600.0,3973900.0,3579486.0,2.12,85.34,7,11,1,7.4,5,,True
+KHC,Consumer Staples,Kraft Heinz,2026-07-27,25.85,1.89,17.02,12.72,11.09,1.0,12,5,10,9.5,15.38,9.12,True,True,24.36,11.14,1.105,False,28.09,-7.97,0.7,1.89,10.0,10.0,13566440.0,12281340.0,1.0,13022100.0,14106130.0,13664233.0,0.953,85.75,8,10,13,9.8,8,,True
+BF-B,Consumer Staples,Brown–Forman,2026-07-27,28.73,9.82,13.43,6.86,9.24,1.0,2,9,15,6.7,-62.65,24.68,False,True,26.37,15.46,1.032,False,31.11,-7.65,10.16,9.82,10.0,10.0,2605370.0,2524680.0,1.0,2931900.0,2597240.0,2597193.0,1.129,93.02,9,4,10,7.2,4,,False
+PM,Consumer Staples,Philip Morris International,2026-07-27,190.82,4.69,15.64,8.18,9.17,1.0,5,7,13,7.2,7.31,7.07,False,True,182.89,10.56,1.018,False,207.76,-8.15,-1.13,4.69,10.0,10.0,5163980.0,5074050.0,1.0,5442700.0,5787760.0,5415440.0,1.005,85.17,10,13,11,11.4,10,,True
+KVUE,Consumer Staples,Kenvue,2026-07-27,19.24,-2.98,11.71,13.19,8.78,0.667,24,12,9,17.4,23.03,21.24,True,True,18.53,6.61,0.829,False,21.29,-9.65,-0.21,-2.98,9.0,11.0,17000322.0,20515127.0,0.818,22741200.0,17743620.0,20035886.0,1.135,74.91,11,20,9,14.2,15,吃老本,True
+KMB,Consumer Staples,Kimberly-Clark,2026-07-27,109.31,-4.72,13.45,12.19,8.28,0.667,32,8,11,20.6,2.24,2.66,True,True,105.05,8.14,0.766,False,131.04,-16.59,-0.36,-4.72,9.0,11.0,3006877.0,3924390.0,0.818,4520200.0,2954580.0,3443193.0,1.313,72.71,12,21,5,14.2,15,吃老本,True
+KDP,Consumer Staples,Keurig Dr Pepper,2026-07-27,31.12,-6.55,7.74,15.23,7.91,0.667,34,15,7,22.9,4.25,2.01,True,True,30.86,7.13,0.986,False,34.77,-10.5,4.85,-6.55,8.0,12.0,12720262.0,12904191.0,0.667,11455200.0,11993680.0,12165946.0,0.942,75.26,13,19,14,15.6,19,吃老本,True
+HRL,Consumer Staples,Hormel Foods,2026-07-27,25.01,1.24,18.66,4.31,7.13,1.0,13,4,16,10.9,12.87,6.12,False,True,24.14,6.7,0.865,False,27.89,-10.32,-1.19,1.24,10.0,10.0,3483790.0,4027930.0,1.0,5964900.0,3635920.0,3693700.0,1.615,80.41,14,15,3,12.2,12,,True
+SYY,Consumer Staples,Sysco,2026-07-27,85.24,0.48,15.87,3.1,5.64,1.0,14,6,18,12.4,-0.39,1.39,True,True,79.95,8.09,0.912,False,90.56,-5.88,2.56,0.48,10.0,10.0,2771010.0,3038270.0,1.0,3327800.0,2698110.0,2701693.0,1.232,82.28,15,14,7,13.0,13,,False
+MDLZ,Consumer Staples,Mondelez International,2026-07-27,62.31,2.3,2.38,8.39,5.37,1.0,11,22,12,14.5,7.4,10.22,False,True,60.76,12.27,1.166,False,66.65,-6.51,2.96,2.3,9.0,11.0,10449788.0,8959390.0,0.818,8127700.0,10638970.0,10253453.0,0.793,85.25,16,12,17,14.6,17,,True
+MO,Consumer Staples,Altria,2026-07-27,68.33,-6.02,-6.97,13.75,3.63,0.333,33,28,8,26.5,-1.17,5.92,False,False,71.44,14.13,0.962,False,77.06,-11.33,-6.38,-6.02,11.0,9.0,7743863.0,8046200.0,1.222,11153300.0,8950040.0,8420746.0,1.325,79.01,17,16,4,14.0,14,,False
+CHD,Consumer Staples,Church & Dwight,2026-07-27,98.81,0.21,3.24,3.31,2.52,1.0,16,21,17,17.7,,,,,,,,,,,,,,,,,,,,,,,18,22,22,,22,,False
+CL,Consumer Staples,Colgate-Palmolive,2026-07-27,91.3,-3.48,5.23,2.33,1.6,0.667,27,18,19,22.7,,,,,,,,,,,,,,,,,,,,,,,19,22,22,,22,,False
+DG,Consumer Staples,Dollar General,2026-07-27,127.05,8.06,11.59,-10.55,-0.36,0.667,4,13,28,11.5,6.22,17.85,False,True,114.87,11.93,1.155,False,156.68,-18.91,8.38,8.06,9.0,11.0,2576222.0,2231018.0,0.818,1392400.0,2011020.0,2416500.0,0.576,90.67,20,6,21,14.6,17,剛爆發,True
+COST,Consumer Staples,Costco,2026-07-27,951.89,0.18,-5.76,1.55,-0.62,0.667,17,27,20,20.6,,,,,,,,,,,,,,,,,,,,,,,21,22,22,,22,,False
+PG,Consumer Staples,Procter & Gamble,2026-07-27,144.49,-3.86,-1.15,-3.36,-2.93,0.0,28,25,21,25.7,,,,,,,,,,,,,,,,,,,,,,,22,22,22,,22,,False
+TAP,Consumer Staples,Molson Coors Beverage Company,2026-07-27,41.56,4.47,-0.2,-11.55,-4.71,0.333,6,24,29,16.0,70.58,4.95,True,True,40.3,9.54,1.02,False,53.62,-22.49,1.49,4.47,12.0,8.0,3176083.0,3114900.0,1.5,5459800.0,2996000.0,3026453.0,1.804,93.62,23,2,2,10.4,9,剛爆發,True
+CLX,Consumer Staples,Clorox,2026-07-27,95.53,-1.78,9.67,-14.24,-5.15,0.333,23,14,30,21.7,6.16,-3.04,False,True,95.44,8.61,0.967,False,127.3,-24.95,-0.02,-1.78,8.0,12.0,2333562.0,2413450.0,0.667,3162700.0,2235710.0,2429293.0,1.302,75.85,24,18,6,18.0,20,剛爆發,True
+HSY,Consumer Staples,Hershey Company (The),2026-07-27,175.05,-3.89,-3.26,-8.83,-6.2,0.0,29,26,26,27.5,,,,,,,,,,,,,,,,,,,,,,,25,22,22,,22,,False
+BG,Consumer Staples,Bunge Global,2026-07-27,106.23,-0.22,-14.24,-5.62,-6.42,0.0,18,32,22,23.0,,,,,,,,,,,,,,,,,,,,,,,26,22,22,,22,,False
+PEP,Consumer Staples,PepsiCo,2026-07-27,139.56,-3.23,-10.41,-7.38,-7.1,0.0,26,30,25,27.0,,,,,,,,,,,,,,,,,,,,,,,27,22,22,,22,,False
+WMT,Consumer Staples,Walmart,2026-07-27,111.2,-0.57,-15.34,-6.29,-7.13,0.0,19,34,23,24.3,,,,,,,,,,,,,,,,,,,,,,,28,22,22,,22,剛爆發,False
+TSN,Consumer Staples,Tyson Foods,2026-07-27,57.96,-1.58,-8.22,-9.81,-7.35,0.0,22,29,27,25.1,,,,,,,,,,,,,,,,,,,,,,,29,22,22,,22,剛爆發,False
+KR,Consumer Staples,Kroger,2026-07-27,57.74,-0.82,-14.35,-7.18,-7.39,0.0,20,33,24,24.7,,,,,,,,,,,,,,,,,,,,,,,30,22,22,,22,剛爆發,False
+MKC,Consumer Staples,McCormick & Company,2026-07-27,50.9,-3.91,2.23,-16.19,-8.51,0.333,30,23,32,28.3,,,,,,,,,,,,,,,,,,,,,,,31,22,22,,22,剛爆發,False
+GIS,Consumer Staples,General Mills,2026-07-27,35.75,-3.2,4.75,-20.05,-9.64,0.333,25,19,33,24.8,,,,,,,,,,,,,,,,,,,,,,,32,22,22,,22,剛爆發,False
+EL,Consumer Staples,Estée Lauder Companies (The),2026-07-27,83.9,0.23,6.21,-26.71,-11.75,0.667,15,17,34,19.4,40.2,6.6,False,True,83.81,8.85,0.897,False,120.79,-30.54,4.5,0.23,11.0,9.0,2062790.0,2300733.0,1.222,1847500.0,2111290.0,2115220.0,0.873,85.96,33,9,15,19.8,21,剛爆發,True
+STZ,Consumer Staples,Constellation Brands,2026-07-27,130.23,-4.52,-14.11,-15.68,-12.5,0.0,31,31,31,31.0,,,,,,,,,,,,,,,,,,,,,,,34,22,22,,22,剛爆發,False
+MPC,Energy,Marathon Petroleum,2026-07-27,316.47,18.82,29.06,81.21,52.57,1.0,2,1,1,1.5,120.63,50.13,True,True,274.05,7.03,0.923,False,326.92,-3.2,2.34,18.82,14.0,6.0,1980721.0,2146233.0,2.333,1687300.0,2005720.0,2053653.0,0.822,100.0,1,1,15,3.8,3,,True
+VLO,Energy,Valero Energy,2026-07-27,312.9,17.31,27.84,75.02,48.8,1.0,4,2,2,3.0,23.84,33.47,False,True,269.32,8.46,1.039,False,319.01,-1.91,3.84,17.31,12.0,8.0,2739650.0,2637237.0,1.5,2431400.0,2479150.0,2777406.0,0.875,100.0,2,1,14,4.0,4,,True
+PSX,Energy,Phillips 66,2026-07-27,211.68,19.99,21.02,49.74,35.12,1.0,1,3,3,2.0,225.68,14.7,True,True,185.74,7.31,0.988,False,216.08,-2.04,2.37,19.99,14.0,6.0,2518021.0,2547616.0,2.333,2912600.0,2361180.0,2467953.0,1.18,100.0,3,1,5,2.6,2,,True
+APA,Energy,APA Corporation,2026-07-27,37.32,16.14,-6.35,43.26,24.08,0.667,7,15,4,8.8,20.9,41.73,True,True,35.25,9.98,1.055,False,45.04,-17.14,3.24,16.14,13.0,7.0,5369330.0,5091142.0,1.857,7944500.0,5339400.0,5392946.0,1.473,100.0,4,1,1,2.2,1,,True
+EOG,Energy,EOG Resources,2026-07-27,148.69,14.54,7.8,34.63,22.9,1.0,10,4,6,7.4,6.22,3.38,True,True,136.57,7.08,1.086,False,149.59,-0.6,1.57,14.54,13.0,7.0,2994961.0,2758400.0,1.857,2914300.0,2694050.0,2906520.0,1.003,100.0,5,1,8,4.0,4,,True
+TRGP,Energy,Targa Resources,2026-07-27,270.37,4.93,6.83,35.83,20.86,1.0,14,5,5,9.5,7.4,12.12,True,True,268.4,11.35,0.899,False,289.68,-6.67,-3.45,4.93,13.0,7.0,1063215.0,1182785.0,1.857,1115100.0,1142310.0,1144793.0,0.974,95.17,6,12,9,9.0,10,吃老本,True
+OXY,Energy,Occidental Petroleum,2026-07-27,57.07,16.68,-2.34,26.91,17.04,0.667,5,12,7,7.5,80.35,83.77,True,True,54.69,9.32,1.227,False,67.14,-15.0,-0.4,16.68,11.0,9.0,9844918.0,8022811.0,1.222,6810100.0,7923140.0,8430546.0,0.808,99.66,7,11,16,10.4,12,,True
+FANG,Energy,Diamondback Energy,2026-07-27,202.95,17.97,-1.73,25.21,16.67,0.667,3,11,8,6.4,12.78,-13.16,False,True,191.79,10.27,1.001,False,213.34,-4.87,-0.85,17.97,13.0,7.0,1884353.0,1883171.0,1.857,1650400.0,1852110.0,1852153.0,0.891,100.0,8,1,13,6.2,8,剛爆發,True
+COP,Energy,ConocoPhillips,2026-07-27,120.48,15.04,-1.47,17.36,12.07,0.667,8,10,10,9.0,11.52,-6.47,True,True,113.61,7.77,0.934,False,134.87,-10.67,0.18,15.04,14.0,6.0,6125942.0,6558933.0,2.333,5797800.0,6117480.0,6021393.0,0.963,100.0,9,1,10,6.0,7,剛爆發,True
+CVX,Energy,Chevron Corporation,2026-07-27,196.83,16.33,4.2,13.38,11.82,1.0,6,6,13,7.4,8.63,45.56,False,True,182.75,6.12,1.023,False,212.76,-7.49,1.05,16.33,14.0,6.0,7642528.0,7470283.0,2.333,9928700.0,7510310.0,7306206.0,1.359,100.0,10,1,4,5.2,6,剛爆發,True
+OKE,Energy,Oneok,2026-07-27,90.81,3.39,1.7,17.64,10.09,1.0,16,8,9,12.2,0.14,3.76,False,True,89.33,9.04,0.936,False,96.07,-5.48,-2.52,3.39,10.0,10.0,3286010.0,3511720.0,1.0,5140700.0,3759960.0,3585940.0,1.434,82.4,11,15,3,11.0,13,,True
+XOM,Energy,ExxonMobil,2026-07-27,155.44,13.39,2.45,11.41,9.67,1.0,11,7,14,10.4,13.26,15.14,False,True,146.39,8.31,0.947,False,175.22,-11.29,-0.96,13.39,13.0,7.0,14302953.0,15098014.0,1.857,15669200.0,14007190.0,14725766.0,1.064,100.0,12,1,7,6.6,9,剛爆發,True
+DVN,Energy,Devon Energy,2026-07-27,45.13,11.51,-10.1,13.62,7.16,0.667,12,18,12,13.8,-4.91,-0.81,True,True,43.78,8.58,0.965,False,52.34,-13.77,0.2,11.51,11.0,9.0,10643709.0,11024111.0,1.222,7895300.0,9830910.0,9856500.0,0.801,92.22,13,13,17,13.8,15,,False
+TPL,Energy,Texas Pacific Land Corporation,2026-07-27,402.58,-1.13,-7.02,15.87,5.9,0.333,19,16,11,16.5,2.47,-50.22,True,True,395.6,14.59,0.982,False,545.74,-26.23,-4.02,-1.13,8.0,12.0,275037.0,280125.0,0.667,391600.0,273170.0,266806.0,1.468,74.89,14,19,2,13.6,14,,True
+BKR,Energy,Baker Hughes,2026-07-27,60.49,14.61,-12.19,8.71,4.96,0.667,9,19,15,13.2,31.47,17.94,False,True,59.78,14.23,1.197,False,70.18,-13.8,5.66,14.61,13.0,7.0,10774946.0,9004771.0,1.857,5758100.0,10962020.0,9975680.0,0.577,100.0,15,1,19,10.2,11,剛爆發,True
+KMI,Energy,Kinder Morgan,2026-07-27,32.18,0.37,-0.16,7.55,3.83,0.667,18,9,17,15.1,18.28,22.1,False,True,32.13,6.24,1.028,False,34.81,-7.56,-2.07,0.37,10.0,10.0,9649010.0,9388450.0,1.0,9833400.0,11772150.0,10403393.0,0.945,82.38,16,16,11,15.0,16,,True
+WMB,Energy,Williams Companies,2026-07-27,71.54,-2.19,-4.6,7.92,2.26,0.333,21,13,16,17.6,16.43,-1.37,False,False,73.46,9.86,0.921,False,79.49,-10.0,-3.32,-2.19,10.0,10.0,6170670.0,6700360.0,1.0,7247200.0,6353470.0,6700313.0,1.082,78.47,17,18,6,15.2,17,,True
+SLB,Energy,Schlumberger,2026-07-27,49.59,9.88,-12.42,3.65,1.19,0.667,13,20,18,16.1,6.3,1.13,False,False,50.8,16.39,1.139,False,58.51,-15.25,-5.4,9.88,10.0,10.0,13721050.0,12043340.0,1.0,12312500.0,15510750.0,13388740.0,0.92,88.71,18,14,12,15.2,17,,True
+EQT,Energy,EQT Corporation,2026-07-27,53.29,1.29,-8.9,-7.17,-5.49,0.333,17,17,20,17.6,,,,,,,,,,,,,,,,,,,,,,,19,20,20,,20,,False
+HAL,Energy,Halliburton,2026-07-27,32.25,-2.15,-22.26,-2.91,-7.56,0.0,20,21,19,20.1,,,,,,,,,,,,,,,,,,,,,,,20,20,20,,20,,False
+EXE,Energy,Expand Energy,2026-07-27,94.03,3.65,-5.51,-15.39,-8.16,0.333,15,14,21,15.9,19.09,5.37,False,True,90.36,8.67,0.919,False,125.18,-24.88,2.74,3.65,8.0,12.0,3945087.0,4290708.0,0.667,3071900.0,4073890.0,4029786.0,0.762,79.38,21,17,18,18.8,19,,True
+STT,Financials,State Street Corporation,2026-07-27,184.16,7.89,21.76,42.38,28.6,1.0,17,7,1,10.8,9.21,7.46,False,True,170.87,6.28,0.932,False,192.51,-4.34,-0.67,7.89,12.0,8.0,2475350.0,2655450.0,1.5,1820700.0,2045250.0,2526486.0,0.721,93.28,1,18,29,13.4,9,吃老本,True
+TRV,Financials,Travelers Companies (The),2026-07-27,374.36,9.36,23.37,32.61,24.49,1.0,11,4,4,7.5,86.12,8.93,False,True,328.87,9.57,1.088,False,398.7,-6.1,-3.33,9.36,11.0,9.0,2210609.0,2031633.0,1.222,1840600.0,2373440.0,2362060.0,0.779,91.66,2,20,26,14.0,11,吃老本,True
+ALL,Financials,Allstate,2026-07-27,264.08,5.49,22.57,34.08,24.06,1.0,26,5,3,15.1,47.01,40.74,True,True,235.08,11.47,0.92,False,277.22,-4.74,1.58,5.49,12.0,8.0,1560425.0,1696775.0,1.5,1309200.0,1418300.0,1602433.0,0.817,92.52,3,19,24,13.6,10,吃老本,True
+BNY,Financials,BNY Mellon,2026-07-27,156.33,7.05,17.32,31.4,21.79,1.0,19,13,5,14.4,10.7,16.54,False,True,147.46,5.45,1.141,False,163.12,-4.16,-1.23,7.05,9.0,11.0,4199766.0,3682300.0,0.818,2336000.0,3225930.0,4036173.0,0.579,85.97,4,26,30,18.0,17,吃老本,True
+XYZ,Financials,"Block, Inc.",2026-07-27,81.24,3.06,13.13,34.44,21.27,1.0,35,30,2,26.9,25.55,0.15,True,True,75.43,10.35,1.0,False,84.08,-3.38,5.3,3.06,10.0,10.0,4599280.0,4598050.0,1.0,4696800.0,4294920.0,4771933.0,0.984,86.46,5,25,18,15.6,14,吃老本,True
+GL,Financials,Globe Life,2026-07-27,182.25,1.16,19.55,30.52,20.44,1.0,43,11,6,26.0,-1.96,-1.35,False,True,170.48,10.01,0.739,False,191.55,-4.86,5.06,1.16,13.0,7.0,613807.0,830814.0,1.857,926200.0,833180.0,741140.0,1.25,93.5,6,17,11,11.4,6,吃老本,False
+CPAY,Financials,Corpay,2026-07-27,382.11,8.41,24.38,21.45,18.92,1.0,13,3,11,9.6,6.03,1.68,True,True,356.23,12.23,1.153,False,395.49,-3.38,3.11,8.41,13.0,7.0,530069.0,459557.0,1.857,548400.0,568340.0,535753.0,1.024,100.0,7,1,16,6.4,1,剛爆發,True
+MET,Financials,MetLife,2026-07-27,96.13,6.74,20.74,23.68,18.71,1.0,22,9,8,15.3,6.65,6.3,True,True,88.47,6.8,0.989,False,97.8,-1.71,1.37,6.74,12.0,8.0,3825450.0,3867737.0,1.5,5784500.0,4587720.0,4121760.0,1.403,94.4,8,15,8,10.8,5,吃老本,True
+BEN,Financials,Franklin Resources,2026-07-27,33.86,-0.73,14.61,30.35,18.65,0.667,56,23,7,36.3,8.28,28.64,False,True,32.4,8.87,1.318,False,34.92,-3.04,4.22,-0.73,10.0,10.0,5478290.0,4157440.0,1.0,11986200.0,5118010.0,4941220.0,2.426,89.31,9,22,1,12.6,7,吃老本,True
+WTW,Financials,Willis Towers Watson,2026-07-27,335.92,17.36,31.52,6.55,15.5,1.0,3,1,41,10.0,7.78,1.8,False,True,274.68,19.47,0.968,False,349.38,-3.85,13.83,17.36,10.0,10.0,581430.0,600570.0,1.0,855200.0,628820.0,595120.0,1.437,97.89,10,10,7,9.4,4,,True
+NTRS,Financials,Northern Trust,2026-07-27,182.19,3.22,11.28,23.18,15.21,1.0,32,37,9,28.9,-8.35,16.14,False,True,175.81,6.57,0.677,False,191.6,-4.91,0.93,3.22,11.0,9.0,907309.0,1339633.0,1.222,1219700.0,1293950.0,1190340.0,1.025,82.49,11,27,15,18.2,18,吃老本,False
+PFG,Financials,Principal Financial Group,2026-07-27,113.7,2.55,13.37,22.08,15.02,1.0,37,28,10,28.9,7.07,2.94,False,True,108.79,7.79,0.899,False,114.95,-1.09,3.93,2.55,12.0,8.0,1582025.0,1760262.0,1.5,2897400.0,2018970.0,1818373.0,1.593,91.33,12,21,4,14.0,11,吃老本,True
+GPN,Financials,Global Payments,2026-07-27,84.08,6.93,16.64,18.04,14.91,1.0,20,16,13,17.4,5.43,0.62,True,True,73.67,14.26,1.199,False,89.46,-6.02,3.91,6.93,11.0,9.0,3347163.0,2791911.0,1.222,3003600.0,3199760.0,3206606.0,0.937,95.03,13,13,20,14.4,13,,True
+PRU,Financials,Prudential Financial,2026-07-27,122.08,8.08,25.48,12.88,14.83,1.0,16,2,28,14.2,16.48,-1.92,True,True,110.51,6.42,1.075,False,124.57,-2.0,1.77,8.08,14.0,6.0,1813214.0,1687016.0,2.333,2328900.0,1879620.0,1820960.0,1.279,100.0,14,1,10,8.0,2,剛爆發,True
+PYPL,Financials,PayPal,2026-07-27,57.21,25.82,13.8,9.27,14.54,1.0,1,26,35,15.3,8.03,5.59,False,True,47.02,7.99,1.915,False,78.53,-27.15,1.89,25.82,11.0,9.0,24287809.0,12679722.0,1.222,9770500.0,15582590.0,22014626.0,0.444,100.0,15,1,32,12.8,8,剛爆發,True
+BAC,Financials,Bank of America,2026-07-27,61.95,5.48,16.96,17.71,14.47,1.0,27,15,15,21.0,7.74,8.78,False,True,57.19,4.74,1.019,False,62.99,-1.65,-0.16,5.48,12.0,8.0,34039608.0,33407087.0,1.5,27282600.0,32782950.0,35390540.0,0.771,93.56,16,16,27,18.2,18,,True
+AIZ,Financials,Assurant,2026-07-27,279.19,-0.1,21.01,18.12,14.29,0.667,52,8,12,30.8,11.71,1.94,True,True,265.99,5.35,0.962,False,284.64,-1.91,0.81,-0.1,10.0,10.0,343010.0,356700.0,1.0,531100.0,357470.0,338200.0,1.57,82.09,17,28,5,19.0,20,吃老本,True
+CBOE,Financials,Cboe Global Markets,2026-07-27,310.23,24.6,-4.92,17.58,13.71,0.667,2,73,16,26.1,2.01,9.54,False,True,284.23,14.06,0.906,False,370.4,-16.25,8.83,24.6,15.0,5.0,1152713.0,1272940.0,3.0,1696900.0,1131970.0,1156126.0,1.468,100.0,18,1,6,8.8,3,剛爆發,True
+AFL,Financials,Aflac,2026-07-27,127.48,5.46,13.52,16.11,12.8,1.0,28,27,19,25.9,,,,,,,,,,,,,,,,,,,,,,,19,33,33,,33,吃老本,False
+JPM,Financials,JPMorgan Chase,2026-07-27,351.79,5.65,13.09,16.11,12.74,1.0,25,31,19,25.6,,,,,,,,,,,,,,,,,,,,,,,20,33,33,,33,吃老本,False
+CFG,Financials,Citizens Financial Group,2026-07-27,71.65,1.6,11.95,16.14,11.46,1.0,42,35,18,35.1,,,,,,,,,,,,,,,,,,,,,,,21,33,33,,33,吃老本,False
+IVZ,Financials,Invesco,2026-07-27,29.6,9.59,15.22,10.19,11.3,1.0,8,21,32,16.7,7.18,-1.21,False,True,28.2,9.44,0.825,False,31.02,-4.58,-1.1,9.59,12.0,7.0,4692075.0,5689885.0,1.714,4722200.0,5303140.0,5242593.0,0.901,95.46,22,12,21,17.8,16,剛爆發,True
+USB,Financials,U.S. Bancorp,2026-07-27,63.01,2.07,12.88,14.43,10.95,1.0,39,33,22,33.8,,,,,,,,,,,,,,,,,,,,,,,23,33,33,,33,吃老本,False
+MTB,Financials,M&T Bank,2026-07-27,246.29,3.1,14.59,12.71,10.78,1.0,33,24,29,29.5,,,,,,,,,,,,,,,,,,,,,,,24,33,33,,33,吃老本,False
+MS,Financials,Morgan Stanley,2026-07-27,210.42,-1.1,11.26,16.37,10.72,0.667,58,38,17,43.8,,,,,,,,,,,,,,,,,,,,,,,25,33,33,,33,吃老本,False
+PNC,Financials,PNC Financial Services,2026-07-27,249.87,0.95,14.11,13.66,10.59,1.0,46,25,27,35.9,,,,,,,,,,,,,,,,,,,,,,,26,33,33,,33,吃老本,False
+V,Financials,Visa Inc.,2026-07-27,366.13,1.1,11.85,14.24,10.36,1.0,44,36,25,37.8,,,,,,,,,,,,,,,,,,,,,,,27,33,33,,33,吃老本,False
+IBKR,Financials,Interactive Brokers,2026-07-27,87.99,-3.66,9.47,17.75,10.33,0.667,65,43,14,48.2,7.98,0.1,False,False,90.28,10.92,0.913,False,97.84,-10.07,-4.09,-3.66,8.0,12.0,4041850.0,4427108.0,0.667,4369800.0,4920620.0,4508146.0,0.969,72.15,28,31,19,27.4,23,,True
+FITB,Financials,Fifth Third Bancorp,2026-07-27,56.5,-1.15,12.83,14.33,10.08,0.667,59,34,23,44.3,,,,,,,,,,,,,,,,,,,,,,,29,33,33,,33,,False
+AMP,Financials,Ameriprise Financial,2026-07-27,545.84,11.59,17.26,4.22,9.32,1.0,6,14,48,16.8,2.37,10.25,False,True,483.59,7.99,0.886,False,553.46,-1.38,3.2,11.59,14.0,6.0,594900.0,671683.0,2.333,480600.0,577460.0,606733.0,0.792,100.0,30,1,25,17.4,15,剛爆發,True
+EG,Financials,Everest Group,2026-07-27,374.15,0.75,6.45,14.33,8.96,1.0,48,51,23,43.9,,,,,,,,,,,,,,,,,,,,,,,31,33,33,,33,,False
+MA,Financials,Mastercard,2026-07-27,573.1,6.43,15.86,6.73,8.94,1.0,23,18,40,24.9,,,,,,,,,,,,,,,,,,,,,,,32,33,33,,33,,False
+RJF,Financials,Raymond James Financial,2026-07-27,175.98,8.19,13.06,6.88,8.75,1.0,14,32,38,24.2,7.84,0.54,False,True,158.67,8.9,0.815,False,178.28,-1.29,3.95,8.19,11.0,9.0,1141227.0,1400755.0,1.222,1198700.0,1343170.0,1347113.0,0.89,89.08,33,23,22,26.8,22,剛爆發,True
+RF,Financials,Regions Financial Corporation,2026-07-27,30.95,2.21,10.84,10.69,8.61,1.0,38,39,31,36.9,,,,,,,,,,,,,,,,,,,,,,,34,33,33,,33,,False
+CB,Financials,Chubb Limited,2026-07-27,350.68,-2.9,7.83,13.97,8.22,0.667,64,48,26,51.6,,,,,,,,,,,,,,,,,,,,,,,35,33,33,,33,,False
+FDS,Financials,FactSet,2026-07-27,263.2,5.24,16.22,4.52,7.62,1.0,29,17,47,29.0,,,,,,,,,,,,,,,,,,,,,,,36,33,33,,33,,False
+GS,Financials,Goldman Sachs,2026-07-27,1018.38,-0.26,10.73,9.93,7.58,0.667,53,40,34,45.3,,,,,,,,,,,,,,,,,,,,,,,37,33,33,,33,,False
+C,Financials,Citigroup,2026-07-27,132.45,-5.37,4.42,15.61,7.57,0.667,69,56,21,55.5,,,,,,,,,,,,,,,,,,,,,,,38,33,33,,33,,False
+SCHW,Financials,Charles Schwab Corporation,2026-07-27,105.24,8.49,15.38,1.98,6.96,1.0,12,20,51,22.2,4.55,2.48,False,True,95.16,7.09,0.954,False,106.76,-1.42,3.21,8.49,13.0,7.0,8435038.0,8841314.0,1.857,8544200.0,8798310.0,8649700.0,0.988,100.0,39,1,17,19.4,21,剛爆發,True
+CINF,Financials,Cincinnati Financial,2026-07-27,177.68,-7.47,10.25,11.7,6.54,0.667,73,42,30,55.1,,,,,,,,,,,,,,,,,,,,,,,40,33,33,,33,剛爆發,False
+MRSH,Financials,Marsh McLennan,2026-07-27,189.69,6.85,14.79,1.89,6.35,1.0,21,22,52,27.5,,,,,,,,,,,,,,,,,,,,,,,41,33,33,,33,剛爆發,False
+WRB,Financials,W. R. Berkley Corporation,2026-07-27,72.54,0.64,10.27,6.86,6.16,1.0,50,41,39,45.1,,,,,,,,,,,,,,,,,,,,,,,42,33,33,,33,剛爆發,False
+L,Financials,Loews Corporation,2026-07-27,116.01,-0.44,3.92,10.02,5.88,0.667,54,58,33,51.0,,,,,,,,,,,,,,,,,,,,,,,43,33,33,,33,剛爆發,False
+AON,Financials,Aon plc,2026-07-27,360.55,0.86,15.74,3.39,5.85,1.0,47,19,49,39.0,,,,,,,,,,,,,,,,,,,,,,,44,33,33,,33,剛爆發,False
+BRK-B,Financials,Berkshire Hathaway,2026-07-27,511.54,0.74,8.15,6.45,5.45,1.0,49,47,42,47.0,,,,,,,,,,,,,,,,,,,,,,,45,33,33,,33,剛爆發,False
+TROW,Financials,T. Rowe Price,2026-07-27,111.75,-5.74,9.35,8.61,5.21,0.667,70,45,36,55.7,,,,,,,,,,,,,,,,,,,,,,,46,33,33,,33,剛爆發,False
+AJG,Financials,Arthur J. Gallagher & Co.,2026-07-27,249.42,-1.2,20.25,0.66,5.09,0.667,60,10,54,43.8,0.94,0.98,False,True,230.36,11.48,1.058,False,310.73,-19.73,0.67,-1.2,8.0,12.0,1510875.0,1427583.0,0.667,1735800.0,1348100.0,1400886.0,1.239,78.07,47,30,12,33.2,29,剛爆發,True
+HIG,Financials,Hartford (The),2026-07-27,141.91,2.95,4.99,6.02,4.99,1.0,36,55,44,43.3,,,,,,,,,,,,,,,,,,,,,,,48,33,33,,33,剛爆發,False
+BRO,Financials,Brown & Brown,2026-07-27,70.4,0.57,22.52,-1.85,4.85,0.667,51,6,57,38.7,-0.39,2.3,False,True,63.4,15.58,1.145,False,97.58,-27.86,4.05,0.57,8.0,12.0,3136012.0,2737741.0,0.667,2741700.0,3344000.0,3212086.0,0.854,82.01,49,29,23,35.8,30,剛爆發,False
+KEY,Financials,KeyCorp,2026-07-27,22.59,-1.87,4.32,7.06,4.14,0.667,62,57,37,55.5,,,,,,,,,,,,,,,,,,,,,,,50,33,33,,33,剛爆發,False
+ACGL,Financials,Arch Capital Group,2026-07-27,100.53,-1.63,7.15,4.68,3.72,0.667,61,50,46,54.7,,,,,,,,,,,,,,,,,,,,,,,51,33,33,,33,剛爆發,False
+AIG,Financials,American International Group,2026-07-27,78.58,-1.02,0.42,6.26,2.98,0.667,57,67,43,57.2,,,,,,,,,,,,,,,,,,,,,,,52,33,33,,33,剛爆發,False
+NDAQ,Financials,"Nasdaq, Inc.",2026-07-27,94.19,11.26,3.51,-2.13,2.63,0.667,7,59,58,32.8,8.79,2.84,False,True,87.98,7.91,1.132,False,101.11,-6.84,2.28,11.26,11.0,9.0,4280618.0,3782300.0,1.222,3181800.0,3790390.0,4162053.0,0.764,95.81,53,11,28,31.2,28,剛爆發,True
+TFC,Financials,Truist Financial,2026-07-27,51.84,1.69,2.86,2.91,2.59,1.0,41,62,50,49.1,,,,,,,,,,,,,,,,,,,,,,,54,33,33,,33,剛爆發,False
+SYF,Financials,Synchrony Financial,2026-07-27,75.79,-0.71,0.45,5.2,2.53,0.667,55,66,45,56.3,,,,,,,,,,,,,,,,,,,,,,,55,33,33,,33,剛爆發,False
+BLK,Financials,BlackRock,2026-07-27,1090.39,9.51,3.28,-1.46,2.47,0.667,10,61,56,34.5,9.62,9.35,False,True,1032.05,7.41,1.042,False,1200.54,-9.18,3.29,9.51,9.0,11.0,811300.0,778236.0,0.818,378200.0,740330.0,841780.0,0.449,87.54,56,24,31,38.2,31,剛爆發,True
+COF,Financials,Capital One,2026-07-27,209.01,1.9,9.38,-3.75,0.94,0.667,40,44,60,45.2,,,,,,,,,,,,,,,,,,,,,,,57,33,33,,33,剛爆發,False
+WFC,Financials,Wells Fargo,2026-07-27,86.45,1.1,7.59,-3.45,0.45,0.667,44,49,59,48.5,,,,,,,,,,,,,,,,,,,,,,,58,33,33,,33,剛爆發,False
+PGR,Financials,Progressive Corporation,2026-07-27,211.42,-8.96,6.12,1.74,0.16,0.667,74,52,53,63.2,,,,,,,,,,,,,,,,,,,,,,,59,33,33,,33,剛爆發,False
+HBAN,Financials,Huntington Bancshares,2026-07-27,17.04,-4.59,3.39,-0.64,-0.62,0.333,67,60,55,62.5,,,,,,,,,,,,,,,,,,,,,,,60,33,33,,33,剛爆發,False
+CME,Financials,CME Group,2026-07-27,267.79,13.18,-7.03,-4.65,-0.79,0.333,5,74,62,37.1,2.75,-0.25,False,True,252.45,12.83,0.877,False,319.82,-16.27,4.89,13.18,15.0,5.0,2681233.0,3058380.0,3.0,3268800.0,2785770.0,2680346.0,1.22,100.0,61,1,13,27.4,23,剛爆發,True
+ARES,Financials,Ares Management,2026-07-27,128.09,9.57,8.72,-12.38,-1.62,0.667,9,46,69,32.1,1.44,-6.57,False,True,123.32,11.2,1.146,False,188.31,-31.98,1.25,9.57,11.0,9.0,2207063.0,1925944.0,1.222,4177600.0,2399220.0,2229753.0,1.874,94.63,62,14,2,30.8,27,剛爆發,True
+AXP,Financials,American Express,2026-07-27,336.25,-4.46,5.47,-3.96,-1.73,0.333,66,53,61,61.1,,,,,,,,,,,,,,,,,,,,,,,63,33,33,,33,剛爆發,False
+APO,Financials,Apollo Global Management,2026-07-27,125.59,5.88,-3.33,-5.88,-2.3,0.333,24,72,64,46.4,,,,,,,,,,,,,,,,,,,,,,,64,33,33,,33,剛爆發,False
+ICE,Financials,Intercontinental Exchange,2026-07-27,152.48,14.66,-1.1,-11.65,-2.43,0.333,4,68,68,36.0,3.36,3.86,False,True,140.07,14.08,1.113,False,186.96,-18.44,4.59,14.66,15.0,5.0,4456153.0,4002200.0,3.0,5665700.0,4606690.0,4136453.0,1.37,100.0,65,1,9,28.2,25,剛爆發,True
+BX,Financials,Blackstone Inc.,2026-07-27,127.75,4.05,2.04,-8.42,-2.69,0.667,31,64,66,47.9,,,,,,,,,,,,,,,,,,,,,,,66,33,33,,33,剛爆發,False
+MCO,Financials,Moody's Corporation,2026-07-27,478.38,-2.47,5.21,-6.79,-2.71,0.333,63,54,65,60.7,,,,,,,,,,,,,,,,,,,,,,,67,33,33,,33,剛爆發,False
+KKR,Financials,KKR & Co.,2026-07-27,101.43,8.09,-1.98,-10.89,-3.92,0.333,15,69,67,41.6,14.23,10.28,False,True,95.96,8.9,1.209,False,151.29,-32.96,2.08,8.09,13.0,7.0,3990330.0,3301157.0,1.857,6281600.0,3758600.0,3929700.0,1.598,100.0,68,1,3,28.2,25,剛爆發,True
+MSCI,Financials,MSCI Inc.,2026-07-27,572.24,-5.12,-2.47,-5.36,-4.58,0.0,68,70,63,67.6,,,,,,,,,,,,,,,,,,,,,,,69,33,33,,33,剛爆發,False
+ERIE,Financials,Erie Indemnity,2026-07-27,242.04,-6.1,13.24,-13.49,-4.96,0.333,71,29,72,58.6,,,,,,,,,,,,,,,,,,,,,,,70,33,33,,33,剛爆發,False
+JKHY,Financials,Jack Henry & Associates,2026-07-27,154.04,4.88,0.46,-13.34,-5.34,0.667,30,65,71,48.7,,,,,,,,,,,,,,,,,,,,,,,71,33,33,,33,剛爆發,False
+FIS,Financials,Fidelity National Information Services,2026-07-27,44.77,7.11,-2.7,-17.34,-7.57,0.333,18,71,75,45.3,,,,,,,,,,,,,,,,,,,,,,,72,33,33,,33,剛爆發,False
+HOOD,Financials,Robinhood Markets,2026-07-27,86.56,-23.21,17.51,-12.99,-7.92,0.333,76,12,70,55.6,43.71,8.63,False,False,96.64,25.6,0.882,False,153.86,-43.74,-8.8,-23.21,7.0,13.0,19696500.0,22320730.0,0.538,22867000.0,20439590.0,21179200.0,1.08,56.07,73,32,14,44.8,32,剛爆發,True
+SPGI,Financials,S&P Global,2026-07-27,411.93,-6.36,2.43,-17.12,-9.54,0.333,72,63,74,69.7,,,,,,,,,,,,,,,,,,,,,,,74,33,33,,33,剛爆發,False
+FISV,Financials,Fiserv,2026-07-27,53.94,3.08,-13.2,-15.36,-10.21,0.333,34,75,73,54.1,,,,,,,,,,,,,,,,,,,,,,,75,33,33,,33,剛爆發,False
+COIN,Financials,Coinbase,2026-07-27,146.26,-11.61,-23.52,-24.89,-21.23,0.0,75,76,76,75.5,,,,,,,,,,,,,,,,,,,,,,,76,33,33,,33,剛爆發,False
+DVA,Health Care,DaVita,2026-07-27,240.09,2.21,58.32,119.58,74.92,1.0,28,1,1,14.5,23.18,6.51,True,True,216.86,6.12,0.868,False,244.49,-1.8,1.98,2.21,12.0,8.0,616533.0,710262.0,1.5,426600.0,579360.0,590880.0,0.722,89.8,1,16,27,12.2,5,吃老本,True
+HUM,Health Care,Humana,2026-07-27,363.86,-8.29,56.11,87.79,55.85,0.667,52,2,2,27.0,8.79,1.05,False,False,367.25,13.39,0.894,False,428.88,-15.16,-6.54,-8.29,10.0,10.0,1432280.0,1601740.0,1.0,1454600.0,1593820.0,1597586.0,0.91,73.06,2,29,15,15.4,14,吃老本,True
+BAX,Health Care,Baxter International,2026-07-27,26.16,15.5,52.08,30.48,32.13,1.0,3,3,8,4.0,52.53,15.93,False,True,21.24,36.52,1.169,False,30.0,-12.8,16.79,15.5,11.0,9.0,7156181.0,6120500.0,1.222,9282400.0,7688700.0,7264300.0,1.278,100.0,3,1,7,3.0,1,,True
+CVS,Health Care,CVS Health,2026-07-27,104.43,0.34,28.0,42.24,28.21,1.0,34,10,6,21.2,16.48,9.38,True,True,100.58,6.53,1.039,False,110.0,-5.06,-3.07,0.34,11.0,9.0,7720109.0,7430644.0,1.222,7079300.0,7428990.0,7901573.0,0.896,85.49,4,19,18,12.8,9,吃老本,True
+UNH,Health Care,UnitedHealth Group,2026-07-27,414.4,-2.58,13.01,46.38,25.8,0.667,45,33,4,33.2,29.8,9.52,False,True,409.41,6.07,1.454,False,461.62,-10.23,-1.51,-2.58,8.0,12.0,6953587.0,4783416.0,0.667,3915800.0,4786190.0,5841760.0,0.67,83.29,5,22,30,16.8,16,吃老本,True
+WST,Health Care,West Pharmaceutical Services,2026-07-27,340.96,-6.71,13.47,47.73,25.56,0.667,51,31,3,35.4,13.86,27.07,False,True,337.98,17.65,0.878,False,385.75,-11.61,3.96,-6.71,10.0,10.0,796600.0,907620.0,1.0,1047400.0,1062060.0,912320.0,1.148,77.91,6,27,12,15.6,15,吃老本,True
+CNC,Health Care,Centene Corporation,2026-07-27,62.22,-8.31,16.65,43.63,23.9,0.667,53,26,5,35.3,132.64,57.91,False,False,63.62,17.16,0.776,False,69.36,-10.29,-1.88,-8.31,9.0,11.0,4212255.0,5425945.0,0.818,3912700.0,5725130.0,5188720.0,0.754,70.12,7,30,26,20.0,20,吃老本,True
+VTRS,Health Care,Viatris,2026-07-27,17.56,5.15,17.61,36.29,23.83,1.0,17,24,7,17.1,17.54,7.39,True,True,16.47,7.5,0.927,False,18.07,-2.82,1.86,5.15,9.0,11.0,8926233.0,9627363.0,0.818,15565400.0,9706340.0,9279506.0,1.677,82.33,8,25,2,13.6,10,吃老本,True
+DXCM,Health Care,Dexcom,2026-07-27,83.45,17.12,36.02,14.25,20.41,1.0,1,6,17,5.7,15.11,18.99,False,True,73.13,20.01,1.311,False,84.7,-1.48,16.65,17.12,11.0,9.0,5436181.0,4147688.0,1.222,11980700.0,5014920.0,4905133.0,2.442,100.0,9,1,1,4.2,2,剛爆發,True
+DGX,Health Care,Quest Diagnostics,2026-07-27,233.01,8.45,21.43,25.64,20.29,1.0,10,15,9,11.3,10.51,5.61,False,True,206.4,16.01,1.968,False,240.13,-2.97,2.26,8.45,6.0,14.0,1715783.0,871871.0,0.429,872500.0,1418910.0,1250953.0,0.697,96.84,10,7,29,12.6,6,,True
+BMY,Health Care,Bristol Myers Squibb,2026-07-27,65.31,12.35,13.44,21.21,17.06,1.0,5,32,11,14.3,27.74,11.18,False,True,57.76,9.38,1.153,False,65.66,-0.53,5.19,12.35,13.0,7.0,11552453.0,10023471.0,1.857,14574100.0,11308940.0,11609886.0,1.255,100.0,11,1,8,6.4,3,剛爆發,True
+IQV,Health Care,IQVIA,2026-07-27,235.02,13.51,48.96,2.12,16.68,1.0,4,4,37,10.6,3.94,2.96,False,True,193.95,24.48,1.645,False,251.36,-6.5,12.96,13.51,9.0,11.0,1838422.0,1117500.0,0.818,1321700.0,1783650.0,1580466.0,0.836,100.0,12,1,23,9.8,4,剛爆發,True
+INCY,Health Care,Incyte,2026-07-27,119.52,2.28,23.33,19.44,16.12,1.0,27,11,13,19.4,43.95,35.12,False,True,109.13,15.05,1.142,False,132.6,-9.86,1.57,2.28,11.0,9.0,2018481.0,1767033.0,1.222,1829900.0,2234290.0,2019106.0,0.906,90.32,13,15,16,14.4,13,,True
+CRL,Health Care,Charles River Laboratories,2026-07-27,232.51,0.79,40.25,10.47,15.49,1.0,30,5,24,21.3,5.42,1.91,True,True,204.52,12.86,1.16,False,242.73,-4.21,2.62,0.79,6.0,14.0,915666.0,789135.0,0.429,509200.0,847960.0,855780.0,0.595,78.25,14,26,31,22.2,26,吃老本,True
+SOLV,Health Care,Solventum,2026-07-27,85.44,9.16,28.23,11.0,14.85,1.0,8,9,23,11.3,9.33,5.0,True,True,78.37,14.52,1.211,False,88.65,-3.62,9.52,9.16,9.0,11.0,1157644.0,955709.0,0.818,1056700.0,1110470.0,1087886.0,0.971,92.78,15,12,14,13.6,10,,True
+TECH,Health Care,Bio-Techne,2026-07-27,72.09,1.78,31.27,12.84,14.68,1.0,29,7,20,20.6,-0.82,5.84,True,True,62.34,1.28,1.121,True,72.37,-0.39,0.68,1.78,12.0,7.0,4189358.0,3736385.0,1.714,4033500.0,4200600.0,3791466.0,1.064,96.68,16,9,13,12.6,6,剛爆發,False
+LH,Health Care,Labcorp,2026-07-27,309.2,7.74,21.19,14.48,14.47,1.0,12,16,14,13.6,4.65,3.26,False,True,274.01,13.12,1.391,False,316.11,-2.19,4.19,7.74,8.0,12.0,956787.0,687700.0,0.667,1091100.0,1032340.0,897846.0,1.215,90.67,17,13,9,13.8,12,,True
+MRK,Health Care,Merck & Co.,2026-07-27,130.2,0.49,16.92,19.8,14.26,1.0,33,25,12,26.4,13.15,1.47,True,True,122.57,8.47,0.99,False,135.05,-3.59,-0.66,0.49,10.0,10.0,8530770.0,8618840.0,1.0,7731900.0,7782440.0,8569893.0,0.902,82.35,18,24,17,20.2,22,吃老本,True
+AMGN,Health Care,Amgen,2026-07-27,385.16,2.94,17.66,14.3,12.3,1.0,25,23,15,22.4,8.04,11.94,True,True,355.74,10.28,1.234,False,398.0,-3.23,2.43,2.94,8.0,11.0,2599987.0,2106754.0,0.727,1953600.0,2605540.0,2469186.0,0.791,85.24,19,20,24,20.4,23,,True
+ABBV,Health Care,AbbVie,2026-07-27,250.94,-3.2,22.33,14.27,11.92,0.667,47,14,16,30.9,1.15,-0.77,False,True,236.86,7.96,0.941,False,267.47,-6.18,-3.25,-3.2,8.0,12.0,5759325.0,6121033.0,0.667,7251900.0,5460300.0,5588206.0,1.298,73.25,20,28,6,20.4,23,吃老本,True
+HSIC,Health Care,Henry Schein,2026-07-27,85.75,-0.79,15.99,13.61,10.6,0.667,38,27,19,30.9,,,,,,,,,,,,,,,,,,,,,,,21,32,32,,32,吃老本,False
+JNJ,Health Care,Johnson & Johnson,2026-07-27,256.35,-2.54,13.48,14.06,9.76,0.667,44,30,18,34.6,,,,,,,,,,,,,,,,,,,,,,,22,32,32,,32,吃老本,False
+MRNA,Health Care,Moderna,2026-07-27,54.82,-31.27,20.83,24.39,9.59,0.667,59,18,10,36.9,4.33,12.37,False,False,58.41,16.01,1.033,False,85.6,-35.96,1.39,-31.27,8.0,12.0,6294937.0,6091058.0,0.667,7758700.0,4938620.0,5152893.0,1.506,59.88,23,31,3,22.2,26,吃老本,True
+ZBH,Health Care,Zimmer Biomet,2026-07-27,93.93,7.39,13.61,8.46,9.48,1.0,13,29,26,20.4,12.21,0.93,True,True,88.6,10.55,1.06,False,107.16,-12.35,2.82,7.39,10.0,10.0,2319870.0,2187790.0,1.0,2772700.0,2204720.0,2398746.0,1.156,89.12,24,17,11,18.6,18,剛爆發,True
+LLY,Health Care,Lilly (Eli),2026-07-27,1148.84,-5.36,19.46,11.14,9.1,0.667,49,19,22,34.6,,,,,,,,,,,,,,,,,,,,,,,25,32,32,,32,吃老本,False
+RVTY,Health Care,Revvity,2026-07-27,112.52,-1.03,29.89,3.56,9.0,0.667,40,8,32,28.8,4.47,7.8,True,True,105.97,12.28,1.367,False,118.13,-4.75,1.86,-1.03,10.0,10.0,1549660.0,1133820.0,1.0,1206800.0,1591340.0,1412366.0,0.854,89.04,26,18,21,21.8,25,剛爆發,True
+A,Health Care,Agilent Technologies,2026-07-27,138.37,5.88,21.06,3.81,8.64,1.0,15,17,30,18.6,5.8,-0.6,False,True,131.55,12.71,1.076,False,159.31,-13.15,-0.14,5.88,9.0,11.0,2299977.0,2137881.0,0.818,1720600.0,2161760.0,2204733.0,0.78,84.57,27,21,25,24.2,28,剛爆發,True
+REGN,Health Care,Regeneron Pharmaceuticals,2026-07-27,762.63,16.56,8.89,3.13,7.93,1.0,2,40,35,20.0,39.99,6.38,False,True,643.68,18.49,1.32,False,818.9,-6.87,16.25,16.56,12.0,8.0,869666.0,659050.0,1.5,1158300.0,905630.0,804960.0,1.439,100.0,28,1,5,12.6,6,剛爆發,True
+TMO,Health Care,Thermo Fisher Scientific,2026-07-27,574.3,9.72,22.52,-0.55,7.79,0.667,7,13,41,15.6,5.57,3.79,False,True,504.65,16.76,1.124,False,642.71,-10.64,1.06,9.72,11.0,9.0,2354381.0,2094600.0,1.222,2112300.0,2811610.0,2459126.0,0.859,94.26,29,11,20,20.0,20,剛爆發,True
+CAH,Health Care,Cardinal Health,2026-07-27,230.03,-3.73,18.08,7.54,7.36,0.667,48,22,27,36.0,,,,,,,,,,,,,,,,,,,,,,,30,32,32,,32,,False
+BIIB,Health Care,Biogen,2026-07-27,202.95,-6.09,8.49,12.82,7.01,0.667,50,41,21,41.5,,,,,,,,,,,,,,,,,,,,,,,31,32,32,,32,,False
+ABT,Health Care,Abbott Laboratories,2026-07-27,105.7,11.59,19.0,-1.99,6.65,0.667,6,20,42,17.4,2.61,0.33,False,True,92.83,10.32,1.44,False,134.38,-21.34,2.56,11.59,13.0,7.0,14279030.0,9915671.0,1.857,9606900.0,11082970.0,13609646.0,0.706,100.0,32,1,28,18.8,19,剛爆發,True
+BDX,Health Care,Becton Dickinson,2026-07-27,165.62,4.77,11.71,4.93,6.58,1.0,19,36,29,26.1,,,,,,,,,,,,,,,,,,,,,,,33,32,32,,32,,False
+MTD,Health Care,Mettler Toledo,2026-07-27,1416.3,8.24,11.78,3.14,6.57,1.0,11,35,34,22.8,6.06,2.33,False,True,1231.29,18.48,0.95,False,1525.17,-7.14,6.71,8.24,12.0,8.0,163341.0,171912.0,1.5,257200.0,198540.0,174746.0,1.472,96.76,34,8,4,17.6,17,剛爆發,True
+WAT,Health Care,Waters Corporation,2026-07-27,377.31,-0.52,22.85,1.78,6.47,0.667,37,12,38,29.7,16.99,0.46,True,True,368.02,12.46,1.296,False,414.15,-8.9,0.7,-0.52,8.0,12.0,912300.0,703891.0,0.667,715100.0,920650.0,819726.0,0.872,82.65,35,23,19,27.0,31,剛爆發,True
+VEEV,Health Care,Veeva Systems,2026-07-27,203.78,5.73,18.75,-0.07,6.09,0.667,16,21,40,22.3,,,,,,,,,,,,,,,,,,,,,,,36,32,32,,32,,False
+MCK,Health Care,McKesson Corporation,2026-07-27,856.19,8.89,5.3,3.2,5.15,1.0,9,44,33,24.3,1.06,0.71,True,True,789.94,11.6,1.114,False,997.9,-14.2,1.82,8.89,10.0,10.0,977470.0,877260.0,1.0,773300.0,883740.0,912306.0,0.848,90.56,37,14,22,24.8,29,剛爆發,True
+ELV,Health Care,Elevance Health,2026-07-27,375.84,-10.06,1.26,9.82,2.71,0.667,57,48,25,47.9,,,,,,,,,,,,,,,,,,,,,,,38,32,32,,32,剛爆發,False
+VRTX,Health Care,Vertex Pharmaceuticals,2026-07-27,477.1,-9.65,12.54,1.53,1.49,0.667,56,34,39,46.0,,,,,,,,,,,,,,,,,,,,,,,39,32,32,,32,剛爆發,False
+EW,Health Care,Edwards Lifesciences,2026-07-27,86.07,-8.8,2.49,5.79,1.32,0.667,55,47,28,47.2,,,,,,,,,,,,,,,,,,,,,,,40,32,32,,32,剛爆發,False
+CI,Health Care,Cigna,2026-07-27,279.05,-3.03,-0.79,2.96,0.52,0.333,46,51,36,45.5,,,,,,,,,,,,,,,,,,,,,,,41,32,32,,32,剛爆發,False
+PFE,Health Care,Pfizer,2026-07-27,25.01,4.64,-1.76,-2.16,-0.36,0.333,21,53,43,35.0,,,,,,,,,,,,,,,,,,,,,,,42,32,32,,32,剛爆發,False
+ALGN,Health Care,Align Technology,2026-07-27,169.16,-8.32,-5.45,3.76,-1.56,0.333,54,54,31,49.4,,,,,,,,,,,,,,,,,,,,,,,43,32,32,,32,剛爆發,False
+COO,Health Care,Cooper Companies (The),2026-07-27,72.32,-2.53,15.97,-11.13,-2.21,0.333,43,28,46,39.1,,,,,,,,,,,,,,,,,,,,,,,44,32,32,,32,剛爆發,False
+DHR,Health Care,Danaher Corporation,2026-07-27,194.98,-1.49,11.55,-10.55,-2.76,0.333,41,37,45,40.6,,,,,,,,,,,,,,,,,,,,,,,45,32,32,,32,剛爆發,False
+GEHC,Health Care,GE HealthCare,2026-07-27,68.02,3.8,11.52,-13.78,-3.06,0.667,23,38,50,32.9,,,,,,,,,,,,,,,,,,,,,,,46,32,32,,32,剛爆發,False
+SYK,Health Care,Stryker Corporation,2026-07-27,325.7,-0.26,10.8,-11.39,-3.06,0.333,36,39,47,39.1,,,,,,,,,,,,,,,,,,,,,,,46,32,32,,32,剛爆發,False
+STE,Health Care,Steris,2026-07-27,228.4,4.67,6.85,-12.54,-3.39,0.667,20,43,48,32.5,,,,,,,,,,,,,,,,,,,,,,,48,32,32,,32,剛爆發,False
+GILD,Health Care,Gilead Sciences,2026-07-27,130.21,-0.81,-0.44,-7.14,-3.88,0.0,39,50,44,43.3,,,,,,,,,,,,,,,,,,,,,,,49,32,32,,32,剛爆發,False
+COR,Health Care,Cencora,2026-07-27,311.34,5.0,2.65,-12.98,-4.58,0.667,18,46,49,32.6,,,,,,,,,,,,,,,,,,,,,,,50,32,32,,32,剛爆發,False
+MDT,Health Care,Medtronic,2026-07-27,85.39,2.64,7.7,-15.63,-5.23,0.667,26,42,51,35.8,,,,,,,,,,,,,,,,,,,,,,,51,32,32,,32,剛爆發,False
+UHS,Health Care,Universal Health Services,2026-07-27,168.44,6.39,1.0,-16.11,-6.21,0.667,14,49,52,32.1,-0.45,2.95,False,True,151.19,14.49,1.367,False,245.55,-31.4,8.15,6.39,10.0,10.0,1184550.0,866550.0,1.0,1344900.0,1222160.0,1117093.0,1.204,96.01,52,10,10,26.8,30,剛爆發,False
+RMD,Health Care,ResMed,2026-07-27,210.98,0.64,3.21,-17.89,-7.98,0.667,31,45,55,40.0,,,,,,,,,,,,,,,,,,,,,,,53,32,32,,32,剛爆發,False
+IDXX,Health Care,Idexx Laboratories,2026-07-27,559.07,0.23,-1.48,-16.61,-8.62,0.333,35,52,53,43.7,,,,,,,,,,,,,,,,,,,,,,,54,32,32,,32,剛爆發,False
+HCA,Health Care,HCA Healthcare,2026-07-27,402.59,-1.93,-6.86,-17.26,-10.83,0.0,42,56,54,48.6,,,,,,,,,,,,,,,,,,,,,,,55,32,32,,32,剛爆發,False
+PODD,Health Care,Insulet Corporation,2026-07-27,165.35,0.53,-5.54,-35.36,-18.93,0.333,32,55,57,43.9,,,,,,,,,,,,,,,,,,,,,,,56,32,32,,32,剛爆發,False
+ISRG,Health Care,Intuitive Surgical,2026-07-27,353.33,-17.06,-22.82,-29.93,-24.93,0.0,58,58,56,57.6,,,,,,,,,,,,,,,,,,,,,,,57,32,32,,32,剛爆發,False
+ZTS,Health Care,Zoetis,2026-07-27,77.29,4.05,-31.82,-37.38,-25.63,0.333,22,59,58,40.3,,,,,,,,,,,,,,,,,,,,,,,58,32,32,,32,剛爆發,False
+BSX,Health Care,Boston Scientific,2026-07-27,46.73,3.52,-17.29,-50.04,-28.46,0.333,24,57,59,40.9,,,,,,,,,,,,,,,,,,,,,,,59,32,32,,32,剛爆發,False
+FIX,Industrials,Comfort Systems USA,2026-07-27,1729.69,-0.67,-7.32,51.59,23.8,0.333,39,62,1,38.3,19.85,54.44,False,False,1817.66,22.67,0.768,False,2073.18,-16.57,-0.23,-0.67,10.0,10.0,465610.0,606210.0,1.0,392300.0,584110.0,562826.0,0.697,77.95,1,27,29,17.0,16,吃老本,True
+HWM,Industrials,Howmet Aerospace,2026-07-27,282.26,4.38,17.9,35.79,23.46,1.0,17,13,5,13.4,10.28,8.7,True,True,269.33,8.89,0.907,False,295.28,-4.41,-2.42,4.38,12.0,8.0,1907741.0,2102562.0,1.5,2280700.0,2136140.0,2033513.0,1.122,90.04,2,16,10,9.2,1,吃老本,True
+DAL,Industrials,Delta Air Lines,2026-07-27,87.44,-5.49,27.41,33.75,22.35,0.667,60,4,8,32.8,4.54,11.35,False,True,84.6,10.55,0.903,False,95.44,-8.39,2.8,-5.49,9.0,11.0,6532311.0,7231400.0,0.818,4768500.0,6002840.0,6298173.0,0.757,75.9,3,29,25,17.8,19,吃老本,True
+URI,Industrials,United Rentals,2026-07-27,1079.26,-1.76,13.93,38.6,22.34,0.667,45,19,3,28.8,10.11,8.63,False,True,1061.18,16.98,0.999,False,1177.67,-8.36,-5.46,-1.76,11.0,9.0,497718.0,498300.0,1.222,381100.0,609000.0,540853.0,0.705,82.57,4,24,28,16.8,15,吃老本,True
+CSX,Industrials,CSX Corporation,2026-07-27,50.4,3.09,12.12,34.32,20.96,1.0,25,21,7,20.2,4.19,10.6,False,True,48.12,8.31,1.043,False,53.6,-5.97,-5.32,3.09,10.0,10.0,14054840.0,13475730.0,1.0,17240100.0,16503860.0,15118380.0,1.14,82.98,5,23,9,13.0,6,吃老本,True
+GWW,Industrials,W. W. Grainger,2026-07-27,1382.22,2.92,20.58,28.49,20.12,1.0,28,11,10,19.3,14.08,-0.22,True,True,1331.85,5.65,0.835,False,1419.91,-2.65,-0.03,2.92,10.0,10.0,240020.0,287340.0,1.0,340700.0,284400.0,277193.0,1.229,81.36,6,25,7,13.8,7,吃老本,True
+WAB,Industrials,Wabtec,2026-07-27,290.86,10.93,9.91,26.69,18.56,1.0,6,25,11,12.7,5.92,7.55,False,True,269.1,17.58,1.419,False,306.64,-5.15,-3.85,10.93,10.0,10.0,1221120.0,860530.0,1.0,959500.0,1369810.0,1169480.0,0.82,94.85,7,9,20,10.4,2,,True
+JBHT,Industrials,J.B. Hunt,2026-07-27,271.75,-4.93,9.46,34.57,18.42,0.667,58,27,6,38.3,9.55,3.09,False,False,279.58,10.68,1.134,False,299.76,-9.34,-5.74,-4.93,6.0,14.0,1209583.0,1066971.0,0.429,888400.0,1062060.0,1196653.0,0.742,71.02,8,31,26,20.8,21,吃老本,True
+PAYX,Industrials,Paychex,2026-07-27,116.84,11.01,28.55,15.95,17.86,1.0,5,3,25,8.4,0.91,2.31,False,True,103.14,14.4,1.025,False,135.9,-14.03,3.97,11.01,11.0,9.0,3280154.0,3198966.0,1.222,3286400.0,3589520.0,3405240.0,0.965,94.47,9,11,15,11.0,3,,True
+PWR,Industrials,Quanta Services,2026-07-27,667.36,-0.14,-10.07,40.66,17.77,0.333,37,68,2,39.3,28.11,31.8,False,False,681.03,21.16,1.059,False,788.63,-15.38,6.63,-0.14,10.0,10.0,1192480.0,1125700.0,1.0,1958700.0,1323410.0,1206953.0,1.623,86.11,10,20,2,12.4,5,吃老本,True
+SWK,Industrials,Stanley Black & Decker,2026-07-27,94.58,2.92,21.73,22.87,17.6,1.0,28,9,15,19.7,29.86,34.6,False,True,85.72,10.56,0.819,False,96.04,-1.52,3.64,2.92,12.0,8.0,1636475.0,1997825.0,1.5,2795900.0,2362570.0,1979353.0,1.413,90.04,11,16,4,11.6,4,,True
+MMM,Industrials,3M,2026-07-27,176.28,9.87,24.35,16.21,16.66,1.0,8,7,23,10.7,6.84,7.88,False,True,160.7,14.93,1.303,False,184.9,-4.66,2.12,9.87,10.0,9.0,4237940.0,3251877.0,1.111,2675800.0,4913680.0,4275640.0,0.626,96.24,12,8,33,14.6,10,,True
+UNP,Industrials,Union Pacific Corporation,2026-07-27,292.13,3.5,10.26,25.56,16.22,1.0,21,24,12,20.1,5.17,2.42,False,True,277.18,10.54,1.0,False,315.99,-7.55,-4.94,3.5,11.0,9.0,3204300.0,3204600.0,1.222,3774100.0,3883430.0,3587440.0,1.052,85.95,13,21,12,16.0,13,吃老本,True
+UAL,Industrials,United Airlines Holdings,2026-07-27,121.33,-8.99,31.14,18.58,14.83,0.667,66,2,19,37.4,7.58,9.98,False,True,118.31,10.93,0.911,False,138.77,-12.57,2.59,-8.99,8.0,12.0,4236262.0,4648883.0,0.667,2655600.0,4068930.0,4542880.0,0.585,71.59,14,30,34,24.4,24,吃老本,True
+GE,Industrials,GE Aerospace,2026-07-27,360.07,-4.5,25.83,17.68,14.17,0.667,54,5,20,32.5,8.62,16.31,False,True,344.91,8.01,0.904,False,382.49,-5.86,1.79,-4.5,13.0,7.0,3820815.0,4225600.0,1.857,3148300.0,3633180.0,4088406.0,0.77,91.7,15,13,23,15.8,12,,True
+GEV,Industrials,GE Vernova,2026-07-27,990.29,-11.03,-6.79,36.49,13.79,0.333,68,61,4,53.1,-22.44,20.38,False,False,1024.64,24.33,0.781,False,1195.94,-17.2,-2.41,-11.03,9.0,11.0,2622033.0,3355790.0,0.818,2355400.0,3369670.0,3102306.0,0.759,68.36,16,32,24,24.0,23,吃老本,False
+ADP,Industrials,Automatic Data Processing,2026-07-27,266.46,9.98,25.34,9.68,13.67,1.0,7,6,35,12.3,1.58,2.26,False,True,234.94,15.7,1.044,False,301.7,-11.68,6.55,9.98,10.0,10.0,2437770.0,2336080.0,1.0,2493900.0,2682560.0,2586693.0,0.964,91.87,17,12,16,14.8,11,,True
+JCI,Industrials,Johnson Controls,2026-07-27,146.66,4.19,1.37,23.7,13.24,1.0,18,44,14,25.0,9.01,6.46,False,True,142.0,8.16,0.802,False,151.18,-2.99,2.29,4.19,12.0,8.0,3183625.0,3968437.0,1.5,3518500.0,3600650.0,3526193.0,0.998,89.97,18,18,14,17.2,17,,True
+ROK,Industrials,Rockwell Automation,2026-07-27,480.08,1.78,18.19,14.61,12.3,1.0,32,12,26,24.8,14.55,10.73,True,True,463.64,6.97,0.887,False,497.36,-3.47,3.88,1.78,12.0,8.0,666491.0,751312.0,1.5,937500.0,713120.0,699120.0,1.341,90.64,19,14,6,14.4,8,,True
+CTAS,Industrials,Cintas,2026-07-27,204.63,12.82,20.98,7.46,12.18,1.0,1,10,43,12.1,2.35,0.06,False,True,182.94,11.21,1.092,False,224.62,-8.9,-0.62,12.82,12.0,8.0,2734908.0,2503762.0,1.5,2233100.0,2605170.0,2866000.0,0.779,99.06,20,5,22,14.4,8,剛爆發,True
+RTX,Industrials,RTX Corporation,2026-07-27,215.22,8.02,24.21,7.92,12.01,1.0,9,8,42,15.3,13.71,16.95,False,True,190.41,15.01,1.157,False,221.34,-2.76,1.14,8.02,12.0,8.0,5457600.0,4717687.0,1.5,3415800.0,6200330.0,5422220.0,0.63,98.01,21,6,32,17.2,17,剛爆發,True
+ODFL,Industrials,Old Dominion,2026-07-27,212.14,-2.53,3.21,22.81,11.57,0.667,47,40,16,38.7,,,,,,,,,,,,,,,,,,,,,,,22,35,35,,35,吃老本,False
+IEX,Industrials,IDEX Corporation,2026-07-27,230.45,3.3,7.96,16.86,11.24,1.0,24,31,22,25.7,,,,,,,,,,,,,,,,,,,,,,,23,35,35,,35,吃老本,False
+NSC,Industrials,Norfolk Southern,2026-07-27,335.48,3.96,6.66,16.2,10.75,1.0,20,36,24,25.6,,,,,,,,,,,,,,,,,,,,,,,24,35,35,,35,吃老本,False
+PCAR,Industrials,Paccar,2026-07-27,132.68,11.03,14.66,8.57,10.7,1.0,4,16,40,14.8,5.39,-0.87,False,True,121.06,11.35,1.086,False,139.24,-4.71,0.33,11.03,9.0,11.0,3734011.0,3437090.0,0.818,3183000.0,4221320.0,3678893.0,0.865,88.04,25,19,18,21.2,22,剛爆發,True
+ITW,Industrials,Illinois Tool Works,2026-07-27,286.95,5.2,13.0,11.2,10.15,1.0,16,20,31,20.2,,,,,,,,,,,,,,,,,,,,,,,26,35,35,,35,吃老本,False
+ETN,Industrials,Eaton Corporation,2026-07-27,415.2,4.19,-2.16,18.85,9.93,0.667,18,52,18,28.2,,,,,,,,,,,,,,,,,,,,,,,27,35,35,,35,吃老本,False
+AXON,Industrials,Axon Enterprise,2026-07-27,527.76,-11.6,31.18,9.14,9.46,0.667,70,1,36,42.5,0.8,34.51,True,True,492.44,15.15,1.024,False,885.92,-40.43,5.06,-11.6,10.0,10.0,830760.0,811450.0,1.0,491200.0,709450.0,705553.0,0.696,77.98,28,26,30,27.6,28,,True
+SNA,Industrials,Snap-on,2026-07-27,410.41,-0.41,8.63,13.58,8.85,0.667,38,30,27,33.4,,,,,,,,,,,,,,,,,,,,,,,29,35,35,,35,吃老本,False
+GD,Industrials,General Dynamics,2026-07-27,383.42,2.64,11.35,10.2,8.6,1.0,30,22,34,28.4,,,,,,,,,,,,,,,,,,,,,,,30,35,35,,35,,False
+FDX,Industrials,FedEx,2026-07-27,307.4,-1.79,-2.73,19.31,8.52,0.333,46,53,17,42.3,,,,,,,,,,,,,,,,,,,,,,,31,35,35,,35,,False
+FAST,Industrials,Fastenal,2026-07-27,47.71,-1.29,6.82,11.23,6.99,0.667,42,35,30,37.5,,,,,,,,,,,,,,,,,,,,,,,32,35,35,,35,,False
+NDSN,Industrials,Nordson Corporation,2026-07-27,297.78,2.55,5.45,9.11,6.55,1.0,31,37,38,34.2,,,,,,,,,,,,,,,,,,,,,,,33,35,35,,35,,False
+CAT,Industrials,Caterpillar Inc.,2026-07-27,814.81,-15.28,-8.24,24.42,6.33,0.333,74,64,13,58.8,19.3,9.51,True,False,918.69,15.63,0.844,False,1071.47,-23.95,-8.32,-15.28,9.0,11.0,2705122.0,3206054.0,0.818,2395800.0,3145170.0,3009246.0,0.796,64.54,34,33,21,31.0,31,,True
+EXPD,Industrials,Expeditors International,2026-07-27,167.89,0.19,14.62,5.12,6.26,1.0,36,17,44,31.9,,,,,,,,,,,,,,,,,,,,,,,35,35,35,,35,,False
+AME,Industrials,Ametek,2026-07-27,241.71,3.02,5.03,8.25,6.14,1.0,26,38,41,32.6,,,,,,,,,,,,,,,,,,,,,,,36,35,35,,35,,False
+DE,Industrials,Deere & Company,2026-07-27,592.67,-4.6,2.94,12.87,6.02,0.667,56,41,28,45.9,,,,,,,,,,,,,,,,,,,,,,,37,35,35,,35,,False
+EMR,Industrials,Emerson Electric,2026-07-27,149.82,7.75,9.44,2.75,5.67,1.0,10,28,49,23.2,0.44,3.39,True,True,141.89,11.58,1.037,False,163.86,-8.57,1.27,7.75,15.0,5.0,2611586.0,2518460.0,3.0,3724600.0,2939070.0,2731160.0,1.364,100.0,38,1,5,16.6,14,剛爆發,True
+PH,Industrials,Parker Hannifin,2026-07-27,976.53,1.42,10.94,4.78,5.48,1.0,34,23,45,32.9,,,,,,,,,,,,,,,,,,,,,,,39,35,35,,35,,False
+HON,Industrials,Honeywell Technologies,2026-07-27,243.05,5.74,9.66,2.93,5.31,1.0,14,26,47,24.2,7.22,5.55,False,True,233.81,11.85,0.985,False,258.86,-6.11,-0.04,5.74,14.0,6.0,3593278.0,3648283.0,2.333,3887500.0,3594780.0,3349493.0,1.161,100.0,40,1,8,18.0,20,剛爆發,True
+ALLE,Industrials,Allegion,2026-07-27,157.4,11.96,16.65,-4.08,5.12,0.667,3,14,57,17.1,8.29,-5.09,False,True,137.25,19.54,1.375,False,181.67,-13.36,2.63,11.96,10.0,10.0,1693180.0,1231230.0,1.0,933800.0,1686250.0,1478053.0,0.632,97.3,41,7,31,25.4,25,剛爆發,True
+FTV,Industrials,Fortive,2026-07-27,59.21,-5.49,0.4,12.35,4.9,0.667,60,46,29,49.6,,,,,,,,,,,,,,,,,,,,,,,42,35,35,,35,剛爆發,False
+VRT,Industrials,Vertiv,2026-07-27,241.57,-19.62,-26.4,29.81,3.4,0.333,75,78,9,62.7,6.42,15.67,False,False,305.72,33.82,0.975,False,379.86,-36.4,-16.8,-19.62,9.0,11.0,6041444.0,6194163.0,0.818,10837600.0,7648040.0,6581420.0,1.647,60.85,43,34,1,31.0,31,剛爆發,True
+CMI,Industrials,Cummins,2026-07-27,634.2,-4.16,-3.23,10.28,3.29,0.333,52,54,33,48.8,,,,,,,,,,,,,,,,,,,,,,,44,35,35,,35,剛爆發,False
+EME,Industrials,Emcor,2026-07-27,797.43,2.99,-11.69,10.75,3.2,0.667,27,70,32,40.9,,,,,,,,,,,,,,,,,,,,,,,45,35,35,,35,剛爆發,False
+J,Industrials,Jacobs Solutions,2026-07-27,134.93,5.5,4.99,0.33,2.79,1.0,15,39,52,29.6,7.09,1.78,True,True,125.57,9.77,0.756,False,167.07,-19.24,0.27,5.5,13.0,7.0,773723.0,1023657.0,1.857,746800.0,810660.0,828606.0,0.901,94.5,46,10,17,25.8,26,剛爆發,True
+LMT,Industrials,Lockheed Martin,2026-07-27,582.74,6.75,14.39,-7.03,1.77,0.667,12,18,60,23.4,10.29,-3.78,False,True,528.2,19.14,1.508,False,687.5,-15.24,0.02,6.75,8.0,12.0,1503800.0,997033.0,0.667,1422900.0,1536720.0,1308626.0,1.087,90.45,47,15,11,27.0,27,剛爆發,True
+TT,Industrials,Trane Technologies,2026-07-27,454.95,-4.85,-6.27,8.68,1.56,0.333,57,58,39,53.7,,,,,,,,,,,,,,,,,,,,,,,48,35,35,,35,剛爆發,False
+MAS,Industrials,Masco,2026-07-27,71.48,-13.64,0.82,9.14,1.36,0.667,72,45,36,56.7,,,,,,,,,,,,,,,,,,,,,,,49,35,35,,35,剛爆發,False
+IR,Industrials,Ingersoll Rand,2026-07-27,83.38,3.46,6.94,-3.1,1.05,0.667,22,34,55,32.2,,,,,,,,,,,,,,,,,,,,,,,50,35,35,,35,剛爆發,False
+WM,Industrials,Waste Management,2026-07-27,226.55,-1.67,-0.54,2.79,0.84,0.333,44,50,48,46.6,,,,,,,,,,,,,,,,,,,,,,,51,35,35,,35,剛爆發,False
+VLTO,Industrials,Veralto,2026-07-27,94.17,1.75,7.62,-4.58,0.06,0.667,33,33,59,38.2,,,,,,,,,,,,,,,,,,,,,,,52,35,35,,35,剛爆發,False
+LUV,Industrials,Southwest Airlines,2026-07-27,44.97,-10.51,16.53,-4.54,-0.77,0.333,67,15,58,49.6,80.17,-5.03,False,False,46.19,10.43,0.99,False,54.63,-17.69,-0.24,-10.51,10.0,10.0,5543950.0,5600000.0,1.0,4165700.0,5999080.0,5683493.0,0.733,75.92,53,28,27,37.8,33,剛爆發,True
+RSG,Industrials,Republic Services,2026-07-27,210.55,-3.12,2.23,-1.55,-1.0,0.333,50,42,53,48.2,,,,,,,,,,,,,,,,,,,,,,,54,35,35,,35,剛爆發,False
+UPS,Industrials,United Parcel Service,2026-07-27,104.22,-5.82,-1.48,1.16,-1.24,0.333,62,51,51,56.5,,,,,,,,,,,,,,,,,,,,,,,55,35,35,,35,剛爆發,False
+VRSK,Industrials,Verisk Analytics,2026-07-27,194.85,3.45,7.88,-9.93,-2.13,0.667,23,32,62,33.5,,,,,,,,,,,,,,,,,,,,,,,56,35,35,,35,剛爆發,False
+DOV,Industrials,Dover Corporation,2026-07-27,204.62,-4.25,-9.15,2.04,-2.33,0.333,53,66,50,56.3,,,,,,,,,,,,,,,,,,,,,,,57,35,35,,35,剛爆發,False
+CARR,Industrials,Carrier Global,2026-07-27,61.81,-11.47,-7.94,4.49,-2.61,0.333,69,63,46,62.6,,,,,,,,,,,,,,,,,,,,,,,58,35,35,,35,剛爆發,False
+GNRC,Industrials,Generac,2026-07-27,197.11,-21.99,-24.0,17.3,-2.85,0.333,77,77,21,65.8,,,,,,,,,,,,,,,,,,,,,,,59,35,35,,35,剛爆發,False
+HUBB,Industrials,Hubbell Incorporated,2026-07-27,472.55,-2.99,-6.78,-2.6,-3.74,0.0,49,60,54,53.3,,,,,,,,,,,,,,,,,,,,,,,60,35,35,,35,剛爆發,False
+TDG,Industrials,TransDigm Group,2026-07-27,1254.38,-6.98,8.66,-12.13,-5.65,0.333,63,29,64,53.0,,,,,,,,,,,,,,,,,,,,,,,61,35,35,,35,剛爆發,False
+TXT,Industrials,Textron,2026-07-27,85.26,-7.83,-9.97,-3.14,-6.02,0.0,64,67,56,63.3,,,,,,,,,,,,,,,,,,,,,,,62,35,35,,35,剛爆發,False
+BA,Industrials,Boeing,2026-07-27,216.14,-4.57,-4.94,-7.52,-6.14,0.0,55,56,61,56.5,,,,,,,,,,,,,,,,,,,,,,,63,35,35,,35,剛爆發,False
+EFX,Industrials,Equifax,2026-07-27,172.62,0.32,-0.37,-13.76,-6.89,0.333,35,49,65,45.2,,,,,,,,,,,,,,,,,,,,,,,64,35,35,,35,剛爆發,False
+XYL,Industrials,Xylem Inc.,2026-07-27,116.97,-0.97,1.78,-14.54,-7.07,0.333,40,43,66,46.1,,,,,,,,,,,,,,,,,,,,,,,65,35,35,,35,剛爆發,False
+BR,Industrials,Broadridge Financial Solutions,2026-07-27,153.95,6.95,-0.17,-20.93,-8.77,0.333,11,48,71,34.1,4.45,16.81,True,True,146.82,13.37,1.023,False,266.43,-42.22,3.38,6.95,13.0,7.0,949284.0,927685.0,1.857,935500.0,912800.0,905966.0,1.033,100.0,66,1,13,29.4,30,剛爆發,True
+UBER,Industrials,Uber,2026-07-27,70.36,-5.47,-6.34,-12.1,-9.0,0.0,59,59,63,59.8,,,,,,,,,,,,,,,,,,,,,,,67,35,35,,35,剛爆發,False
+OTIS,Industrials,Otis Worldwide,2026-07-27,71.95,-1.63,-6.09,-14.87,-9.36,0.0,43,57,67,52.0,,,,,,,,,,,,,,,,,,,,,,,68,35,35,,35,剛爆發,False
+AOS,Industrials,A. O. Smith,2026-07-27,60.13,-3.55,0.24,-17.22,-9.44,0.333,51,47,69,53.4,,,,,,,,,,,,,,,,,,,,,,,69,35,35,,35,剛爆發,False
+HII,Industrials,Huntington Ingalls Industries,2026-07-27,326.45,11.99,-9.08,-21.79,-10.17,0.333,2,65,73,35.1,38.02,1.68,False,True,292.13,22.69,1.394,False,458.02,-28.73,13.51,11.99,10.0,10.0,621010.0,445350.0,1.0,930400.0,654750.0,597106.0,1.558,100.0,70,1,3,29.0,29,剛爆發,True
+NOC,Industrials,Northrop Grumman,2026-07-27,542.48,-1.19,-4.1,-21.04,-11.84,0.0,41,55,72,51.4,,,,,,,,,,,,,,,,,,,,,,,71,35,35,,35,剛爆發,False
+LHX,Industrials,L3Harris,2026-07-27,277.06,-8.28,-11.23,-18.58,-14.17,0.0,65,69,70,67.2,,,,,,,,,,,,,,,,,,,,,,,72,35,35,,35,剛爆發,False
+CPRT,Industrials,Copart,2026-07-27,29.12,-2.97,-12.47,-28.24,-17.98,0.0,48,72,75,60.6,,,,,,,,,,,,,,,,,,,,,,,73,35,35,,35,剛爆發,False
+LII,Industrials,Lennox International,2026-07-27,415.88,-27.04,-20.8,-15.55,-19.73,0.0,79,75,68,75.6,,,,,,,,,,,,,,,,,,,,,,,74,35,35,,35,剛爆發,False
+CHRW,Industrials,C.H. Robinson,2026-07-27,147.73,-22.19,-16.39,-23.7,-21.5,0.0,78,73,74,75.7,,,,,,,,,,,,,,,,,,,,,,,75,35,35,,35,剛爆發,False
+LDOS,Industrials,Leidos,2026-07-27,115.6,6.21,-22.26,-38.23,-23.13,0.333,13,76,77,44.7,7.56,5.91,True,True,113.84,13.68,0.911,False,204.08,-43.35,3.09,6.21,10.0,10.0,1309420.0,1437150.0,1.0,1180200.0,1332710.0,1368820.0,0.862,85.91,76,22,19,43.0,34,剛爆發,True
+PNR,Industrials,Pentair,2026-07-27,65.44,-14.33,-16.91,-37.43,-26.53,0.0,73,74,76,73.9,,,,,,,,,,,,,,,,,,,,,,,77,35,35,,35,剛爆發,False
+BLDR,Industrials,Builders FirstSource,2026-07-27,66.44,-21.55,-12.26,-41.92,-29.41,0.0,76,71,79,75.1,,,,,,,,,,,,,,,,,,,,,,,78,35,35,,35,剛爆發,False
+ROL,Industrials,"Rollins, Inc.",2026-07-27,37.97,-12.47,-30.45,-39.67,-30.56,0.0,71,79,78,74.8,,,,,,,,,,,,,,,,,,,,,,,79,35,35,,35,剛爆發,False
+DELL,Information Technology,Dell Technologies,2026-07-27,405.37,2.97,93.2,255.9,151.99,1.0,30,1,1,15.5,63.99,10.74,False,True,398.45,23.37,1.087,False,468.7,-13.51,-7.34,2.97,10.0,10.0,7003060.0,6441450.0,1.0,4842700.0,5873530.0,6485700.0,0.747,82.87,1,23,30,15.6,10,吃老本,True
+HPE,Information Technology,Hewlett Packard Enterprise,2026-07-27,47.9,16.18,68.15,124.67,83.42,1.0,6,5,3,5.1,48.03,10.75,False,True,45.91,14.08,0.939,False,64.06,-25.23,0.44,16.18,12.0,8.0,16698925.0,17779350.0,1.5,17224800.0,14778150.0,16364253.0,1.053,98.82,2,12,15,8.6,2,吃老本,True
+DDOG,Information Technology,Datadog,2026-07-27,267.97,2.92,90.69,107.21,77.01,1.0,31,2,7,17.5,18.25,6.33,True,True,244.87,16.06,1.09,False,278.76,-3.87,8.55,2.92,10.0,10.0,4354820.0,3994270.0,1.0,5271700.0,4030590.0,3901720.0,1.351,89.25,3,21,3,10.2,4,吃老本,True
+FTNT,Information Technology,Fortinet,2026-07-27,161.95,3.65,87.68,99.3,72.48,1.0,26,3,9,15.7,20.53,32.63,False,True,149.67,16.45,1.281,False,170.35,-4.93,6.29,3.65,10.0,10.0,6132150.0,4785330.0,1.0,6083200.0,6159730.0,5684493.0,1.07,92.13,4,19,14,12.0,6,吃老本,True
+MRVL,Information Technology,Marvell Technology,2026-07-27,187.56,-23.52,13.74,137.84,66.47,0.667,70,22,2,42.0,0.64,1.05,False,False,239.41,27.16,0.969,False,329.8,-43.13,-3.43,-23.52,10.0,10.0,24357490.0,25133780.0,1.0,26746700.0,23345500.0,24743513.0,1.081,66.48,5,28,13,15.8,11,吃老本,True
+WDC,Information Technology,Western Digital,2026-07-27,544.84,1.08,26.29,117.9,65.79,1.0,35,15,4,22.8,13.57,10.47,True,False,561.26,30.53,0.916,False,799.87,-31.88,4.82,1.08,12.0,8.0,7091325.0,7745525.0,1.5,9486600.0,7260830.0,7527553.0,1.26,91.1,6,20,5,11.4,5,吃老本,True
+PANW,Information Technology,Palo Alto Networks,2026-07-27,331.83,-4.66,83.25,87.51,63.4,0.667,46,4,12,26.6,6.62,9.94,False,True,305.27,17.59,1.074,False,368.8,-10.02,2.48,-4.66,9.0,11.0,6841788.0,6368963.0,0.818,5024700.0,5966750.0,6096400.0,0.824,79.27,7,25,28,18.4,15,吃老本,True
+NTAP,Information Technology,NetApp,2026-07-27,178.5,16.13,59.74,86.78,62.36,1.0,7,7,13,8.2,7.22,2.78,False,True,161.14,11.2,0.96,False,192.25,-7.15,6.41,16.13,12.0,8.0,2604175.0,2711887.0,1.5,1829200.0,2022140.0,2315066.0,0.79,100.0,8,1,29,9.4,3,剛爆發,True
+STX,Information Technology,Seagate Technology,2026-07-27,856.13,4.39,17.86,110.51,60.82,1.0,23,20,6,18.7,12.09,16.76,False,False,890.07,28.26,1.009,False,1144.18,-25.18,0.52,4.39,13.0,7.0,5486453.0,5435000.0,1.857,6120500.0,6233870.0,5881186.0,1.041,98.36,9,13,17,12.2,8,,True
+MU,Information Technology,Micron Technology,2026-07-27,823.03,-15.62,51.82,98.49,58.29,0.667,61,8,10,34.9,21.25,33.21,False,False,964.75,30.9,0.871,False,1254.81,-34.41,-10.63,-15.62,8.0,12.0,42798312.0,49136783.0,0.667,54257900.0,49547190.0,48445786.0,1.12,61.62,10,31,12,18.8,16,吃老本,True
+AMD,Information Technology,Advanced Micro Devices,2026-07-27,476.15,-8.05,32.07,101.14,56.57,0.667,54,11,8,31.9,5.82,15.98,True,False,512.21,27.47,0.906,False,584.73,-18.57,-8.77,-8.05,9.0,11.0,26384277.0,29132000.0,0.818,26515500.0,29549110.0,28445713.0,0.932,69.78,11,27,21,19.4,19,吃老本,True
+CRWD,Information Technology,CrowdStrike,2026-07-27,190.86,-1.61,67.55,72.96,52.96,0.667,41,6,16,25.5,3.05,1.56,False,True,181.4,18.32,1.035,False,217.5,-12.25,4.14,-1.61,7.0,13.0,8628771.0,8336792.0,0.538,7879000.0,7775760.0,8366973.0,0.942,76.88,12,26,20,19.2,18,吃老本,True
+SNDK,Information Technology,Sandisk,2026-07-27,1214.83,-30.38,2.34,110.82,48.4,0.667,74,38,5,49.4,59.67,74.97,True,False,1709.22,51.67,0.732,False,2354.39,-48.4,-15.43,-30.38,9.0,11.0,13402677.0,18318545.0,0.818,21089900.0,18212750.0,17466833.0,1.207,50.67,13,33,9,20.2,21,吃老本,True
+FLEX,Information Technology,Flex Ltd.,2026-07-27,113.75,-16.89,24.05,80.44,42.01,0.667,66,18,15,41.4,8.9,6.07,False,False,139.08,27.3,0.823,False,166.86,-31.83,-4.02,-16.89,9.0,11.0,4499633.0,5469972.0,0.818,6643200.0,6011540.0,5335966.0,1.245,64.93,14,30,7,19.0,17,吃老本,True
+INTC,Information Technology,Intel,2026-07-27,90.2,-25.05,-9.46,94.1,38.42,0.333,72,57,11,55.3,92.49,2108.68,False,False,112.81,26.69,0.831,False,142.35,-36.64,-2.3,-25.05,6.0,14.0,102154183.0,122992907.0,0.429,108664200.0,128451700.0,122118833.0,0.89,55.01,15,32,24,23.6,26,吃老本,True
+HPQ,Information Technology,HP Inc.,2026-07-27,27.27,24.35,32.51,44.29,36.36,1.0,2,10,23,8.6,20.26,5.61,False,True,24.55,19.48,0.994,False,29.29,-6.91,5.9,24.35,15.0,5.0,14987766.0,15079340.0,3.0,19609100.0,15402440.0,15737553.0,1.246,100.0,16,1,6,8.0,1,剛爆發,True
+LITE,Information Technology,Lumentum,2026-07-27,713.94,-1.97,-24.84,82.2,34.4,0.333,42,73,14,45.7,4.62,18.56,True,False,826.15,40.82,0.998,False,1085.68,-34.24,-6.43,-1.97,11.0,9.0,4315990.0,4326444.0,1.222,4538400.0,4648180.0,4471706.0,1.015,82.03,17,24,18,20.0,20,吃老本,True
+AMAT,Information Technology,Applied Materials,2026-07-27,507.67,-15.81,30.64,57.9,32.66,0.667,62,12,17,38.0,6.5,7.89,True,False,543.57,27.05,1.0,False,739.67,-31.37,-5.33,-15.81,8.0,12.0,8457525.0,8457608.0,0.667,7404200.0,7876690.0,7982886.0,0.928,65.88,18,29,22,23.2,25,吃老本,True
+CSCO,Information Technology,Cisco,2026-07-27,115.99,3.31,26.75,49.46,32.25,1.0,27,14,20,21.7,2.29,1.75,True,False,117.4,5.85,1.013,False,129.88,-10.7,1.59,3.31,13.0,7.0,20811469.0,20541414.0,1.857,18801400.0,19196610.0,20598793.0,0.913,98.21,19,14,23,17.8,14,,True
+FFIV,Information Technology,"F5, Inc.",2026-07-27,402.57,-1.36,24.56,46.07,28.83,0.667,40,17,22,29.5,,,,,,,,,,,,,,,,,,,,,,,20,34,34,,34,吃老本,False
+TER,Information Technology,Teradyne,2026-07-27,367.69,-0.38,6.49,52.66,27.86,0.667,38,31,18,31.9,,,,,,,,,,,,,,,,,,,,,,,21,34,34,,34,吃老本,False
+ZBRA,Information Technology,Zebra Technologies,2026-07-27,293.82,9.97,29.39,25.04,22.36,1.0,18,13,33,19.5,11.88,-0.11,True,True,254.21,15.46,1.106,False,350.64,-16.2,13.04,9.97,10.0,10.0,718140.0,649150.0,1.0,976900.0,781280.0,722786.0,1.352,95.56,22,17,2,16.0,12,,True
+KEYS,Information Technology,Keysight Technologies,2026-07-27,319.08,1.66,-9.46,47.5,21.8,0.667,34,57,21,38.3,,,,,,,,,,,,,,,,,,,,,,,23,34,34,,34,吃老本,False
+GEN,Information Technology,Gen Digital,2026-07-27,27.45,2.92,42.47,15.65,19.17,1.0,31,9,41,26.4,3.4,1.43,True,True,25.6,11.84,0.984,False,31.6,-13.14,6.23,2.92,10.0,10.0,3880400.0,3945470.0,1.0,4468500.0,3935340.0,3958973.0,1.129,86.46,24,22,11,20.6,22,,True
+ANET,Information Technology,Arista Networks,2026-07-27,180.35,12.73,4.43,27.24,17.91,1.0,12,35,31,22.7,7.73,8.17,True,True,166.58,15.52,0.932,False,189.82,-4.99,3.66,12.73,12.0,8.0,7240941.0,7765312.0,1.5,8467900.0,6331360.0,6939866.0,1.22,97.92,25,15,8,17.6,13,剛爆發,True
+CIEN,Information Technology,Ciena,2026-07-27,377.05,-10.75,-29.56,49.74,14.79,0.333,57,74,19,54.5,,,,,,,,,,,,,,,,,,,,,,,26,34,34,,34,吃老本,False
+VRSN,Information Technology,Verisign,2026-07-27,290.02,13.1,6.74,19.51,14.71,1.0,10,30,35,21.0,1.11,4.2,False,True,276.23,14.49,1.021,False,312.48,-7.19,3.58,13.1,13.0,7.0,836284.0,819057.0,1.857,1108600.0,1000320.0,877586.0,1.263,100.0,27,1,4,12.0,6,剛爆發,True
+Q,Information Technology,Qnity Electronics,2026-07-27,131.18,-7.46,-8.43,36.55,14.3,0.333,52,56,24,47.6,,,,,,,,,,,,,,,,,,,,,,,28,34,34,,34,吃老本,False
+CDW,Information Technology,CDW Corporation,2026-07-27,147.81,10.83,9.3,18.23,14.15,1.0,13,28,39,22.7,-0.26,5.13,True,True,132.1,17.27,0.932,False,170.09,-13.1,10.45,10.83,12.0,8.0,1779666.0,1910287.0,1.5,1112600.0,1589460.0,1837640.0,0.605,99.48,29,11,33,22.6,23,剛爆發,False
+MPWR,Information Technology,Monolithic Power Systems,2026-07-27,1426.03,10.7,-9.81,27.3,13.88,0.667,16,60,30,32.0,,,,,,,,,,,,,,,,,,,,,,,30,34,34,,34,,False
+TXN,Information Technology,Texas Instruments,2026-07-27,275.74,-5.43,-0.88,29.23,13.04,0.333,48,47,28,43.7,,,,,,,,,,,,,,,,,,,,,,,31,34,34,,34,,False
+JBL,Information Technology,Jabil,2026-07-27,315.05,-7.69,-7.99,32.9,12.53,0.333,53,55,27,48.4,,,,,,,,,,,,,,,,,,,,,,,32,34,34,,34,,False
+AKAM,Information Technology,Akamai Technologies,2026-07-27,115.18,1.78,10.89,18.56,12.45,1.0,33,25,38,31.6,,,,,,,,,,,,,,,,,,,,,,,33,34,34,,34,,False
+LRCX,Information Technology,Lam Research,2026-07-27,293.02,-16.62,14.22,25.75,12.28,0.667,65,21,32,45.2,,,,,,,,,,,,,,,,,,,,,,,34,34,34,,34,,False
+AAPL,Information Technology,Apple Inc.,2026-07-27,308.91,0.09,10.37,19.27,12.25,1.0,37,26,36,33.5,,,,,,,,,,,,,,,,,,,,,,,35,34,34,,34,,False
+MSFT,Information Technology,Microsoft,2026-07-27,464.72,19.01,12.37,8.48,12.09,1.0,4,24,46,18.4,11.81,4.9,False,True,399.39,22.13,1.259,False,550.24,-15.54,21.75,19.01,12.0,8.0,39495741.0,31359550.0,1.5,60748000.0,41653750.0,38644480.0,1.572,100.0,36,1,1,15.0,9,剛爆發,True
+ON,Information Technology,ON Semiconductor,2026-07-27,81.61,-10.53,-20.79,36.27,10.3,0.333,56,70,25,54.0,,,,,,,,,,,,,,,,,,,,,,,37,34,34,,34,,False
+KLAC,Information Technology,KLA Corporation,2026-07-27,182.82,-22.39,6.04,28.36,10.09,0.667,68,33,29,49.7,,,,,,,,,,,,,,,,,,,,,,,38,34,34,,34,,False
+AVGO,Information Technology,Broadcom,2026-07-27,389.28,8.0,-7.45,17.93,9.1,0.667,19,53,40,33.4,,,,,,,,,,,,,,,,,,,,,,,39,34,34,,34,,False
+APH,Information Technology,Amphenol,2026-07-27,160.7,-2.36,13.1,11.92,8.65,0.667,43,23,44,37.2,,,,,,,,,,,,,,,,,,,,,,,40,34,34,,34,剛爆發,False
+ROP,Information Technology,Roper Technologies,2026-07-27,391.97,7.89,9.7,6.12,7.46,1.0,20,27,47,27.5,,,,,,,,,,,,,,,,,,,,,,,41,34,34,,34,剛爆發,False
+ADI,Information Technology,Analog Devices,2026-07-27,367.41,-2.59,-7.36,18.88,6.95,0.333,44,52,37,45.0,,,,,,,,,,,,,,,,,,,,,,,42,34,34,,34,剛爆發,False
+WDAY,Information Technology,"Workday, Inc.",2026-07-27,160.34,18.42,26.29,-8.71,6.82,0.667,5,15,58,18.6,5.68,6.41,False,True,136.23,29.3,0.947,False,249.85,-35.83,18.47,18.42,13.0,7.0,4635376.0,4893357.0,1.857,4086700.0,5126080.0,4796353.0,0.852,100.0,43,1,26,22.8,24,剛爆發,True
+GLW,Information Technology,Corning Inc.,2026-07-27,138.25,-29.75,-12.51,34.35,6.61,0.333,73,61,26,60.0,,,,,,,,,,,,,,,,,,,,,,,44,34,34,,34,剛爆發,False
+MSI,Information Technology,Motorola Solutions,2026-07-27,435.75,3.1,0.27,8.86,5.27,1.0,28,42,45,35.6,,,,,,,,,,,,,,,,,,,,,,,45,34,34,,34,剛爆發,False
+CDNS,Information Technology,Cadence Design Systems,2026-07-27,340.02,-8.88,-0.27,14.73,5.08,0.333,55,44,42,49.1,,,,,,,,,,,,,,,,,,,,,,,46,34,34,,34,剛爆發,False
+SWKS,Information Technology,Skyworks Solutions,2026-07-27,62.28,-0.45,-9.48,14.02,4.53,0.333,39,59,43,45.8,,,,,,,,,,,,,,,,,,,,,,,47,34,34,,34,剛爆發,False
+NOW,Information Technology,ServiceNow,2026-07-27,111.23,4.62,22.02,-4.94,4.19,0.667,22,19,54,27.5,,,,,,,,,,,,,,,,,,,,,,,48,34,34,,34,剛爆發,False
+NVDA,Information Technology,Nvidia,2026-07-27,200.75,3.04,1.28,5.16,3.66,1.0,29,39,49,36.0,,,,,,,,,,,,,,,,,,,,,,,49,34,34,,34,剛爆發,False
+TDY,Information Technology,Teledyne Technologies,2026-07-27,655.57,0.54,2.38,5.69,3.57,1.0,36,37,48,38.7,,,,,,,,,,,,,,,,,,,,,,,50,34,34,,34,剛爆發,False
+COHR,Information Technology,Coherent Corp.,2026-07-27,262.89,-21.14,-20.22,23.9,1.61,0.333,67,66,34,60.1,,,,,,,,,,,,,,,,,,,,,,,51,34,34,,34,剛爆發,False
+SMCI,Information Technology,Supermicro,2026-07-27,28.4,4.34,4.84,-2.44,1.07,0.667,24,34,53,32.8,,,,,,,,,,,,,,,,,,,,,,,52,34,34,,34,剛爆發,False
+ADSK,Information Technology,Autodesk,2026-07-27,234.2,12.88,-4.15,-7.38,-1.51,0.333,11,49,57,31.6,5.15,7.81,False,True,215.89,21.12,1.258,False,329.09,-28.83,11.66,12.88,12.0,8.0,2407208.0,1914025.0,1.5,1949000.0,2407580.0,2322560.0,0.839,100.0,53,1,27,27.0,27,剛爆發,True
+TEL,Information Technology,TE Connectivity,2026-07-27,205.69,4.18,-0.46,-7.03,-2.58,0.333,25,46,56,37.5,,,,,,,,,,,,,,,,,,,,,,,54,34,34,,34,剛爆發,False
+PTC,Information Technology,PTC Inc.,2026-07-27,137.2,10.16,0.49,-12.12,-3.4,0.667,17,40,59,32.3,,,,,,,,,,,,,,,,,,,,,,,55,34,34,,34,剛爆發,False
+CRM,Information Technology,Salesforce,2026-07-27,184.02,10.78,0.37,-12.88,-3.65,0.667,14,41,60,31.3,24.07,24.85,False,True,170.88,20.18,1.106,False,267.75,-31.27,12.44,10.78,10.0,10.0,13412560.0,12125770.0,1.0,9686300.0,13665170.0,13317160.0,0.727,95.8,56,16,32,35.2,31,剛爆發,True
+ADBE,Information Technology,Adobe Inc.,2026-07-27,250.41,13.97,-0.12,-14.61,-3.84,0.333,9,43,61,29.6,2.5,3.18,False,True,228.34,23.41,1.184,False,370.86,-32.48,11.24,13.97,12.0,8.0,6054666.0,5113725.0,1.5,5587100.0,5960650.0,5858833.0,0.954,100.0,57,1,19,27.0,27,剛爆發,True
+FSLR,Information Technology,First Solar,2026-07-27,211.03,-6.03,-0.32,-6.43,-4.8,0.0,49,45,55,49.0,,,,,,,,,,,,,,,,,,,,,,,58,34,34,,34,剛爆發,False
+CTSH,Information Technology,Cognizant,2026-07-27,55.35,31.82,6.31,-31.73,-6.33,0.667,1,32,72,24.5,-0.66,4.98,False,True,47.57,30.96,1.172,False,85.98,-35.63,21.78,31.82,11.0,9.0,10287881.0,8775066.0,1.222,8124000.0,9562920.0,9226940.0,0.88,100.0,59,1,25,29.0,29,剛爆發,False
+NXPI,Information Technology,NXP Semiconductors,2026-07-27,229.16,-16.17,-22.12,2.21,-8.47,0.333,63,71,50,62.8,,,,,,,,,,,,,,,,,,,,,,,60,34,34,,34,剛爆發,False
+MCHP,Information Technology,Microchip Technology,2026-07-27,74.29,-12.23,-20.53,-1.08,-8.73,0.0,60,69,51,60.9,,,,,,,,,,,,,,,,,,,,,,,61,34,34,,34,剛爆發,False
+QCOM,Information Technology,Qualcomm,2026-07-27,147.61,-16.25,-16.3,-1.64,-8.96,0.0,64,64,52,61.6,,,,,,,,,,,,,,,,,,,,,,,62,34,34,,34,剛爆發,False
+IT,Information Technology,Gartner,2026-07-27,151.02,10.78,3.16,-27.95,-10.49,0.667,14,36,71,32.0,13.64,12.21,True,True,145.57,26.59,0.945,False,337.29,-55.23,7.49,10.78,11.0,9.0,1276363.0,1350922.0,1.222,1406300.0,1333080.0,1337880.0,1.051,94.33,63,18,16,35.6,32,剛爆發,True
+TYL,Information Technology,Tyler Technologies,2026-07-27,309.6,-2.67,-7.72,-16.19,-10.69,0.0,45,54,63,51.3,,,,,,,,,,,,,,,,,,,,,,,64,34,34,,34,剛爆發,False
+TRMB,Information Technology,Trimble Inc.,2026-07-27,56.58,6.67,-17.3,-16.3,-10.81,0.333,21,65,64,42.8,,,,,,,,,,,,,,,,,,,,,,,65,34,34,,34,剛爆發,False
+GDDY,Information Technology,GoDaddy,2026-07-27,82.74,-6.52,-4.63,-17.69,-11.63,0.0,50,50,67,53.4,,,,,,,,,,,,,,,,,,,,,,,66,34,34,,34,剛爆發,False
+FICO,Information Technology,Fair Isaac,2026-07-27,1122.97,-11.63,8.45,-23.25,-12.42,0.333,59,29,69,52.0,,,,,,,,,,,,,,,,,,,,,,,67,34,34,,34,剛爆發,False
+PLTR,Information Technology,Palantir Technologies,2026-07-27,123.06,-4.83,-14.58,-16.05,-12.88,0.0,47,63,62,54.8,,,,,,,,,,,,,,,,,,,,,,,68,34,34,,34,剛爆發,False
+ACN,Information Technology,Accenture,2026-07-27,165.92,22.25,-6.63,-35.77,-13.98,0.333,3,51,73,31.4,2.46,3.26,False,True,153.13,26.39,1.141,False,285.21,-41.83,12.88,22.25,11.0,9.0,8556309.0,7496244.0,1.222,9387000.0,8187690.0,8294046.0,1.132,100.0,69,1,10,30.0,30,剛爆發,True
+SNPS,Information Technology,Synopsys,2026-07-27,388.76,-11.07,-20.5,-16.42,-16.1,0.0,58,68,66,62.6,,,,,,,,,,,,,,,,,,,,,,,70,34,34,,34,剛爆發,False
+APP,Information Technology,AppLovin,2026-07-27,395.9,-24.89,-13.93,-16.32,-17.86,0.0,71,62,65,67.1,,,,,,,,,,,,,,,,,,,,,,,71,34,34,,34,剛爆發,False
+ORCL,Information Technology,Oracle Corporation,2026-07-27,129.87,-7.09,-24.16,-20.54,-18.08,0.0,51,72,68,60.7,,,,,,,,,,,,,,,,,,,,,,,72,34,34,,34,剛爆發,False
+INTU,Information Technology,Intuit,2026-07-27,316.07,15.3,-20.44,-36.17,-19.37,0.333,8,67,74,38.9,1.84,12.69,False,True,291.14,19.16,1.146,False,785.27,-59.75,6.66,15.3,11.0,9.0,4521718.0,3945888.0,1.222,3115100.0,4008410.0,4267653.0,0.73,100.0,73,1,31,35.8,33,剛爆發,True
+IBM,Information Technology,IBM,2026-07-27,223.65,-22.75,-2.97,-26.12,-19.49,0.0,69,48,70,62.9,,,,,,,,,,,,,,,,,,,,,,,74,34,34,,34,剛爆發,False
+NUE,Materials,Nucor,2026-07-27,257.29,16.55,14.1,45.62,30.48,1.0,1,4,1,1.9,6.94,14.67,False,True,242.39,16.19,0.997,False,270.24,-4.79,3.93,16.55,15.0,5.0,1344553.0,1348940.0,3.0,1564500.0,1524810.0,1376573.0,1.137,100.0,1,1,14,3.6,1,,True
+STLD,Materials,Steel Dynamics,2026-07-27,251.26,14.01,9.84,40.67,26.3,1.0,3,8,2,4.3,0.56,-0.19,False,True,248.12,14.97,0.997,False,288.09,-12.78,1.68,14.01,13.0,7.0,1162830.0,1165828.0,1.857,902400.0,1299350.0,1198273.0,0.753,100.0,2,1,19,5.0,3,,True
+CF,Materials,CF Industries,2026-07-27,125.19,13.25,2.45,35.55,21.7,1.0,4,14,3,6.8,8.66,23.91,True,True,114.86,8.75,1.235,False,141.38,-11.45,0.1,13.25,11.0,9.0,2560463.0,2073344.0,1.222,2354300.0,2082840.0,2183213.0,1.078,97.94,3,4,15,5.8,4,,True
+LYB,Materials,LyondellBasell,2026-07-27,62.08,16.34,-16.35,29.57,14.78,0.667,2,23,4,8.7,25.6,76.13,False,True,60.97,11.78,1.085,False,83.07,-25.27,2.92,16.34,11.0,9.0,5270381.0,4856266.0,1.222,6428500.0,4683270.0,4652706.0,1.382,98.3,4,3,7,4.2,2,,True
+SW,Materials,Smurfit Westrock,2026-07-27,45.97,0.09,17.92,12.67,10.84,1.0,12,3,7,8.3,-16.91,-17.35,False,True,43.7,20.55,1.114,False,51.99,-11.58,-5.33,0.09,8.0,12.0,5978850.0,5369150.0,0.667,6941300.0,6124060.0,5479600.0,1.267,77.41,5,15,11,10.2,6,吃老本,True
+IP,Materials,International Paper,2026-07-27,40.83,5.26,30.48,3.8,10.83,1.0,6,1,16,6.5,205.43,5.41,False,True,36.57,21.96,1.248,False,49.02,-16.71,-3.15,5.26,10.0,10.0,6585250.0,5277700.0,1.0,7392700.0,6810950.0,6278726.0,1.177,88.73,6,7,12,7.6,5,,True
+PKG,Materials,Packaging Corporation of America,2026-07-27,245.84,3.21,13.49,11.85,10.1,1.0,8,5,9,7.3,1.62,12.54,False,True,229.98,14.89,1.238,False,258.81,-5.01,-3.36,3.21,7.0,13.0,860114.0,694892.0,0.538,472400.0,946240.0,805193.0,0.587,80.32,7,11,21,11.4,9,,True
+BALL,Materials,Ball Corporation,2026-07-27,64.9,2.38,6.21,14.88,9.59,1.0,10,11,5,9.3,11.31,1.51,True,True,59.48,9.3,0.97,False,67.84,-4.33,1.66,2.38,8.0,12.0,1831400.0,1887441.0,0.667,2168500.0,1885090.0,1883440.0,1.151,79.07,8,12,13,10.6,7,,True
+IFF,Materials,International Flavors & Fragrances,2026-07-27,79.22,-5.5,12.47,14.75,9.12,0.667,18,6,6,12.0,16.51,-3.81,True,True,76.64,10.64,0.759,False,83.83,-5.5,4.32,-5.5,8.0,12.0,1529412.0,2014966.0,0.667,1643100.0,1737410.0,1712593.0,0.959,71.71,9,20,16,14.8,19,吃老本,True
+AMCR,Materials,Amcor,2026-07-27,44.88,-0.27,20.87,4.47,7.38,0.667,13,2,14,9.9,0.55,2.47,True,True,41.62,11.28,0.752,False,49.46,-9.25,0.76,-0.27,9.0,11.0,3091277.0,4111754.0,0.818,8642700.0,4108110.0,3908833.0,2.211,75.57,10,17,4,11.6,11,吃老本,True
+FCX,Materials,Freeport-McMoRan,2026-07-27,62.63,2.97,11.02,4.47,5.73,1.0,9,7,14,9.4,18.5,21.95,False,False,63.47,11.62,0.838,False,72.1,-13.14,0.05,2.97,9.0,11.0,13773322.0,16435127.0,0.818,10785800.0,14564050.0,14670106.0,0.735,78.74,11,13,20,13.6,16,,True
+APD,Materials,Air Products,2026-07-27,294.89,-6.14,-1.44,9.57,2.89,0.333,19,16,10,16.3,3.8,4.54,False,True,288.46,6.66,1.062,False,314.87,-6.35,-1.0,-6.14,9.0,11.0,1186155.0,1116463.0,0.818,1463900.0,1219040.0,1146760.0,1.277,76.78,12,16,9,13.0,15,,True
+DOW,Materials,Dow Inc.,2026-07-27,30.29,9.31,-24.06,12.38,2.5,0.667,5,25,8,11.6,12.62,51.7,False,False,31.39,14.94,1.074,False,42.31,-28.41,1.51,9.31,11.0,9.0,10964545.0,10208844.0,1.222,9102200.0,11340190.0,10585186.0,0.86,93.32,13,5,17,10.6,7,剛爆發,True
+DD,Materials,DuPont,2026-07-27,137.0,-2.08,-0.85,4.81,1.67,0.333,15,15,13,14.6,13.58,6.6,True,False,139.85,5.61,0.611,False,156.73,-12.59,-0.51,-2.08,11.0,9.0,1201072.0,1964722.0,1.222,7537000.0,1899960.0,1622893.0,4.644,77.58,14,14,1,11.4,9,,True
+CTVA,Materials,Corteva,2026-07-27,78.71,-8.26,-2.42,8.61,1.63,0.333,20,17,11,17.3,2.93,27.11,False,False,81.97,14.05,0.705,False,90.97,-13.48,-11.81,-8.26,12.0,8.0,3309208.0,4692025.0,1.5,11529500.0,4421740.0,4123513.0,2.796,75.16,15,18,2,13.6,16,,True
+ECL,Materials,Ecolab,2026-07-27,277.63,-2.02,7.27,-1.01,0.81,0.333,14,10,17,13.4,0.48,0.17,False,True,268.18,8.87,1.067,False,307.61,-9.74,3.3,-2.02,9.0,11.0,1238522.0,1160436.0,0.818,1656000.0,1357540.0,1245926.0,1.329,81.06,16,10,8,12.0,13,剛爆發,True
+SHW,Materials,Sherwin-Williams,2026-07-27,340.85,-3.3,7.46,-3.43,-0.67,0.333,16,9,19,14.5,5.13,3.56,False,True,323.23,17.02,1.122,False,376.95,-9.58,7.35,-3.3,9.0,11.0,2230866.0,1988400.0,0.818,1674700.0,2376350.0,2208706.0,0.758,82.87,17,9,18,14.0,18,剛爆發,True
+LIN,Materials,Linde plc,2026-07-27,478.38,-12.49,-5.52,5.37,-1.82,0.333,25,19,12,20.6,0.66,1.4,False,False,514.18,10.89,0.852,False,548.2,-12.74,-6.62,-12.49,5.0,15.0,1841520.0,2160740.0,0.333,5217400.0,2173700.0,2125066.0,2.455,59.78,18,21,3,16.2,20,,True
+AVY,Materials,Avery Dennison,2026-07-27,169.73,1.65,4.78,-7.46,-2.12,0.667,11,12,20,13.1,17.0,1.81,False,True,160.25,20.34,1.155,False,197.29,-13.97,5.49,1.65,8.0,12.0,912125.0,789808.0,0.667,1336800.0,993630.0,887000.0,1.507,83.4,19,8,6,12.0,13,剛爆發,True
+PPG,Materials,PPG Industries,2026-07-27,110.52,-11.82,3.47,-3.24,-3.71,0.333,23,13,18,19.0,-1.04,3.65,False,False,116.04,12.09,0.836,False,131.81,-16.15,-4.72,-11.82,11.0,9.0,1930609.0,2308133.0,1.222,2589600.0,2378570.0,2030660.0,1.275,73.99,20,19,10,17.6,21,,False
+MOS,Materials,Mosaic Company (The),2026-07-27,22.12,4.69,-3.48,-18.06,-8.73,0.333,7,18,23,13.5,-77.32,-50.5,True,False,22.17,6.9,0.96,False,35.98,-38.52,-0.81,4.69,12.0,8.0,7176458.0,7474900.0,1.5,11169100.0,7240140.0,7268633.0,1.537,91.79,21,6,5,11.8,12,剛爆發,False
+VMC,Materials,Vulcan Materials Company,2026-07-27,268.57,-11.42,-9.49,-10.29,-10.37,0.0,21,20,21,20.7,,,,,,,,,,,,,,,,,,,,,,,22,22,22,,22,,False
+NEM,Materials,Newmont,2026-07-27,93.71,-3.43,-13.53,-16.23,-12.35,0.0,17,21,22,19.2,,,,,,,,,,,,,,,,,,,,,,,23,22,22,,22,,False
+MLM,Materials,Martin Marietta Materials,2026-07-27,525.14,-12.39,-14.42,-19.24,-16.32,0.0,24,22,24,23.4,,,,,,,,,,,,,,,,,,,,,,,24,22,22,,22,,False
+CRH,Materials,CRH plc,2026-07-27,95.01,-11.64,-17.41,-21.83,-18.18,0.0,22,24,25,23.2,,,,,,,,,,,,,,,,,,,,,,,25,22,22,,22,,False
+ALB,Materials,Albemarle Corporation,2026-07-27,117.64,-13.22,-39.17,-30.71,-28.45,0.0,26,26,26,26.0,,,,,,,,,,,,,,,,,,,,,,,26,22,22,,22,,False
+HST,Real Estate,Host Hotels & Resorts,2026-07-27,25.13,7.62,23.49,42.32,28.94,1.0,2,3,1,2.1,116.0,4.07,True,True,23.56,7.59,1.066,False,25.71,-2.26,2.57,7.62,14.0,6.0,9207071.0,8634716.0,2.333,10036600.0,8907940.0,8989513.0,1.116,100.0,1,1,16,4.0,1,,True
+DOC,Real Estate,Healthpeak Properties,2026-07-27,21.83,0.18,34.93,30.86,24.21,1.0,15,1,3,8.4,363.12,59.33,True,True,20.86,5.69,1.07,False,22.95,-4.88,-1.98,0.18,10.0,10.0,6201610.0,5796630.0,1.0,7331800.0,6171320.0,6017506.0,1.218,83.04,2,12,12,8.0,4,吃老本,True
+IRM,Real Estate,Iron Mountain,2026-07-27,122.32,4.4,-3.17,34.77,17.69,0.667,5,24,2,10.1,15.76,3.81,True,False,125.02,9.91,1.08,False,134.68,-9.18,-4.67,4.4,11.0,9.0,2146445.0,1987033.0,1.222,2938900.0,1812280.0,2054220.0,1.431,88.01,3,8,7,5.8,2,,True
+SPG,Real Estate,Simon Property Group,2026-07-27,229.37,1.46,14.55,22.61,15.31,1.0,10,5,8,8.1,-17.98,-47.1,True,True,217.8,6.21,0.841,False,238.5,-3.83,-0.18,1.46,10.0,10.0,1378050.0,1638020.0,1.0,1382800.0,1343530.0,1367506.0,1.011,80.53,4,13,18,10.4,8,吃老本,True
+FRT,Real Estate,Federal Realty Investment Trust,2026-07-27,124.09,1.97,8.6,25.13,15.21,1.0,8,8,6,7.6,35.3,165.2,False,True,122.06,4.03,0.849,False,128.21,-3.21,-1.58,1.97,10.0,8.0,730700.0,860650.0,1.25,1242100.0,914840.0,857620.0,1.448,84.16,5,11,6,7.6,3,吃老本,True
+WELL,Real Estate,Welltower,2026-07-27,234.44,-0.69,8.45,25.33,14.61,0.667,17,10,5,12.5,-16.88,9.38,False,True,223.98,9.26,1.037,False,255.2,-8.13,-6.99,-0.69,9.0,11.0,2930066.0,2826190.0,0.818,3981400.0,3038070.0,2910660.0,1.368,77.21,6,19,8,11.6,10,吃老本,False
+KIM,Real Estate,Kimco Realty,2026-07-27,25.48,0.63,10.18,23.56,14.48,1.0,13,6,7,9.7,7.45,-3.69,True,True,25.04,5.2,0.855,False,26.65,-4.39,-2.38,0.63,9.0,11.0,3673977.0,4296963.0,0.818,8445700.0,4534900.0,4271440.0,1.977,76.66,7,21,3,11.8,11,吃老本,True
+VTR,Real Estate,Ventas,2026-07-27,93.51,1.07,6.86,21.88,12.92,1.0,12,12,9,11.4,51.73,-1.4,False,True,88.76,11.67,0.819,False,101.6,-7.96,-6.98,1.07,10.0,10.0,3000240.0,3664430.0,1.0,4299600.0,3699630.0,3429460.0,1.254,77.18,8,20,11,13.4,14,吃老本,True
+EQIX,Real Estate,Equinix,2026-07-27,1019.28,1.72,-5.6,25.46,11.76,0.667,9,27,4,13.4,6.33,-3.8,False,False,1054.28,9.99,0.994,False,1124.0,-9.32,-5.99,1.72,9.0,11.0,533311.0,536727.0,0.818,728000.0,601810.0,558520.0,1.303,78.3,9,17,10,12.4,12,吃老本,True
+PSA,Real Estate,Public Storage,2026-07-27,324.17,-1.66,8.5,19.67,11.54,0.667,20,9,10,14.7,-2.93,2.19,False,True,315.88,8.75,0.866,False,335.55,-3.39,0.52,-1.66,10.0,10.0,1210320.0,1398260.0,1.0,1379600.0,1657370.0,1485793.0,0.929,79.36,10,16,22,14.8,16,吃老本,False
+BXP,Real Estate,"BXP, Inc.",2026-07-27,70.12,1.15,19.35,11.07,10.66,1.0,11,4,16,9.9,14.75,97.57,False,True,65.47,11.13,1.149,False,75.95,-7.67,1.46,1.15,12.0,8.0,1591441.0,1385175.0,1.5,1834300.0,1863410.0,1629766.0,1.125,93.88,11,3,15,8.6,6,剛爆發,True
+ESS,Real Estate,Essex Property Trust,2026-07-27,284.14,-4.76,8.85,15.04,8.54,0.667,27,7,12,18.0,-35.97,15.55,False,False,285.13,6.37,1.226,False,303.35,-6.33,-3.18,-4.76,12.0,8.0,559566.0,456362.0,1.5,819300.0,529520.0,515966.0,1.588,89.83,12,6,5,8.2,5,剛爆發,False
+DLR,Real Estate,Digital Realty,2026-07-27,188.52,8.78,-5.44,15.14,8.4,0.667,1,26,11,10.5,-15.0,2.71,False,True,184.77,18.38,1.436,False,207.47,-9.13,-5.3,8.78,12.0,8.0,3627833.0,2525600.0,1.5,2168000.0,3411800.0,3182266.0,0.681,100.0,13,1,23,10.2,7,剛爆發,False
+PLD,Real Estate,Prologis,2026-07-27,144.61,3.72,3.01,12.46,7.91,1.0,6,21,14,12.1,48.33,41.3,False,True,143.56,5.25,1.079,False,153.35,-5.7,-2.05,3.72,11.0,9.0,4565718.0,4230455.0,1.222,3234500.0,4924990.0,4772860.0,0.678,88.63,14,7,24,13.2,13,剛爆發,True
+INVH,Real Estate,Invitation Homes,2026-07-27,29.72,-2.65,5.24,13.69,7.49,0.667,23,14,13,18.3,9.76,-14.31,False,True,29.48,4.33,1.005,False,30.73,-3.29,-0.2,-2.65,9.0,11.0,3990433.0,3969281.0,0.818,5097300.0,4290870.0,4249680.0,1.199,78.19,15,18,14,16.0,18,,True
+REG,Real Estate,Regency Centers,2026-07-27,80.29,-0.83,3.05,12.31,6.71,0.667,18,19,15,17.7,3.59,9.38,False,True,79.39,4.18,0.96,False,83.66,-4.03,-2.26,-0.83,10.0,10.0,1274620.0,1327980.0,1.0,1323600.0,1423980.0,1355553.0,0.976,80.39,16,14,21,16.2,19,,True
+EXR,Real Estate,Extra Space Storage,2026-07-27,148.04,-0.87,5.37,9.72,5.99,0.667,19,13,17,16.8,8.6,3.4,False,True,145.79,9.94,1.169,False,158.88,-6.82,0.22,-0.87,10.0,10.0,1354970.0,1159480.0,1.0,1575500.0,1636200.0,1434286.0,1.098,85.02,17,10,17,14.2,15,剛爆發,True
+ARE,Real Estate,Alexandria Real Estate Equities,2026-07-27,51.45,-2.15,25.94,-3.1,4.4,0.333,22,2,28,17.2,1359.96,-2200.77,False,True,50.52,13.1,0.895,False,83.17,-38.14,1.0,-2.15,10.0,10.0,1491840.0,1666880.0,1.0,1559200.0,1625460.0,1547620.0,1.007,79.77,18,15,19,17.0,20,,True
+EQR,Real Estate,Equity Residential,2026-07-27,66.45,-4.84,3.02,9.04,4.07,0.667,28,20,18,23.6,,,,,,,,,,,,,,,,,,,,,,,19,25,25,,25,吃老本,False
+O,Real Estate,Realty Income,2026-07-27,63.87,0.47,1.4,7.15,4.04,1.0,14,23,19,17.7,-17.72,-18.46,True,True,62.31,4.71,0.917,False,66.87,-4.48,-2.23,0.47,7.0,13.0,4695028.0,5120592.0,0.538,5730800.0,4451640.0,4750180.0,1.206,73.51,20,22,13,19.4,23,,True
+AVB,Real Estate,AvalonBay Communities,2026-07-27,185.61,-4.31,2.12,6.62,2.76,0.667,26,22,20,23.6,,,,,,,,,,,,,,,,,,,,,,,21,25,25,,25,,False
+CPT,Real Estate,Camden Property Trust,2026-07-27,110.81,-5.49,7.06,3.67,2.23,0.667,29,11,22,22.2,-33.95,-196.43,False,False,111.68,6.96,1.08,False,119.81,-7.51,-2.57,-5.49,7.0,13.0,1071114.0,991992.0,0.538,1874000.0,1053790.0,1114973.0,1.681,72.65,22,23,4,18.8,22,,True
+WY,Real Estate,Weyerhaeuser,2026-07-27,25.03,5.21,5.23,-1.23,2.0,0.667,3,16,25,11.3,66.58,119.91,False,True,24.08,8.07,1.221,False,27.28,-8.24,4.55,5.21,10.0,10.0,5593970.0,4582160.0,1.0,10941800.0,5191260.0,5039426.0,2.171,91.31,23,5,1,11.4,9,剛爆發,True
+UDR,Real Estate,"UDR, Inc.",2026-07-27,38.16,-6.8,5.24,4.38,1.8,0.667,31,14,21,23.9,61.01,269.69,False,False,38.91,6.35,0.789,False,41.85,-8.82,-3.61,-6.8,6.0,14.0,2770333.0,3511514.0,0.429,7410100.0,3923470.0,3557426.0,2.083,64.71,24,24,2,19.6,24,,True
+MAA,Real Estate,Mid-America Apartment Communities,2026-07-27,132.34,-5.85,4.13,0.9,0.02,0.667,30,17,23,24.7,,,,,,,,,,,,,,,,,,,,,,,25,25,25,,25,,False
+AMT,Real Estate,American Tower,2026-07-27,173.36,4.41,-3.63,-1.4,-0.51,0.333,4,25,26,14.7,20.65,17.04,False,False,175.81,10.22,0.997,False,206.8,-16.17,4.01,4.41,10.0,10.0,3188540.0,3196850.0,1.0,4301500.0,3627790.0,3194066.0,1.347,86.71,26,9,9,15.8,17,剛爆發,True
+VICI,Real Estate,Vici Properties,2026-07-27,26.35,-3.09,-6.25,-3.03,-3.85,0.0,24,28,27,25.8,,,,,,,,,,,,,,,,,,,,,,,27,25,25,,25,,False
+SBAC,Real Estate,SBA Communications,2026-07-27,180.98,-1.94,-16.7,-0.43,-4.88,0.0,21,30,24,24.3,,,,,,,,,,,,,,,,,,,,,,,28,25,25,,25,,False
+CBRE,Real Estate,CBRE Group,2026-07-27,146.81,3.69,3.53,-13.81,-5.1,0.667,7,18,30,14.9,5.77,42.05,False,True,135.8,13.28,1.522,False,174.27,-15.76,5.27,3.69,9.0,11.0,2223855.0,1461472.0,0.818,1830800.0,2030150.0,1856866.0,0.986,93.23,29,4,20,17.2,21,剛爆發,True
+CCI,Real Estate,Crown Castle,2026-07-27,76.3,-0.39,-13.52,-9.97,-8.46,0.0,16,29,29,22.5,,,,,,,,,,,,,,,,,,,,,,,30,25,25,,25,,False
+CSGP,Real Estate,CoStar Group,2026-07-27,28.76,-4.13,-17.17,-53.24,-31.94,0.0,25,31,31,28.0,,,,,,,,,,,,,,,,,,,,,,,31,25,25,,25,剛爆發,False
+EIX,Utilities,Edison International,2026-07-27,73.37,-1.88,6.24,20.64,11.41,0.667,8,2,1,4.8,26.99,7.42,False,False,73.67,10.8,0.876,False,81.62,-10.11,-8.0,-1.88,11.0,9.0,2339509.0,2670344.0,1.222,6186600.0,2774670.0,2616800.0,2.364,79.34,1,6,1,3.0,1,,True
+D,Utilities,Dominion Energy,2026-07-27,69.17,-0.83,9.26,17.35,10.78,0.667,5,1,2,3.2,17.2,4.37,False,True,68.66,4.02,1.391,False,72.99,-5.23,-2.71,-0.83,9.0,11.0,5208155.0,3745209.0,0.818,3581000.0,3366340.0,3619100.0,0.989,85.02,2,4,22,6.8,5,,True
+PCG,Utilities,PG&E Corporation,2026-07-27,17.38,1.94,5.96,13.36,8.66,1.0,2,4,4,3.0,11.64,8.83,False,True,16.97,6.57,0.948,False,19.05,-8.77,-2.63,1.94,12.0,8.0,19049291.0,20102325.0,1.5,28531900.0,25115790.0,21454293.0,1.33,89.19,3,3,10,4.4,2,,True
+EVRG,Utilities,Evergy,2026-07-27,83.01,-5.81,1.33,10.01,3.88,0.667,22,8,5,14.4,13.81,-24.26,True,False,84.5,6.03,0.895,False,88.62,-6.33,-4.78,-5.81,7.0,12.0,1909557.0,2133441.0,0.583,2840300.0,1916850.0,1957980.0,1.451,69.01,4,20,7,11.0,7,吃老本,True
+AWK,Utilities,American Water Works,2026-07-27,134.17,-1.97,6.08,5.36,3.71,0.667,10,3,14,8.7,,,,True,129.2,7.79,0.909,False,144.9,-7.41,-0.36,-1.97,11.0,9.0,2127527.0,2339855.0,1.222,3254400.0,2586880.0,2268400.0,1.435,82.92,5,5,8,5.6,4,,False
+ETR,Utilities,Entergy,2026-07-27,107.62,-6.51,-7.57,13.59,3.28,0.333,25,27,3,21.2,2.39,2.26,False,False,112.22,7.96,0.824,False,118.45,-9.14,-7.18,-6.51,9.0,11.0,2466488.0,2993872.0,0.818,2602800.0,3002140.0,2810213.0,0.926,69.91,6,18,23,14.2,13,吃老本,True
+FE,Utilities,FirstEnergy,2026-07-27,48.31,-0.45,4.02,4.09,2.94,0.667,4,6,19,7.6,-0.48,0.63,False,True,47.5,4.85,0.797,False,51.81,-6.75,-3.23,-0.45,10.0,10.0,4037030.0,5066700.0,1.0,7468800.0,4973240.0,4871526.0,1.533,77.38,7,9,4,7.2,6,,False
+AES,Utilities,AES Corporation,2026-07-27,14.68,1.89,4.03,2.66,2.81,1.0,3,5,22,7.4,108.27,33.04,False,True,14.54,0.85,1.33,True,17.23,-14.79,0.11,1.89,12.0,7.0,8873666.0,6670900.0,1.714,10354700.0,6417150.0,6812593.0,1.52,100.0,8,1,5,4.6,3,剛爆發,True
+PNW,Utilities,Pinnacle West Capital,2026-07-27,100.99,-7.66,-1.6,9.97,2.67,0.333,27,12,6,18.3,15889.47,472.69,True,False,104.39,8.02,0.781,False,111.16,-9.15,-4.78,-7.66,7.0,13.0,1027600.0,1315446.0,0.538,1687000.0,1446890.0,1266586.0,1.332,65.24,9,24,9,15.0,14,吃老本,True
+SO,Utilities,Southern Company,2026-07-27,94.54,-3.51,-1.43,7.57,2.55,0.333,13,11,10,11.8,11.82,8.87,False,True,94.52,5.91,0.996,False,99.26,-4.76,-2.79,-3.51,9.0,11.0,4628288.0,4649145.0,0.818,5581100.0,5079720.0,4544020.0,1.228,76.47,10,11,15,11.4,9,,True
+ES,Utilities,Eversource Energy,2026-07-27,71.59,-3.83,1.93,5.9,2.47,0.667,14,7,13,11.7,-0.33,6.21,False,False,71.73,7.07,0.763,False,76.57,-6.5,-4.43,-3.83,9.0,11.0,1905611.0,2497227.0,0.818,5275400.0,2451570.0,2328693.0,2.265,71.56,11,16,2,11.2,8,,False
+AEE,Utilities,Ameren,2026-07-27,109.61,-4.7,-2.8,7.6,1.93,0.333,19,15,9,15.8,4.18,8.16,False,False,110.69,6.86,0.844,False,118.32,-7.36,-3.66,-4.7,9.0,11.0,1323122.0,1567290.0,0.818,2758600.0,1419050.0,1472306.0,1.874,72.76,12,15,3,11.4,9,,True
+CNP,Utilities,CenterPoint Energy,2026-07-27,42.04,-5.76,-2.49,7.09,1.48,0.333,21,14,12,17.1,7.4,1.1,False,False,43.16,7.82,0.888,False,45.26,-7.11,-5.66,-5.76,8.0,12.0,6021525.0,6779658.0,0.667,7133600.0,6295480.0,6424786.0,1.11,69.82,13,19,19,16.6,17,吃老本,True
+LNT,Utilities,Alliant Energy,2026-07-27,70.78,-8.6,-3.7,9.02,1.43,0.333,31,17,7,22.0,9.21,2.85,False,False,73.44,7.15,0.904,False,78.22,-9.51,-4.83,-8.6,8.0,12.0,2266762.0,2508358.0,0.667,3239600.0,2574260.0,2538706.0,1.276,68.72,14,21,12,16.4,16,吃老本,True
+DUK,Utilities,Duke Energy,2026-07-27,125.43,-3.22,-1.62,5.14,1.36,0.333,12,13,15,12.9,7.24,0.49,True,False,125.55,6.28,0.878,False,133.34,-5.93,-3.9,-3.22,10.0,10.0,3388810.0,3859430.0,1.0,4311900.0,3748550.0,3608660.0,1.195,76.88,15,10,16,13.2,11,,True
+EXC,Utilities,Exelon,2026-07-27,45.82,-4.3,-0.54,4.17,0.88,0.333,15,9,18,13.8,-3.93,2.6,False,False,46.16,8.04,0.933,False,50.18,-8.69,-3.6,-4.3,9.0,11.0,8838655.0,9469709.0,0.818,10046200.0,9786470.0,8979040.0,1.119,74.59,16,14,18,15.6,15,,False
+AEP,Utilities,American Electric Power,2026-07-27,127.85,-7.7,-5.94,8.36,0.77,0.333,28,24,8,22.8,-8.2,4.61,False,False,131.63,7.4,0.848,False,140.58,-9.06,-5.67,-7.7,8.0,12.0,3674987.0,4335408.0,0.667,5721500.0,3860210.0,3872713.0,1.477,67.95,17,23,6,17.2,19,吃老本,False
+DTE,Utilities,DTE Energy,2026-07-27,141.87,-7.91,-3.89,7.25,0.67,0.333,29,18,11,22.1,16.26,-4.14,False,False,146.79,7.07,0.979,False,155.75,-8.91,-5.08,-7.91,7.0,13.0,1257171.0,1284553.0,0.538,1596700.0,1385530.0,1278580.0,1.249,68.43,18,22,14,18.8,22,,True
+ED,Utilities,Consolidated Edison,2026-07-27,108.85,-4.51,-0.66,3.75,0.58,0.333,16,10,20,15.0,-3.83,3.44,True,False,109.22,5.71,0.997,False,115.26,-5.57,-3.68,-4.51,10.0,10.0,2185330.0,2191110.0,1.0,2786600.0,2397460.0,2216806.0,1.257,78.28,19,8,13,13.4,12,剛爆發,False
+ATO,Utilities,Atmos Energy,2026-07-27,172.78,-2.31,-7.84,5.04,-0.02,0.333,11,28,16,17.1,1.84,0.07,True,False,173.73,5.89,0.911,False,191.43,-9.74,-3.59,-2.31,7.0,13.0,967757.0,1062169.0,0.538,1045400.0,898280.0,997480.0,1.048,71.2,20,17,20,18.8,22,,True
+XEL,Utilities,Xcel Energy,2026-07-27,78.2,-4.59,-4.59,4.35,-0.12,0.333,18,21,17,18.7,,,,,,,,,,,,,,,,,,,,,,,21,25,25,,25,,False
+SRE,Utilities,Sempra,2026-07-27,88.55,-4.85,-5.8,3.21,-1.05,0.333,20,23,21,21.1,,,,,,,,,,,,,,,,,,,,,,,22,25,25,,25,,False
+CMS,Utilities,CMS Energy,2026-07-27,71.99,-7.38,-4.58,2.24,-1.87,0.333,26,20,24,23.8,,,,,,,,,,,,,,,,,,,,,,,23,25,25,,25,,False
+NI,Utilities,NiSource,2026-07-27,44.43,-6.47,-6.97,2.32,-2.2,0.333,24,26,23,24.4,,,,,,,,,,,,,,,,,,,,,,,24,25,25,,25,,False
+NEE,Utilities,NextEra Energy,2026-07-27,86.92,-1.61,-9.69,0.29,-2.68,0.333,6,29,26,16.9,3.8,5.67,False,False,87.23,4.66,0.979,False,98.03,-11.34,-3.19,-1.61,8.0,12.0,10241350.0,10464375.0,0.667,13180200.0,10446500.0,9995280.0,1.319,74.89,25,13,11,17.4,20,剛爆發,True
+WEC,Utilities,WEC Energy Group,2026-07-27,109.42,-7.92,-6.05,0.56,-3.21,0.333,30,25,25,27.5,,,,,,,,,,,,,,,,,,,,,,,26,25,25,,25,,False
+PPL,Utilities,PPL Corporation,2026-07-27,35.21,-4.55,-5.6,-1.35,-3.22,0.0,17,22,27,20.5,,,,,,,,,,,,,,,,,,,,,,,27,25,25,,25,,False
+CEG,Utilities,Constellation Energy,2026-07-27,262.75,9.82,-14.51,-6.12,-4.23,0.333,1,31,29,15.6,5.3,2.41,True,False,263.2,10.65,0.925,False,411.04,-36.08,-4.23,9.82,12.0,8.0,2668216.0,2885625.0,1.5,1850300.0,2729400.0,2704026.0,0.684,92.88,28,2,24,16.8,18,剛爆發,True
+VST,Utilities,Vistra Corp.,2026-07-27,148.19,-1.89,-4.43,-6.16,-4.66,0.0,9,19,30,16.2,53.35,-76.52,True,False,156.06,17.64,0.864,False,218.91,-32.31,-9.3,-1.89,11.0,9.0,3795254.0,4390855.0,1.222,4386500.0,3928880.0,4355546.0,1.007,78.6,29,7,21,18.6,21,剛爆發,True
+PEG,Utilities,Public Service Enterprise Group,2026-07-27,76.68,-6.05,-3.5,-5.33,-5.05,0.0,23,16,28,21.9,,,,,,,,,,,,,,,,,,,,,,,30,25,25,,25,,False
+NRG,Utilities,NRG Energy,2026-07-27,134.29,-1.76,-12.44,-11.47,-9.29,0.0,7,30,31,18.7,-14.04,16.38,True,False,135.61,16.19,1.08,False,189.38,-29.09,-4.78,-1.76,8.0,12.0,2346850.0,2172875.0,0.667,2694900.0,2491020.0,2356520.0,1.144,75.93,31,12,17,20.6,24,剛爆發,False
