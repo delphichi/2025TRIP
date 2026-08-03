@@ -13,6 +13,12 @@ on:
         description: '回測建倉日 · YYYY-MM-DD 格式 · 建議 1 年前的日期讓 4 個 checkpoint 都填滿'
         required: true
         default: '2025-07-31'
+      variant:
+        description: '規則版本 · baseline / expA (拿掉 di=1.0) / expB (top5 + sector 取 2) / expC (兩者合體)'
+        required: true
+        default: 'baseline'
+        type: choice
+        options: ['baseline', 'expA', 'expB', 'expC']
 
 permissions:
   contents: write
@@ -38,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python scripts/backtest_pipeline.py --as-of "${{ inputs.as_of_date }}" 2>&1 | tee /tmp/backtest.log
+          python scripts/backtest_pipeline.py --as-of "${{ inputs.as_of_date }}" --variant "${{ inputs.variant }}" 2>&1 | tee /tmp/backtest.log
 
       - name: Summary
         if: always()

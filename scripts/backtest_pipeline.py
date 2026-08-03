@@ -279,47 +279,52 @@ def add_sector_composite(records):
 # ============================================================
 # 挑倉位（同 live pick 規則的簡化版）
 # ============================================================
-def build_portfolio_picks(df, market_ctx):
-    """
-    規則同 live：
-      · 核心：距高<-5% + VP>1 + VCP=TRUE
-      · 動能：sector 在 TNX boost + VP>=1 + 4W正 + composite_rank_in_sector<=3
-      · 只挑 di=1.0 的
-      · 每 tier 依 cap / 檔數 等權
-    """
+VARIANT_RULES = {
+    # baseline: 最嚴 · 對應 live pipeline
+    "baseline": {"require_di_full": True,  "composite_max_rank": 3, "per_sector_max": 1},
+    # 實驗 A: 拿掉 di=1.0 · 其他保持 baseline
+    "expA":     {"require_di_full": False, "composite_max_rank": 3, "per_sector_max": 1},
+    # 實驗 B: 保留 di=1.0 · 放寬 composite + 分散
+    "expB":     {"require_di_full": True,  "composite_max_rank": 5, "per_sector_max": 2},
+    # 實驗 C: 兩個都放寬（A + B 合體）
+    "expC":     {"require_di_full": False, "composite_max_rank": 5, "per_sector_max": 2},
+}
+
+
+def build_portfolio_picks(df, market_ctx, variant="baseline"):
+    """規則按 VARIANT_RULES 設定"""
+    rules = VARIANT_RULES.get(variant, VARIANT_RULES["baseline"])
     if df.empty or not market_ctx:
         return {"core": [], "momentum": [], "cash_reason": "no data"}
 
     alloc = market_ctx.get("allocation_caps") or {}
     tnx_boost = set(market_ctx.get("tnx_boost_sectors") or [])
-    tnx_boost_gics = {name for name, etf in [(g, e) for g, e in [(k, v) for v, k in GICS_TO_ETF.items()]] if name in tnx_boost} if tnx_boost else set()
-    # 簡化：從 ETF ticker 反推 sector name
     etf_to_gics = {etf: name for name, etf in GICS_TO_ETF.items()}
     tnx_boost_gics = {etf_to_gics[e] for e in tnx_boost if e in etf_to_gics}
 
-    # 核心：VCP + 距高<-5% + VP>1
-    core_cands = df[
+    # 核心：VCP + 距高<-5% + VP>1（+ 視 variant 加 di=1.0）
+    core_mask = (
         (df["vcp"] == True)
         & (df["pct_from_high"] > -5)
         & (df["vp_ratio_stock"] > 1.0)
-        & (df["di"] == 1.0)
-    ].copy()
-    core_cands = core_cands.sort_values("composite_in_sector", na_position="last")
+    )
+    if rules["require_di_full"]:
+        core_mask = core_mask & (df["di"] == 1.0)
+    core_cands = df[core_mask].copy().sort_values("composite_in_sector", na_position="last")
 
-    # 動能：sector 在 TNX boost + VP>=1 + 4W正 + composite top 5 in sector
-    # 【實驗 B 修改】原本 top 3 · 現在 top 5 · 每 sector 取 2 檔（原本 1 檔）
-    # 目的：拿掉單一 sector 只挑第 1 名的過度集中 · 讓動能區至少 4-6 檔分散
-    momentum_cands = df[
+    # 動能：TNX順風 + VP>=1 + 4W正 + composite top N（+ 視 variant 加 di=1.0）
+    momentum_mask = (
         (df["sector"].isin(tnx_boost_gics))
         & (df["vp_ratio_stock"] >= 1.0)
         & (df["cum_ret_4w"] > 0)
-        & (df["di"] == 1.0)
-        & (df["composite_rank_in_sector"] <= 5)
-    ].copy()
-    momentum_cands = momentum_cands.sort_values(["sector", "composite_in_sector"], na_position="last")
-
-    # 每 sector 動能挑前 2 名（改自 head(1)）
-    momentum_picks = momentum_cands.groupby("sector").head(2).reset_index(drop=True)
+        & (df["composite_rank_in_sector"] <= rules["composite_max_rank"])
+    )
+    if rules["require_di_full"]:
+        momentum_mask = momentum_mask & (df["di"] == 1.0)
+    momentum_cands = df[momentum_mask].copy().sort_values(
+        ["sector", "composite_in_sector"], na_position="last"
+    )
+    momentum_picks = momentum_cands.groupby("sector").head(rules["per_sector_max"]).reset_index(drop=True)
 
     # 核心最多 3 檔 · 避免 over-concentrated（單一 VCP 15%）
     core_picks = core_cands.head(3)
@@ -387,11 +392,14 @@ def compute_forward_returns(daily_dict, symbols, as_of):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--as-of", required=True, help="回測建倉日 YYYY-MM-DD")
+    ap.add_argument("--variant", default="baseline", choices=list(VARIANT_RULES.keys()),
+                     help="規則版本 · default baseline")
     ap.add_argument("--dry", action="store_true")
     args = ap.parse_args()
 
     as_of = date.fromisoformat(args.as_of)
-    log(f"=== Backtest at as_of = {as_of} ===")
+    log(f"=== Backtest at as_of = {as_of} · variant = {args.variant} ===")
+    log(f"    rules = {VARIANT_RULES[args.variant]}")
 
     # 抓資料：as_of 前 1.5 年 + 後 1.5 年（cover 26W lookback + 1y forward）
     start = as_of - timedelta(days=400)
@@ -431,7 +439,7 @@ def main():
     df = add_sector_composite(stock_records)
 
     # 挑倉位
-    picks = build_portfolio_picks(df, ctx)
+    picks = build_portfolio_picks(df, ctx, variant=args.variant)
     all_syms_picked = [x[0] for x in picks["core"]] + [x[0] for x in picks["momentum"]]
     log(f"Picks: core={len(picks['core'])} · momentum={len(picks['momentum'])} · syms={all_syms_picked}")
 
@@ -488,8 +496,10 @@ def main():
             vs_voo[cp] = int(round((pr - vr) * 100))
 
     out = {
-        "portfolio_id": f"backtest_{as_of.isoformat()}",
+        "portfolio_id": f"backtest_{as_of.isoformat()}_{args.variant}",
         "entry_date": as_of.isoformat(),
+        "variant": args.variant,
+        "rules": VARIANT_RULES[args.variant],
         "note": "回測 · pipeline 規則套在歷史資料 · S&P500 用今日清單（有 survivorship bias · demo 可接受）",
         "regime_at_entry": ctx,
         "positions": positions,
@@ -534,9 +544,12 @@ def main():
         return
 
     os.makedirs(OUTDIR, exist_ok=True)
-    # 用 rule variant 分檔（不同規則版本互不覆蓋）· 允許 env var 指定 suffix
-    variant = os.environ.get("BACKTEST_VARIANT", "expB")
-    path = os.path.join(OUTDIR, f"backtest_{as_of.isoformat()}_{variant}.json")
+    # 用 rule variant 分檔（不同規則版本互不覆蓋）
+    # baseline 用不加 suffix 的檔名 · 其他 variant 加 _{variant} suffix
+    if args.variant == "baseline":
+        path = os.path.join(OUTDIR, f"backtest_{as_of.isoformat()}.json")
+    else:
+        path = os.path.join(OUTDIR, f"backtest_{as_of.isoformat()}_{args.variant}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(_json_safe(out), f, ensure_ascii=False, indent=2, allow_nan=False)
     log(f"✅ saved {path}")
