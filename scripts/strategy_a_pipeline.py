@@ -190,8 +190,14 @@ def step6_funnel(candidates, market_ctx):
     log(f"[Step 6·L2] 三道關卡 · 通過 {len(passed)} · 排除 {len(excluded)}")
 
     # 財報 14 天內 · 暫緩
-    hold_earnings = [c for c in passed if c.get("pre_earnings_14d") is True]
-    passed_earnings = [c for c in passed if not c.get("pre_earnings_14d")]
+    hold_earnings = []
+    passed_earnings = []
+    for c in passed:
+        if c.get("pre_earnings_14d") is True:
+            c = dict(c, _tier="hold", _reason="財報 14 天內 · 暫緩 · 等公告後再評估")
+            hold_earnings.append(c)
+        else:
+            passed_earnings.append(c)
     if hold_earnings:
         log(f"[Step 6·財報] 暫緩 {len(hold_earnings)} 檔（財報 14 天內）: {[c['symbol'] for c in hold_earnings]}")
 
