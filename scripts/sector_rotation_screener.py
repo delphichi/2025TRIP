@@ -122,25 +122,35 @@ def fetch_weekly_returns(tickers):
     all_close = all_close.dropna(how="all").sort_index()
     log(f"  → close matrix: {all_close.shape[0]} weeks × {all_close.shape[1]} tickers")
 
-    # 用最後一根週線（通常是本週五）為基準，回算 4/13/26 週前
-    last_row = all_close.iloc[-1]
+    # T-1 基準：使用抓到的最後一根 close 的日期（非 today）
+    as_of_date = all_close.index[-1].strftime("%Y-%m-%d")
+    log(f"  → as_of_date (T-1) = {as_of_date}")
+
     rows = []
     for sym in all_close.columns:
         series = all_close[sym].dropna()
-        if len(series) < 27:  # 至少要 26 週前 + 現在
+        if len(series) < 27:
             continue
         cur = series.iloc[-1]
         try:
-            r4 = cur / series.iloc[-5] - 1
-            r13 = cur / series.iloc[-14] - 1
-            r26 = cur / series.iloc[-27] - 1
+            r4 = (cur / series.iloc[-5] - 1) * 100
+            r13 = (cur / series.iloc[-14] - 1) * 100
+            r26 = (cur / series.iloc[-27] - 1) * 100
         except IndexError:
             continue
+        # Point = 4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）
+        point = r4 * 0.25 + r13 * 0.25 + r26 * 0.50
+        # di = 三週期正報酬指標
+        di = ((1 if r4 > 0 else 0) + (1 if r13 > 0 else 0) + (1 if r26 > 0 else 0)) / 3.0
         rows.append({
             "symbol": sym,
-            "cum_ret_4w": round(r4 * 100, 2),
-            "cum_ret_13w": round(r13 * 100, 2),
-            "cum_ret_26w": round(r26 * 100, 2),
+            "as_of_date": as_of_date,
+            "t_price": round(float(cur), 2),
+            "cum_ret_4w": round(r4, 2),
+            "cum_ret_13w": round(r13, 2),
+            "cum_ret_26w": round(r26, 2),
+            "point": round(point, 2),
+            "di": round(di, 3),
         })
     out = pd.DataFrame(rows)
     log(f"  → {len(out)} tickers with 27+ weeks of data")
@@ -232,12 +242,12 @@ def apply_earnings_filter(df):
     return df[mask].copy()
 
 
-def pick_top_n_per_sector(df, sort_col, top_n=TOP_N):
+def pick_top_n_per_sector(df, sort_col, top_n=TOP_N, ascending=False):
     return (
-        df.sort_values(["sector", sort_col], ascending=[True, False])
+        df.sort_values(["sector", sort_col], ascending=[True, ascending])
         .groupby("sector", as_index=False)
         .head(top_n)
-        .sort_values(["sector", sort_col], ascending=[True, False])
+        .sort_values(["sector", sort_col], ascending=[True, ascending])
         .reset_index(drop=True)
     )
 
@@ -251,12 +261,32 @@ def pre_filter_union(df, per_sector=PRE_FILTER_PER_SECTOR):
     return union["symbol"].tolist()
 
 
+def add_sector_internal_ranks(df):
+    """
+    對每個 sector 內部：算 4W/13W/26W 排名（1 = 最強）+ CMS_A
+    CMS_A = 0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）
+    """
+    df = df.copy()
+    for col in ("cum_ret_4w", "cum_ret_13w", "cum_ret_26w"):
+        df[col + "_rank_in_sector"] = df.groupby("sector")[col].rank(
+            method="min", ascending=False
+        ).astype(int)
+    df["cms_a"] = (
+        df["cum_ret_4w_rank_in_sector"] * 0.5
+        + df["cum_ret_13w_rank_in_sector"] * 0.3
+        + df["cum_ret_26w_rank_in_sector"] * 0.2
+    ).round(2)
+    return df
+
+
 # ============================================================
 # 5. 輸出
 # ============================================================
-def save_outputs(df_all, top3_4w, top3_13w, top3_26w):
+def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
     os.makedirs(OUTDIR, exist_ok=True)
-    stamp = date.today().strftime("%Y%m%d")
+    # 用 T-1 as_of_date（非 today）
+    as_of = df_all["as_of_date"].iloc[0] if "as_of_date" in df_all and len(df_all) else date.today().strftime("%Y-%m-%d")
+    stamp = as_of.replace("-", "")
 
     files = {}
     def _save(df, tag):
@@ -269,25 +299,34 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_26w):
     _save(top3_4w, "top3_4w")
     _save(top3_13w, "top3_13w")
     _save(top3_26w, "top3_26w")
+    _save(top3_cms_a, "top3_cms_a")
 
     def _records(df):
         return df.where(pd.notna(df), None).to_dict(orient="records")
 
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "as_of_date": stamp,
+        "as_of_date": as_of,
+        "as_of_date_note": "基準日 = 抓到的最後一根週線 close 的日期（T-1）",
         "counts": {
             "universe": int(len(df_all)),
             "after_earnings_filter": int(df_all["earnings_passed"].sum()) if "earnings_passed" in df_all else None,
             "top3_4w": int(len(top3_4w)),
             "top3_13w": int(len(top3_13w)),
             "top3_26w": int(len(top3_26w)),
+            "top3_cms_a": int(len(top3_cms_a)),
         },
         "files": files,
         "top3": {
             "4w": _records(top3_4w),
             "13w": _records(top3_13w),
             "26w": _records(top3_26w),
+            "cms_a": _records(top3_cms_a),
+        },
+        "formulas": {
+            "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
+            "cms_a": "0.5×4W_rank_in_sector + 0.3×13W_rank_in_sector + 0.2×26W_rank_in_sector（越小越強，重短線）",
+            "di": "((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲",
         },
         "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
         "has_fmp_surprise": bool(FMP_KEY),
@@ -306,9 +345,12 @@ def main():
     # (1) universe
     universe = fetch_sp500_constituents()
 
-    # (2) 價格動能
+    # (2) 價格動能（附 Point / di）
     ret_df = fetch_weekly_returns(universe["symbol"].tolist())
     price_df = universe.merge(ret_df, on="symbol", how="inner")
+
+    # (2b) 板塊內排名 + CMS_A
+    price_df = add_sector_internal_ranks(price_df)
 
     # (3) 預篩 union（三尺度各 sector 前 15）
     pre_syms = pre_filter_union(price_df)
@@ -324,15 +366,16 @@ def main():
     full_df["earnings_passed"] = full_df["symbol"].isin(filtered["symbol"])
     log(f"After earnings filter: {len(filtered)} tickers pass")
 
-    # (6) 各時間尺度取 top 3
+    # (6) 各時間尺度取 top 3 · 另加一張「CMS_A 板塊內冠軍榜」
     top3_4w = pick_top_n_per_sector(filtered, "cum_ret_4w")
     top3_13w = pick_top_n_per_sector(filtered, "cum_ret_13w")
     top3_26w = pick_top_n_per_sector(filtered, "cum_ret_26w")
+    top3_cms_a = pick_top_n_per_sector(filtered, "cms_a", ascending=True)  # 越小越強
 
     # (7) 存檔
     save_outputs(
-        full_df.sort_values(["sector", "cum_ret_4w"], ascending=[True, False]),
-        top3_4w, top3_13w, top3_26w,
+        full_df.sort_values(["sector", "point"], ascending=[True, False]),
+        top3_4w, top3_13w, top3_cms_a, top3_26w,
     )
 
     log(f"Done in {time.time() - t0:.1f}s")

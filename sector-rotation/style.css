@@ -104,6 +104,30 @@ body.rot-body {
 }
 .w40 { background: #7e22ce; }
 .w20 { background: #0891b2; }
+.formula-sub {
+    margin-left: 40px;
+    margin-top: 2px;
+    font-size: 12px;
+}
+.formula-line.composite {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-strong);
+    color: var(--warn);
+    font-size: 14px;
+}
+.formula-line.composite b { color: var(--warn); }
+.alert-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin: 0 2px;
+    cursor: help;
+}
+.alert-old { background: #7f1d1d; color: #fecaca; }
+.alert-new { background: #78350f; color: #fed7aa; }
 
 /* ---------- status ---------- */
 .status-panel { padding: 14px 18px; }
@@ -247,6 +271,26 @@ body.rot-body {
 .score-table td.up-days       { color: var(--good); }
 .score-table td.down-days     { color: var(--danger); }
 .score-table td.price-t       { color: var(--text); font-weight: 700; }
+.score-table td.composite-rank {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--good);
+    font-size: 14px;
+    font-weight: 700;
+}
+.score-table td.cms-a-cell {
+    background: rgba(167, 139, 250, 0.08);
+    color: var(--accent-2);
+}
+.score-table td.di-cell {
+    background: rgba(56, 189, 248, 0.06);
+}
+.score-table td.alert-cell {
+    text-align: left;
+    padding-left: 8px;
+    white-space: nowrap;
+}
+.score-table tr.row-alert-old { background: rgba(127, 29, 29, 0.12) !important; }
+.score-table tr.row-alert-new { background: rgba(120, 53, 15, 0.10) !important; }
 .empty-row {
     text-align: center;
     color: var(--text-mute);

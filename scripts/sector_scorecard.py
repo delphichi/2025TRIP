@@ -7,7 +7,6 @@
   對 11 個 SPDR sector ETF：
     XLK 資訊科技 · XLE 能源 · XLF 金融 · XLV 醫療 · XLY 非必需消費
     XLP 必需消費 · XLI 工業 · XLU 公用事業 · XLB 材料 · XLRE 房地產 · XLC 通訊
-  計算 22 個欄位（見 SCHEMA 註解），存 CSV + JSON manifest 給瀏覽器讀。
 
 資料源：yfinance（週線 + 日線）· 完全免 key
 輸出：
@@ -22,25 +21,44 @@ SCHEMA · 每欄意義
 -----------------------------------------------------------------
 sector          | XLK / XLE / ... (ETF ticker)
 sector_name     | 資訊科技 / 能源 / ...
-t_price         | 當前收盤價
-p4w / p13w / p26w   | 4/13/26 週前的收盤（作為對照基準）
+as_of_date      | 資料基準日 = 抓到的最後一根 close 的日期（T-1）
+t_price         | 基準日收盤價
+p4w / p13w / p26w   | 4/13/26 週前的收盤
 ret_4w / ret_13w / ret_26w  | 累積報酬 %
-price_point     | 4W*3 + 13W*2 + 26W*1 加權和（短線權重高）
-price_rank      | 11 個 sector 依 price_point 由高到低排名
+
+point           | Point = 4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）
+point_rank      | 依 point 排名（1 = 最強）
+cms_a           | CMS_A = 0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）
+cms_a_rank      | 依 cms_a 排名（1 = 最強）
+di              | 三週期正報酬指標 = ((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲
+
 vol_10d_avg     | 近 10 日平均成交量
-vol_today       | 當日成交量
+vol_today       | 基準日成交量
 vol_3w_avg      | 近 15 交易日（≈3週）平均成交量
-vol_ratio       | vol_today / vol_3w_avg
-vol_rank        | 11 個 sector 依 vol_ratio 排名
+vol_ratio       | vol_today / vol_3w_avg（>1 = 當日爆量）
+vol_rank        | 依 vol_ratio 排名（1 = 最強）
 ret_5d / ret_20d    | 近 5/20 日累積報酬 %
 up_days_20      | 近 20 日中收紅天數
 down_days_20    | 近 20 日中收黑天數
-up_avg_vol      | 收紅日平均成交量
-down_avg_vol    | 收黑日平均成交量
-vp_ratio        | 量價比 = up_avg_vol / down_avg_vol（>1 = 買盤積極）
-ud_ratio        | 漲跌比 = up_days / down_days
-score           | 量價綜合評分（見 compute_score 註解）
-score_rank      | 11 個 sector 綜合評分排名
+up_avg_vol      | 收紅日平均成交量（= AD 上漲日均量）
+down_avg_vol    | 收黑日平均成交量（= AC 下跌日均量）
+vp_ratio        | 量價比 VP = up_avg_vol / down_avg_vol（>1 = 買盤積極）
+ud_ratio        | 漲跌比 UD = up_days / down_days
+
+vp_score        | 量價絕對評分 0~100 · 公式：
+                | MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35
+                |                    + UD×100×0.15 + 50))
+                | 註：20d / 5d 用「小數報酬」（0.05 = 5%），非百分數
+vp_score_rank   | 依 vp_score 排名（1 = 最強）
+
+composite       | 綜合分 = Point_rank×0.40 + vp_score_rank×0.40 + vol_rank×0.20
+                | 加權排名和（越小越強）
+composite_rank  | 依 composite 排名（1 = 最強）
+
+gap_alert       | 差距警示（Point_rank vs vp_score_rank 差 > 5）
+                | "吃老本" = Point 前段但量價落後（漲多動能弱）
+                | "剛爆發" = 量價前段但 Point 落後（剛起步）
+                | null    = 無警示
 """
 import os
 import sys
@@ -67,6 +85,9 @@ SECTORS = [
     ("XLC", "通訊服務",      "Communication Services"),
 ]
 
+# 差距警示閾值：Point_rank 跟 vp_score_rank 差超過這個名次 → 警示
+GAP_ALERT_THRESHOLD = 5
+
 
 def log(msg):
     ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
@@ -74,7 +95,7 @@ def log(msg):
 
 
 # ============================================================
-# 1. 抓 yfinance 資料（日線 + 週線）
+# 1. 抓 yfinance 資料
 # ============================================================
 def fetch_data():
     try:
@@ -84,7 +105,6 @@ def fetch_data():
 
     tickers = [s[0] for s in SECTORS]
     log(f"Fetching daily data for {len(tickers)} sector ETFs...")
-    # 抓 8 個月日線 · 足夠算 26 週 + 20 日窗口
     daily = yf.download(
         tickers, period="9mo", interval="1d",
         auto_adjust=True, progress=False, threads=True, group_by="ticker",
@@ -98,21 +118,19 @@ def fetch_data():
 
 
 def extract_ohlcv(df_bulk, ticker):
-    """從 yf.download group_by='ticker' 的多層欄位取出單一 ticker 的 OHLCV"""
     if isinstance(df_bulk.columns, pd.MultiIndex):
         if ticker not in df_bulk.columns.get_level_values(0):
             return None
         sub = df_bulk[ticker].copy()
     else:
         sub = df_bulk.copy()
-    sub = sub.dropna(how="all")
-    return sub
+    return sub.dropna(how="all")
 
 
 # ============================================================
-# 2. 逐 sector 計算欄位
+# 2. 逐 sector 算欄位（不含排名 / 綜合分 · 那些要跨 sector 才能算）
 # ============================================================
-def compute_row(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
+def compute_metrics(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
     dly = extract_ohlcv(daily_bulk, ticker)
     wky = extract_ohlcv(weekly_bulk, ticker)
     if dly is None or wky is None or len(dly) < 25 or len(wky) < 27:
@@ -123,9 +141,11 @@ def compute_row(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
     vol_d = dly["Volume"].dropna()
     close_w = wky["Close"].dropna()
 
+    # T-1 基準：使用「最後一根 close」的日期，非 today
+    as_of = close_d.index[-1].strftime("%Y-%m-%d")
     t_price = float(close_d.iloc[-1])
 
-    # 4/13/26 週前價格 · 用週線倒數第 5/14/27 根
+    # 4/13/26 週前收盤（週線倒數第 5/14/27 根）
     p4w = float(close_w.iloc[-5])
     p13w = float(close_w.iloc[-14])
     p26w = float(close_w.iloc[-27])
@@ -133,13 +153,16 @@ def compute_row(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
     ret_13w = (t_price / p13w - 1) * 100
     ret_26w = (t_price / p26w - 1) * 100
 
-    # 價格 point：4W*3 + 13W*2 + 26W*1（短線權重高）
-    price_point = ret_4w * 3 + ret_13w * 2 + ret_26w * 1
+    # Point = 4W%×0.25 + 13W%×0.25 + 26W%×0.50（26W 佔一半，重中長期）
+    point = ret_4w * 0.25 + ret_13w * 0.25 + ret_26w * 0.50
+
+    # di：三週期是否全漲，每個 1/3
+    di = ((1 if ret_4w > 0 else 0) + (1 if ret_13w > 0 else 0) + (1 if ret_26w > 0 else 0)) / 3.0
 
     # 成交量
     vol_today = int(vol_d.iloc[-1])
     vol_10d_avg = float(vol_d.iloc[-10:].mean())
-    vol_3w_avg = float(vol_d.iloc[-15:].mean())  # ≈ 3 週 = 15 交易日
+    vol_3w_avg = float(vol_d.iloc[-15:].mean())
     vol_ratio = vol_today / vol_3w_avg if vol_3w_avg > 0 else 0.0
 
     # 5/20 日報酬
@@ -147,24 +170,27 @@ def compute_row(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
     ret_20d = (close_d.iloc[-1] / close_d.iloc[-21] - 1) * 100 if len(close_d) >= 21 else None
 
     # 近 20 日上漲下跌天數 + 上下漲日均量
-    last20 = dly.tail(21)  # 21 根算 20 個 diff
-    diffs = last20["Close"].diff().dropna()
+    last21 = dly.tail(21)  # 21 根算 20 個 diff
+    diffs = last21["Close"].diff().dropna()
     ups = diffs > 0
     downs = diffs < 0
     up_days_20 = int(ups.sum())
     down_days_20 = int(downs.sum())
-    # 對應天的成交量（去掉最舊 1 根，因為 diff 掉了）
-    vols20 = last20["Volume"].iloc[1:]
+    vols20 = last21["Volume"].iloc[1:]
     up_avg_vol = float(vols20[ups.values].mean()) if ups.any() else 0.0
     down_avg_vol = float(vols20[downs.values].mean()) if downs.any() else 0.0
 
     vp_ratio = (up_avg_vol / down_avg_vol) if down_avg_vol > 0 else None
     ud_ratio = (up_days_20 / down_days_20) if down_days_20 > 0 else None
 
+    # 量價絕對評分 (0~100)
+    vp_score = compute_vp_score(ret_20d, ret_5d, vp_ratio, ud_ratio)
+
     return {
         "sector": ticker,
         "sector_name": name_zh,
         "sector_name_en": name_en,
+        "as_of_date": as_of,
         "t_price": round(t_price, 2),
         "p4w": round(p4w, 2),
         "p13w": round(p13w, 2),
@@ -172,7 +198,8 @@ def compute_row(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
         "ret_4w": round(ret_4w, 2),
         "ret_13w": round(ret_13w, 2),
         "ret_26w": round(ret_26w, 2),
-        "price_point": round(price_point, 2),
+        "point": round(point, 2),
+        "di": round(di, 3),
         "vol_10d_avg": int(vol_10d_avg),
         "vol_today": vol_today,
         "vol_3w_avg": int(vol_3w_avg),
@@ -185,45 +212,75 @@ def compute_row(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
         "down_avg_vol": int(down_avg_vol),
         "vp_ratio": round(vp_ratio, 3) if vp_ratio is not None else None,
         "ud_ratio": round(ud_ratio, 3) if ud_ratio is not None else None,
+        "vp_score": round(vp_score, 2) if vp_score is not None else None,
     }
 
 
-# ============================================================
-# 3. 綜合評分 + 排名
-# ============================================================
-def compute_score(df):
+def compute_vp_score(ret_20d_pct, ret_5d_pct, vp, ud):
     """
-    量價綜合評分（0~100）：
-      40% × price_point normalized rank
-      20% × vol_ratio normalized rank
-      20% × vp_ratio normalized rank
-      20% × ud_ratio normalized rank
-    normalized rank = (排名倒序) / (n-1) × 100
+    量價絕對評分（0-100）· 用使用者規格：
+      MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20
+                        + VP×50×0.35 + UD×100×0.15 + 50))
+    注意：20d / 5d 用「小數報酬」（0.05 = 5%），非百分數
     """
-    def norm_rank(col):
-        s = df[col].fillna(-999999)
-        ranks = s.rank(method="min", ascending=True)  # 最小=1
-        n = len(df)
-        return (ranks - 1) / max(n - 1, 1) * 100
+    if any(v is None for v in (ret_20d_pct, ret_5d_pct, vp, ud)):
+        return None
+    r20 = ret_20d_pct / 100.0  # 轉小數
+    r5 = ret_5d_pct / 100.0
+    raw = (
+        r20 * 200 * 0.30
+        + r5 * 200 * 0.20
+        + vp * 50 * 0.35
+        + ud * 100 * 0.15
+        + 50
+    )
+    return max(0.0, min(100.0, raw))
 
-    df["_pp_r"] = norm_rank("price_point")
-    df["_vr_r"] = norm_rank("vol_ratio")
-    df["_vp_r"] = norm_rank("vp_ratio")
-    df["_ud_r"] = norm_rank("ud_ratio")
 
-    df["score"] = (
-        0.4 * df["_pp_r"]
-        + 0.2 * df["_vr_r"]
-        + 0.2 * df["_vp_r"]
-        + 0.2 * df["_ud_r"]
-    ).round(2)
+# ============================================================
+# 3. 跨 sector 排名 + 綜合分 + 差距警示
+# ============================================================
+def add_ranks_and_composite(df):
+    """
+    加入所有 rank 欄位、綜合分、差距警示。
+    """
+    # 個別 rank（1 = 最強）
+    df["ret_4w_rank"] = df["ret_4w"].rank(method="min", ascending=False).astype(int)
+    df["ret_13w_rank"] = df["ret_13w"].rank(method="min", ascending=False).astype(int)
+    df["ret_26w_rank"] = df["ret_26w"].rank(method="min", ascending=False).astype(int)
 
-    df["price_rank"] = df["price_point"].rank(method="min", ascending=False).astype(int)
+    df["point_rank"] = df["point"].rank(method="min", ascending=False).astype(int)
     df["vol_rank"] = df["vol_ratio"].rank(method="min", ascending=False).astype(int)
-    df["score_rank"] = df["score"].rank(method="min", ascending=False).astype(int)
+    df["vp_score_rank"] = df["vp_score"].rank(method="min", ascending=False, na_option="bottom").astype(int)
 
-    df.drop(columns=["_pp_r", "_vr_r", "_vp_r", "_ud_r"], inplace=True)
-    return df.sort_values("score", ascending=False).reset_index(drop=True)
+    # CMS_A = 0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）
+    df["cms_a"] = (
+        df["ret_4w_rank"] * 0.5
+        + df["ret_13w_rank"] * 0.3
+        + df["ret_26w_rank"] * 0.2
+    ).round(2)
+    df["cms_a_rank"] = df["cms_a"].rank(method="min", ascending=True).astype(int)
+
+    # 綜合分 = Point_rank×0.4 + vp_score_rank×0.4 + vol_rank×0.2（越小越強）
+    df["composite"] = (
+        df["point_rank"] * 0.40
+        + df["vp_score_rank"] * 0.40
+        + df["vol_rank"] * 0.20
+    ).round(2)
+    df["composite_rank"] = df["composite"].rank(method="min", ascending=True).astype(int)
+
+    # 差距警示：Point_rank vs vp_score_rank 差 > 5
+    def alert(row):
+        pr, vr = row["point_rank"], row["vp_score_rank"]
+        if abs(pr - vr) <= GAP_ALERT_THRESHOLD:
+            return None
+        if pr < vr:  # point 排名靠前（強）· 但 vp 排名靠後（弱）
+            return "吃老本"  # 漲多但動能弱
+        else:
+            return "剛爆發"  # 量價強但漲幅還沒跟上
+    df["gap_alert"] = df.apply(alert, axis=1)
+
+    return df.sort_values("composite_rank").reset_index(drop=True)
 
 
 # ============================================================
@@ -231,23 +288,27 @@ def compute_score(df):
 # ============================================================
 def save_outputs(df):
     os.makedirs(OUTDIR, exist_ok=True)
-    stamp = date.today().strftime("%Y%m%d")
+    # 檔名用 as_of_date（不是 today）· T-1 基準
+    as_of = df["as_of_date"].iloc[0] if len(df) else date.today().strftime("%Y-%m-%d")
+    stamp = as_of.replace("-", "")
     csv_path = os.path.join(OUTDIR, f"{stamp}_scorecard.csv")
     df.to_csv(csv_path, index=False)
     log(f"  saved {csv_path}")
 
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "as_of_date": stamp,
+        "as_of_date": as_of,
+        "as_of_date_note": "基準日 = 抓到的最後一根 close 的日期（T-1）· 非腳本執行當日",
         "sector_count": int(len(df)),
         "csv": os.path.basename(csv_path),
-        "scoring_weights": {
-            "price_point": 0.4,
-            "vol_ratio": 0.2,
-            "vp_ratio": 0.2,
-            "ud_ratio": 0.2,
+        "formulas": {
+            "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
+            "cms_a": "0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）",
+            "di": "((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲",
+            "vp_score": "MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35 + UD×100×0.15 + 50))",
+            "composite": "Point_rank×0.40 + vp_score_rank×0.40 + vol_rank×0.20（越小越強）",
+            "gap_alert": f"|Point_rank - vp_score_rank| > {GAP_ALERT_THRESHOLD} → 吃老本(漲多動能弱) / 剛爆發(量價強漲幅追不上)",
         },
-        "price_point_weights": {"4w": 3, "13w": 2, "26w": 1},
         "rows": df.where(pd.notna(df), None).to_dict(orient="records"),
     }
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
@@ -263,7 +324,7 @@ def main():
 
     rows = []
     for ticker, name_zh, name_en in SECTORS:
-        r = compute_row(ticker, name_zh, name_en, daily, weekly)
+        r = compute_metrics(ticker, name_zh, name_en, daily, weekly)
         if r:
             rows.append(r)
 
@@ -271,17 +332,20 @@ def main():
         sys.exit("❌ 沒抓到任何 sector 資料")
 
     df = pd.DataFrame(rows)
-    df = compute_score(df)
+    df = add_ranks_and_composite(df)
 
-    log("=" * 60)
-    log(f"Top ranked sectors as of {date.today()}:")
-    log("=" * 60)
+    as_of = df["as_of_date"].iloc[0]
+    log("=" * 78)
+    log(f"11 Sector ETF Scorecard · as of {as_of}")
+    log("=" * 78)
     for _, r in df.iterrows():
+        alert = f"⚠ {r['gap_alert']}" if r["gap_alert"] else ""
         log(
-            f"  #{r['score_rank']:2d} {r['sector']:4s} {r['sector_name']:6s}  "
-            f"score={r['score']:5.1f}  price_rank={r['price_rank']:2d}  "
-            f"4W={r['ret_4w']:+6.2f}%  vol_ratio={r['vol_ratio']:.2f}x  "
-            f"VP={r['vp_ratio']}"
+            f"  #{r['composite_rank']:2d} {r['sector']:4s} {r['sector_name']:6s} "
+            f"pt={r['point']:6.2f} (rk{r['point_rank']:2d})  "
+            f"vp={r['vp_score']:5.1f} (rk{r['vp_score_rank']:2d})  "
+            f"vol_ratio={r['vol_ratio']:.2f}x (rk{r['vol_rank']:2d})  "
+            f"CMS_A={r['cms_a']:5.2f}  di={r['di']:.2f}  {alert}"
         )
 
     save_outputs(df)

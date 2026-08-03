@@ -18,32 +18,42 @@
     <main class="rot-main">
 
         <section class="panel intro-panel">
-            <h2>📖 評分邏輯</h2>
+            <h2>📖 三套系統定位 + 綜合分邏輯</h2>
             <div class="score-formula">
                 <div class="formula-line">
-                    <b>綜合評分</b> =
-                    <span class="w w40">40%</span> × 價格動能排名（<code>price_point</code> = 4W×3 + 13W×2 + 26W×1）
+                    <b>套 A · Point</b>（<span class="w w40">40%</span> 綜合分）
+                    <code>= 4W%×0.25 + 13W%×0.25 + 26W%×0.50</code>
+                    <span class="dim">→ 選方向（26 週佔一半，最長視野）</span>
                 </div>
                 <div class="formula-line">
-                    　　　　　　+
-                    <span class="w w20">20%</span> × 成交量比排名（<code>vol_ratio</code> = 當日量 / 3週均量）
+                    <b>套 B · vp_score</b>（<span class="w w40">40%</span> 綜合分）· 量價絕對評分 0-100
+                    <div class="formula-sub">
+                        <code>MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35 + UD×100×0.15 + 50))</code>
+                        <span class="dim">→ 主力還在場嗎？</span>
+                    </div>
                 </div>
                 <div class="formula-line">
-                    　　　　　　+
-                    <span class="w w20">20%</span> × 量價比排名（<code>VP</code> = 上漲日均量 / 下跌日均量）
+                    <b>套 C · vol_ratio</b>（<span class="w w20">20%</span> 綜合分）· 當日量 / 3 週均量
+                    <span class="dim">→ 資金開始移動了嗎？（最即時 · 噪音最多）</span>
+                </div>
+                <div class="formula-line composite">
+                    <b>綜合分</b> <code>= Point_rank×0.40 + vp_score_rank×0.40 + vol_rank×0.20</code>
+                    · <b>越小越強</b>
                 </div>
                 <div class="formula-line">
-                    　　　　　　+
-                    <span class="w w20">20%</span> × 漲跌天數比排名（<code>UD</code> = 近 20 日上漲天數 / 下跌天數）
+                    <b>互補指標：</b>
+                    <code>CMS_A</code> = 0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）·
+                    <code>di</code> = 三週期正報酬指標（1.0 = 4W/13W/26W 全漲，最強）
                 </div>
             </div>
             <p class="hint hint-mini">
-                🎯 <b>短線權重高：</b>4W 加權 3 倍反映最近一個月動能最重要 · 26W 只加權 1 倍避免過度看歷史 ·
-                成交量三個維度（量比 · VP · UD）各占 20% 抓「量能是否配合價格」。
+                ⚠ <b>差距警示：</b>Point 排名 vs 量價評分排名差 <b>&gt; 5 名</b> → 標記
+                <span class="alert-badge alert-old">吃老本</span>（漲多但動能弱，排除）或
+                <span class="alert-badge alert-new">剛爆發</span>（量價強但漲幅追不上，最多衝刺 15%）
             </p>
             <p class="hint hint-mini">
-                🕰 <b>更新頻率：</b>每交易日收盤後跑（CI）· 資料 commit 進 <code>data/sector_rotation/</code>·
-                瀏覽器直接讀 <code>scorecard_latest.json</code>· 純前端 · 無 backend · 離線也能看歷史。
+                🕰 <b>基準日：</b>使用「T-1 最新 close」的日期（非跑腳本當下）· 同一個交易日跑幾次結論都一樣 ·
+                CI 每交易日收盤後跑 · 資料 commit 進 <code>data/sector_rotation/</code>。
             </p>
         </section>
 
@@ -71,32 +81,42 @@
         </section>
 
         <section class="panel table-panel">
-            <h2>📊 11 Sector ETF · 量價評分排行</h2>
+            <h2>📊 11 Sector ETF · 量價評分排行 <small style="font-weight:400;color:#94a3b8">(as of <span id="table-asof">—</span>)</small></h2>
             <div class="table-wrap">
                 <table class="score-table" id="score-table">
                     <thead>
                         <tr>
-                            <th rowspan="2">Rank</th>
+                            <th rowspan="2" class="highlight-col score-col">🏆 綜合<br>rank</th>
                             <th rowspan="2">Sector</th>
                             <th rowspan="2">t price</th>
                             <th colspan="3" class="group-hdr group-price-past">歷史價格</th>
                             <th colspan="3" class="group-hdr group-price-ret">價格動能 %</th>
                             <th rowspan="2" class="group-hdr">
-                                價格<br>point
-                                <div class="th-hint">4W×3 + 13W×2 + 26W×1</div>
+                                <b>Point</b>
+                                <div class="th-hint">4W×.25+13W×.25+26W×.50</div>
                             </th>
-                            <th rowspan="2">價格<br>rank</th>
+                            <th rowspan="2">Point<br>rank</th>
+                            <th rowspan="2" class="group-hdr">
+                                <b>CMS_A</b>
+                                <div class="th-hint">.5·4Wr+.3·13Wr+.2·26Wr<br>越小越強</div>
+                            </th>
+                            <th rowspan="2">
+                                <b>di</b>
+                                <div class="th-hint">三週期<br>正報酬</div>
+                            </th>
                             <th colspan="4" class="group-hdr group-vol">成交量</th>
                             <th rowspan="2">量比<br>rank</th>
                             <th colspan="2" class="group-hdr">短線報酬 %</th>
                             <th colspan="2" class="group-hdr">近 20 日</th>
                             <th colspan="2" class="group-hdr">上/下漲日均量</th>
-                            <th rowspan="2" class="highlight-col">量價比<br>VP</th>
-                            <th rowspan="2" class="highlight-col">漲跌比<br>UD</th>
+                            <th rowspan="2" class="highlight-col">VP</th>
+                            <th rowspan="2" class="highlight-col">UD</th>
                             <th rowspan="2" class="highlight-col score-col">
-                                🏆 綜合<br>評分
-                                <div class="th-hint">0-100</div>
+                                <b>vp_score</b>
+                                <div class="th-hint">0-100 絕對評分</div>
                             </th>
+                            <th rowspan="2">vp<br>rank</th>
+                            <th rowspan="2">警示</th>
                         </tr>
                         <tr>
                             <th>4w price</th>
@@ -143,11 +163,14 @@
                             <tr>
                                 <th>Symbol</th>
                                 <th>Sector</th>
-                                <th class="num">cum_ret_4w</th>
-                                <th class="num">cum_ret_13w</th>
-                                <th class="num">cum_ret_26w</th>
-                                <th class="num">L1 surprise %</th>
-                                <th class="num">L2 surprise %</th>
+                                <th class="num">4W%</th>
+                                <th class="num">13W%</th>
+                                <th class="num">26W%</th>
+                                <th class="num">Point</th>
+                                <th class="num">CMS_A</th>
+                                <th class="num">di</th>
+                                <th class="num">L1 surp%</th>
+                                <th class="num">L2 surp%</th>
                             </tr>
                         </thead>
                         <tbody id="heat-tbody"></tbody>
