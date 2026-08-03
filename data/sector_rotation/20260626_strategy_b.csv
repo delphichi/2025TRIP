@@ -1,0 +1,3 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+ON,ON Semiconductor,Information Technology,2026-06-26,90.65,118.74,-23.66,110.02,70.16,True,True,37.7,44223500,11911810,3.71
+QCOM,Qualcomm,Information Technology,2026-06-26,189.39,204.9,-7.57,198.24,166.48,True,True,39.8,37128900,22048240,1.68
