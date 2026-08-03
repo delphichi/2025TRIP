@@ -7,11 +7,13 @@
 const SCORECARD_URL = "../data/sector_rotation/scorecard_latest.json?_=" + Date.now();
 const STAGE2_URL    = "../data/sector_rotation/latest.json?_=" + Date.now();
 const STRATEGY_URL  = "../data/sector_rotation/strategy_a_latest.json?_=" + Date.now();
+const STRATEGY_B_URL = "../data/sector_rotation/strategy_b_latest.json?_=" + Date.now();
 
 const STATE = {
     scorecard: null,
     stage2: null,
     strategy: null,
+    strategyB: null,
     stage2Tab: "4w",
 };
 
@@ -102,6 +104,17 @@ async function loadStrategyOptional() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         STATE.strategy = await r.json();
         return STATE.strategy;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function loadStrategyBOptional() {
+    try {
+        const r = await fetch(STRATEGY_B_URL, { cache: "no-store" });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        STATE.strategyB = await r.json();
+        return STATE.strategyB;
     } catch (e) {
         return null;
     }
@@ -377,6 +390,43 @@ function _renderTier(containerEl, positions, emptyMsg) {
     });
 }
 
+// ---------- render: strategy B (逢低買入掃描) ----------
+function renderStrategyBPanel() {
+    const b = STATE.strategyB;
+    if (!b) return;
+    $("#strategy-b-panel").style.display = "";
+    $("#strat-b-asof").textContent = `(as of ${b.as_of_date || "—"})`;
+    $("#strat-b-summary").textContent = `掃描 ${b.scanned_count} 檔 · ${b.hits_count} 檔通過 4 條件`;
+
+    const hits = b.hits || [];
+    if (hits.length === 0) {
+        $("#strategy-b-table").style.display = "none";
+        // 顯示 empty state 在 summary
+        $("#strat-b-summary").innerHTML += ` · <span class="dim">本輪無符合條件個股（市場沒明顯錯殺的好公司）</span>`;
+        return;
+    }
+    $("#strategy-b-table").style.display = "";
+    const tbody = $("#strategy-b-tbody");
+    tbody.innerHTML = "";
+    hits.forEach(h => {
+        const rsiColor = h.rsi_14 < 30 ? "var(--danger)" : (h.rsi_14 < 40 ? "var(--warn)" : "var(--text)");
+        const dropColor = "var(--danger)";
+        const volColor = h.vol_ratio_vs_20d > 2 ? "var(--good)" : "var(--warn)";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="sym"><b>${h.symbol}</b></td>
+            <td class="sector">${h.sector || ""}</td>
+            <td class="num" style="color:${dropColor}"><b>${fmtPct(h.daily_drop_pct)}</b></td>
+            <td class="num">${fmtPrice(h.t_price)}</td>
+            <td class="num" title="50MA 向上 ✓">${fmtPrice(h.ma50)} ↑</td>
+            <td class="num" title="200MA 向上 ✓">${fmtPrice(h.ma200)} ↑</td>
+            <td class="num" style="color:${rsiColor}"><b>${fmtNum(h.rsi_14, 1)}</b></td>
+            <td class="num" style="color:${volColor}"><b>${fmtNum(h.vol_ratio_vs_20d, 2)}x</b></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
 // ---------- render: stage 2 (S&P 500 個股) ----------
 const STAGE2_TAB_HINTS = {
     "4w":    "Past 4 Weeks · 各板塊 4W 動能最強前 3 名（短線輪動主線）",
@@ -480,6 +530,9 @@ async function init() {
 
     await loadStrategyOptional();
     renderStrategyPanel();
+
+    await loadStrategyBOptional();
+    renderStrategyBPanel();
 }
 
 if (document.readyState === "loading") {

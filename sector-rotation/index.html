@@ -233,6 +233,35 @@
             </p>
         </section>
 
+        <section class="panel strategy-b-panel" id="strategy-b-panel" style="display:none">
+            <h2>💰 策略 B · 逢低買入掃描器 <small style="font-weight:400;color:#94a3b8" id="strat-b-asof">—</small></h2>
+            <p class="hint hint-mini">
+                <b>「別人恐懼時我貪婪」</b> · 掃全 S&P 500 找 4 條件全通過的個股：
+                <br>① 當日跌 > 5% ② 50MA + 200MA 都向上 ③ RSI(14) &lt; 40 超賣 ④ 昨日量 &gt; 20d 均量 20%
+                <br>📌 <b>進場時機：</b>不是大跌當天立刻買 · 等大跌後量縮 · 量縮後再放量才進場（trigger 訊號 · 位置管理另外看策略 A 配置上限）
+            </p>
+            <div class="strat-b-status">
+                <span id="strat-b-summary">—</span>
+            </div>
+            <div class="table-wrap">
+                <table class="heat-table" id="strategy-b-table" style="display:none">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Sector</th>
+                            <th class="num">當日跌%</th>
+                            <th class="num">收盤</th>
+                            <th class="num">50MA</th>
+                            <th class="num">200MA</th>
+                            <th class="num">RSI(14)</th>
+                            <th class="num">量比 vs 20d</th>
+                        </tr>
+                    </thead>
+                    <tbody id="strategy-b-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
         <section class="panel table-panel">
             <details>
                 <summary><h2 style="display:inline">📈 Stage 2 · S&amp;P 500 個股 top-3 熱區榜（每 sector）</h2></summary>

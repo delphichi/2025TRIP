@@ -74,6 +74,17 @@ jobs:
           set -o pipefail
           python scripts/strategy_a_pipeline.py 2>&1 | tee /tmp/strategy_a.log
 
+      # 策略 B · 逢低買入掃描器 · 獨立於 stage 2 · 掃全 S&P 500
+      # 目前跟 stage 2 同一個 gate 排（週五 + 手動）· 未來想日跑改成上面 stage 1 gate
+      - name: Run Strategy B scanner (dip buy candidates)
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/strategy_b_scanner.py 2>&1 | tee /tmp/strategy_b.log
+
       - name: Summary
         if: always()
         run: |

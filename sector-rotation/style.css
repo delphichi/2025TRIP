@@ -378,6 +378,20 @@ body.rot-body {
 }
 .promoted-chip b { color: var(--good); }
 
+/* ---------- strategy B panel ---------- */
+.strategy-b-panel {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10) 0%, rgba(245, 158, 11, 0.08) 100%);
+    border: 1px solid var(--warn);
+}
+.strat-b-status {
+    padding: 10px 14px;
+    background: var(--bg-panel-2);
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: var(--text);
+}
+
 @media (max-width: 900px) { .tier-groups { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) {
     .market-grid { grid-template-columns: repeat(2, 1fr); }
