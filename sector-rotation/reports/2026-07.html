@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>2026-07 美股月報 · Uncle Stock Notes</title>
+<style>
+  :root{
+    --navy:#1b2a4a;
+    --navy-dark:#0f1930;
+    --gold:#c9a24b;
+    --gold-light:#e8d9ae;
+    --red:#c0392b;
+    --green:#1e8449;
+    --orange:#d97706;
+    --bg:#f4f5f7;
+    --card:#ffffff;
+    --line:#e2e5ea;
+    --text:#2a2f3a;
+    --muted:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:24px; background:var(--bg);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--text);
+  }
+  .sheet{max-width:1180px;margin:0 auto;}
+  .up{color:var(--red);font-weight:700;}
+  .down{color:var(--green);font-weight:700;}
+  .flat{color:var(--muted);font-weight:700;}
+
+  /* header */
+  .header{
+    display:flex; align-items:center; gap:20px;
+    background:var(--card); border-radius:10px; padding:20px 24px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .logo{
+    width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(135deg,var(--navy),var(--navy-dark));
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold-light);font-weight:800;font-size:20px;flex-shrink:0;
+    border:2px solid var(--gold);
+  }
+  .brand{font-size:11px;color:var(--muted);line-height:1.3;}
+  .brand b{color:var(--navy);font-size:13px;}
+  .htitle{flex:1;min-width:280px;}
+  .htitle .tag{
+    display:inline-block;background:var(--navy);color:var(--gold-light);
+    font-size:11px;padding:2px 10px;border-radius:12px;margin-bottom:6px;letter-spacing:1px;
+  }
+  .htitle h1{margin:0 0 6px 0;font-size:22px;color:var(--navy);}
+  .htitle p{margin:0;font-size:13px;color:var(--muted);line-height:1.6;}
+  .hstats{display:flex;gap:14px;flex-wrap:wrap;}
+  .hstat{text-align:center;min-width:78px;}
+  .hstat .l{font-size:10px;color:var(--muted);}
+  .hstat .v{font-size:16px;font-weight:800;}
+
+  /* grid */
+  .grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-bottom:16px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  .full{margin-bottom:16px;}
+  @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+  .card{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;}
+  .card-h{
+    background:var(--navy);color:#fff;padding:9px 16px;font-size:13px;font-weight:700;
+    display:flex;justify-content:space-between;align-items:center;letter-spacing:.5px;
+  }
+  .card-h span.n{background:var(--gold);color:var(--navy-dark);font-size:11px;padding:1px 8px;border-radius:10px;}
+  .card-b{padding:14px 16px;}
+
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row .name{font-weight:700;font-size:13.5px;color:var(--navy);min-width:150px;}
+  .row .desc{font-size:12px;color:var(--muted);flex:1;text-align:right;margin-left:12px;}
+  .row .pct{font-size:14px;min-width:60px;text-align:right;}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:5px;
+    background:#f7f2e5;border:1px solid var(--gold-light);border-radius:8px;
+    padding:7px 10px;margin:3px 0;
+  }
+  .pill b{color:var(--navy);}
+
+  ul.clean{margin:0;padding-left:18px;font-size:12.5px;line-height:1.9;color:var(--text);}
+  ul.clean b{color:var(--navy);}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table th{background:#f0f1f4;color:var(--navy);text-align:left;padding:7px 8px;font-size:11.5px;}
+  table td{padding:7px 8px;border-bottom:1px solid var(--line);}
+  table tr:last-child td{border-bottom:none;}
+
+  .footer{
+    text-align:center;font-size:11px;color:var(--muted);padding:16px 0 4px;
+  }
+  .footer .note{
+    background:#fff8e6;border:1px solid var(--gold-light);border-radius:8px;
+    padding:10px 16px;font-size:11.5px;color:#7a5c00;text-align:left;margin-bottom:10px;
+  }
+  .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .badge{
+    background:var(--navy);color:var(--gold-light);font-size:11px;
+    padding:4px 10px;border-radius:6px;
+  }
+
+  /* 新增：市場四象限卡 */
+  .quadrant-hero{
+    background:linear-gradient(135deg, rgba(27,42,74,0.05), rgba(201,162,75,0.10));
+    border-radius:8px; padding:16px; text-align:center; margin-bottom:12px;
+  }
+  .quadrant-hero .q{font-size:32px;font-weight:800;color:var(--navy);letter-spacing:2px;}
+  .quadrant-hero .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+
+  .alloc-bar-row{
+    display:grid;grid-template-columns:60px 1fr 50px;
+    align-items:center;gap:10px;padding:5px 0;font-size:12.5px;
+  }
+  .alloc-bar-row .lbl{color:var(--navy);font-weight:600;}
+  .alloc-bar-row .bar{
+    height:16px;background:#eef0f4;border-radius:4px;overflow:hidden;
+  }
+  .alloc-bar-row .fill{
+    height:100%;border-radius:4px;transition:width .3s;
+  }
+  .alloc-core     {background:var(--green);}
+  .alloc-momentum {background:var(--orange);}
+  .alloc-sprint   {background:var(--red);}
+  .alloc-cash     {background:#94a3b8;}
+  .alloc-bar-row .pct{text-align:right;font-weight:700;font-family:Consolas,monospace;color:var(--navy);}
+
+  /* 新增：sector 完整表 */
+  table.sector-full th.num, table.sector-full td.num{text-align:right;font-family:Consolas,monospace;}
+  table.sector-full td.rank{font-weight:700;color:var(--gold);background:#faf7ee;text-align:center;}
+  table.sector-full .tnx-boost{background:rgba(30,132,73,0.10);}
+  table.sector-full .tnx-penalty{background:rgba(192,57,43,0.08);}
+  .cell-alert{
+    display:inline-block;background:var(--red);color:#fff;font-size:10px;
+    padding:1px 6px;border-radius:8px;margin-left:4px;
+  }
+  .cell-alert.alt{background:var(--orange);}
+
+  /* 新增：策略 A tier */
+  .tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  @media(max-width:900px){.tier-grid{grid-template-columns:repeat(2,1fr);}}
+  .tier{
+    background:#fafbfc; border-radius:8px; border:1px solid var(--line);
+    padding:10px 12px; min-height:180px;
+  }
+  .tier-hdr{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+  .tier-hdr .cap{color:var(--muted);font-weight:500;font-size:11px;}
+  .tier-core     .tier-hdr{color:var(--green);}
+  .tier-momentum .tier-hdr{color:var(--orange);}
+  .tier-sprint   .tier-hdr{color:var(--red);}
+  .tier-hold     .tier-hdr{color:var(--muted);}
+  .pos{background:#fff;padding:6px 8px;border-radius:4px;margin-bottom:5px;border-left:3px solid transparent;font-size:11.5px;}
+  .tier-core .pos     {border-left-color:var(--green);}
+  .tier-momentum .pos {border-left-color:var(--orange);}
+  .tier-sprint .pos   {border-left-color:var(--red);}
+  .tier-hold .pos     {border-left-color:#94a3b8;}
+  .pos-head{display:flex;justify-content:space-between;align-items:center;}
+  .pos-sym{font-weight:700;color:var(--navy);font-size:13px;}
+  .pos-weight{background:var(--gold);color:var(--navy-dark);padding:1px 6px;border-radius:3px;font-family:Consolas,monospace;font-weight:700;font-size:10.5px;}
+  .pos-reason{color:var(--muted);font-size:10.5px;margin-top:3px;line-height:1.4;}
+  .tier-empty{color:var(--muted);font-style:italic;font-size:11px;text-align:center;padding:20px 8px;}
+
+  /* 新增：策略 B */
+  table.strategy-b td.num, table.strategy-b th.num{text-align:right;font-family:Consolas,monospace;}
+  table.strategy-b .highlight-drop{color:var(--red);font-weight:700;}
+  table.strategy-b .highlight-rsi{color:var(--orange);font-weight:700;}
+  table.strategy-b .highlight-vol{color:var(--green);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">USN</div>
+    <div class="brand"><b>Uncle Stock Notes</b><br>月度總覽 · Monthly Wrap</div>
+    <div class="htitle">
+      <span class="tag">2026 年 7 月 · 月報</span>
+      <h1>降息幻滅、殖利率封頂,AI 財報撐住指數但廣度收窄</h1>
+      <p>7 月核心劇本:Fed 9 比 3 鷹派分裂按兵不動,布蘭特原油因中東緊張一度衝破 $100,10 年期殖利率創 2025 年 1 月來新高、30 年期升破 2007 年水準,壓縮估值上緣;但 Amazon、Microsoft 財報證明雲端資本支出開始轉換成營收,科技權值股撐住大盤,Russell 2000 與非科技類股則明顯落後。</p>
+    </div>
+    <div class="hstats">
+      <div class="hstat"><div class="l">S&amp;P 500</div><div class="v flat">約持平</div></div>
+      <div class="hstat"><div class="l">Nasdaq 綜合</div><div class="v down">-3.2%</div></div>
+      <div class="hstat"><div class="l">道瓊</div><div class="v up">+0.3%</div></div>
+      <div class="hstat"><div class="l">Russell 2000</div><div class="v down">-2.16%</div></div>
+      <div class="hstat"><div class="l">VIX(月底)</div><div class="v flat">15.99</div></div>
+    </div>
+  </div>
+
+  <!-- ROW 1: 指數表現 + 總經 -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h">主要指數 7 月表現<span class="n">月收盤</span></div>
+      <div class="card-b">
+        <div class="row"><div class="name">S&amp;P 500</div><div class="desc">收 7,489.72,月線近乎打平(不同統計約 -0.1%~+0.1%),科技權值撐住指數</div><div class="pct flat">≈0%</div></div>
+        <div class="row"><div class="name">Nasdaq 綜合指數</div><div class="desc">收 25,373.85,月中因去槓桿與 CapEx 疑慮重挫,月底 AI 財報帶動反彈仍未收復失土</div><div class="pct down">-3.2%</div></div>
+        <div class="row"><div class="name">道瓊工業指數</div><div class="desc">收 52,485.03,連續第四個月上漲,藍籌+防禦屬性受資金青睞</div><div class="pct up">+0.3%</div></div>
+        <div class="row"><div class="name">Russell 2000(小型股)</div><div class="desc">收 2,931.34,長端殖利率飆升壓抑融資環境,廣度明顯落後大盤</div><div class="pct down">-2.16%</div></div>
+        <div class="row"><div class="name">費半 SOXX</div><div class="desc">記憶體去槓桿+中國競爭疑慮先重挫,月底供給展望帶動 V 轉反彈</div><div class="pct flat">先重挫後反彈</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">總經與利率<span class="n">7/31 收盤</span></div>
+      <div class="card-b">
+        <div class="row"><div class="name">10 年期公債殖利率</div><div class="desc">升至約 4.75%,創 2025 年 1 月來新高</div><div class="pct up">+</div></div>
+        <div class="row"><div class="name">30 年期公債殖利率</div><div class="desc">升破 5.2%,創 2007 年以來新高</div><div class="pct up">+</div></div>
+        <div class="row"><div class="name">布蘭特原油</div><div class="desc">中東緊張一度衝破 $100,月底回落至約 $90 附近</div><div class="pct flat">先噴後回</div></div>
+        <div class="row"><div class="name">Fed 利率決議</div><div class="desc">9 比 3 維持 3.5%-3.75% 不變,鷹派票數擴大,長端殖利率自行收緊金融條件</div><div class="pct flat">按兵不動</div></div>
+        <div class="row"><div class="name">Core PCE(6 月)</div><div class="desc">月增 0.1%、年增 3.3%,略低於預期但仍高於 Fed 目標</div><div class="pct flat">3.3% YoY</div></div>
+        <div class="row"><div class="name">CNN 恐懼貪婪指數</div><div class="desc">7/31 收盤 42(恐懼區),月中一度因地緣風險與殖利率飆升探至更低</div><div class="pct flat">42 恐懼</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: 產業龍頭 + 板塊輪動摘要 -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h">產業龍頭財報動態<span class="n">7 月財報季</span></div>
+      <div class="card-b">
+        <div class="pill">☁️ <b>Microsoft</b>&nbsp;— Azure 年增逾 40%,單季財報後單日大漲,驗證 AI CapEx 轉換成雲端營收</div><br>
+        <div class="pill">📦 <b>Amazon</b>&nbsp;— AWS 雲端成長強勁,財報後單日大漲逾 15%,市場獎勵 CapEx 效率轉換</div><br>
+        <div class="pill">🍎 <b>Apple</b>&nbsp;— 晶片短缺推升成本、壓低 6 月季產出,財報後股價連日重挫逾 7%</div><br>
+        <div class="pill">🔎 <b>Alphabet</b>&nbsp;— 財報帶動股價單日跳升逾 7%,雲端與廣告雙引擎受市場肯定</div><br>
+        <div class="pill">📘 <b>Meta</b>&nbsp;— 營收優於預期但 EPS 表現不一,市場對支出成長快於營收轉換仍存疑慮</div>
+        <div class="badge-row">
+          <span class="badge">CapEx 轉營收成主軸</span>
+          <span class="badge">硬體(晶片/記憶體)估值承壓</span>
+          <span class="badge">軟體/雲端相對抗跌</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">板塊輪動摘要<span class="n">2026 YTD 定位</span></div>
+      <div class="card-b">
+        <table>
+          <tr><th>板塊 ETF</th><th>2026 YTD</th><th>7 月定位</th></tr>
+          <tr><td>XLE 能源</td><td class="up">+33% 左右</td><td>油價地緣溢價支撐全年領先</td></tr>
+          <tr><td>XLK 科技</td><td class="up">+33% 左右</td><td>7 月中因去槓桿波動放大,財報後回穩</td></tr>
+          <tr><td>XLI 工業</td><td class="up">+18~20%</td><td>AI 資料中心建設與國防需求支撐</td></tr>
+          <tr><td>XLY 非必需消費</td><td class="flat">+5% 左右</td><td>Amazon 財報帶動月線明顯領漲</td></tr>
+          <tr><td>XLV 醫療</td><td class="up">+20% 左右</td><td>財報季表現分化,近乎持平</td></tr>
+          <tr><td>XLC 通訊服務</td><td class="down">落後大盤</td><td>YTD 仍是 11 板塊中相對弱勢</td></tr>
+        </table>
+        <p style="font-size:11px;color:var(--muted);margin:10px 0 0;">註:此為 YTD 定位敘事,7 月精確報酬與量能評分見下方「量價評分排行」卡。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== 以下為新增內容 · 由專案 sector-rotation pipeline 自動抓取 =========== -->
+
+  <!-- ROW 3: 市場四象限 + 差距警示 -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h">🌐 市場環境四象限<span class="n">as of 7/31 close</span></div>
+      <div class="card-b">
+        <div class="quadrant-hero">
+          <div class="q">🟡 + 🟢</div>
+          <div class="lbl">溫度:盤整(VOO 略高於 50MA +0.38%)&nbsp;·&nbsp;趨勢:多頭(VOO 過去 60 日 +3.51%)</div>
+        </div>
+        <div class="row"><div class="name">VOO 現價</div><div class="desc">$686.65 · 50MA $684.02</div><div class="pct up">+0.38%</div></div>
+        <div class="row"><div class="name">VOO vs 60 日前</div><div class="desc">多頭趨勢確立,但已進入盤整區</div><div class="pct up">+3.51%</div></div>
+        <div class="row"><div class="name">VIX</div><div class="desc">正常區(未達 &gt;30 全倉現金覆蓋條件)</div><div class="pct flat">15.99</div></div>
+        <div class="row"><div class="name">10Y TNX</div><div class="desc"><b style="color:var(--red)">&gt; 4%</b> · 觸發 sector 加減碼:利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU</div><div class="pct up">4.74%</div></div>
+
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:700;">象限 🟡+🟢 對應配置上限:</div>
+          <div class="alloc-bar-row"><span class="lbl">🟢 核心</span><div class="bar"><div class="fill alloc-core" style="width:30%"></div></div><span class="pct">30%</span></div>
+          <div class="alloc-bar-row"><span class="lbl">🟡 動能</span><div class="bar"><div class="fill alloc-momentum" style="width:25%"></div></div><span class="pct">25%</span></div>
+          <div class="alloc-bar-row"><span class="lbl">🔴 衝刺</span><div class="bar"><div class="fill alloc-sprint" style="width:0%"></div></div><span class="pct">0%</span></div>
+          <div class="alloc-bar-row"><span class="lbl">💵 現金</span><div class="bar"><div class="fill alloc-cash" style="width:45%"></div></div><span class="pct">45%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">⚠ 差距警示(Point vs 量價評分)<span class="n">&gt;5 名差距</span></div>
+      <div class="card-b">
+        <div class="pill" style="background:#fdecea;border-color:#f5c6cb;">
+          🔴 <b>XLK 資訊科技 · 吃老本</b>&nbsp;— Point rk#5(pt=12.47 · 26W 累積 +22.17%)但 vp_score rk#10(74.4)· <b>漲多動能弱</b> · 建議排除新倉
+        </div><br>
+        <div class="pill" style="background:#fff5eb;border-color:#fed7aa;">
+          🟠 <b>XLY 非必需消費 · 剛爆發</b>&nbsp;— Point rk#7(pt=-2.61 · 26W -3.81%)但 vp_score rk#3(85.5)· <b>量價強但漲幅追不上</b> · 若進場最多衝刺 15%
+        </div>
+        <p style="font-size:11.5px;color:var(--muted);margin:12px 0 0;line-height:1.6;">
+          🔎 <b>互補指標邏輯:</b> Point 看「漲幅」(絕對報酬)· vp_score 看「動能」(近期量價強度 0-100)· 兩者排名差 &gt;5 名代表 <b>漲跌狀態跟資金動向出現分離</b>,是重要的錯位訊號。
+        </p>
+        <div class="badge-row">
+          <span class="badge">XLK 26W +22.17% 但 4W -2.90%</span>
+          <span class="badge">XLY 4W -0.88% 但量能爆量 1.62x</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 4: 11 sector ETF 量價評分完整表 -->
+  <div class="full">
+    <div class="card">
+      <div class="card-h">🏆 11 Sector ETF · 量價評分排行(7/31 close)<span class="n">量價雙評分</span></div>
+      <div class="card-b">
+        <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">
+          <b>綜合分</b> = Point_rank × 0.4 + vp_score_rank × 0.4 + vol_rank × 0.2(越小越強)·
+          <b>Point</b> = 4W×0.25 + 13W×0.25 + 26W×0.50 · <b>vp_score</b> = 量價絕對評分 0-100(20d/5d 報酬 + VP + UD)·
+          <span style="background:rgba(30,132,73,0.15);padding:2px 6px;border-radius:3px;">📈 TNX 加碼</span>
+          <span style="background:rgba(192,57,43,0.15);padding:2px 6px;border-radius:3px;margin-left:4px;">📉 TNX 減碼</span>
+        </p>
+        <table class="sector-full">
+          <thead>
+            <tr><th>#</th><th>Sector</th><th class="num">4W%</th><th class="num">13W%</th><th class="num">26W%</th><th class="num">Point</th><th class="num">vp_score</th><th class="num">vol_ratio</th><th class="num">CMS_A</th><th class="num">di</th><th>警示</th></tr>
+          </thead>
+          <tbody>
+            <tr class="tnx-boost"><td class="rank">1</td><td><b>XLE</b> 能源 📈</td><td class="num up">+11.89%</td><td class="num up">+1.92%</td><td class="num up">+18.26%</td><td class="num up">12.58</td><td class="num up">100.0</td><td class="num flat">0.77x</td><td class="num">2.7</td><td class="num">1.00</td><td>—</td></tr>
+            <tr class="tnx-boost"><td class="rank">2</td><td><b>XLF</b> 金融 📈</td><td class="num up">+2.37%</td><td class="num up">+10.05%</td><td class="num up">+7.47%</td><td class="num up">6.84</td><td class="num up">90.6</td><td class="num flat">0.94x</td><td class="num">2.6</td><td class="num">1.00</td><td>—</td></tr>
+            <tr><td class="rank">3</td><td><b>XLI</b> 工業</td><td class="num down">-2.21%</td><td class="num up">+4.23%</td><td class="num up">+9.28%</td><td class="num up">5.14</td><td class="num">85.7</td><td class="num">1.09x</td><td class="num">6.0</td><td class="num">0.67</td><td>—</td></tr>
+            <tr class="tnx-penalty"><td class="rank">4</td><td><b>XLRE</b> 房地產 📉</td><td class="num up">+0.87%</td><td class="num up">+2.58%</td><td class="num up">+10.48%</td><td class="num up">6.10</td><td class="num">75.8</td><td class="num up">1.40x</td><td class="num">3.6</td><td class="num">1.00</td><td>—</td></tr>
+            <tr class="tnx-penalty"><td class="rank">5</td><td><b>XLK</b> 資訊科技 📉</td><td class="num down">-2.90%</td><td class="num up">+8.46%</td><td class="num up">+22.17%</td><td class="num up">12.47</td><td class="num">74.4</td><td class="num flat">1.00x</td><td class="num">5.6</td><td class="num">0.67</td><td><span class="cell-alert">吃老本</span></td></tr>
+            <tr><td class="rank">6</td><td><b>XLV</b> 醫療 📈</td><td class="num down">-0.73%</td><td class="num up">+12.47%</td><td class="num up">+5.94%</td><td class="num up">5.91</td><td class="num">76.1</td><td class="num">1.04x</td><td class="num">4.0</td><td class="num">0.67</td><td>—</td></tr>
+            <tr><td class="rank">6</td><td><b>XLY</b> 非必需消費</td><td class="num down">-0.88%</td><td class="num down">-1.95%</td><td class="num down">-3.81%</td><td class="num down">-2.61</td><td class="num">85.5</td><td class="num up">1.62x</td><td class="num">7.7</td><td class="num">0.00</td><td><span class="cell-alert alt">剛爆發</span></td></tr>
+            <tr><td class="rank">8</td><td><b>XLP</b> 必需消費</td><td class="num flat">+0.07%</td><td class="num up">+1.75%</td><td class="num up">+3.13%</td><td class="num up">2.02</td><td class="num">83.2</td><td class="num flat">1.00x</td><td class="num">5.9</td><td class="num">1.00</td><td>—</td></tr>
+            <tr><td class="rank">9</td><td><b>XLB</b> 材料</td><td class="num down">-3.04%</td><td class="num down">-1.42%</td><td class="num up">+3.19%</td><td class="num flat">0.48</td><td class="num">72.8</td><td class="num up">1.70x</td><td class="num">9.0</td><td class="num">0.33</td><td>—</td></tr>
+            <tr class="tnx-penalty"><td class="rank">10</td><td><b>XLU</b> 公用事業 📉</td><td class="num down">-3.08%</td><td class="num down">-4.12%</td><td class="num up">+3.92%</td><td class="num flat">0.16</td><td class="num">69.6</td><td class="num">1.16x</td><td class="num">9.9</td><td class="num">0.33</td><td>—</td></tr>
+            <tr><td class="rank">10</td><td><b>XLC</b> 通訊服務</td><td class="num down">-1.24%</td><td class="num down">-7.02%</td><td class="num down">-9.34%</td><td class="num down">-6.73</td><td class="num">81.4</td><td class="num flat">0.79x</td><td class="num">9.0</td><td class="num">0.00</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:11.5px;color:var(--muted);margin:12px 0 0;line-height:1.7;">
+          <b>💡 觀察重點:</b>
+          能源(XLE)綜合分第 1 · Point + vp_score 雙滿分 · 對應 TNX &gt; 4% 加碼標的中最強;
+          科技(XLK)26W 大漲 +22% 但 4W 已翻負 · 觸發「吃老本」警示 + TNX 減碼 · 綜合分掉到 #5;
+          通訊(XLC)三週期全負 · di=0 三週期都沒漲 · 綜合分墊底 · 對應本 YTD 落後定位。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 5: 策略 A 建議倉位 (完整寬) -->
+  <div class="full">
+    <div class="card">
+      <div class="card-h">🎯 策略 A · 九步驟建議倉位<span class="n">rule-based</span></div>
+      <div class="card-b">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:12.5px;">
+          <div><b style="color:var(--navy);">有效 sector:</b>
+            <span style="background:rgba(30,132,73,0.15);padding:2px 8px;border-radius:6px;">XLE 能源 📈</span>
+            <span style="background:rgba(30,132,73,0.15);padding:2px 8px;border-radius:6px;">XLF 金融 📈</span>
+            <span style="background:#eef0f4;padding:2px 8px;border-radius:6px;">XLI 工業</span>
+          </div>
+          <div style="color:var(--muted);">Step 3-4:綜合分前 3 by rank · TNX 過濾無 sector 降級</div>
+        </div>
+
+        <div class="tier-grid">
+
+          <div class="tier tier-core">
+            <div class="tier-hdr"><span>🟢 核心</span><span class="cap">上限 30%</span></div>
+            <div class="tier-empty">
+              本輪無滿足<br>
+              (距高 &gt;-5% + VP&gt;1 + VCP)<br>
+              三條件的個股
+            </div>
+          </div>
+
+          <div class="tier tier-momentum">
+            <div class="tier-hdr"><span>🟡 動能</span><span class="cap">上限 25% · 已滿</span></div>
+            <div class="pos">
+              <div class="pos-head"><span class="pos-sym">VLO</span><span class="pos-weight">12.5%</span></div>
+              <div style="font-size:10.5px;color:var(--muted);">XLE · Point 48.8 · 4W +17.3%</div>
+              <div class="pos-reason">TNX 順風 + VP 1.04 + 4W +17.3%</div>
+            </div>
+            <div class="pos">
+              <div class="pos-head"><span class="pos-sym">TRV</span><span class="pos-weight">12.5%</span></div>
+              <div style="font-size:10.5px;color:var(--muted);">XLF · Point 24.5 · 4W +9.4%</div>
+              <div class="pos-reason">TNX 順風 + VP 1.09 + 4W +9.4%</div>
+            </div>
+          </div>
+
+          <div class="tier tier-sprint">
+            <div class="tier-hdr"><span>🔴 衝刺</span><span class="cap">上限 0% · info only</span></div>
+            <div class="pos">
+              <div class="pos-head"><span class="pos-sym">DELL</span><span class="pos-weight" style="background:#94a3b8;color:#fff;">破格</span></div>
+              <div style="font-size:10.5px;color:var(--muted);">XLK · Point 152.0(全場最高)</div>
+              <div class="pos-reason">破格 · 領先池內第 3 名 50%+ · 但象限衝刺上限=0 · <b>僅供參考不建倉</b></div>
+            </div>
+          </div>
+
+          <div class="tier tier-hold">
+            <div class="tier-hdr"><span>⏸ 暫緩</span><span class="cap">財報 14 天內</span></div>
+            <div class="pos">
+              <div class="pos-head"><span class="pos-sym">MPC</span></div>
+              <div style="font-size:10.5px;color:var(--muted);">XLE · Point 52.6 · 4W +18.8%</div>
+              <div class="pos-reason">財報 14 天內 · 等公告後再評估</div>
+            </div>
+            <div class="pos">
+              <div class="pos-head"><span class="pos-sym">PSX</span></div>
+              <div style="font-size:10.5px;color:var(--muted);">XLE · Point 35.1 · 4W +20.0%</div>
+              <div class="pos-reason">財報 14 天內 · 等公告後再評估</div>
+            </div>
+          </div>
+
+        </div>
+
+        <p style="font-size:11.5px;color:var(--muted);margin:14px 0 0;line-height:1.7;">
+          <b>📌 實際下單:</b> 動能區已滿載 25%(VLO + TRV 各 12.5%)· 核心 30% 未用(VCP 條件太嚴)· 衝刺 0%(象限限制)·
+          <b>總持股 25% + 現金 75%</b> · 反映「高利率(TNX 4.74%)+ 盤整多頭」對承擔風險的自然節制。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 6: 策略 B 逢低買入 -->
+  <div class="full">
+    <div class="card">
+      <div class="card-h">💰 策略 B · 逢低買入掃描器(scan 全 S&amp;P 500)<span class="n">「別人恐懼時我貪婪」</span></div>
+      <div class="card-b">
+        <p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.6;">
+          <b>4 條件全通過:</b>
+          ① 當日跌 &gt; 5%  ②  50MA + 200MA 都向上  ③ RSI(14) &lt; 40 超賣  ④ 昨日量 &gt; 20d 均量 × 1.2
+          &nbsp;·&nbsp; <b>掃描 503 檔 · 通過 2 檔</b>
+        </p>
+        <table class="strategy-b">
+          <thead>
+            <tr><th>Symbol</th><th>Sector</th><th class="num">當日跌%</th><th class="num">收盤</th><th class="num">50MA</th><th class="num">200MA</th><th class="num">RSI(14)</th><th class="num">量比 vs 20d</th><th>判讀</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>CTVA</b></td><td>Materials</td>
+              <td class="num highlight-drop">-11.90%</td><td class="num">81.97</td>
+              <td class="num">81.97 ↑</td><td class="num">74.99 ↑</td>
+              <td class="num highlight-rsi">34.6</td><td class="num highlight-vol">3.35x</td>
+              <td style="font-size:11.5px;">📉 大跌 12% 但 50/200 MA 都在走揚 · RSI 超賣 · 量爆 3.35 倍 → 教科書式錯殺 setup</td>
+            </tr>
+            <tr>
+              <td><b>LYV</b></td><td>Communication Services</td>
+              <td class="num highlight-drop">-5.14%</td><td class="num">174.48</td>
+              <td class="num">174.48 ↑</td><td class="num">156.10 ↑</td>
+              <td class="num highlight-rsi">35.2</td><td class="num highlight-vol">2.68x</td>
+              <td style="font-size:11.5px;">📉 已在 stage 2 top 13W 榜(+10.03%)· 中期趨勢向上 + 短期恐慌 · 逢低訊號</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="badge-row">
+          <span class="badge">CTVA:好公司被錯殺</span>
+          <span class="badge">LYV:趨勢未壞的短期恐慌</span>
+        </div>
+        <p style="font-size:11.5px;color:var(--muted);margin:12px 0 0;line-height:1.7;">
+          <b>📌 進場時機提示:</b> 策略 B 是 <b>trigger 訊號</b> 不是立刻買入指令 ·
+          正確流程:<b>大跌後觀察量縮 → 賣壓結束(賣的人賣完了)→ 量縮後放量才進場</b>(不管紅 K 綠 K · 量放大就是訊號)。
+          位置管理仍搭配策略 A 的配置上限(本輪剩 45% 現金空間)。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 7: 三張情境卡(原內容) -->
+  <div class="grid3">
+    <div class="card">
+      <div class="card-h">本月結論</div>
+      <div class="card-b">
+        <ul class="clean">
+          <li><b>殖利率封頂壓力</b>成為全月估值天花板,10Y/30Y 雙創階段新高</li>
+          <li><b>雲端資本支出驗證</b>:Azure/AWS 財報是 7 月最大多頭催化劑</li>
+          <li><b>硬體端分化</b>:晶片/記憶體先崩後 V 轉,波動劇烈</li>
+          <li><b>廣度收窄</b>:Russell 2000 與非科技類股全月落後,資金集中大型股</li>
+          <li><b>量價驗證輪動</b>:能源(XLE)綜合分第 1 · 科技(XLK)雖 26W +22% 但已觸發吃老本警示</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">風險觀察</div>
+      <div class="card-b">
+        <ul class="clean">
+          <li>中東地緣情勢(布蘭特一度破 $100)若再度升溫,將直接推升殖利率壓估值</li>
+          <li>Fed 內部鷹派票數擴大,若 8 月 CPI/非農偏熱,升息預期恐重燃</li>
+          <li>循環融資疑慮(CapEx 由誰買單)尚未完全解除,硬體估值仍脆弱</li>
+          <li>30 年期殖利率逼近 2007 年高點,長債避險買盤仍未成立</li>
+          <li><b>策略 A 動能區 VLO/TRV 都是能源 + 金融</b> · 板塊集中風險需注意(雖 XLE/XLF 相關性未達 XLK-XLC 級)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">8 月關注行事曆</div>
+      <div class="card-b">
+        <table>
+          <tr><th>日期</th><th>事件</th></tr>
+          <tr><td>8/7(五)</td><td>7 月非農就業報告</td></tr>
+          <tr><td>8/12(三)</td><td>7 月 CPI 通膨報告</td></tr>
+          <tr><td>8/26(三)</td><td>Q2 GDP 二次估值</td></tr>
+          <tr><td>8 月下旬</td><td>Jackson Hole 央行年會(慣例)</td></tr>
+          <tr><td>全月</td><td>布蘭特原油 / 10Y 殖利率 / Fed 官員談話追蹤</td></tr>
+          <tr><td>持續</td><td>MPC / PSX 財報公告(策略 A 暫緩區解禁時機)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="note">
+      ⚠️ <b>資料來源與可信度:</b>
+      指數 / 殖利率 / VIX / Fear&amp;Greed 等宏觀數字由 Claude 網路搜尋 TradingEconomics / CNBC / FRED / CNN 彙整,可信度高。
+      <b>板塊 ETF 精確報酬、量價評分、策略 A 建議倉位、策略 B 逢低買入候選、市場四象限判定、TNX 濾網、差距警示</b>皆由本專案
+      <code style="background:#fff;padding:1px 6px;border-radius:3px;">sector-rotation</code> pipeline 自動抓取
+      yfinance(週線 + 日線 + earnings)/ Wikipedia(S&amp;P 500 成分股)· 依
+      <code style="background:#fff;padding:1px 6px;border-radius:3px;">scripts/sector_scorecard.py</code> /
+      <code style="background:#fff;padding:1px 6px;border-radius:3px;">strategy_a_pipeline.py</code> /
+      <code style="background:#fff;padding:1px 6px;border-radius:3px;">strategy_b_scanner.py</code>
+      規則產出 · 每交易日 CI 自動 refresh。詳見
+      <code style="background:#fff;padding:1px 6px;border-radius:3px;">sector-rotation/README.md</code>。
+    </div>
+    大叔美股筆記 · 月度總覽 | 資料時間:2026 年 7 月 31 日收盤 |
+    宏觀敘事由 Claude 彙整 / 量化評分由本專案自動化 pipeline 產出
+  </div>
+
+</div>
+</body>
+</html>
