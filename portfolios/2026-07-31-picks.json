@@ -1,0 +1,160 @@
+{
+  "portfolio_id": "2026-07-31",
+  "entry_date": "2026-07-31",
+  "notes": "根據 sector-rotation pipeline 全套訊號建構 · 追蹤 1m/3m/6m/1y 4 個 checkpoint · 純示範不構成投資建議",
+  "how_built": "策略 A 九步驟 pipeline + per-sector 綜合分 top 3 augment · Strict rules: 核心需 VCP=TRUE · 動能需 TNX順風 + VP>=1 + 4W正",
+  "checkpoint_dates": {
+    "1m": "2026-08-31",
+    "3m": "2026-10-31",
+    "6m": "2027-01-31",
+    "1y": "2027-07-31"
+  },
+  "regime_at_entry": {
+    "quadrant": "🟡+🟢",
+    "vix": 15.99,
+    "tnx_pct": 4.74,
+    "voo_price": 686.65,
+    "voo_vs_60d_pct": 3.51,
+    "voo_vs_50ma_pct": 0.38,
+    "tnx_boost_sectors": ["XLE", "XLF", "XLV"],
+    "tnx_penalty_sectors": ["XLK", "XLRE", "XLU"],
+    "allocation_caps": {"core": 30, "momentum": 25, "sprint": 0, "cash": 45}
+  },
+  "positions": [
+    {
+      "symbol": "EA",
+      "name": "Electronic Arts",
+      "sector": "Communication Services",
+      "sector_etf": "XLC",
+      "tier": "core",
+      "weight_pct": 15.0,
+      "entry_price": 209.86,
+      "signals": {
+        "point": 3.1,
+        "vp_score": 100.0,
+        "vp_ratio_stock": 1.386,
+        "vcp": true,
+        "pct_from_high": -0.03,
+        "cum_ret_4w": 2.27,
+        "cum_ret_13w": 3.94,
+        "cum_ret_26w": 3.11,
+        "composite_rank_in_sector": 1
+      },
+      "why": "全 universe 唯一同時符合 VCP + 距高點>-5% + VP>1 的 core 條件 · 板塊內綜合分 #1 · 標準 Wyckoff/Minervini 建立階段形態(振幅收斂 0.73%)"
+    },
+    {
+      "symbol": "APA",
+      "name": "APA Corporation",
+      "sector": "Energy",
+      "sector_etf": "XLE",
+      "tier": "momentum",
+      "weight_pct": 6.25,
+      "entry_price": 37.32,
+      "signals": {
+        "point": 24.1,
+        "vp_score": 100.0,
+        "vp_ratio_stock": 1.055,
+        "vcp": false,
+        "pct_from_high": -17.14,
+        "cum_ret_4w": 16.14,
+        "cum_ret_13w": -6.35,
+        "cum_ret_26w": 43.26,
+        "composite_rank_in_sector": 1
+      },
+      "why": "Energy 板塊綜合分 #1 · TNX 4.74% 順風 · vp_score 滿分 100 · vol_ratio 1.47x 資金流入強 · 4W +16% 短線動能"
+    },
+    {
+      "symbol": "BAX",
+      "name": "Baxter International",
+      "sector": "Health Care",
+      "sector_etf": "XLV",
+      "tier": "momentum",
+      "weight_pct": 6.25,
+      "entry_price": 26.16,
+      "signals": {
+        "point": 32.1,
+        "vp_score": 100.0,
+        "vp_ratio_stock": 1.169,
+        "vcp": false,
+        "pct_from_high": -12.80,
+        "cum_ret_4w": 15.50,
+        "cum_ret_13w": 52.08,
+        "cum_ret_26w": 30.48,
+        "composite_rank_in_sector": 1
+      },
+      "why": "Health Care 板塊綜合分 #1 · TNX 順風 · vp_score 滿分 · 13W +52% 中期趨勢極強 · 4W +15% 短線續強"
+    },
+    {
+      "symbol": "VLO",
+      "name": "Valero Energy",
+      "sector": "Energy",
+      "sector_etf": "XLE",
+      "tier": "momentum",
+      "weight_pct": 6.25,
+      "entry_price": 312.90,
+      "signals": {
+        "point": 48.8,
+        "vp_score": 100.0,
+        "vp_ratio_stock": 1.039,
+        "vcp": false,
+        "pct_from_high": -1.91,
+        "cum_ret_4w": 17.31,
+        "cum_ret_13w": 27.84,
+        "cum_ret_26w": 75.02,
+        "composite_rank_in_sector": null
+      },
+      "why": "策略 A 動能區原始 pick · TNX 順風 · Point 48.8 高 · 26W +75% · 距高點 -1.9% 靠近突破"
+    },
+    {
+      "symbol": "TRV",
+      "name": "Travelers Companies",
+      "sector": "Financials",
+      "sector_etf": "XLF",
+      "tier": "momentum",
+      "weight_pct": 6.25,
+      "entry_price": 374.36,
+      "signals": {
+        "point": 24.5,
+        "vp_score": 91.66,
+        "vp_ratio_stock": 1.088,
+        "vcp": false,
+        "pct_from_high": -6.10,
+        "cum_ret_4w": 9.36,
+        "cum_ret_13w": 23.37,
+        "cum_ret_26w": 32.61,
+        "composite_rank_in_sector": null
+      },
+      "why": "策略 A 動能區原始 pick · Financials 唯一非「剛爆發」的乾淨動能 pick · TNX 順風 · 26W +32.6% 穩定"
+    }
+  ],
+  "total_invested_pct": 40.0,
+  "cash_pct": 60.0,
+  "cash_breakdown": {
+    "core_unused": 15.0,
+    "sprint_locked_by_regime": 0.0,
+    "baseline_cash_reserve": 45.0
+  },
+  "watchlist_no_position": [
+    {"symbol": "DELL", "reason": "全場 Point 最高 152.0 · 但 XLK 被 TNX penalty · 象限衝刺=0% 不建倉 · 追蹤看是否 TNX 降或象限轉強"},
+    {"symbol": "MPC", "reason": "Energy 綜合分 #3 vp=100 · 但財報 14 天內 · 財報後看是否重新符合條件"},
+    {"symbol": "PSX", "reason": "Energy 綜合分 #2 vp=100 · 財報 14 天內 · 同 MPC"},
+    {"symbol": "CTVA", "reason": "策略 B 逢低訊號 · 大跌 -11.9% + RSI 34.6 + 量爆 3.35x + 50/200MA 都向上 · 教科書式錯殺 · 等量縮後放量再進場"},
+    {"symbol": "LYV", "reason": "策略 B 逢低訊號 · 大跌 -5.14% + RSI 35.2 + 量爆 2.68x · 中期趨勢向上但短期恐慌 · 等技術面確認"},
+    {"symbol": "CPAY", "reason": "Financials 綜合分 #1 但「剛爆發」警示 · vp_score rk1 但 Point rk7 · 若下月 Point 升上來則可買入"},
+    {"symbol": "GRMN", "reason": "Consumer Disc 綜合分 #2 · Point 34.5 · vp=100 · 無警示 · 但 XLY 板塊本身較弱 · 觀察板塊有無翻紅"},
+    {"symbol": "BBY", "reason": "Consumer Disc 綜合分 #1 · Point 32.2 · 13W +45.56% 極強 · 同上等板塊翻紅"},
+    {"symbol": "NUE", "reason": "Materials 綜合分 #1 · Point 30.5 · vp=100 · 距高點 -4.8% 快到 core 條件"},
+    {"symbol": "HST", "reason": "Real Estate 綜合分 #1 · Point 28.9 · vp=100 · 但 XLRE 被 TNX penalty"},
+    {"symbol": "EIX", "reason": "Utilities 綜合分 #1 · vol_ratio 2.36x 量能爆 · 但 XLU 被 TNX penalty"}
+  ],
+  "benchmarks": [
+    {"symbol": "VOO", "name": "S&P 500 ETF", "entry_price": 686.65},
+    {"symbol": "QQQ", "name": "Nasdaq 100 ETF", "entry_price": null}
+  ],
+  "checkpoints_data": {
+    "1m": {"as_of_date": null, "prices": {}, "returns_pct": {}, "portfolio_return_pct": null, "vs_voo_bps": null},
+    "3m": {"as_of_date": null, "prices": {}, "returns_pct": {}, "portfolio_return_pct": null, "vs_voo_bps": null},
+    "6m": {"as_of_date": null, "prices": {}, "returns_pct": {}, "portfolio_return_pct": null, "vs_voo_bps": null},
+    "1y": {"as_of_date": null, "prices": {}, "returns_pct": {}, "portfolio_return_pct": null, "vs_voo_bps": null}
+  }
+}
