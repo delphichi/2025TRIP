@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-08-03T20:57:30.460335+00:00",
-  "as_of_date": "2026-06-26",
+  "generated_at": "2026-08-03T23:45:40.258050+00:00",
+  "as_of_date": "2026-07-31",
   "market_context": {
-    "as_of_date": "2026-06-26",
+    "as_of_date": "2026-07-31",
     "voo": {
-      "price": 670.26,
-      "vs_60d_pct": 12.49,
-      "ma50": 673.34,
-      "vs_50ma_pct": -0.46
+      "price": 686.65,
+      "vs_60d_pct": 3.51,
+      "ma50": 684.02,
+      "vs_50ma_pct": 0.38
     },
     "vix": {
-      "value": 18.41
+      "value": 15.99
     },
     "tnx": {
-      "value": 4.37,
-      "raw": 4.37
+      "value": 4.74,
+      "raw": 4.74
     },
     "trend_label": "🟢",
     "vs_50ma_label": "🟡",
@@ -37,42 +37,36 @@
       "XLU"
     ],
     "notes": [
-      "📈 TNX=4.37% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "📈 TNX=4.74% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ]
   },
   "effective_sectors": [
     {
-      "sector": "XLV",
-      "sector_name": "醫療保健",
+      "sector": "XLE",
+      "sector_name": "能源",
       "composite_rank": 1,
-      "point_rank": 6,
-      "cms_a": 3.6,
+      "point_rank": 1,
+      "cms_a": 2.7,
+      "tnx_flag": "boost"
+    },
+    {
+      "sector": "XLF",
+      "sector_name": "金融",
+      "composite_rank": 2,
+      "point_rank": 3,
+      "cms_a": 2.6,
       "tnx_flag": "boost"
     },
     {
       "sector": "XLI",
       "sector_name": "工業",
-      "composite_rank": 2,
-      "point_rank": 2,
-      "cms_a": 2.2,
-      "tnx_flag": null
-    },
-    {
-      "sector": "XLB",
-      "sector_name": "材料",
-      "composite_rank": 6,
-      "point_rank": 4,
-      "cms_a": 6.6,
+      "composite_rank": 3,
+      "point_rank": 6,
+      "cms_a": 6.0,
       "tnx_flag": null
     }
   ],
-  "demoted_sectors": [
-    {
-      "sector": "XLRE",
-      "sector_name": "房地產",
-      "reason": "TNX 濾網降級"
-    }
-  ],
+  "demoted_sectors": [],
   "allocation": {
     "core": 30,
     "momentum": 25,
@@ -83,89 +77,125 @@
     "core": [],
     "momentum": [
       {
-        "symbol": "MRNA",
-        "name": "Moderna",
-        "sector": "Health Care",
-        "sector_etf": "XLV",
-        "point": 77.38,
-        "cms_a": 4.0,
+        "symbol": "VLO",
+        "name": "Valero Energy",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 48.8,
+        "cms_a": 3.0,
         "di": 1.0,
-        "cum_ret_4w": 42.55,
-        "cum_ret_13w": 35.73,
-        "cum_ret_26w": 115.61,
+        "cum_ret_4w": 17.31,
+        "cum_ret_13w": 27.84,
+        "cum_ret_26w": 75.02,
         "vcp": false,
-        "vp_ratio_stock": 1.339,
-        "pct_from_high": -2.91,
-        "high_52w": 69.29,
-        "surprise_l1": 12.37,
-        "surprise_l2": 18.88,
+        "vp_ratio_stock": 1.039,
+        "pct_from_high": -1.91,
+        "high_52w": 319.01,
+        "surprise_l1": 23.84,
+        "surprise_l2": 33.47,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.34 + 4W +42.5%",
-        "weight_pct": 25.0
+        "reason": "TNX順風 + VP 1.04 + 4W +17.3%",
+        "weight_pct": 12.5
+      },
+      {
+        "symbol": "TRV",
+        "name": "Travelers Companies (The)",
+        "sector": "Financials",
+        "sector_etf": "XLF",
+        "point": 24.49,
+        "cms_a": 7.5,
+        "di": 1.0,
+        "cum_ret_4w": 9.36,
+        "cum_ret_13w": 23.37,
+        "cum_ret_26w": 32.61,
+        "vcp": false,
+        "vp_ratio_stock": 1.088,
+        "pct_from_high": -6.1,
+        "high_52w": 398.7,
+        "surprise_l1": 86.12,
+        "surprise_l2": 8.93,
+        "pre_earnings_14d": false,
+        "tier": "momentum",
+        "reason": "TNX順風 + VP 1.09 + 4W +9.4%",
+        "weight_pct": 12.5
       }
     ],
     "sprint": [
       {
-        "symbol": "SW",
-        "name": "Smurfit Westrock",
-        "sector": "Materials",
-        "sector_etf": "XLB",
-        "point": 20.55,
-        "cms_a": 3.1,
-        "di": 1.0,
-        "cum_ret_4w": 14.17,
-        "cum_ret_13w": 20.57,
-        "cum_ret_26w": 23.74,
-        "vcp": false,
-        "vp_ratio_stock": 1.504,
-        "pct_from_high": -9.01,
-        "high_52w": 51.63,
-        "surprise_l1": -17.35,
-        "surprise_l2": -43.0,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "CMS_A=3.1 靠前但缺 VCP 或非 TNX 順風"
-      },
-      {
-        "symbol": "SNDK",
-        "name": "Sandisk",
+        "symbol": "DELL",
+        "name": "Dell Technologies",
         "sector": "Information Technology",
         "sector_etf": "XLK",
-        "point": 433.77,
-        "cms_a": 2.5,
+        "point": 151.99,
+        "cms_a": 15.5,
         "di": 1.0,
-        "cum_ret_4w": 23.35,
-        "cum_ret_13w": 239.49,
-        "cum_ret_26w": 736.12,
+        "cum_ret_4w": 2.97,
+        "cum_ret_13w": 93.2,
+        "cum_ret_26w": 255.9,
         "vcp": false,
-        "vp_ratio_stock": 1.035,
-        "pct_from_high": -11.2,
-        "high_52w": 2354.39,
-        "surprise_l1": 59.67,
-        "surprise_l2": 74.97,
+        "vp_ratio_stock": 1.087,
+        "pct_from_high": -13.51,
+        "high_52w": 468.7,
+        "surprise_l1": 63.99,
+        "surprise_l2": 10.74,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "破格 · 全場 Point 最高(433.8)且領先池內第 3 名 50%+"
+        "reason": "破格 · 全場 Point 最高(152.0)且領先池內第 3 名 50%+"
       }
     ],
-    "hold_earnings": []
+    "hold_earnings": [
+      {
+        "symbol": "MPC",
+        "name": "Marathon Petroleum",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 52.57,
+        "cms_a": 1.5,
+        "di": 1.0,
+        "cum_ret_4w": 18.82,
+        "cum_ret_13w": 29.06,
+        "cum_ret_26w": 81.21,
+        "vcp": false,
+        "vp_ratio_stock": 0.923,
+        "pct_from_high": -3.2,
+        "high_52w": 326.92,
+        "surprise_l1": 120.63,
+        "surprise_l2": 50.13,
+        "pre_earnings_14d": true,
+        "tier": "hold",
+        "reason": "財報 14 天內 · 暫緩 · 等公告後再評估"
+      },
+      {
+        "symbol": "PSX",
+        "name": "Phillips 66",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 35.12,
+        "cms_a": 2.0,
+        "di": 1.0,
+        "cum_ret_4w": 19.99,
+        "cum_ret_13w": 21.02,
+        "cum_ret_26w": 49.74,
+        "vcp": false,
+        "vp_ratio_stock": 0.988,
+        "pct_from_high": -2.04,
+        "high_52w": 216.08,
+        "surprise_l1": 225.68,
+        "surprise_l2": 14.7,
+        "pre_earnings_14d": true,
+        "tier": "hold",
+        "reason": "財報 14 天內 · 暫緩 · 等公告後再評估"
+      }
+    ]
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 1,
-    "sprint_count": 2,
-    "hold_count": 0
+    "momentum_count": 2,
+    "sprint_count": 1,
+    "hold_count": 2
   },
-  "correlation_warnings": [
-    {
-      "kind": "low_corr_ok",
-      "sectors": [
-        "XLV"
-      ],
-      "msg": "✅ XLV 與多數板塊低相關 · 分散配置佳"
-    }
-  ],
+  "correlation_warnings": [],
   "dark_horses": [],
   "watchlist_promoted": [],
   "notes": [
