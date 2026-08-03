@@ -172,38 +172,42 @@ def fetch_weekly_returns(tickers):
 
 
 # ============================================================
-# 3. Earnings Surprise via FMP
+# 3. Earnings Surprise via yfinance
 # ============================================================
-def fetch_fmp_surprise(symbol, session, stats):
-    """回傳 (l1_pct, l2_pct)，抓不到回 (None, None)。stats 是 dict 累計狀態碼分布"""
-    if not FMP_KEY:
-        stats["no_key"] += 1
-        return (None, None)
-    url = f"https://financialmodelingprep.com/api/v3/earnings-surprises/{symbol}?apikey={FMP_KEY}"
+# 原本用 FMP /api/v3/earnings-surprises · 但那 endpoint free tier 403
+# 改用 yfinance 的 earnings_dates DataFrame · 免 key 且無 rate limit
+#
+# yfinance 回傳格式：
+#   ticker.earnings_dates → DataFrame(index=DatetimeIndex, cols=[EPS Estimate, Reported EPS, Surprise(%)])
+#   包含未來預告財報（Reported EPS 為 NaN）· 我們只用「已公告」的兩筆
+def fetch_yf_surprise(symbol, stats):
+    """回傳 (l1_pct, l2_pct)。抓不到回 (None, None)。stats 累計統計"""
     try:
-        r = session.get(url, timeout=15)
-        stats[f"http_{r.status_code}"] = stats.get(f"http_{r.status_code}", 0) + 1
-        if r.status_code == 401:
-            stats["auth_fail"] += 1
-            return (None, None)
-        if r.status_code == 429:
-            stats["rate_limited"] += 1
-            return (None, None)
-        if r.status_code != 200:
-            return (None, None)
-        data = r.json()
-        if not isinstance(data, list) or len(data) == 0:
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        df = ticker.earnings_dates
+        if df is None or df.empty:
             stats["empty_response"] += 1
             return (None, None)
-        # FMP 回傳照日期倒序（最新在前），欄位：actualEarningResult / estimatedEarning
-        def _pct(item):
-            est = item.get("estimatedEarning")
-            act = item.get("actualEarningResult")
-            if est is None or act is None or est == 0:
+        # 只留「已公告」（Reported EPS 有值）· 按日期倒序
+        past = df.dropna(subset=["Reported EPS"]).sort_index(ascending=False)
+        if len(past) == 0:
+            stats["no_history"] += 1
+            return (None, None)
+
+        def _pct(row):
+            # yfinance 直接提供 Surprise(%) · 用就好
+            if "Surprise(%)" in row.index and pd.notna(row["Surprise(%)"]):
+                return round(float(row["Surprise(%)"]), 2)
+            # fallback 自己算
+            est = row.get("EPS Estimate")
+            act = row.get("Reported EPS")
+            if pd.isna(est) or pd.isna(act) or est == 0:
                 return None
             return round((act - est) / abs(est) * 100, 2)
-        l1 = _pct(data[0]) if len(data) > 0 else None
-        l2 = _pct(data[1]) if len(data) > 1 else None
+
+        l1 = _pct(past.iloc[0]) if len(past) > 0 else None
+        l2 = _pct(past.iloc[1]) if len(past) > 1 else None
         if l1 is not None or l2 is not None:
             stats["ok_with_data"] += 1
         else:
@@ -217,23 +221,17 @@ def fetch_fmp_surprise(symbol, session, stats):
 
 def fetch_surprises_parallel(symbols):
     """
-    平行呼叫 FMP。回傳 DataFrame[symbol, surprise_l1, surprise_l2]。
-    沒 FMP_KEY 就整欄 NA 直接回。
+    平行呼叫 yfinance earnings_dates。回傳 DataFrame[symbol, surprise_l1, surprise_l2]。
     """
-    if not FMP_KEY:
-        log("⚠ FMP_API_KEY 沒設 → surprise 欄位全 NA，篩選會退回純價格動能")
-        return pd.DataFrame({
-            "symbol": symbols,
-            "surprise_l1": [None] * len(symbols),
-            "surprise_l2": [None] * len(symbols),
-        })
-    log(f"Fetching earnings surprises for {len(symbols)} tickers via FMP...")
-    session = requests.Session()
+    log(f"Fetching earnings surprises for {len(symbols)} tickers via yfinance...")
+    if FMP_KEY:
+        log("  (FMP_API_KEY 有設但目前不用 · free tier /earnings-surprises 是 403 · secret 可留著)")
     rows = []
     stats = {"ok_with_data": 0, "ok_but_null": 0, "empty_response": 0,
-             "auth_fail": 0, "rate_limited": 0, "exception": 0, "no_key": 0}
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        futs = {ex.submit(fetch_fmp_surprise, s, session, stats): s for s in symbols}
+             "no_history": 0, "exception": 0}
+    # yfinance 內部有 rate limit / caching · 4 workers 是個穩定的並行值
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futs = {ex.submit(fetch_yf_surprise, s, stats): s for s in symbols}
         done = 0
         for fut in as_completed(futs):
             sym = futs[fut]
@@ -243,21 +241,12 @@ def fetch_surprises_parallel(symbols):
             if done % 50 == 0:
                 log(f"  {done}/{len(symbols)}")
     log("=" * 60)
-    log(f"FMP fetch summary ({len(symbols)} requests):")
+    log(f"yfinance surprise fetch summary ({len(symbols)} tickers):")
     log(f"  ✅ ok_with_data:  {stats['ok_with_data']}")
-    log(f"  ⚠  ok_but_null:   {stats['ok_but_null']}  (回應 200 但沒 EPS 數字)")
-    log(f"  ⚠  empty_response:{stats['empty_response']}  (回應 200 但 list 空)")
-    log(f"  ❌ auth_fail 401: {stats['auth_fail']}  (key 錯 or 過期)")
-    log(f"  ❌ rate_limited 429: {stats['rate_limited']}  (超 quota · free tier 只有 250/day)")
+    log(f"  ⚠  ok_but_null:   {stats['ok_but_null']}  (有歷史財報但 Surprise NaN)")
+    log(f"  ⚠  no_history:    {stats['no_history']}  (只有未來預告 · 沒歷史財報)")
+    log(f"  ⚠  empty_response:{stats['empty_response']}  (earnings_dates 直接是空)")
     log(f"  ❌ exception:     {stats['exception']}  · last: {stats.get('last_exception', '')}")
-    # 其他 http status 顯示
-    for k, v in stats.items():
-        if k.startswith("http_") and k not in ("http_200",):
-            log(f"  ℹ {k}: {v}")
-    if stats["auth_fail"] > 0:
-        log("⚠ 401 auth_fail 表示 FMP_API_KEY 無效 · 檢查 Repo Settings → Secrets → FMP_API_KEY")
-    if stats["rate_limited"] > 10:
-        log("⚠ 大量 429 表示超過 FMP quota · free tier 250 req/day · 考慮升級或減 PRE_FILTER_PER_SECTOR")
     log("=" * 60)
     return pd.DataFrame(rows)
 
@@ -376,7 +365,7 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
             "di": "((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲",
         },
         "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
-        "has_fmp_surprise": bool(FMP_KEY),
+        "surprise_source": "yfinance (earnings_dates)",
     }
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
