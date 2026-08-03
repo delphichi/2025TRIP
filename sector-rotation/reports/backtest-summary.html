@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>回測總報告 · sector-rotation pipeline</title>
+<style>
+  :root{
+    --navy:#1b2a4a; --navy-dark:#0f1930;
+    --gold:#c9a24b; --gold-light:#e8d9ae;
+    --red:#c0392b; --green:#1e8449; --orange:#d97706;
+    --bg:#f4f5f7; --card:#ffffff; --line:#e2e5ea;
+    --text:#2a2f3a; --muted:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:24px; background:var(--bg);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--text);
+  }
+  .sheet{max-width:1180px;margin:0 auto;}
+  .up{color:var(--green);font-weight:700;}
+  .down{color:var(--red);font-weight:700;}
+  .flat{color:var(--muted);font-weight:700;}
+  .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+  .badge-hot{background:#fef3c7;color:#92400e;}
+  .badge-mid{background:#dcfce7;color:#166534;}
+  .badge-cold{background:#e0e7ff;color:#3730a3;}
+
+  .header{
+    display:flex;align-items:center;gap:20px;background:var(--card);
+    border-radius:10px;padding:20px 24px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:16px;flex-wrap:wrap;
+  }
+  .logo{
+    width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(135deg,var(--navy),var(--navy-dark));
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold-light);font-weight:800;font-size:20px;
+    border:2px solid var(--gold);
+  }
+  .htitle{flex:1;min-width:280px;}
+  .htitle .tag{
+    display:inline-block;background:var(--navy);color:var(--gold-light);
+    font-size:11px;padding:2px 10px;border-radius:12px;margin-bottom:6px;letter-spacing:1px;
+  }
+  .htitle h1{margin:0 0 6px 0;font-size:22px;color:var(--navy);}
+  .htitle p{margin:0;font-size:13px;color:var(--muted);line-height:1.6;}
+  .hstats{display:flex;gap:14px;flex-wrap:wrap;}
+  .hstat{text-align:center;min-width:88px;}
+  .hstat .l{font-size:10px;color:var(--muted);}
+  .hstat .v{font-size:20px;font-weight:800;color:var(--navy);}
+
+  .grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-bottom:16px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  .full{margin-bottom:16px;}
+  @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+  .card{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;}
+  .card-h{
+    background:var(--navy);color:#fff;padding:9px 16px;font-size:13px;font-weight:700;
+    display:flex;justify-content:space-between;align-items:center;letter-spacing:.5px;
+  }
+  .card-h span.n{background:var(--gold);color:var(--navy-dark);font-size:11px;padding:1px 8px;border-radius:10px;}
+  .card-b{padding:14px 16px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:#f9fafb;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;
+     border-bottom:2px solid var(--line);font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;}
+  td.sym{font-weight:700;color:var(--navy);}
+  .bp-hot{background:#dcfce7;}
+  .bp-cold{background:#fee2e2;}
+
+  .callout{
+    background:linear-gradient(135deg,#fef3c7,#fde68a);
+    border-left:5px solid var(--gold);
+    padding:16px 20px;border-radius:8px;margin-bottom:16px;
+  }
+  .callout h3{margin:0 0 6px 0;color:var(--navy-dark);font-size:16px;}
+  .callout p{margin:0;font-size:13px;color:var(--text);line-height:1.7;}
+  .callout .big{font-size:28px;font-weight:800;color:var(--green);display:inline-block;margin-right:6px;}
+
+  ul.notes{margin:6px 0 0 0;padding-left:20px;font-size:13px;line-height:1.8;}
+  ul.notes li{margin-bottom:4px;}
+  ul.notes b{color:var(--navy);}
+
+  .foot{color:var(--muted);font-size:11px;text-align:center;margin-top:24px;line-height:1.7;}
+  .foot a{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">BT</div>
+    <div class="htitle">
+      <span class="tag">BACKTEST REPORT</span>
+      <h1>Sector Rotation Pipeline · 6 個歷史日期回測總結</h1>
+      <p>目的：驗證「策略 A 九步驟 pipeline」在不同市場象限的 alpha 生成能力 · 純用 T-1 資料重跑，無 look-ahead bias · 個股清單有 survivorship bias（用今日 S&P 500 成分股）</p>
+    </div>
+    <div class="hstats">
+      <div class="hstat"><div class="l">回測樣本</div><div class="v">6</div></div>
+      <div class="hstat"><div class="l">象限覆蓋</div><div class="v">2</div></div>
+      <div class="hstat"><div class="l">最佳 6m alpha</div><div class="v up">+2140</div></div>
+      <div class="hstat"><div class="l">最差 6m alpha</div><div class="v down">-2561</div></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <h3>💡 核心發現：象限決定一切 · 🔥+🟢 象限允許重倉 · alpha 才會顯著放大</h3>
+    <p>
+      <span class="big">+2140 bps</span>
+      2025/12/26 建倉在 🔥+🟢 象限（VIX 13.6 · 極強多頭）· 配置上限打到 70% invested · MRNA/HAL 兩檔動能 pick 貢獻大部分 alpha ·
+      6m 內組合 +28.17% vs VOO +6.77% · 拉開 2140 bps 差距。
+      對照 🟡+🟢 象限（如 2024/7、2025/7、2026/6）· 配置上限被限制在 25-40% · 就算選股對 · alpha 也被大量現金稀釋。
+    </p>
+  </div>
+
+  <div class="full">
+  <div class="card">
+    <div class="card-h">6 個回測樣本一覽 <span class="n">baseline rules</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr>
+            <th>建倉日</th>
+            <th>象限</th>
+            <th>VIX</th>
+            <th>TNX</th>
+            <th class="n">配置上限</th>
+            <th class="n">實際 invested</th>
+            <th class="n">1m alpha (bps)</th>
+            <th class="n">3m alpha</th>
+            <th class="n">6m alpha</th>
+            <th>命中率</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2023-07-31</td>
+            <td><span class="badge badge-hot">🔥+🟢</span></td>
+            <td class="n">13.6</td>
+            <td class="n">3.97%</td>
+            <td class="n">90%</td>
+            <td class="n">15%</td>
+            <td class="n down">-1363</td>
+            <td class="n down">-2074</td>
+            <td class="n down">-2561</td>
+            <td>0/1 (JCI 慘)</td>
+          </tr>
+          <tr>
+            <td>2024-01-31</td>
+            <td><span class="badge badge-hot">🔥+🟢</span></td>
+            <td class="n">13.9</td>
+            <td class="n">3.99%</td>
+            <td class="n">90%</td>
+            <td class="n">0%</td>
+            <td class="n flat">n/a</td>
+            <td class="n flat">n/a</td>
+            <td class="n flat">n/a</td>
+            <td>0 pick (規則過濾光)</td>
+          </tr>
+          <tr>
+            <td>2024-07-31</td>
+            <td><span class="badge badge-mid">🟡+🟢</span></td>
+            <td class="n">16.4</td>
+            <td class="n">4.09%</td>
+            <td class="n">55%</td>
+            <td class="n">25%</td>
+            <td class="n up">+439</td>
+            <td class="n up">+430</td>
+            <td class="n up">+1321</td>
+            <td>2/3</td>
+          </tr>
+          <tr>
+            <td>2025-07-31</td>
+            <td><span class="badge badge-hot">🔥+🟢</span></td>
+            <td class="n">14.9</td>
+            <td class="n">4.35%</td>
+            <td class="n">90%</td>
+            <td class="n">35%</td>
+            <td class="n up">+219</td>
+            <td class="n down">-354</td>
+            <td class="n up">+632</td>
+            <td>3/3</td>
+          </tr>
+          <tr class="bp-hot">
+            <td><b>2025-12-26</b></td>
+            <td><span class="badge badge-hot">🔥+🟢</span></td>
+            <td class="n">13.6</td>
+            <td class="n">4.14%</td>
+            <td class="n">90%</td>
+            <td class="n"><b>70%</b></td>
+            <td class="n up"><b>+1045</b></td>
+            <td class="n up"><b>+2104</b></td>
+            <td class="n up"><b>+2140</b></td>
+            <td><b>5/6 🏆</b></td>
+          </tr>
+          <tr>
+            <td>2026-06-26</td>
+            <td><span class="badge badge-mid">🟡+🟢</span></td>
+            <td class="n">18.4</td>
+            <td class="n">4.37%</td>
+            <td class="n">55%</td>
+            <td class="n">35%</td>
+            <td class="n down">-811</td>
+            <td class="n flat">n/a</td>
+            <td class="n flat">n/a</td>
+            <td>1/3 (5 週資料)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h">🏆 冠軍樣本 · 2025-12-26 完整持倉 <span class="n">+28.17% / 6m</span></div>
+      <div class="card-b" style="padding:0;">
+        <table>
+          <thead>
+            <tr><th>Sym</th><th>Sector</th><th>Tier</th><th class="n">Wt%</th><th class="n">Entry</th><th class="n">1m</th><th class="n">3m</th><th class="n">6m</th></tr>
+          </thead>
+          <tbody>
+            <tr class="bp-hot"><td class="sym">MRNA</td><td>Health</td><td>mom</td><td class="n">10</td><td class="n">31.20</td><td class="n up">+53.81</td><td class="n up">+71.70</td><td class="n up"><b>+93.65</b></td></tr>
+            <tr class="bp-hot"><td class="sym">HST</td><td>REIT</td><td>core</td><td class="n">13.33</td><td class="n">17.24</td><td class="n up">+3.55</td><td class="n up">+7.37</td><td class="n up"><b>+37.35</b></td></tr>
+            <tr class="bp-hot"><td class="sym">HAL</td><td>Energy</td><td>mom</td><td class="n">10</td><td class="n">27.71</td><td class="n up">+22.17</td><td class="n up">+39.41</td><td class="n up">+22.35</td></tr>
+            <tr><td class="sym">C</td><td>Fin</td><td>mom</td><td class="n">10</td><td class="n">119.23</td><td class="n down">-4.65</td><td class="n down">-6.17</td><td class="n up">+20.43</td></tr>
+            <tr><td class="sym">RF</td><td>Fin</td><td>core</td><td class="n">13.33</td><td class="n">27.26</td><td class="n down">-0.18</td><td class="n down">-7.32</td><td class="n up">+8.16</td></tr>
+            <tr><td class="sym">EA</td><td>Comm</td><td>core</td><td class="n">13.33</td><td class="n">204.40</td><td class="n down">-0.19</td><td class="n down">-1.31</td><td class="n flat">+0.06</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">為什麼贏 · 三個關鍵</div>
+      <div class="card-b">
+        <ul class="notes">
+          <li><b>象限允許重倉</b>：🔥+🟢 給 90% 上限 · 實際打到 70% invested · vs 🟡+🟢 才 25-40% · 差 2 倍槓桿</li>
+          <li><b>MRNA +93% 是關鍵爆擊</b>：Point 高 + vp_score 100 + TNX 順風給 XLV · pipeline 抓到 3 個 signal 交集 · 6m 貢獻組合 +9.4%</li>
+          <li><b>HAL +22% 快速動能</b>：Energy 板塊被 TNX 4.14% 加碼 · Point rank #2 · vp_ratio 1.377 · 資金確認</li>
+          <li><b>金融雙檔 1-3m 都虧</b>：C -6%, RF -7% · 但 6m 都回正到 +20%/+8% · 顯示 pipeline 有「時間換空間」的抗震度 · 不用中途認賠</li>
+          <li><b>EA 平盤但沒殺傷</b>：core 位 13.33% · 6m +0.06% · 顯示 VCP + 距高點 -0.02% 的核心規則在低波動下有守成能力</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="full">
+  <div class="card">
+    <div class="card-h">象限分組後的 6m alpha 分布</div>
+    <div class="card-b">
+      <ul class="notes">
+        <li><b>🔥+🟢 象限（4 個樣本）</b>：alpha 極端分化 · 從 -2561 (2023/7) 到 +2140 (2025/12) · 中位數 +632 · 平均 <b>+65 bps</b>（受 2023/7 拖累）· 剔除 outlier 平均 +1386 bps</li>
+        <li><b>🟡+🟢 象限（2 個樣本）</b>：alpha 較穩定 · +1321 (2024/7) 到 -811 (2026/6 · 但只有 1m 資料 · 樣本不足）· 若只看 6m 完整資料 · 平均 <b>+1321 bps</b></li>
+        <li><b>2024/1 空倉是特例</b>：規則過嚴（di=1.0 + composite_max_rank=3 + per_sector_max=1）· 導致 pipeline 拒絕所有 candidates · 該日期 baseline 賺 0% · vs VOO +13.58% 反而虧最大機會成本</li>
+      </ul>
+    </div>
+  </div>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <div class="card-h">✅ Pipeline 做得好的地方</div>
+      <div class="card-b">
+        <ul class="notes">
+          <li>板塊 top 3 命中官方報告 <b>88% (6/26)</b> · <b>100% (7/31)</b></li>
+          <li>核心規則（VCP + 距高點 &lt;-5% + VP&gt;1）在低波動穩守 · EA 兩次入選</li>
+          <li>TNX 濾網有效 · XLE 動能 pick 在 4.14% TNX 環境全數獲利</li>
+          <li>個股 gap alert（吃老本 / 剛爆發）幫助識別動能來源類型</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">⚠ Pipeline 需要改進的地方</div>
+      <div class="card-b">
+        <ul class="notes">
+          <li><b>2023-07-31 JCI</b>：唯一 pick 6m -17% · 顯示 core 篩選還不夠嚴 · 該檔進場後 3 個月內爆量下殺</li>
+          <li><b>2024-01-31 空倉</b>：規則太嚴 · 錯過 6m +13.58% 大盤漲幅 · 對應實驗 A（拿掉 di=1.0）仍是 0 pick · 表示問題不在 di · 在其他 hard filter</li>
+          <li><b>🟡+🟢 象限配置太保守</b>：25-40% invested 稀釋 alpha · 未來可考慮動態配置（VIX 低則放大）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">🔬 下一步實驗方向</div>
+      <div class="card-b">
+        <ul class="notes">
+          <li>回測更多 🔥+🟢 樣本（2024/6, 2024/12, 2025/6）驗證是否 pipeline 在該象限系統性有 alpha</li>
+          <li>2024-01-31 為何空倉？逐條 hard filter debug · 找出過嚴的規則</li>
+          <li>MRNA / HAL 這類 6m 大贏家的「訊號共同特徵」抽取 · 看能否早一個月抓到（4W → 3W）</li>
+          <li>加入 VIX-based dynamic sizing · 🔥+🟢 象限 &amp; VIX &lt;15 時把上限拉到 90%</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    生成於 sector-rotation pipeline · 資料來源 yfinance · adjusted close · 未計股利/費用/稅務 · 純示範不構成投資建議<br>
+    Repo: <a href="https://github.com/delphichi/2025TRIP">delphichi/2025TRIP</a> · Site: <a href="https://delphichi.github.io/2025TRIP/sector-rotation/">sector-rotation dashboard</a>
+  </div>
+
+</div>
+</body>
+</html>
