@@ -1,16 +1,57 @@
 {
-  "generated_at": "2026-08-03T17:02:59.349247+00:00",
+  "generated_at": "2026-08-03T17:16:57.490788+00:00",
   "as_of_date": "2026-07-31",
   "as_of_date_note": "基準日 = 抓到的最後一根 close 的日期（T-1）· 非腳本執行當日",
   "sector_count": 11,
   "csv": "20260731_scorecard.csv",
+  "market_context": {
+    "as_of_date": "2026-07-31",
+    "voo": {
+      "price": 686.65,
+      "vs_60d_pct": 3.51,
+      "ma50": 684.02,
+      "vs_50ma_pct": 0.38
+    },
+    "vix": {
+      "value": 15.99
+    },
+    "tnx": {
+      "value": 4.74,
+      "raw": 4.74
+    },
+    "trend_label": "🟢",
+    "vs_50ma_label": "🟡",
+    "quadrant_key": "🟡+🟢",
+    "allocation": {
+      "core": 30,
+      "momentum": 25,
+      "sprint": 0,
+      "cash": 45
+    },
+    "vix_override_all_cash": false,
+    "tnx_boost": [
+      "XLE",
+      "XLF",
+      "XLV"
+    ],
+    "tnx_penalty": [
+      "XLK",
+      "XLRE",
+      "XLU"
+    ],
+    "notes": [
+      "📈 TNX=4.74% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+    ]
+  },
   "formulas": {
     "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
     "cms_a": "0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）",
     "di": "((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲",
     "vp_score": "MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35 + UD×100×0.15 + 50))",
     "composite": "Point_rank×0.40 + vp_score_rank×0.40 + vol_rank×0.20（越小越強）",
-    "gap_alert": "|Point_rank - vp_score_rank| > 5 → 吃老本(漲多動能弱) / 剛爆發(量價強漲幅追不上)"
+    "gap_alert": "|Point_rank - vp_score_rank| > 5 → 吃老本(漲多動能弱) / 剛爆發(量價強漲幅追不上)",
+    "market_regime": "VOO vs 60d → 🟢/🔴 · VOO vs 50MA → 🔥/🟡/❄ · VIX > 30 → 全倉現金",
+    "tnx_filter": "TNX > 4.0% → 利多 ['XLE', 'XLF', 'XLV']·利空 ['XLK', 'XLRE', 'XLU'] · TNX < 3.0% → 利多 ['XLK']·利空 ['XLE', 'XLF']"
   },
   "rows": [
     {
@@ -50,7 +91,8 @@
       "cms_a_rank": 2,
       "composite": 3.0,
       "composite_rank": 1,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": "boost"
     },
     {
       "sector": "XLF",
@@ -89,7 +131,8 @@
       "cms_a_rank": 1,
       "composite": 3.8,
       "composite_rank": 2,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": "boost"
     },
     {
       "sector": "XLI",
@@ -128,7 +171,8 @@
       "cms_a_rank": 7,
       "composite": 4.6,
       "composite_rank": 3,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": NaN
     },
     {
       "sector": "XLRE",
@@ -167,7 +211,8 @@
       "cms_a_rank": 3,
       "composite": 5.4,
       "composite_rank": 4,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": "penalty"
     },
     {
       "sector": "XLK",
@@ -206,7 +251,8 @@
       "cms_a_rank": 5,
       "composite": 5.8,
       "composite_rank": 5,
-      "gap_alert": "吃老本"
+      "gap_alert": "吃老本",
+      "tnx_flag": "penalty"
     },
     {
       "sector": "XLV",
@@ -245,7 +291,8 @@
       "cms_a_rank": 4,
       "composite": 6.0,
       "composite_rank": 6,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": "boost"
     },
     {
       "sector": "XLY",
@@ -284,7 +331,8 @@
       "cms_a_rank": 8,
       "composite": 6.0,
       "composite_rank": 6,
-      "gap_alert": "剛爆發"
+      "gap_alert": "剛爆發",
+      "tnx_flag": NaN
     },
     {
       "sector": "XLP",
@@ -323,7 +371,8 @@
       "cms_a_rank": 6,
       "composite": 6.2,
       "composite_rank": 8,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": NaN
     },
     {
       "sector": "XLB",
@@ -362,7 +411,8 @@
       "cms_a_rank": 9,
       "composite": 7.4,
       "composite_rank": 9,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": NaN
     },
     {
       "sector": "XLU",
@@ -401,7 +451,8 @@
       "cms_a_rank": 11,
       "composite": 8.8,
       "composite_rank": 10,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": "penalty"
     },
     {
       "sector": "XLC",
@@ -440,7 +491,8 @@
       "cms_a_rank": 9,
       "composite": 8.8,
       "composite_rank": 10,
-      "gap_alert": NaN
+      "gap_alert": NaN,
+      "tnx_flag": NaN
     }
   ]
 }
