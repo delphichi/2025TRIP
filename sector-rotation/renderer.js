@@ -186,16 +186,25 @@ function renderScoreTable() {
 }
 
 // ---------- render: stage 2 (S&P 500 個股) ----------
+const STAGE2_TAB_HINTS = {
+    "4w":    "Past 4 Weeks · 各板塊 4W 動能最強前 3 名（短線輪動主線）",
+    "13w":   "Past 13 Weeks · 各板塊 13W 動能最強前 3 名（一季趨勢）",
+    "26w":   "Past 26 Weeks · 各板塊 26W 動能最強前 3 名（半年主線）",
+    "cms_a": "各板塊 CMS_A 最強前 3 名（.5·4Wr+.3·13Wr+.2·26Wr · 綜合板塊內部排名 · 越小越強）",
+};
+
 function renderStage2() {
     const msgEl = $("#stage2-msg");
     if (!STATE.stage2) {
         msgEl.innerHTML = "⚠ 還沒跑 stage 2 · 執行 <code>FMP_API_KEY=xxx python scripts/sector_rotation_screener.py</code>";
         return;
     }
-    msgEl.textContent = `✅ Stage 2 資料：${STATE.stage2.as_of_date} · ${STATE.stage2.counts?.after_earnings_filter ?? "?"} 檔通過雙篩`;
+    const c = STATE.stage2.counts || {};
+    const filtered = c.after_earnings_filter ?? c.universe ?? "?";
+    msgEl.textContent = `✅ Stage 2 資料：as_of=${STATE.stage2.as_of_date} · universe=${c.universe ?? "?"} · 通過篩選=${filtered}`;
     $("#stage2-tabs").style.display = "";
     $("#heat-table").style.display = "";
-    $$(".tab-btn").forEach(b =>
+    $$("#stage2-tabs .tab-btn").forEach(b =>
         b.addEventListener("click", () => renderStage2Tab(b.dataset.tab))
     );
     renderStage2Tab("4w");
@@ -203,7 +212,9 @@ function renderStage2() {
 
 function renderStage2Tab(tabKey) {
     STATE.stage2Tab = tabKey;
-    $$(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabKey));
+    $$("#stage2-tabs .tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabKey));
+    const hintEl = $("#stage2-tab-hint");
+    if (hintEl) hintEl.textContent = STAGE2_TAB_HINTS[tabKey] || "";
     const rows = STATE.stage2?.top3?.[tabKey] || [];
     const tbody = $("#heat-tbody");
     tbody.innerHTML = "";
