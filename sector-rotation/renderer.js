@@ -432,7 +432,8 @@ const STAGE2_TAB_HINTS = {
     "4w":    "Past 4 Weeks · 各板塊 4W 動能最強前 3 名（短線輪動主線）",
     "13w":   "Past 13 Weeks · 各板塊 13W 動能最強前 3 名（一季趨勢）",
     "26w":   "Past 26 Weeks · 各板塊 26W 動能最強前 3 名（半年主線）",
-    "cms_a": "各板塊 CMS_A 最強前 3 名（.5·4Wr+.3·13Wr+.2·26Wr · 綜合板塊內部排名 · 越小越強）",
+    "cms_a": "各板塊 CMS_A 最強前 3 名（.5·4Wr+.3·13Wr+.2·26Wr · 純漲幅排名 · 越小越強）",
+    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄",
 };
 
 function renderStage2() {
@@ -460,7 +461,7 @@ function renderStage2Tab(tabKey) {
     const rows = STATE.stage2?.top3?.[tabKey] || [];
     const tbody = $("#heat-tbody");
     tbody.innerHTML = "";
-    const COLSPAN = 14;
+    const COLSPAN = 18;
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${COLSPAN}" class="empty-row">沒資料</td></tr>`;
         return;
@@ -490,6 +491,19 @@ function renderStage2Tab(tabKey) {
         const vpColor = r.vp_ratio_stock === null || r.vp_ratio_stock === undefined
             ? "var(--text-dim)"
             : (r.vp_ratio_stock > 1 ? "var(--good)" : "var(--danger)");
+        // vol_ratio_stock_20d：>1 綠 · <1 紅
+        const volColor = r.vol_ratio_stock_20d === null || r.vol_ratio_stock_20d === undefined
+            ? "var(--text-dim)"
+            : (r.vol_ratio_stock_20d > 1 ? "var(--good)" : "var(--danger)");
+
+        // 個股層 gap_alert
+        let stockAlertBadge = "—";
+        if (r.stock_gap_alert === "吃老本") stockAlertBadge = `<span class="alert-badge alert-old" title="板塊內 Point 前段但量價落後">⚠ 吃老本</span>`;
+        else if (r.stock_gap_alert === "剛爆發") stockAlertBadge = `<span class="alert-badge alert-new" title="板塊內量價強但漲幅追不上">⚠ 剛爆發</span>`;
+
+        // 綜合分 in sector：顯排名（越小越強）
+        const compRank = r.composite_rank_in_sector;
+        const compCell = compRank ? `<b style="color:var(--warn)">#${compRank}</b>` : "—";
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -503,10 +517,14 @@ function renderStage2Tab(tabKey) {
             <td class="num" style="color:${diColor}"><b>${fmtNum(r.di, 2)}</b></td>
             <td class="num heat" style="background:${heatBgRet(r.surprise_l1)}; color:${heatText(r.surprise_l1)}">${fmtPct(r.surprise_l1)}</td>
             <td class="num heat" style="background:${heatBgRet(r.surprise_l2)}; color:${heatText(r.surprise_l2)}">${fmtPct(r.surprise_l2)}</td>
+            <td class="num heat" style="background:${heatBgScore(r.vp_score_stock)}; color:${heatText((r.vp_score_stock || 50) - 50)}"><b>${fmtNum(r.vp_score_stock, 1)}</b></td>
+            <td class="num" style="color:${volColor}"><b>${fmtNum(r.vol_ratio_stock_20d, 2)}x</b></td>
+            <td class="num">${compCell}</td>
             <td class="num" style="color:${maColor}">${fmtPrice(r.ma50)}</td>
             <td class="num" style="color:${ampColor}"><b>${fmtNum(r.amp_10d_pct, 2)}%</b></td>
             <td class="num" style="color:${vpColor}"><b>${fmtNum(r.vp_ratio_stock, 2)}</b></td>
             <td class="vcp-cell">${vcpBadge}</td>
+            <td class="alert-cell">${stockAlertBadge}</td>
         `;
         tbody.appendChild(tr);
     });

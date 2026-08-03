@@ -220,14 +220,39 @@ def fetch_daily_ohlcv_for_vcp(tickers):
     return out
 
 
+def _compute_vp_score_stock(ret_20d_pct, ret_5d_pct, vp, ud):
+    """
+    量價絕對評分 0-100（跟 sector_scorecard.py compute_vp_score 完全一致）
+      MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20
+                        + VP×50×0.35 + UD×100×0.15 + 50))
+    註：20d/5d 用小數（0.05 = 5%）
+    """
+    if any(v is None for v in (ret_20d_pct, ret_5d_pct, vp, ud)):
+        return None
+    r20 = ret_20d_pct / 100.0
+    r5 = ret_5d_pct / 100.0
+    raw = r20 * 200 * 0.30 + r5 * 200 * 0.20 + vp * 50 * 0.35 + ud * 100 * 0.15 + 50
+    return max(0.0, min(100.0, raw))
+
+
 def compute_vcp_row(sym, sub):
     """
-    對單一 ticker 從 daily OHLCV 算 VCP 相關指標：
+    對單一 ticker 從 daily OHLCV 算全套 daily-based 指標：
+
+      【VCP 相關】
       above_50ma      : t_price > 50 日 close 均值
-      amp_10d_pct     : (max(high[-10:]) - min(low[-10:])) / mean(close[-10:]) × 100
-      vp_ratio_stock  : 個股層 VP = 近 20 日上漲日均量 / 下跌日均量（AD/AC）
-      vcp             : above_50ma AND amp_10d_pct < 3.0 AND vp_ratio_stock > 1.0
-    需求：至少 50 天 daily
+      ma50            : 50 日 close 均值
+      amp_10d_pct     : 近 10 日振幅
+      vp_ratio_stock  : 個股 VP = 20 日上漲日均量 / 下跌日均量（AD/AC）
+      vcp             : above_50ma AND amp_10d_pct<3 AND vp_ratio_stock>1.0
+      high_52w / pct_from_high : 52 週高 + 距高點
+
+      【量價評分（同 sector scorecard 公式，個股版）】
+      vol_10d_avg / vol_today / vol_3w_avg / vol_ratio_stock_20d
+      ret_5d / ret_20d
+      up_days_20 / down_days_20 / up_avg_vol / down_avg_vol
+      ud_ratio        : 上漲天數 / 下跌天數
+      vp_score_stock  : 0-100 絕對評分（same formula as sector）
     """
     if sub is None or len(sub) < 50:
         return None
@@ -248,24 +273,42 @@ def compute_vcp_row(sym, sub):
     win_c = close.iloc[-10:]
     amp_10d_pct = (win_h.max() - win_l.min()) / win_c.mean() * 100 if win_c.mean() > 0 else 0.0
 
-    # 近 20 日 AD/AC
+    # 近 20 日 up/down 分析（AD/AC + up_days/down_days + up_avg_vol/down_avg_vol）
     last21 = sub.tail(21)
     diffs = last21["Close"].diff().dropna()
     ups = diffs > 0
     downs = diffs < 0
+    up_days_20 = int(ups.sum())
+    down_days_20 = int(downs.sum())
     vols20 = last21["Volume"].iloc[1:]
-    ad = float(vols20[ups.values].mean()) if ups.any() else 0.0  # 上漲日均量
-    ac = float(vols20[downs.values].mean()) if downs.any() else 0.0  # 下跌日均量
+    ad = float(vols20[ups.values].mean()) if ups.any() else 0.0
+    ac = float(vols20[downs.values].mean()) if downs.any() else 0.0
     vp_ratio = (ad / ac) if ac > 0 else None
+    ud_ratio = (up_days_20 / down_days_20) if down_days_20 > 0 else None
 
     vcp = bool(above_50ma) and amp_10d_pct < 3.0 and (vp_ratio is not None and vp_ratio > 1.0)
 
-    # 52 週高（策略 A step 6 關卡二 · 「距高點」用）
+    # 52 週高（策略 A step 6 關卡二）
     high_52w = float(high.max())
     pct_from_high = (t_price / high_52w - 1) * 100 if high_52w > 0 else 0.0
 
+    # 5/20 日 daily 累積報酬（跟 sector scorecard 對齊 · 個股層一樣公式）
+    ret_5d = (close.iloc[-1] / close.iloc[-6] - 1) * 100 if len(close) >= 6 else None
+    ret_20d = (close.iloc[-1] / close.iloc[-21] - 1) * 100 if len(close) >= 21 else None
+
+    # 成交量指標
+    vol_today = int(vol.iloc[-1]) if len(vol) else 0
+    vol_10d_avg = int(vol.iloc[-10:].mean()) if len(vol) >= 10 else 0
+    vol_3w_avg_val = float(vol.iloc[-15:].mean()) if len(vol) >= 15 else 0.0
+    vol_3w_avg = int(vol_3w_avg_val)
+    vol_ratio_stock = round(vol_today / vol_3w_avg_val, 3) if vol_3w_avg_val > 0 else None
+
+    # 量價絕對評分（同 sector 公式）
+    vp_score_stock = _compute_vp_score_stock(ret_20d, ret_5d, vp_ratio, ud_ratio)
+
     return {
         "symbol": sym,
+        # VCP 群
         "above_50ma": bool(above_50ma),
         "ma50": round(ma50, 2),
         "amp_10d_pct": round(amp_10d_pct, 2),
@@ -273,6 +316,19 @@ def compute_vcp_row(sym, sub):
         "vcp": vcp,
         "high_52w": round(high_52w, 2),
         "pct_from_high": round(pct_from_high, 2),
+        # 量價評分群（新）
+        "ret_5d": round(ret_5d, 2) if ret_5d is not None else None,
+        "ret_20d": round(ret_20d, 2) if ret_20d is not None else None,
+        "up_days_20": up_days_20,
+        "down_days_20": down_days_20,
+        "up_avg_vol": int(ad),
+        "down_avg_vol": int(ac),
+        "ud_ratio": round(ud_ratio, 3) if ud_ratio is not None else None,
+        "vol_today": vol_today,
+        "vol_10d_avg": vol_10d_avg,
+        "vol_3w_avg": vol_3w_avg,
+        "vol_ratio_stock_20d": vol_ratio_stock,
+        "vp_score_stock": round(vp_score_stock, 2) if vp_score_stock is not None else None,
     }
 
 
@@ -455,12 +511,56 @@ def add_sector_internal_ranks(df):
     return df
 
 
+def add_sector_stock_composite_ranks(df):
+    """
+    對每個 sector 內部：算 Point / vp_score / vol_ratio 排名
+    綜合分 (in sector) = point_rank×0.4 + vp_score_rank×0.4 + vol_rank×0.2（越小越強）
+    加 stock_gap_alert：Point vs vp_score rank 差 > 5 → 吃老本 / 剛爆發
+
+    只對有 daily 資料的個股計算（其他 sector 沒 daily 的 subset 會是 NaN · JSON 序列化時 skip）
+    """
+    df = df.copy()
+    # NaN 的 vp_score / vol_ratio_stock 排名放最後（bottom）
+    df["point_rank_in_sector"] = df.groupby("sector")["point"].rank(
+        method="min", ascending=False, na_option="bottom"
+    ).astype("Int64")
+    df["vp_score_rank_in_sector"] = df.groupby("sector")["vp_score_stock"].rank(
+        method="min", ascending=False, na_option="bottom"
+    ).astype("Int64")
+    df["vol_rank_in_sector"] = df.groupby("sector")["vol_ratio_stock_20d"].rank(
+        method="min", ascending=False, na_option="bottom"
+    ).astype("Int64")
+
+    # 綜合分（只對有 vp_score 的算 · 其他留 NaN）
+    has_vp = df["vp_score_stock"].notna()
+    df["composite_in_sector"] = None
+    df.loc[has_vp, "composite_in_sector"] = (
+        df.loc[has_vp, "point_rank_in_sector"] * 0.4
+        + df.loc[has_vp, "vp_score_rank_in_sector"] * 0.4
+        + df.loc[has_vp, "vol_rank_in_sector"] * 0.2
+    ).round(2)
+    df["composite_rank_in_sector"] = df.groupby("sector")["composite_in_sector"].rank(
+        method="min", ascending=True, na_option="bottom"
+    ).astype("Int64")
+
+    # 個股層 gap_alert（Point vs vp_score rank 差 > 5）
+    def _gap(row):
+        pr, vr = row.get("point_rank_in_sector"), row.get("vp_score_rank_in_sector")
+        if pd.isna(pr) or pd.isna(vr):
+            return None
+        if abs(pr - vr) <= 5:
+            return None
+        return "吃老本" if pr < vr else "剛爆發"
+    df["stock_gap_alert"] = df.apply(_gap, axis=1)
+
+    return df
+
+
 # ============================================================
 # 5. 輸出
 # ============================================================
-def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
+def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite):
     os.makedirs(OUTDIR, exist_ok=True)
-    # 用 T-1 as_of_date（非 today）
     as_of = df_all["as_of_date"].iloc[0] if "as_of_date" in df_all and len(df_all) else date.today().strftime("%Y-%m-%d")
     stamp = as_of.replace("-", "")
 
@@ -476,6 +576,8 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
     _save(top3_13w, "top3_13w")
     _save(top3_26w, "top3_26w")
     _save(top3_cms_a, "top3_cms_a")
+    if len(top3_composite):
+        _save(top3_composite, "top3_composite")
 
     def _records(df):
         return df.where(pd.notna(df), None).to_dict(orient="records")
@@ -494,6 +596,7 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
             "top3_13w": int(len(top3_13w)),
             "top3_26w": int(len(top3_26w)),
             "top3_cms_a": int(len(top3_cms_a)),
+            "top3_composite": int(len(top3_composite)),
         },
         "files": files,
         "top3": {
@@ -501,12 +604,16 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
             "13w": _records(top3_13w),
             "26w": _records(top3_26w),
             "cms_a": _records(top3_cms_a),
+            "composite": _records(top3_composite),
         },
         "formulas": {
             "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
             "cms_a": "0.5×4W_rank_in_sector + 0.3×13W_rank_in_sector + 0.2×26W_rank_in_sector（越小越強，重短線）",
             "di": "((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲",
             "vcp": "AND(t_price>50MA, 近10日振幅<3%, VP=AD/AC>1.0) · 站上50MA + 波動收斂 + 上漲有量",
+            "vp_score_stock": "MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35 + UD×100×0.15 + 50))（同 sector 公式，個股版）",
+            "composite_in_sector": "point_rank×0.4 + vp_score_rank×0.4 + vol_rank×0.2（in sector · 越小越強）",
+            "stock_gap_alert": "|point_rank_in_sector - vp_score_rank_in_sector| > 5 → 吃老本 / 剛爆發（板塊內錯位）",
         },
         "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
         "surprise_source": "yfinance (earnings_dates)",
@@ -540,14 +647,21 @@ def main():
     surp_df = fetch_surprises_parallel(pre_syms)
     full_df = price_df.merge(surp_df, on="symbol", how="left")
 
-    # (4b) VCP 濾網 — 抓 daily · 算 above_50ma / amp_10d / VP / vcp / high_52w / pct_from_high
+    # (4b) 個股 daily 指標一次算齊：VCP + 高點 + vp_score + vol_ratio + ret_5d/20d
     vcp_df = compute_vcp_metrics_batch(pre_syms)
     if len(vcp_df):
         full_df = full_df.merge(vcp_df, on="symbol", how="left")
     else:
         for c in ("above_50ma", "ma50", "amp_10d_pct", "vp_ratio_stock", "vcp",
-                  "high_52w", "pct_from_high"):
+                  "high_52w", "pct_from_high",
+                  "ret_5d", "ret_20d", "up_days_20", "down_days_20",
+                  "up_avg_vol", "down_avg_vol", "ud_ratio",
+                  "vol_today", "vol_10d_avg", "vol_3w_avg", "vol_ratio_stock_20d",
+                  "vp_score_stock"):
             full_df[c] = None
+
+    # (4c) 板塊內個股綜合分（sector-scorecard 同套公式：Point + vp_score + vol_ratio）
+    full_df = add_sector_stock_composite_ranks(full_df)
 
     # (5) 盈餘動能篩選（只對預篩過的 subset）
     subset = full_df[full_df["symbol"].isin(pre_syms)].copy()
@@ -555,16 +669,19 @@ def main():
     full_df["earnings_passed"] = full_df["symbol"].isin(filtered["symbol"])
     log(f"After earnings filter: {len(filtered)} tickers pass")
 
-    # (6) 各時間尺度取 top 3 · 另加一張「CMS_A 板塊內冠軍榜」
+    # (6) 各時間尺度取 top 3 · 另加 CMS_A 冠軍榜 + 綜合分冠軍榜
     top3_4w = pick_top_n_per_sector(filtered, "cum_ret_4w")
     top3_13w = pick_top_n_per_sector(filtered, "cum_ret_13w")
     top3_26w = pick_top_n_per_sector(filtered, "cum_ret_26w")
-    top3_cms_a = pick_top_n_per_sector(filtered, "cms_a", ascending=True)  # 越小越強
+    top3_cms_a = pick_top_n_per_sector(filtered, "cms_a", ascending=True)
+    # 綜合分冠軍：composite_in_sector 越小越強 · 只從有 vp_score_stock 的 subset 選
+    with_vp = filtered[filtered["vp_score_stock"].notna()].copy() if len(filtered) else filtered
+    top3_composite = pick_top_n_per_sector(with_vp, "composite_in_sector", ascending=True) if len(with_vp) else pd.DataFrame()
 
     # (7) 存檔
     save_outputs(
         full_df.sort_values(["sector", "point"], ascending=[True, False]),
-        top3_4w, top3_13w, top3_cms_a, top3_26w,
+        top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite,
     )
 
     log(f"Done in {time.time() - t0:.1f}s")
