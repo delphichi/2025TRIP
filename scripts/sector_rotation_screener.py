@@ -31,12 +31,37 @@ import sys
 import json
 import math
 import time
+import argparse
 from datetime import datetime, date, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import StringIO
 
 import pandas as pd
 import requests
+
+
+# 全域 AS_OF · 由 main() 從 CLI 設定 · None = 用最新
+AS_OF_DATE = None  # type: ignore[assignment]
+
+
+def _yf_window(months):
+    """把「拉多長」轉成 yf.download 的 kwargs · 依有無 AS_OF_DATE 切 period / start+end"""
+    if AS_OF_DATE is None:
+        return {"period": f"{months}mo"}
+    end = AS_OF_DATE + timedelta(days=1)
+    start = AS_OF_DATE - timedelta(days=int(months * 31))
+    return {"start": start.strftime("%Y-%m-%d"), "end": end.strftime("%Y-%m-%d")}
+
+
+def _cutoff_date():
+    return AS_OF_DATE if AS_OF_DATE is not None else datetime.now(timezone.utc).date()
+
+
+def _bar_ok(bar_date):
+    """判斷這根 bar 該不該保留 · AS_OF 模式含 as_of · 現況模式排除 today"""
+    if AS_OF_DATE is not None:
+        return bar_date <= AS_OF_DATE
+    return bar_date < datetime.now(timezone.utc).date()
 
 
 def _json_safe(obj):
@@ -119,12 +144,12 @@ def fetch_weekly_returns(tickers):
         # 抓 28 週足夠算 26W；多抓 3 週 buffer 應付缺資料
         data = yf.download(
             chunk,
-            period="8mo",
             interval="1wk",
             auto_adjust=True,
             progress=False,
             threads=True,
             group_by="ticker",
+            **_yf_window(8),
         )
         # yfinance 回傳格式因 chunk size 而異
         if isinstance(data.columns, pd.MultiIndex):
@@ -138,15 +163,18 @@ def fetch_weekly_returns(tickers):
 
     all_close = all_close.dropna(how="all").sort_index()
 
-    # T-1 保護：擋掉「今天」的 partial weekly bar
-    # 盤中跑 yfinance 會回傳當週還沒結束的 partial 資料
-    today_utc = datetime.now(timezone.utc).date()
+    # T-1 保護：擋掉「今天/未來」的 partial weekly bar
+    # AS_OF 模式：保留 <= as_of · 現況模式：保留 < today
+    cutoff = _cutoff_date()
     idx = pd.to_datetime(all_close.index)
-    before_today = idx.date < today_utc
-    dropped = int((~before_today).sum())
+    if AS_OF_DATE is not None:
+        keep = idx.date <= cutoff
+    else:
+        keep = idx.date < cutoff
+    dropped = int((~keep).sum())
     if dropped:
-        log(f"  · 擋掉 {dropped} 根「今天/未來」的 partial weekly bar")
-    all_close = all_close.loc[before_today]
+        log(f"  · 擋掉 {dropped} 根 > {cutoff} 的 partial weekly bar")
+    all_close = all_close.loc[keep]
 
     log(f"  → close matrix: {all_close.shape[0]} weeks × {all_close.shape[1]} tickers")
 
@@ -198,24 +226,25 @@ def fetch_daily_ohlcv_for_vcp(tickers):
     import yfinance as yf
     log(f"Downloading daily OHLCV for {len(tickers)} pre-filtered tickers (for VCP + 52w high)...")
     out = {}
-    today_utc = datetime.now(timezone.utc).date()
     for i in range(0, len(tickers), YF_BATCH):
         chunk = tickers[i : i + YF_BATCH]
         data = yf.download(
-            chunk, period="1y", interval="1d",
+            chunk, interval="1d",
             auto_adjust=True, progress=False, threads=True, group_by="ticker",
+            **_yf_window(12),
         )
+        def _cut(sub):
+            idx_dates = pd.to_datetime(sub.index).date
+            if AS_OF_DATE is not None:
+                return sub.loc[idx_dates <= AS_OF_DATE]
+            return sub.loc[idx_dates < datetime.now(timezone.utc).date()]
         if isinstance(data.columns, pd.MultiIndex):
             for t in chunk:
                 if t in data.columns.get_level_values(0):
                     sub = data[t].dropna(how="all")
-                    # 擋掉「今天」的 partial bar
-                    sub = sub.loc[pd.to_datetime(sub.index).date < today_utc]
-                    out[t] = sub
+                    out[t] = _cut(sub)
         else:
-            sub = data.dropna(how="all")
-            sub = sub.loc[pd.to_datetime(sub.index).date < today_utc]
-            out[chunk[0]] = sub
+            out[chunk[0]] = _cut(data.dropna(how="all"))
     log(f"  → daily fetched for {len(out)} tickers")
     return out
 
@@ -367,14 +396,19 @@ def fetch_yf_surprise(symbol, stats):
             return (None, None, None)
 
         # 判斷未來 14 天內有沒有未公告財報（策略 A step 6 財報地雷確認）
-        now_utc = datetime.now(timezone.utc)
+        # 回放模式：用 AS_OF_DATE 當「當下」· 只看那時候「未來 14 天」
+        if AS_OF_DATE is not None:
+            now_utc = datetime.combine(AS_OF_DATE, datetime.min.time()).replace(tzinfo=timezone.utc)
+        else:
+            now_utc = datetime.now(timezone.utc)
         future_cutoff = now_utc + timedelta(days=14)
+        # 回放模式：把「當時未來」以外的財報都當已知（reported 或未來但已過 as_of）
+        # 簡化：filter df 只留 index <= future_cutoff 的（其他忽略）
         unreported = df[df["Reported EPS"].isna()]
         pre_14d = False
         for idx in unreported.index:
             try:
                 d = idx.to_pydatetime()
-                # timezone-safe 比較
                 d_naive = d.replace(tzinfo=None) if d.tzinfo else d
                 now_naive = now_utc.replace(tzinfo=None)
                 future_naive = future_cutoff.replace(tzinfo=None)
@@ -384,8 +418,15 @@ def fetch_yf_surprise(symbol, stats):
             except Exception:
                 continue
 
-        # 只留「已公告」（Reported EPS 有值）· 按日期倒序
+        # 只留「as_of 當時已公告」的（Reported EPS 有值 AND 日期 <= as_of）· 按日期倒序
         past = df.dropna(subset=["Reported EPS"]).sort_index(ascending=False)
+        if AS_OF_DATE is not None:
+            past_idx = past.index
+            try:
+                d_naive = pd.to_datetime(past_idx).tz_localize(None) if past_idx.tz is not None else pd.to_datetime(past_idx)
+                past = past.loc[d_naive.date <= AS_OF_DATE]
+            except Exception:
+                pass
         if len(past) == 0:
             stats["no_history"] += 1
             return (None, None, pre_14d)
@@ -627,6 +668,15 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite
 # 6. main
 # ============================================================
 def main():
+    global AS_OF_DATE
+    parser = argparse.ArgumentParser(description="S&P 500 sector rotation screener (stage 2)")
+    parser.add_argument("--as-of", dest="as_of",
+                        help="回放模式 · 用 YYYY-MM-DD 前一天的 close 為基準（不填 = 用最新）")
+    args = parser.parse_args()
+    if args.as_of:
+        AS_OF_DATE = datetime.strptime(args.as_of, "%Y-%m-%d").date()
+        log(f"⏪ 回放模式 · as_of = {AS_OF_DATE}")
+
     t0 = time.time()
 
     # (1) universe

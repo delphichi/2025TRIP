@@ -64,9 +64,28 @@ import os
 import sys
 import json
 import math
-from datetime import datetime, date, timezone
+import argparse
+from datetime import datetime, date, timezone, timedelta
 
 import pandas as pd
+
+
+# 全域 AS_OF · 由 main() 從 CLI 設定 · None = 用 yfinance 最新資料（今天 T-1）
+AS_OF_DATE = None  # type: ignore[assignment]
+
+
+def _yf_window(months):
+    """把「拉多長」轉成 yf.download 的 kwargs · 依有無 AS_OF_DATE 切 period / start+end"""
+    if AS_OF_DATE is None:
+        return {"period": f"{months}mo"}
+    end = AS_OF_DATE + timedelta(days=1)  # yfinance end 是 exclusive
+    start = AS_OF_DATE - timedelta(days=int(months * 31))
+    return {"start": start.strftime("%Y-%m-%d"), "end": end.strftime("%Y-%m-%d")}
+
+
+def _cutoff_date():
+    """回傳「不能超過的日期」· 有 AS_OF_DATE 用它 · 沒有用今天 UTC"""
+    return AS_OF_DATE if AS_OF_DATE is not None else datetime.now(timezone.utc).date()
 
 
 def _json_safe(obj):
@@ -145,32 +164,40 @@ def fetch_data():
     tickers = [s[0] for s in SECTORS]
     log(f"Fetching daily data for {len(tickers)} sector ETFs...")
     daily = yf.download(
-        tickers, period="9mo", interval="1d",
+        tickers, interval="1d",
         auto_adjust=True, progress=False, threads=True, group_by="ticker",
+        **_yf_window(9),
     )
     log(f"Fetching weekly data for {len(tickers)} sector ETFs...")
     weekly = yf.download(
-        tickers, period="9mo", interval="1wk",
+        tickers, interval="1wk",
         auto_adjust=True, progress=False, threads=True, group_by="ticker",
+        **_yf_window(9),
     )
     # T-1 保護：擋掉「今天」的 partial bar
     # 盤中跑（US 09:30-16:00 ET）yfinance 會回傳當日的日內 partial 資料
     # 我們要 T-1 完整收盤 · 所以 filter 掉 date >= today (UTC / ET 都比較保守)
+    # 若 AS_OF_DATE 有設 · 也擋掉 > as_of 的 bar
     daily = _drop_today_bar(daily, "daily")
     weekly = _drop_today_bar(weekly, "weekly")
     return daily, weekly
 
 
 def _drop_today_bar(df_bulk, label):
-    """把 index 日期是「今天或以後」的 row 丟掉 · 保證所有計算用的都是完整收盤"""
+    """把 index 日期是「今天或以後」的 row 丟掉 · 保證所有計算用的都是完整收盤
+    · 若 AS_OF_DATE 有設 · cutoff 用 as_of（含 as_of 這根 · 擋掉 > as_of 的）"""
     if df_bulk is None or df_bulk.empty:
         return df_bulk
-    today_utc = datetime.now(timezone.utc).date()
+    cutoff = _cutoff_date()
     idx = pd.to_datetime(df_bulk.index)
-    mask = idx.date < today_utc
+    # AS_OF 模式：保留 <= as_of · 現況模式：保留 < today
+    if AS_OF_DATE is not None:
+        mask = idx.date <= cutoff
+    else:
+        mask = idx.date < cutoff
     dropped = int((~mask).sum())
     if dropped:
-        log(f"  · {label}: 擋掉 {dropped} 根「今天」的 partial bar → 剩 {int(mask.sum())} 根")
+        log(f"  · {label}: 擋掉 {dropped} 根 > {cutoff} 的 bar → 剩 {int(mask.sum())} 根")
     return df_bulk.loc[mask]
 
 
@@ -201,8 +228,9 @@ def fetch_market_context():
     log("Fetching market context (VOO / ^VIX / ^TNX)...")
     tickers = ["VOO", "^VIX", "^TNX"]
     data = yf.download(
-        tickers, period="4mo", interval="1d",
+        tickers, interval="1d",
         auto_adjust=True, progress=False, threads=True, group_by="ticker",
+        **_yf_window(4),
     )
     # 擋掉「今天」的 partial bar
     data = _drop_today_bar(data, "market")
@@ -485,6 +513,15 @@ def save_outputs(df, market_ctx=None):
 # 5. main
 # ============================================================
 def main():
+    global AS_OF_DATE
+    parser = argparse.ArgumentParser(description="11 類 Sector ETF 量價評分排行")
+    parser.add_argument("--as-of", dest="as_of",
+                        help="回放模式 · 用 YYYY-MM-DD 前一天的 close 為基準（不填 = 用最新）")
+    args = parser.parse_args()
+    if args.as_of:
+        AS_OF_DATE = datetime.strptime(args.as_of, "%Y-%m-%d").date()
+        log(f"⏪ 回放模式 · as_of = {AS_OF_DATE}")
+
     daily, weekly = fetch_data()
 
     # 市場環境（策略 A · Step 1 + Step 2）

@@ -21,6 +21,10 @@ on:
         description: '順便跑 stage 2（S&P 500 個股 · 需 FMP_API_KEY · 耗時較久）'
         type: boolean
         default: false
+      as_of_date:
+        description: '回放日期 YYYY-MM-DD · 空 = 用最新 · 填了會覆蓋 scorecard_latest 等前端讀的檔案'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -44,10 +48,15 @@ jobs:
 
       - name: Run sector scorecard (stage 1)
         # set -o pipefail 讓 python 錯誤不會被 tee 吞掉 → step 才會正確 fail
+        # AS_OF 可選 · 空字串就跑最新 · 有值就傳 --as-of
         shell: bash
+        env:
+          AS_OF: ${{ inputs.as_of_date }}
         run: |
           set -o pipefail
-          python scripts/sector_scorecard.py 2>&1 | tee /tmp/scorecard.log
+          ARGS=""
+          if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
+          python scripts/sector_scorecard.py $ARGS 2>&1 | tee /tmp/scorecard.log
 
       # Stage 2 只在下列情境跑：
       #   1) 週五 UTC 22:00 排程（cron 明確為 '0 22 * * 5'）
@@ -60,9 +69,12 @@ jobs:
         shell: bash
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          AS_OF: ${{ inputs.as_of_date }}
         run: |
           set -o pipefail
-          python scripts/sector_rotation_screener.py 2>&1 | tee /tmp/stage2.log
+          ARGS=""
+          if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
+          python scripts/sector_rotation_screener.py $ARGS 2>&1 | tee /tmp/stage2.log
 
       # 策略 A · 九步驟選股 pipeline · 只在 stage 2 有跑時才跑（依賴 stage 2 輸出）
       - name: Run Strategy A pipeline (nine-step selection)
@@ -81,9 +93,13 @@ jobs:
           (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
           (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
         shell: bash
+        env:
+          AS_OF: ${{ inputs.as_of_date }}
         run: |
           set -o pipefail
-          python scripts/strategy_b_scanner.py 2>&1 | tee /tmp/strategy_b.log
+          ARGS=""
+          if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
+          python scripts/strategy_b_scanner.py $ARGS 2>&1 | tee /tmp/strategy_b.log
 
       - name: Summary
         if: always()
@@ -115,7 +131,9 @@ jobs:
             echo "No new data to commit"
             exit 0
           fi
-          git commit -m "chore(sector-rotation): snapshot $(date -u '+%Y-%m-%d')"
+          STAMP="$(date -u '+%Y-%m-%d')"
+          if [ -n "${{ inputs.as_of_date }}" ]; then STAMP="replay ${{ inputs.as_of_date }}"; fi
+          git commit -m "chore(sector-rotation): snapshot $STAMP"
           for i in 1 2 3 4; do
             git pull --rebase origin main && git push origin HEAD:main && break
             echo "Push attempt $i failed · sleep $((2**i))s"

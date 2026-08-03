@@ -25,12 +25,24 @@ import os
 import sys
 import json
 import math
-from datetime import datetime, date, timezone
+import argparse
+from datetime import datetime, date, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import StringIO
 
 import pandas as pd
 import requests
+
+
+AS_OF_DATE = None  # type: ignore[assignment]
+
+
+def _yf_window(months):
+    if AS_OF_DATE is None:
+        return {"period": f"{months}mo"}
+    end = AS_OF_DATE + timedelta(days=1)
+    start = AS_OF_DATE - timedelta(days=int(months * 31))
+    return {"start": start.strftime("%Y-%m-%d"), "end": end.strftime("%Y-%m-%d")}
 
 
 def _json_safe(obj):
@@ -95,23 +107,25 @@ def fetch_all_daily(tickers):
     import yfinance as yf
     log(f"Downloading 1y daily OHLCV for {len(tickers)} tickers (S&P 500 full universe)...")
     out = {}
-    today_utc = datetime.now(timezone.utc).date()
     for i in range(0, len(tickers), YF_BATCH):
         chunk = tickers[i : i + YF_BATCH]
         data = yf.download(
-            chunk, period="1y", interval="1d",
+            chunk, interval="1d",
             auto_adjust=True, progress=False, threads=True, group_by="ticker",
+            **_yf_window(12),
         )
+        def _cut(sub):
+            idx_dates = pd.to_datetime(sub.index).date
+            if AS_OF_DATE is not None:
+                return sub.loc[idx_dates <= AS_OF_DATE]
+            return sub.loc[idx_dates < datetime.now(timezone.utc).date()]
         if isinstance(data.columns, pd.MultiIndex):
             for t in chunk:
                 if t in data.columns.get_level_values(0):
                     sub = data[t].dropna(how="all")
-                    sub = sub.loc[pd.to_datetime(sub.index).date < today_utc]
-                    out[t] = sub
+                    out[t] = _cut(sub)
         else:
-            sub = data.dropna(how="all")
-            sub = sub.loc[pd.to_datetime(sub.index).date < today_utc]
-            out[chunk[0]] = sub
+            out[chunk[0]] = _cut(data.dropna(how="all"))
         if (i // YF_BATCH + 1) % 3 == 0:
             log(f"  progress: {min(i + YF_BATCH, len(tickers))}/{len(tickers)}")
     log(f"  → daily fetched for {len(out)} tickers")
@@ -218,6 +232,15 @@ def scan_symbol(sym, sub, sector, name):
 # 4. main
 # ============================================================
 def main():
+    global AS_OF_DATE
+    parser = argparse.ArgumentParser(description="Strategy B · dip buy scanner")
+    parser.add_argument("--as-of", dest="as_of",
+                        help="回放模式 · 用 YYYY-MM-DD 前一天的 close 為基準（不填 = 用最新）")
+    args = parser.parse_args()
+    if args.as_of:
+        AS_OF_DATE = datetime.strptime(args.as_of, "%Y-%m-%d").date()
+        log(f"⏪ 回放模式 · as_of = {AS_OF_DATE}")
+
     universe = fetch_sp500_constituents()
     daily_data = fetch_all_daily(universe["symbol"].tolist())
 
