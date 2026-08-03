@@ -1,0 +1,206 @@
+{
+  "generated_at": "2026-08-03T17:35:09.139424+00:00",
+  "as_of_date": "2026-07-31",
+  "market_context": {
+    "as_of_date": "2026-07-31",
+    "voo": {
+      "price": 686.65,
+      "vs_60d_pct": 3.51,
+      "ma50": 684.02,
+      "vs_50ma_pct": 0.38
+    },
+    "vix": {
+      "value": 15.99
+    },
+    "tnx": {
+      "value": 4.74,
+      "raw": 4.74
+    },
+    "trend_label": "🟢",
+    "vs_50ma_label": "🟡",
+    "quadrant_key": "🟡+🟢",
+    "allocation": {
+      "core": 30,
+      "momentum": 25,
+      "sprint": 0,
+      "cash": 45
+    },
+    "vix_override_all_cash": false,
+    "tnx_boost": [
+      "XLE",
+      "XLF",
+      "XLV"
+    ],
+    "tnx_penalty": [
+      "XLK",
+      "XLRE",
+      "XLU"
+    ],
+    "notes": [
+      "📈 TNX=4.74% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+    ]
+  },
+  "effective_sectors": [
+    {
+      "sector": "XLE",
+      "sector_name": "能源",
+      "composite_rank": 1,
+      "point_rank": 1,
+      "cms_a": 2.7,
+      "tnx_flag": "boost"
+    },
+    {
+      "sector": "XLF",
+      "sector_name": "金融",
+      "composite_rank": 2,
+      "point_rank": 3,
+      "cms_a": 2.6,
+      "tnx_flag": "boost"
+    },
+    {
+      "sector": "XLI",
+      "sector_name": "工業",
+      "composite_rank": 3,
+      "point_rank": 6,
+      "cms_a": 6.0,
+      "tnx_flag": NaN
+    }
+  ],
+  "demoted_sectors": [],
+  "allocation": {
+    "core": 30,
+    "momentum": 25,
+    "sprint": 0,
+    "cash": 45
+  },
+  "positions": {
+    "core": [],
+    "momentum": [
+      {
+        "symbol": "VLO",
+        "name": "Valero Energy",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 48.8,
+        "cms_a": 3.0,
+        "di": 1.0,
+        "cum_ret_4w": 17.31,
+        "cum_ret_13w": 27.84,
+        "cum_ret_26w": 75.02,
+        "vcp": false,
+        "vp_ratio_stock": 1.039,
+        "pct_from_high": -1.91,
+        "high_52w": 319.01,
+        "surprise_l1": 23.84,
+        "surprise_l2": 33.47,
+        "pre_earnings_14d": false,
+        "tier": "momentum",
+        "reason": "TNX順風 + VP 1.04 + 4W +17.3%",
+        "weight_pct": 12.5
+      },
+      {
+        "symbol": "TRV",
+        "name": "Travelers Companies (The)",
+        "sector": "Financials",
+        "sector_etf": "XLF",
+        "point": 24.49,
+        "cms_a": 7.5,
+        "di": 1.0,
+        "cum_ret_4w": 9.36,
+        "cum_ret_13w": 23.37,
+        "cum_ret_26w": 32.61,
+        "vcp": false,
+        "vp_ratio_stock": 1.088,
+        "pct_from_high": -6.1,
+        "high_52w": 398.7,
+        "surprise_l1": 86.12,
+        "surprise_l2": 8.93,
+        "pre_earnings_14d": false,
+        "tier": "momentum",
+        "reason": "TNX順風 + VP 1.09 + 4W +9.4%",
+        "weight_pct": 12.5
+      }
+    ],
+    "sprint": [
+      {
+        "symbol": "DELL",
+        "name": "Dell Technologies",
+        "sector": "Information Technology",
+        "sector_etf": "XLK",
+        "point": 151.99,
+        "cms_a": 15.5,
+        "di": 1.0,
+        "cum_ret_4w": 2.97,
+        "cum_ret_13w": 93.2,
+        "cum_ret_26w": 255.9,
+        "vcp": false,
+        "vp_ratio_stock": 1.087,
+        "pct_from_high": -13.51,
+        "high_52w": 468.7,
+        "surprise_l1": 63.99,
+        "surprise_l2": 10.74,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "破格 · 全場 Point 最高(152.0)且領先池內第 3 名 50%+"
+      }
+    ],
+    "hold_earnings": [
+      {
+        "symbol": "MPC",
+        "name": "Marathon Petroleum",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 52.57,
+        "cms_a": 1.5,
+        "di": 1.0,
+        "cum_ret_4w": 18.82,
+        "cum_ret_13w": 29.06,
+        "cum_ret_26w": 81.21,
+        "vcp": false,
+        "vp_ratio_stock": 0.923,
+        "pct_from_high": -3.2,
+        "high_52w": 326.92,
+        "surprise_l1": 120.63,
+        "surprise_l2": 50.13,
+        "pre_earnings_14d": true,
+        "tier": null,
+        "reason": null
+      },
+      {
+        "symbol": "PSX",
+        "name": "Phillips 66",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 35.12,
+        "cms_a": 2.0,
+        "di": 1.0,
+        "cum_ret_4w": 19.99,
+        "cum_ret_13w": 21.02,
+        "cum_ret_26w": 49.74,
+        "vcp": false,
+        "vp_ratio_stock": 0.988,
+        "pct_from_high": -2.04,
+        "high_52w": 216.08,
+        "surprise_l1": 225.68,
+        "surprise_l2": 14.7,
+        "pre_earnings_14d": true,
+        "tier": null,
+        "reason": null
+      }
+    ]
+  },
+  "totals": {
+    "core_count": 0,
+    "momentum_count": 2,
+    "sprint_count": 1,
+    "hold_count": 2
+  },
+  "correlation_warnings": [],
+  "dark_horses": [],
+  "watchlist_promoted": [],
+  "notes": [
+    "策略 A 九步驟輸出 · 每檔 weight_pct = 該 tier 配置上限 / 該 tier 檔數",
+    "hold_earnings：暫緩（財報 14 天內），等財報後再評估",
+    "衝刺區可能包含破格納入的個股（reason 開頭「破格」）"
+  ]
+}
