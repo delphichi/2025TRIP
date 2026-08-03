@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-03T23:46:05.726498+00:00",
-  "as_of_date": "2026-07-31",
+  "generated_at": "2026-08-03T23:53:41.275631+00:00",
+  "as_of_date": "2026-08-03",
   "as_of_date_note": "T-1 · 抓到的最後一根 close 的日期（非腳本執行當日）",
   "scanned_count": 503,
-  "hits_count": 2,
+  "hits_count": 0,
   "conditions": {
     "daily_drop_pct": "< -5.0% （當日跌 > 5%）",
     "ma50_up": "50MA 向上（今日 MA > 6 天前 MA）",
@@ -16,41 +16,6 @@
     "不是進場當天立刻買 · 建議等大跌後量縮 · 量縮後放量再進場（策略 B 進場時機）",
     "trigger 訊號 · 不代表 all-in · 位置管理仍需搭配策略 A 的配置上限"
   ],
-  "hits": [
-    {
-      "symbol": "CTVA",
-      "name": "Corteva",
-      "sector": "Materials",
-      "as_of_date": "2026-07-31",
-      "t_price": 78.71,
-      "prev_price": 89.34,
-      "daily_drop_pct": -11.9,
-      "ma50": 81.97,
-      "ma200": 74.99,
-      "ma50_up": true,
-      "ma200_up": true,
-      "rsi_14": 34.6,
-      "vol_today": 11529500,
-      "vol_20d_avg": 3444265,
-      "vol_ratio_vs_20d": 3.35
-    },
-    {
-      "symbol": "LYV",
-      "name": "Live Nation Entertainment",
-      "sector": "Communication Services",
-      "as_of_date": "2026-07-31",
-      "t_price": 174.13,
-      "prev_price": 183.56,
-      "daily_drop_pct": -5.14,
-      "ma50": 174.48,
-      "ma200": 156.1,
-      "ma50_up": true,
-      "ma200_up": true,
-      "rsi_14": 35.2,
-      "vol_today": 5029400,
-      "vol_20d_avg": 1880120,
-      "vol_ratio_vs_20d": 2.68
-    }
-  ],
-  "csv": "20260731_strategy_b.csv"
+  "hits": [],
+  "csv": null
 }
