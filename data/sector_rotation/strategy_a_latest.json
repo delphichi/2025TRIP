@@ -63,7 +63,7 @@
       "composite_rank": 3,
       "point_rank": 6,
       "cms_a": 6.0,
-      "tnx_flag": NaN
+      "tnx_flag": null
     }
   ],
   "demoted_sectors": [],

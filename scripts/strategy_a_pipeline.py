@@ -29,7 +29,21 @@
 import os
 import sys
 import json
+import math
 from datetime import datetime, timezone
+
+
+def _json_safe(obj):
+    """遞迴把 NaN/Inf 換 None · 讓瀏覽器 JSON.parse 接受（見 sector_scorecard.py）"""
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
 
 OUTDIR = "data/sector_rotation"
 SCORECARD_PATH = os.path.join(OUTDIR, "scorecard_latest.json")
@@ -92,7 +106,7 @@ def load_watchlist():
 
 def save_watchlist(w):
     with open(WATCHLIST_PATH, "w", encoding="utf-8") as f:
-        json.dump(w, f, ensure_ascii=False, indent=2)
+        json.dump(_json_safe(w), f, ensure_ascii=False, indent=2, allow_nan=False)
 
 
 # ============================================================
@@ -465,7 +479,7 @@ def save_strategy_output(scorecard, effective_sectors, demoted, funnel, breakthr
     }
 
     with open(STRATEGY_PATH, "w", encoding="utf-8") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
+        json.dump(_json_safe(out), f, ensure_ascii=False, indent=2, allow_nan=False)
     log(f"saved {STRATEGY_PATH}")
 
     log("=" * 60)

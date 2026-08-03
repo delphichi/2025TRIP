@@ -63,9 +63,28 @@ gap_alert       | 差距警示（Point_rank vs vp_score_rank 差 > 5）
 import os
 import sys
 import json
+import math
 from datetime import datetime, date, timezone
 
 import pandas as pd
+
+
+def _json_safe(obj):
+    """
+    遞迴把 NaN / +Inf / -Inf 換成 None
+    · Python json 預設寫出 bare NaN → 瀏覽器 JSON.parse 直接爆
+    · pandas 的 df.where(pd.notna, None) 對 numeric column 因 dtype 又轉回 NaN
+    · 唯一保證乾淨的做法：寫檔前再 walk 一次整個結構
+    """
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
 
 OUTDIR = "data/sector_rotation"
 MANIFEST_PATH = os.path.join(OUTDIR, "scorecard_latest.json")
@@ -458,7 +477,7 @@ def save_outputs(df, market_ctx=None):
         "rows": df.where(pd.notna(df), None).to_dict(orient="records"),
     }
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
+        json.dump(_json_safe(manifest), f, ensure_ascii=False, indent=2, allow_nan=False)
     log(f"  saved manifest {MANIFEST_PATH}")
 
 

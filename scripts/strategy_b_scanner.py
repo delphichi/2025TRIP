@@ -24,12 +24,26 @@
 import os
 import sys
 import json
+import math
 from datetime import datetime, date, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import StringIO
 
 import pandas as pd
 import requests
+
+
+def _json_safe(obj):
+    """遞迴把 NaN/Inf 換 None · 讓瀏覽器 JSON.parse 接受（見 sector_scorecard.py）"""
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
 
 OUTDIR = "data/sector_rotation"
 STRATEGY_B_PATH = os.path.join(OUTDIR, "strategy_b_latest.json")
@@ -261,7 +275,7 @@ def main():
         "csv": os.path.basename(csv_path) if hits else None,
     }
     with open(STRATEGY_B_PATH, "w", encoding="utf-8") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
+        json.dump(_json_safe(out), f, ensure_ascii=False, indent=2, allow_nan=False)
     log(f"  saved {STRATEGY_B_PATH}")
 
     log("=" * 60)

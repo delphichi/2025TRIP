@@ -29,6 +29,7 @@ S&P 500 板塊動能篩選器  scripts/sector_rotation_screener.py
 import os
 import sys
 import json
+import math
 import time
 from datetime import datetime, date, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -36,6 +37,19 @@ from io import StringIO
 
 import pandas as pd
 import requests
+
+
+def _json_safe(obj):
+    """遞迴把 NaN/Inf 換 None · 讓瀏覽器 JSON.parse 接受（見 sector_scorecard.py）"""
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
 
 OUTDIR = "data/sector_rotation"
 MANIFEST_PATH = os.path.join(OUTDIR, "latest.json")
@@ -498,7 +512,7 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
         "surprise_source": "yfinance (earnings_dates)",
     }
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
+        json.dump(_json_safe(manifest), f, ensure_ascii=False, indent=2, allow_nan=False)
     log(f"  saved manifest {MANIFEST_PATH}")
 
 
