@@ -337,6 +337,99 @@
     </div>
   </div>
 
+  <!-- ROW 4b: 每 sector 綜合分冠軍 top 3 (完整寬) -->
+  <div class="full">
+    <div class="card">
+      <div class="card-h">🏅 每 sector 個股綜合分冠軍 top 3<span class="n">同套公式 · 板塊內排名</span></div>
+      <div class="card-b">
+        <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">
+          <b>綜合分 (in sector)</b> = Point_rank × 0.4 + vp_score_rank × 0.4 + vol_rank × 0.2(越小越強)·
+          三項排名都是「板塊內」計算 · 抓出各 sector 中「Point (漲幅) + vp_score (量價 0-100) + vol_ratio」三維最平均強的個股。
+          警示標記(⚠ 吃老本 / ⚠ 剛爆發)由 Point rank vs vp_score rank 差 &gt; 5 判定。
+        </p>
+        <table>
+          <thead>
+            <tr><th>Sector</th><th>#1</th><th>#2</th><th>#3</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>通訊 XLC</b></td>
+              <td><b>EA</b> 綜 2.80 · vp=100</td>
+              <td><b>VZ</b> 綜 4.60 · Pt=7.0</td>
+              <td><b>LYV</b> 綜 7.00 <span class="cell-alert">吃老本</span></td>
+            </tr>
+            <tr>
+              <td><b>非必需消費 XLY</b></td>
+              <td><b>BBY</b> 綜 2.00 · Pt=32.2 vp=100</td>
+              <td><b>GRMN</b> 綜 2.40 · Pt=34.5 vp=100</td>
+              <td><b>AMZN</b> 綜 5.80 <span class="cell-alert alt">剛爆發</span></td>
+            </tr>
+            <tr>
+              <td><b>必需消費 XLP</b></td>
+              <td><b>CASY</b> 綜 4.80 · Pt=25.3</td>
+              <td><b>TGT</b> 綜 4.80 · Pt=25.9</td>
+              <td><b>SJM</b> 綜 6.00</td>
+            </tr>
+            <tr style="background:rgba(30,132,73,0.06);">
+              <td><b>能源 XLE 📈</b></td>
+              <td><b>APA</b> 綜 2.20 · vp=100 vol=1.47x</td>
+              <td><b>PSX</b> 綜 2.60 · Pt=35.1 vp=100</td>
+              <td><b>MPC</b> 綜 3.80 · Pt=52.6 vp=100</td>
+            </tr>
+            <tr style="background:rgba(30,132,73,0.06);">
+              <td><b>金融 XLF 📈</b></td>
+              <td><b>CPAY</b> 綜 6.40 <span class="cell-alert alt">剛爆發</span></td>
+              <td><b>PRU</b> 綜 8.00 <span class="cell-alert alt">剛爆發</span></td>
+              <td><b>CBOE</b> 綜 8.80 <span class="cell-alert alt">剛爆發</span></td>
+            </tr>
+            <tr style="background:rgba(30,132,73,0.06);">
+              <td><b>醫療 XLV 📈</b></td>
+              <td><b>BAX</b> 綜 3.00 · Pt=32.1 vp=100</td>
+              <td><b>DXCM</b> 綜 4.20 <span class="cell-alert alt">剛爆發</span></td>
+              <td><b>BMY</b> 綜 6.40 <span class="cell-alert alt">剛爆發</span></td>
+            </tr>
+            <tr>
+              <td><b>工業 XLI</b></td>
+              <td><b>HWM</b> 綜 9.20 <span class="cell-alert">吃老本</span></td>
+              <td><b>WAB</b> 綜 10.40</td>
+              <td><b>PAYX</b> 綜 11.00</td>
+            </tr>
+            <tr class="tnx-penalty">
+              <td><b>資訊科技 XLK 📉</b></td>
+              <td><b>HPQ</b> 綜 8.00 <span class="cell-alert alt">剛爆發</span></td>
+              <td><b>HPE</b> 綜 8.60 <span class="cell-alert">吃老本</span></td>
+              <td><b>NTAP</b> 綜 9.40 <span class="cell-alert alt">剛爆發</span></td>
+            </tr>
+            <tr>
+              <td><b>材料 XLB</b></td>
+              <td><b>NUE</b> 綜 3.60 · Pt=30.5 vp=100</td>
+              <td><b>LYB</b> 綜 4.20</td>
+              <td><b>STLD</b> 綜 5.00 · Pt=26.3 vp=100</td>
+            </tr>
+            <tr class="tnx-penalty">
+              <td><b>房地產 XLRE 📉</b></td>
+              <td><b>HST</b> 綜 4.00 · Pt=28.9 vp=100</td>
+              <td><b>IRM</b> 綜 5.80</td>
+              <td><b>FRT</b> 綜 7.60 <span class="cell-alert">吃老本</span></td>
+            </tr>
+            <tr class="tnx-penalty">
+              <td><b>公用事業 XLU 📉</b></td>
+              <td><b>EIX</b> 綜 3.00 · Pt=11.4 vol=2.36x</td>
+              <td><b>PCG</b> 綜 4.40</td>
+              <td><b>AES</b> 綜 4.60 <span class="cell-alert alt">剛爆發</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:11.5px;color:var(--muted);margin:12px 0 0;line-height:1.7;">
+          <b>💡 觀察重點:</b>
+          <b>Energy 3 檔全部 vp_score=100</b>(APA/PSX/MPC · 量價全滿分)· 對應 sector 綜合分 #1 · 是最強共識;
+          <b>Financials 3 檔全部觸發「剛爆發」</b>· TNX &gt; 4% 剛開始利多金融的階段 · 量價已強但漲幅尚未追上;
+          <b>Info Tech 3 檔訊號完全分歧</b>(HPQ 剛爆發 · HPE 吃老本 · NTAP 剛爆發)· 完美對應 sector 層 XLK 觸發「吃老本」的宏觀警示。
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- ROW 5: 策略 A 建議倉位 (完整寬) -->
   <div class="full">
     <div class="card">
