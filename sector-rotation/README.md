@@ -267,6 +267,42 @@ FMP free tier 沒該 endpoint 權限 · 用 yfinance `ticker.earnings_dates` 替
 
 ---
 
+## 🔬 回測結果（重要 · 誠實揭露）
+
+**跑了 4 個歷史日期 × 3 種規則版本 · 統計 sample 太小但結論明確：**
+
+| Variant | Rules | Wins/Loss/空倉 | 平均 vs VOO 1y |
+|---|---|---|---|
+| **baseline** | di=1.0 · composite top 3 · sector 取 1 | 1 / 2 / 1 | **-430 bps** |
+| **expA** | 拿掉 di=1.0 · 其他同 baseline | 1 / 2 / 1 | **-175 bps** 🥇 |
+| **expB** | composite top 5 · sector 取 2 | 1 / 2 / 1 | -573 bps |
+
+**4 個歷史日期分別結果（1y forward return · vs VOO bps）：**
+
+| Date | Regime | baseline | expA | expB |
+|---|---|---|---|---|
+| 2023-07-31 | 🔥+🟢 | 1 pick · **-1841** | 2 picks · -1460 | 1 · -1841 |
+| 2024-01-31 | 🔥+🟢 | **0 picks** | **0 picks** | 0 picks |
+| 2024-07-31 | 🟡+🟢 | 3 picks · -864 | 3 · -864 | 6 · -1035 |
+| 2025-07-31 | 🔥+🟢 | 3 picks · **+1415** | 3 · **+1800** | 5 · +1157 |
+
+**重要學到的：**
+
+1. **di=1.0 過度嚴格 · 排除有潛力個股** — expA 換到 BKR (+37%)、AME (+9%) 比 baseline 更好
+2. **但 hit rate 沒改變 · 仍是 1/4 贏** — 4 個 sample 太小 · 統計不顯著 · 但方向暗示 pipeline 目前不是能穩定 outperform 的策略
+3. **2024-01-31 的 0-pick 問題不是 di=1.0** — 拿掉還是 0 檔 · 真正元兇是 TNX 3.97% 中性期只有 XLK 順風 · 需要另一次修法
+4. **65% 現金部位 = bull market 系統性 drag** · 完整 portfolio return 常低於 VOO
+5. **INCY / BKR 那種爆發股是 alpha 主要來源** — 沒選中的話單靠其他就打平大盤
+
+**定位（誠實）：** Pipeline 現階段是**紀律化研究工具** · 不是能穩定贏大盤的策略。要當實盤用需再多做幾十個 out-of-sample tests 建立信心 · 或接受它保守的本質。
+
+回測工具檔案：
+- `scripts/backtest_pipeline.py` — `--as-of DATE --variant [baseline|expA|expB|expC]`
+- `.github/workflows/backtest.yml` — 手動觸發 workflow_dispatch
+- `portfolios/backtest_*.json` — 每次回測輸出（含 4 個 checkpoint 已填 forward returns）
+
+---
+
 ## 📝 開發歷程摘要
 
 從 2026 年 7 月市場回顧的三張 top-3 heatmap 出發，跨 4 個 PR / 15 個 commit / 4 個 CI 修 bug 週期建立：
