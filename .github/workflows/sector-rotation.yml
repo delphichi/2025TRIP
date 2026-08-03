@@ -64,6 +64,16 @@ jobs:
           set -o pipefail
           python scripts/sector_rotation_screener.py 2>&1 | tee /tmp/stage2.log
 
+      # 策略 A · 九步驟選股 pipeline · 只在 stage 2 有跑時才跑（依賴 stage 2 輸出）
+      - name: Run Strategy A pipeline (nine-step selection)
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/strategy_a_pipeline.py 2>&1 | tee /tmp/strategy_a.log
+
       - name: Summary
         if: always()
         run: |

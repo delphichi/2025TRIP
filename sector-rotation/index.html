@@ -178,6 +178,61 @@
             </div>
         </section>
 
+        <section class="panel strategy-a-panel" id="strategy-a-panel" style="display:none">
+            <h2>🎯 策略 A · 九步驟建議倉位 <small style="font-weight:400;color:#94a3b8" id="strat-asof">—</small></h2>
+
+            <div class="effective-sectors">
+                <div class="es-label">有效 sector（TNX 過濾 + 遞補後）：</div>
+                <div class="es-list" id="strat-effective-sectors"></div>
+                <div class="es-demoted" id="strat-demoted-sectors"></div>
+            </div>
+
+            <div class="corr-warnings" id="strat-corr-warnings"></div>
+
+            <div class="tier-groups">
+                <div class="tier-group tier-core">
+                    <div class="tier-header">
+                        <span class="tier-name">🟢 核心</span>
+                        <span class="tier-cap" id="strat-core-cap">—</span>
+                    </div>
+                    <div class="tier-body" id="strat-core-body"></div>
+                </div>
+                <div class="tier-group tier-momentum">
+                    <div class="tier-header">
+                        <span class="tier-name">🟡 動能</span>
+                        <span class="tier-cap" id="strat-momentum-cap">—</span>
+                    </div>
+                    <div class="tier-body" id="strat-momentum-body"></div>
+                </div>
+                <div class="tier-group tier-sprint">
+                    <div class="tier-header">
+                        <span class="tier-name">🔴 衝刺</span>
+                        <span class="tier-cap" id="strat-sprint-cap">—</span>
+                    </div>
+                    <div class="tier-body" id="strat-sprint-body"></div>
+                </div>
+                <div class="tier-group tier-hold">
+                    <div class="tier-header">
+                        <span class="tier-name">⏸ 暫緩</span>
+                        <span class="tier-cap">財報 14 天內</span>
+                    </div>
+                    <div class="tier-body" id="strat-hold-body"></div>
+                </div>
+            </div>
+
+            <details class="dark-horse-details">
+                <summary><b>🌟 黑馬觀察名單</b> <span id="strat-dark-horse-count">—</span></summary>
+                <div id="strat-dark-horses"></div>
+                <div id="strat-promoted" class="promoted-block"></div>
+            </details>
+
+            <p class="hint hint-mini">
+                📌 <b>權重計算：</b>每檔 weight_pct = 該 tier 配置上限 / 該 tier 檔數（等權）·
+                實際下單前請自己看 <code>reason</code> 欄理由 + 財報時程 + 個人風險偏好。
+                <br>📌 <b>資料流：</b>Step 1-2 (市場環境 + TNX) → Step 3-4 (sector 前 3 + 遞補) → Step 5-6 (個股候選池 + 三層漏斗) → Step 7 (破格) → Step 8-9 (相關性 + 黑馬)。
+            </p>
+        </section>
+
         <section class="panel table-panel">
             <details>
                 <summary><h2 style="display:inline">📈 Stage 2 · S&amp;P 500 個股 top-3 熱區榜（每 sector）</h2></summary>

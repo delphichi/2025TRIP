@@ -6,10 +6,12 @@
 
 const SCORECARD_URL = "../data/sector_rotation/scorecard_latest.json?_=" + Date.now();
 const STAGE2_URL    = "../data/sector_rotation/latest.json?_=" + Date.now();
+const STRATEGY_URL  = "../data/sector_rotation/strategy_a_latest.json?_=" + Date.now();
 
 const STATE = {
     scorecard: null,
     stage2: null,
+    strategy: null,
     stage2Tab: "4w",
 };
 
@@ -89,6 +91,17 @@ async function loadStage2Optional() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         STATE.stage2 = await r.json();
         return STATE.stage2;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function loadStrategyOptional() {
+    try {
+        const r = await fetch(STRATEGY_URL, { cache: "no-store" });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        STATE.strategy = await r.json();
+        return STATE.strategy;
     } catch (e) {
         return null;
     }
@@ -247,6 +260,123 @@ function renderScoreTable() {
     });
 }
 
+// ---------- render: strategy A (九步驟建議倉位) ----------
+function renderStrategyPanel() {
+    const s = STATE.strategy;
+    if (!s) return;
+    $("#strategy-a-panel").style.display = "";
+
+    $("#strat-asof").textContent = `(as of ${s.as_of_date || "—"})`;
+
+    // 有效 sector
+    const esList = $("#strat-effective-sectors");
+    esList.innerHTML = "";
+    (s.effective_sectors || []).forEach(x => {
+        let flagIcon = "";
+        if (x.tnx_flag === "boost") flagIcon = " 📈";
+        else if (x.tnx_flag === "penalty") flagIcon = " 📉";
+        const div = document.createElement("span");
+        div.className = "es-chip";
+        div.innerHTML = `<b>${x.sector}</b>${flagIcon} <span class="dim">${x.sector_name}</span> <span class="dim">#${x.composite_rank}</span>`;
+        esList.appendChild(div);
+    });
+    const demotedEl = $("#strat-demoted-sectors");
+    demotedEl.innerHTML = "";
+    (s.demoted_sectors || []).forEach(d => {
+        const div = document.createElement("span");
+        div.className = "es-chip es-demoted-chip";
+        div.innerHTML = `<b>${d.sector}</b> <span class="dim">${d.sector_name}</span> · ${d.reason}`;
+        demotedEl.appendChild(div);
+    });
+
+    // 相關性警示
+    const cw = $("#strat-corr-warnings");
+    cw.innerHTML = "";
+    (s.correlation_warnings || []).forEach(w => {
+        const div = document.createElement("div");
+        div.className = "corr-msg" + (w.kind === "high_corr" ? " corr-warn" : " corr-ok");
+        div.textContent = w.msg;
+        cw.appendChild(div);
+    });
+
+    // 配置上限
+    const a = s.allocation || {};
+    $("#strat-core-cap").textContent = `上限 ${a.core || 0}%`;
+    $("#strat-momentum-cap").textContent = `上限 ${a.momentum || 0}%`;
+    $("#strat-sprint-cap").textContent = `上限 ${a.sprint || 0}%`;
+
+    // 個股 tier
+    const p = s.positions || {};
+    _renderTier($("#strat-core-body"), p.core || [], "沒符合核心條件的個股");
+    _renderTier($("#strat-momentum-body"), p.momentum || [], "沒符合動能條件的個股");
+    _renderTier($("#strat-sprint-body"), p.sprint || [], "沒符合衝刺條件的個股");
+    _renderTier($("#strat-hold-body"), p.hold_earnings || [], "沒財報 14 天內的個股");
+
+    // 黑馬
+    const dh = s.dark_horses || [];
+    $("#strat-dark-horse-count").textContent = `(${dh.length} 檔)`;
+    const dhEl = $("#strat-dark-horses");
+    dhEl.innerHTML = "";
+    if (dh.length === 0) {
+        dhEl.innerHTML = `<div class="empty-mini">本輪無黑馬（需要 Point rank 5-8 AND vp_score rank 5-8 AND 成交量 top 3）</div>`;
+    } else {
+        dh.forEach(h => {
+            const div = document.createElement("div");
+            div.className = "horse-chip";
+            div.innerHTML = `<b>${h.sector}</b> <span class="dim">${h.sector_name}</span> · Point rk${h.point_rank} · VP rk${h.vp_score_rank} · Vol rk${h.vol_rank}`;
+            dhEl.appendChild(div);
+        });
+    }
+    // 上輪升級提醒
+    const promoted = s.watchlist_promoted || [];
+    const promEl = $("#strat-promoted");
+    promEl.innerHTML = "";
+    if (promoted.length > 0) {
+        const label = document.createElement("div");
+        label.className = "promoted-label";
+        label.innerHTML = "🎯 <b>上輪黑馬升進本輪前 5：</b>";
+        promEl.appendChild(label);
+        promoted.forEach(p => {
+            const div = document.createElement("div");
+            div.className = "promoted-chip";
+            div.innerHTML = `<b>${p.sector}</b> ${p.sector_name || ""} · 加入時間: ${(p.added_at || "").slice(0,10)}`;
+            promEl.appendChild(div);
+        });
+    }
+}
+
+function _renderTier(containerEl, positions, emptyMsg) {
+    containerEl.innerHTML = "";
+    if (positions.length === 0) {
+        containerEl.innerHTML = `<div class="empty-mini">${emptyMsg}</div>`;
+        return;
+    }
+    positions.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "position-row";
+        const vcpIcon = p.vcp ? "✅" : "—";
+        const earnIcon = p.pre_earnings_14d ? " 📅" : "";
+        const pfh = p.pct_from_high !== null && p.pct_from_high !== undefined ? p.pct_from_high.toFixed(1) : "—";
+        const wt = p.weight_pct !== null && p.weight_pct !== undefined ? `${p.weight_pct}%` : "—";
+        div.innerHTML = `
+            <div class="pos-head">
+                <span class="pos-sym"><b>${p.symbol}</b></span>
+                <span class="pos-sector dim">${p.sector_etf || ""}</span>
+                <span class="pos-weight">${wt}</span>
+                <span class="pos-vcp" title="VCP 濾網">${vcpIcon}</span>
+                <span class="pos-earn" title="財報 14 天內">${earnIcon}</span>
+            </div>
+            <div class="pos-metrics">
+                Point <b>${fmtNum(p.point, 1)}</b> · CMS_A <b>${fmtNum(p.cms_a, 2)}</b> ·
+                4W ${fmtPct(p.cum_ret_4w)} · 距高點 ${pfh}% ·
+                L1 ${fmtPct(p.surprise_l1)}
+            </div>
+            <div class="pos-reason dim">${p.reason || ""}</div>
+        `;
+        containerEl.appendChild(div);
+    });
+}
+
 // ---------- render: stage 2 (S&P 500 個股) ----------
 const STAGE2_TAB_HINTS = {
     "4w":    "Past 4 Weeks · 各板塊 4W 動能最強前 3 名（短線輪動主線）",
@@ -347,6 +477,9 @@ async function init() {
 
     await loadStage2Optional();
     renderStage2();
+
+    await loadStrategyOptional();
+    renderStrategyPanel();
 }
 
 if (document.readyState === "loading") {

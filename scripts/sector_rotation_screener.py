@@ -176,17 +176,19 @@ def fetch_weekly_returns(tickers):
 # ============================================================
 def fetch_daily_ohlcv_for_vcp(tickers):
     """
-    抓 3 個月 daily OHLCV · 只給 stage 2 的 pre-filter subset 用
+    抓 1 年 daily OHLCV · 只給 stage 2 的 pre-filter subset 用
+    · 3mo 太短算不出 52 週高（策略 A step 6 關卡二需要「距高點」）
+    · 1y 抓完約 252 個交易日 · 剛好夠算 52w high + 50MA + 10 日振幅
     回傳 dict[symbol → DataFrame(Open/High/Low/Close/Volume)]
     """
     import yfinance as yf
-    log(f"Downloading daily OHLCV for {len(tickers)} pre-filtered tickers (for VCP)...")
+    log(f"Downloading daily OHLCV for {len(tickers)} pre-filtered tickers (for VCP + 52w high)...")
     out = {}
     today_utc = datetime.now(timezone.utc).date()
     for i in range(0, len(tickers), YF_BATCH):
         chunk = tickers[i : i + YF_BATCH]
         data = yf.download(
-            chunk, period="3mo", interval="1d",
+            chunk, period="1y", interval="1d",
             auto_adjust=True, progress=False, threads=True, group_by="ticker",
         )
         if isinstance(data.columns, pd.MultiIndex):
@@ -244,6 +246,10 @@ def compute_vcp_row(sym, sub):
 
     vcp = bool(above_50ma) and amp_10d_pct < 3.0 and (vp_ratio is not None and vp_ratio > 1.0)
 
+    # 52 週高（策略 A step 6 關卡二 · 「距高點」用）
+    high_52w = float(high.max())
+    pct_from_high = (t_price / high_52w - 1) * 100 if high_52w > 0 else 0.0
+
     return {
         "symbol": sym,
         "above_50ma": bool(above_50ma),
@@ -251,6 +257,8 @@ def compute_vcp_row(sym, sub):
         "amp_10d_pct": round(amp_10d_pct, 2),
         "vp_ratio_stock": round(vp_ratio, 3) if vp_ratio is not None else None,
         "vcp": vcp,
+        "high_52w": round(high_52w, 2),
+        "pct_from_high": round(pct_from_high, 2),
     }
 
 
@@ -278,19 +286,39 @@ def compute_vcp_metrics_batch(tickers):
 #   ticker.earnings_dates → DataFrame(index=DatetimeIndex, cols=[EPS Estimate, Reported EPS, Surprise(%)])
 #   包含未來預告財報（Reported EPS 為 NaN）· 我們只用「已公告」的兩筆
 def fetch_yf_surprise(symbol, stats):
-    """回傳 (l1_pct, l2_pct)。抓不到回 (None, None)。stats 累計統計"""
+    """回傳 (l1_pct, l2_pct, pre_earnings_14d)。抓不到回 (None, None, None)"""
     try:
         import yfinance as yf
+        from datetime import timedelta
         ticker = yf.Ticker(symbol)
         df = ticker.earnings_dates
         if df is None or df.empty:
             stats["empty_response"] += 1
-            return (None, None)
+            return (None, None, None)
+
+        # 判斷未來 14 天內有沒有未公告財報（策略 A step 6 財報地雷確認）
+        now_utc = datetime.now(timezone.utc)
+        future_cutoff = now_utc + timedelta(days=14)
+        unreported = df[df["Reported EPS"].isna()]
+        pre_14d = False
+        for idx in unreported.index:
+            try:
+                d = idx.to_pydatetime()
+                # timezone-safe 比較
+                d_naive = d.replace(tzinfo=None) if d.tzinfo else d
+                now_naive = now_utc.replace(tzinfo=None)
+                future_naive = future_cutoff.replace(tzinfo=None)
+                if now_naive <= d_naive <= future_naive:
+                    pre_14d = True
+                    break
+            except Exception:
+                continue
+
         # 只留「已公告」（Reported EPS 有值）· 按日期倒序
         past = df.dropna(subset=["Reported EPS"]).sort_index(ascending=False)
         if len(past) == 0:
             stats["no_history"] += 1
-            return (None, None)
+            return (None, None, pre_14d)
 
         def _pct(row):
             # yfinance 直接提供 Surprise(%) · 用就好
@@ -309,11 +337,11 @@ def fetch_yf_surprise(symbol, stats):
             stats["ok_with_data"] += 1
         else:
             stats["ok_but_null"] += 1
-        return (l1, l2)
+        return (l1, l2, pre_14d)
     except Exception as e:
         stats["exception"] += 1
         stats["last_exception"] = str(e)[:120]
-        return (None, None)
+        return (None, None, None)
 
 
 def fetch_surprises_parallel(symbols):
@@ -332,8 +360,9 @@ def fetch_surprises_parallel(symbols):
         done = 0
         for fut in as_completed(futs):
             sym = futs[fut]
-            l1, l2 = fut.result()
-            rows.append({"symbol": sym, "surprise_l1": l1, "surprise_l2": l2})
+            l1, l2, pre_14d = fut.result()
+            rows.append({"symbol": sym, "surprise_l1": l1, "surprise_l2": l2,
+                         "pre_earnings_14d": pre_14d})
             done += 1
             if done % 50 == 0:
                 log(f"  {done}/{len(symbols)}")
@@ -497,12 +526,13 @@ def main():
     surp_df = fetch_surprises_parallel(pre_syms)
     full_df = price_df.merge(surp_df, on="symbol", how="left")
 
-    # (4b) VCP 濾網 — 抓 daily · 算 above_50ma / amp_10d / VP / vcp
+    # (4b) VCP 濾網 — 抓 daily · 算 above_50ma / amp_10d / VP / vcp / high_52w / pct_from_high
     vcp_df = compute_vcp_metrics_batch(pre_syms)
     if len(vcp_df):
         full_df = full_df.merge(vcp_df, on="symbol", how="left")
     else:
-        for c in ("above_50ma", "ma50", "amp_10d_pct", "vp_ratio_stock", "vcp"):
+        for c in ("above_50ma", "ma50", "amp_10d_pct", "vp_ratio_stock", "vcp",
+                  "high_52w", "pct_from_high"):
             full_df[c] = None
 
     # (5) 盈餘動能篩選（只對預篩過的 subset）
