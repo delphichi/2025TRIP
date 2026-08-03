@@ -1,0 +1,192 @@
+{
+  "portfolio_id": "backtest_2026-06-26_baseline",
+  "entry_date": "2026-06-26",
+  "variant": "baseline",
+  "rules": {
+    "require_di_full": true,
+    "composite_max_rank": 3,
+    "per_sector_max": 1
+  },
+  "note": "回測 · pipeline 規則套在歷史資料 · S&P500 用今日清單（有 survivorship bias · demo 可接受）",
+  "regime_at_entry": {
+    "as_of_date": "2026-06-26",
+    "quadrant": "🟡+🟢",
+    "trend_label": "🟢",
+    "vs_50ma_label": "🟡",
+    "voo": {
+      "price": 670.26,
+      "vs_60d_pct": 12.49,
+      "ma50": 673.34,
+      "vs_50ma_pct": -0.46
+    },
+    "vix": 18.40999984741211,
+    "tnx_pct": 4.372000217437744,
+    "tnx_boost_sectors": [
+      "XLE",
+      "XLF",
+      "XLV"
+    ],
+    "tnx_penalty_sectors": [
+      "XLK",
+      "XLRE",
+      "XLU"
+    ],
+    "allocation_caps": {
+      "core": 30,
+      "momentum": 25,
+      "sprint": 0,
+      "cash": 45
+    }
+  },
+  "positions": [
+    {
+      "symbol": "EA",
+      "name": "Electronic Arts",
+      "sector": "Communication Services",
+      "tier": "core",
+      "weight_pct": 15,
+      "entry_price": 205.25,
+      "signals": {
+        "point": 1.48,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.031,
+        "vcp": 1,
+        "pct_from_high": -0.21,
+        "cum_ret_4w": 2.04,
+        "cum_ret_13w": 1.9,
+        "cum_ret_26w": 0.99,
+        "composite_rank_in_sector": 3
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-07-27",
+          "price": 209.07,
+          "return_pct": 1.86
+        },
+        "3m": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        },
+        "6m": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    },
+    {
+      "symbol": "WMB",
+      "name": "Williams Companies",
+      "sector": "Energy",
+      "tier": "momentum",
+      "weight_pct": 10,
+      "entry_price": 77.92,
+      "signals": {
+        "point": 20.37,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.32,
+        "vcp": 0,
+        "pct_from_high": -1.98,
+        "cum_ret_4w": 7.34,
+        "cum_ret_13w": 5.42,
+        "cum_ret_26w": 34.36,
+        "composite_rank_in_sector": 2
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-07-27",
+          "price": 70.79,
+          "return_pct": -9.15
+        },
+        "3m": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        },
+        "6m": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    },
+    {
+      "symbol": "MRNA",
+      "name": "Moderna",
+      "sector": "Health Care",
+      "tier": "momentum",
+      "weight_pct": 10,
+      "entry_price": 67.27,
+      "signals": {
+        "point": 78.35,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.339,
+        "vcp": 0,
+        "pct_from_high": -2.91,
+        "cum_ret_4w": 41.41,
+        "cum_ret_13w": 31.03,
+        "cum_ret_26w": 120.49,
+        "composite_rank_in_sector": 1
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2026-07-27",
+          "price": 55.63,
+          "return_pct": -17.3
+        },
+        "3m": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        },
+        "6m": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        },
+        "1y": {
+          "date": null,
+          "price": null,
+          "return_pct": null
+        }
+      }
+    }
+  ],
+  "total_invested_pct": 35,
+  "cash_pct": 65,
+  "checkpoint_returns": {
+    "portfolio": {
+      "1m": -6.76,
+      "3m": null,
+      "6m": null,
+      "1y": null
+    },
+    "VOO": {
+      "1m": 1.35,
+      "3m": null,
+      "6m": null,
+      "1y": null
+    },
+    "QQQ": {
+      "1m": -3.45,
+      "3m": null,
+      "6m": null,
+      "1y": null
+    },
+    "vs_voo_bps": {
+      "1m": -811
+    }
+  },
+  "generated_at": "2026-08-03T20:45:43.260426+00:00"
+}
