@@ -1,0 +1,65 @@
+name: backtest-pipeline
+
+# 目的：手動觸發 · 在指定歷史日期跑 pipeline · 一次拿到 1m/3m/6m/1y forward returns
+# 輸出 commit 進 portfolios/backtest_YYYY-MM-DD.json
+#
+# 用法：Actions → backtest-pipeline → Run workflow → 填 as_of_date
+# 建議選 as_of >= 1 年前 · 這樣 forward returns 才會齊全
+
+on:
+  workflow_dispatch:
+    inputs:
+      as_of_date:
+        description: '回測建倉日 · YYYY-MM-DD 格式 · 建議 1 年前的日期讓 4 個 checkpoint 都填滿'
+        required: true
+        default: '2025-07-31'
+
+permissions:
+  contents: write
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install yfinance pandas requests lxml
+
+      - name: Run backtest
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/backtest_pipeline.py --as-of "${{ inputs.as_of_date }}" 2>&1 | tee /tmp/backtest.log
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Backtest ${{ inputs.as_of_date }} · $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -80 /tmp/backtest.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Commit backtest output
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portfolios/ 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No new backtest to commit"
+            exit 0
+          fi
+          git commit -m "backtest: pipeline run as-of ${{ inputs.as_of_date }}"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main && git push origin HEAD:main && break
+            echo "Push attempt $i failed · sleep $((2**i))s"
+            sleep $((2**i))
+          done
