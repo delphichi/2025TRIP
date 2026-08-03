@@ -43,7 +43,10 @@ jobs:
           pip install yfinance pandas requests lxml
 
       - name: Run sector scorecard (stage 1)
+        # set -o pipefail 讓 python 錯誤不會被 tee 吞掉 → step 才會正確 fail
+        shell: bash
         run: |
+          set -o pipefail
           python scripts/sector_scorecard.py 2>&1 | tee /tmp/scorecard.log
 
       # Stage 2 只在下列情境跑：
@@ -54,9 +57,11 @@ jobs:
         if: |
           (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
           (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+        shell: bash
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
         run: |
+          set -o pipefail
           python scripts/sector_rotation_screener.py 2>&1 | tee /tmp/stage2.log
 
       - name: Summary

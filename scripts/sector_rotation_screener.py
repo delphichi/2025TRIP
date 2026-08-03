@@ -32,6 +32,7 @@ import json
 import time
 from datetime import datetime, date, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from io import StringIO
 
 import pandas as pd
 import requests
@@ -68,7 +69,9 @@ def fetch_sp500_constituents():
     headers = {"User-Agent": "Mozilla/5.0 (sector-rotation-screener)"}
     r = requests.get(url, headers=headers, timeout=30)
     r.raise_for_status()
-    tables = pd.read_html(r.text)
+    # pandas 2.1+ 棄用 pd.read_html(raw_str) · 3.0 直接噴 error 把整份 HTML 帶進 msg
+    # 必須包 StringIO
+    tables = pd.read_html(StringIO(r.text))
     df = tables[0]
     # 欄位可能叫 'Symbol' + 'GICS Sector' + 'Security'
     col_sym = next(c for c in df.columns if "symbol" in c.lower())
