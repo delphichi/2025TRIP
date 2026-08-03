@@ -13,7 +13,7 @@ name: sector-rotation-daily
 
 on:
   schedule:
-    - cron: '30 21 * * 1-5'      # 週一~五 UTC 21:30
+    # - cron: '30 21 * * 1-5'      # 週一~五 UTC 21:30
     - cron: '0 22 * * 5'         # 週五 UTC 22:00 · 額外跑 stage 2
   workflow_dispatch:
     inputs:
