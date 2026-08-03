@@ -1,0 +1,271 @@
+{
+  "portfolio_id": "backtest_2025-07-31",
+  "entry_date": "2025-07-31",
+  "note": "回測 · pipeline 規則套在歷史資料 · S&P500 用今日清單（有 survivorship bias · demo 可接受）",
+  "regime_at_entry": {
+    "as_of_date": "2025-07-31",
+    "quadrant": "🔥+🟢",
+    "trend_label": "🟢",
+    "vs_50ma_label": "🔥",
+    "voo": {
+      "price": 574.24,
+      "vs_60d_pct": 12.51,
+      "ma50": 554.12,
+      "vs_50ma_pct": 3.63
+    },
+    "vix": 16.719999313354492,
+    "tnx_pct": 4.360000133514404,
+    "tnx_boost_sectors": [
+      "XLE",
+      "XLF",
+      "XLV"
+    ],
+    "tnx_penalty_sectors": [
+      "XLK",
+      "XLRE",
+      "XLU"
+    ],
+    "allocation_caps": {
+      "core": 40,
+      "momentum": 35,
+      "sprint": 15,
+      "cash": 10
+    }
+  },
+  "positions": [
+    {
+      "symbol": "D",
+      "name": "Dominion Energy",
+      "sector": "Utilities",
+      "tier": "core",
+      "weight_pct": 15,
+      "entry_price": 55.98,
+      "signals": {
+        "point": 9.22,
+        "vp_score_stock": 84.33,
+        "vp_ratio_stock": 1.14,
+        "vcp": 1,
+        "pct_from_high": -2.3,
+        "cum_ret_4w": 1.79,
+        "cum_ret_13w": 10.08,
+        "cum_ret_26w": 12.51,
+        "composite_rank_in_sector": 20
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2025-09-02",
+          "price": 56.64,
+          "return_pct": 1.18
+        },
+        "3m": {
+          "date": "2025-10-29",
+          "price": 57.14,
+          "return_pct": 2.08
+        },
+        "6m": {
+          "date": "2026-01-27",
+          "price": 59.89,
+          "return_pct": 6.98
+        },
+        "1y": {
+          "date": "2026-07-31",
+          "price": 69.17,
+          "return_pct": 23.57
+        }
+      }
+    },
+    {
+      "symbol": "WMB",
+      "name": "Williams Companies",
+      "sector": "Energy",
+      "tier": "momentum",
+      "weight_pct": 8.75,
+      "entry_price": 58.11,
+      "signals": {
+        "point": 1.94,
+        "vp_score_stock": 84.93,
+        "vp_ratio_stock": 1.045,
+        "vcp": 0,
+        "pct_from_high": -5.52,
+        "cum_ret_4w": 1.37,
+        "cum_ret_13w": 1.33,
+        "cum_ret_26w": 2.53,
+        "composite_rank_in_sector": 3
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2025-09-02",
+          "price": 55.62,
+          "return_pct": -4.29
+        },
+        "3m": {
+          "date": "2025-10-29",
+          "price": 55.7,
+          "return_pct": -4.15
+        },
+        "6m": {
+          "date": "2026-01-27",
+          "price": 64.54,
+          "return_pct": 11.06
+        },
+        "1y": {
+          "date": "2026-07-31",
+          "price": 71.54,
+          "return_pct": 23.12
+        }
+      }
+    },
+    {
+      "symbol": "IVZ",
+      "name": "Invesco",
+      "sector": "Financials",
+      "tier": "momentum",
+      "weight_pct": 8.75,
+      "entry_price": 20.3,
+      "signals": {
+        "point": 31.1,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.774,
+        "vcp": 0,
+        "pct_from_high": -3.84,
+        "cum_ret_4w": 26.64,
+        "cum_ret_13w": 52.77,
+        "cum_ret_26w": 22.5,
+        "composite_rank_in_sector": 4
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2025-09-02",
+          "price": 21.12,
+          "return_pct": 4.06
+        },
+        "3m": {
+          "date": "2025-10-29",
+          "price": 23.51,
+          "return_pct": 15.84
+        },
+        "6m": {
+          "date": "2026-01-27",
+          "price": 26.73,
+          "return_pct": 31.7
+        },
+        "1y": {
+          "date": "2026-07-31",
+          "price": 29.6,
+          "return_pct": 45.82
+        }
+      }
+    },
+    {
+      "symbol": "SCHW",
+      "name": "Charles Schwab Corporation",
+      "sector": "Financials",
+      "tier": "momentum",
+      "weight_pct": 8.75,
+      "entry_price": 96.51,
+      "signals": {
+        "point": 17.24,
+        "vp_score_stock": 100.0,
+        "vp_ratio_stock": 1.124,
+        "vcp": 0,
+        "pct_from_high": -1.87,
+        "cum_ret_4w": 7.0,
+        "cum_ret_13w": 22.28,
+        "cum_ret_26w": 19.85,
+        "composite_rank_in_sector": 5
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2025-09-02",
+          "price": 95.18,
+          "return_pct": -1.37
+        },
+        "3m": {
+          "date": "2025-10-29",
+          "price": 93.69,
+          "return_pct": -2.92
+        },
+        "6m": {
+          "date": "2026-01-27",
+          "price": 103.0,
+          "return_pct": 6.73
+        },
+        "1y": {
+          "date": "2026-07-31",
+          "price": 105.24,
+          "return_pct": 9.05
+        }
+      }
+    },
+    {
+      "symbol": "INCY",
+      "name": "Incyte",
+      "sector": "Health Care",
+      "tier": "momentum",
+      "weight_pct": 8.75,
+      "entry_price": 74.89,
+      "signals": {
+        "point": 10.55,
+        "vp_score_stock": 93.23,
+        "vp_ratio_stock": 1.132,
+        "vcp": 0,
+        "pct_from_high": -10.79,
+        "cum_ret_4w": 9.86,
+        "cum_ret_13w": 25.82,
+        "cum_ret_26w": 3.25,
+        "composite_rank_in_sector": 1
+      },
+      "forward_returns": {
+        "1m": {
+          "date": "2025-09-02",
+          "price": 85.98,
+          "return_pct": 14.81
+        },
+        "3m": {
+          "date": "2025-10-29",
+          "price": 90.18,
+          "return_pct": 20.42
+        },
+        "6m": {
+          "date": "2026-01-27",
+          "price": 103.47,
+          "return_pct": 38.16
+        },
+        "1y": {
+          "date": "2026-07-31",
+          "price": 119.52,
+          "return_pct": 59.59
+        }
+      }
+    }
+  ],
+  "total_invested_pct": 50.0,
+  "cash_pct": 50.0,
+  "checkpoint_returns": {
+    "portfolio": {
+      "1m": 2.67,
+      "3m": 5.73,
+      "6m": 17.43,
+      "1y": 31.15
+    },
+    "VOO": {
+      "1m": 1.32,
+      "3m": 9.08,
+      "6m": 10.73,
+      "1y": 19.58
+    },
+    "QQQ": {
+      "1m": 0.11,
+      "3m": 12.65,
+      "6m": 11.98,
+      "1y": 22.35
+    },
+    "vs_voo_bps": {
+      "1m": 135,
+      "3m": -335,
+      "6m": 670,
+      "1y": 1157
+    }
+  },
+  "generated_at": "2026-08-03T20:05:35.531803+00:00"
+}
