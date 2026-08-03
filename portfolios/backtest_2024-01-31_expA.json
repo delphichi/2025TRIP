@@ -1,0 +1,58 @@
+{
+  "portfolio_id": "backtest_2024-01-31_expA",
+  "entry_date": "2024-01-31",
+  "variant": "expA",
+  "rules": {
+    "require_di_full": false,
+    "composite_max_rank": 3,
+    "per_sector_max": 1
+  },
+  "note": "回測 · pipeline 規則套在歷史資料 · S&P500 用今日清單（有 survivorship bias · demo 可接受）",
+  "regime_at_entry": {
+    "as_of_date": "2024-01-31",
+    "quadrant": "🔥+🟢",
+    "trend_label": "🟢",
+    "vs_50ma_label": "🔥",
+    "voo": {
+      "price": 430.12,
+      "vs_60d_pct": 12.6,
+      "ma50": 417.82,
+      "vs_50ma_pct": 2.95
+    },
+    "vix": 14.350000381469727,
+    "tnx_pct": 3.9670000076293945,
+    "tnx_boost_sectors": [],
+    "tnx_penalty_sectors": [],
+    "allocation_caps": {
+      "core": 40,
+      "momentum": 35,
+      "sprint": 15,
+      "cash": 10
+    }
+  },
+  "positions": [],
+  "total_invested_pct": 0,
+  "cash_pct": 100,
+  "checkpoint_returns": {
+    "portfolio": {
+      "1m": null,
+      "3m": null,
+      "6m": null,
+      "1y": null
+    },
+    "VOO": {
+      "1m": 6.22,
+      "3m": 4.3,
+      "6m": 13.58,
+      "1y": 26.99
+    },
+    "QQQ": {
+      "1m": 6.87,
+      "3m": 1.96,
+      "6m": 11.58,
+      "1y": 26.19
+    },
+    "vs_voo_bps": {}
+  },
+  "generated_at": "2026-08-03T20:15:42.677264+00:00"
+}
