@@ -172,6 +172,103 @@ def fetch_weekly_returns(tickers):
 
 
 # ============================================================
+# 2b. VCP 濾網（daily OHLCV · 只對 pre-filter subset 抓）
+# ============================================================
+def fetch_daily_ohlcv_for_vcp(tickers):
+    """
+    抓 3 個月 daily OHLCV · 只給 stage 2 的 pre-filter subset 用
+    回傳 dict[symbol → DataFrame(Open/High/Low/Close/Volume)]
+    """
+    import yfinance as yf
+    log(f"Downloading daily OHLCV for {len(tickers)} pre-filtered tickers (for VCP)...")
+    out = {}
+    today_utc = datetime.now(timezone.utc).date()
+    for i in range(0, len(tickers), YF_BATCH):
+        chunk = tickers[i : i + YF_BATCH]
+        data = yf.download(
+            chunk, period="3mo", interval="1d",
+            auto_adjust=True, progress=False, threads=True, group_by="ticker",
+        )
+        if isinstance(data.columns, pd.MultiIndex):
+            for t in chunk:
+                if t in data.columns.get_level_values(0):
+                    sub = data[t].dropna(how="all")
+                    # 擋掉「今天」的 partial bar
+                    sub = sub.loc[pd.to_datetime(sub.index).date < today_utc]
+                    out[t] = sub
+        else:
+            sub = data.dropna(how="all")
+            sub = sub.loc[pd.to_datetime(sub.index).date < today_utc]
+            out[chunk[0]] = sub
+    log(f"  → daily fetched for {len(out)} tickers")
+    return out
+
+
+def compute_vcp_row(sym, sub):
+    """
+    對單一 ticker 從 daily OHLCV 算 VCP 相關指標：
+      above_50ma      : t_price > 50 日 close 均值
+      amp_10d_pct     : (max(high[-10:]) - min(low[-10:])) / mean(close[-10:]) × 100
+      vp_ratio_stock  : 個股層 VP = 近 20 日上漲日均量 / 下跌日均量（AD/AC）
+      vcp             : above_50ma AND amp_10d_pct < 3.0 AND vp_ratio_stock > 1.0
+    需求：至少 50 天 daily
+    """
+    if sub is None or len(sub) < 50:
+        return None
+    close = sub["Close"].dropna()
+    high = sub["High"].dropna()
+    low = sub["Low"].dropna()
+    vol = sub["Volume"].dropna()
+    if len(close) < 50:
+        return None
+
+    t_price = float(close.iloc[-1])
+    ma50 = float(close.iloc[-50:].mean())
+    above_50ma = t_price > ma50
+
+    # 近 10 日振幅
+    win_h = high.iloc[-10:]
+    win_l = low.iloc[-10:]
+    win_c = close.iloc[-10:]
+    amp_10d_pct = (win_h.max() - win_l.min()) / win_c.mean() * 100 if win_c.mean() > 0 else 0.0
+
+    # 近 20 日 AD/AC
+    last21 = sub.tail(21)
+    diffs = last21["Close"].diff().dropna()
+    ups = diffs > 0
+    downs = diffs < 0
+    vols20 = last21["Volume"].iloc[1:]
+    ad = float(vols20[ups.values].mean()) if ups.any() else 0.0  # 上漲日均量
+    ac = float(vols20[downs.values].mean()) if downs.any() else 0.0  # 下跌日均量
+    vp_ratio = (ad / ac) if ac > 0 else None
+
+    vcp = bool(above_50ma) and amp_10d_pct < 3.0 and (vp_ratio is not None and vp_ratio > 1.0)
+
+    return {
+        "symbol": sym,
+        "above_50ma": bool(above_50ma),
+        "ma50": round(ma50, 2),
+        "amp_10d_pct": round(amp_10d_pct, 2),
+        "vp_ratio_stock": round(vp_ratio, 3) if vp_ratio is not None else None,
+        "vcp": vcp,
+    }
+
+
+def compute_vcp_metrics_batch(tickers):
+    """對 pre-filter subset 批次算 VCP · 回傳 DataFrame"""
+    daily_data = fetch_daily_ohlcv_for_vcp(tickers)
+    rows = []
+    for sym in tickers:
+        r = compute_vcp_row(sym, daily_data.get(sym))
+        if r:
+            rows.append(r)
+    df = pd.DataFrame(rows)
+    if len(df):
+        log(f"  → VCP metrics: {len(df)} 個 · above_50ma={df['above_50ma'].sum()} · vcp=TRUE={df['vcp'].sum()}")
+    return df
+
+
+# ============================================================
 # 3. Earnings Surprise via yfinance
 # ============================================================
 # 原本用 FMP /api/v3/earnings-surprises · 但那 endpoint free tier 403
@@ -340,6 +437,8 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
     def _records(df):
         return df.where(pd.notna(df), None).to_dict(orient="records")
 
+    vcp_true_count = int(df_all["vcp"].sum()) if "vcp" in df_all else 0
+
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "as_of_date": as_of,
@@ -347,6 +446,7 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
         "counts": {
             "universe": int(len(df_all)),
             "after_earnings_filter": int(df_all["earnings_passed"].sum()) if "earnings_passed" in df_all else None,
+            "vcp_true": vcp_true_count,
             "top3_4w": int(len(top3_4w)),
             "top3_13w": int(len(top3_13w)),
             "top3_26w": int(len(top3_26w)),
@@ -363,6 +463,7 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w):
             "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
             "cms_a": "0.5×4W_rank_in_sector + 0.3×13W_rank_in_sector + 0.2×26W_rank_in_sector（越小越強，重短線）",
             "di": "((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲",
+            "vcp": "AND(t_price>50MA, 近10日振幅<3%, VP=AD/AC>1.0) · 站上50MA + 波動收斂 + 上漲有量",
         },
         "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
         "surprise_source": "yfinance (earnings_dates)",
@@ -395,6 +496,14 @@ def main():
     # (4) 抓 surprise
     surp_df = fetch_surprises_parallel(pre_syms)
     full_df = price_df.merge(surp_df, on="symbol", how="left")
+
+    # (4b) VCP 濾網 — 抓 daily · 算 above_50ma / amp_10d / VP / vcp
+    vcp_df = compute_vcp_metrics_batch(pre_syms)
+    if len(vcp_df):
+        full_df = full_df.merge(vcp_df, on="symbol", how="left")
+    else:
+        for c in ("above_50ma", "ma50", "amp_10d_pct", "vp_ratio_stock", "vcp"):
+            full_df[c] = None
 
     # (5) 盈餘動能篩選（只對預篩過的 subset）
     subset = full_df[full_df["symbol"].isin(pre_syms)].copy()

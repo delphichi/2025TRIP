@@ -88,6 +88,26 @@ SECTORS = [
 # 差距警示閾值：Point_rank 跟 vp_score_rank 差超過這個名次 → 警示
 GAP_ALERT_THRESHOLD = 5
 
+# 市場環境（VOO / VIX / ^TNX）配置上限對照表（策略 A · Step 1）
+# key = f"{vs_50ma_label}+{trend_label}"
+ALLOCATION_MATRIX = {
+    "🔥+🟢": {"core": 40, "momentum": 35, "sprint": 15, "cash": 10},
+    "🔥+🔴": {"core": 30, "momentum": 25, "sprint": 10, "cash": 35},
+    "🟡+🟢": {"core": 30, "momentum": 25, "sprint": 0,  "cash": 45},
+    "🟡+🔴": {"core": 20, "momentum": 15, "sprint": 0,  "cash": 65},
+    "❄+🟢": {"core": 20, "momentum": 0,  "sprint": 0,  "cash": 80},
+    "❄+🔴": {"core": 0,  "momentum": 0,  "sprint": 0,  "cash": 100},
+}
+VIX_STOP_LEVEL = 30       # VIX > 30 → 覆蓋所有象限，全倉現金
+TNX_HIGH_LEVEL = 4.0      # TNX > 4% → 利多能源/金融/醫療 · 利空科技/REIT/公用
+TNX_LOW_LEVEL = 3.0       # TNX < 3% → 利多科技 · 利空能源/金融
+
+# TNX 高低對 sector 的影響（策略 A · Step 2）
+TNX_HIGH_BOOST = ["XLE", "XLF", "XLV"]
+TNX_HIGH_PENALTY = ["XLK", "XLRE", "XLU"]
+TNX_LOW_BOOST = ["XLK"]
+TNX_LOW_PENALTY = ["XLE", "XLF"]
+
 
 def log(msg):
     ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
@@ -143,6 +163,102 @@ def extract_ohlcv(df_bulk, ticker):
     else:
         sub = df_bulk.copy()
     return sub.dropna(how="all")
+
+
+# ============================================================
+# 1b. 市場環境四象限 + TNX 濾網（策略 A · Step 1 + Step 2）
+# ============================================================
+def fetch_market_context():
+    """
+    抓 VOO + VIX + ^TNX · 判定：
+      · VOO vs 60d 前 → 多/空頭趨勢 🟢/🔴
+      · VOO vs 50MA  → 極強/盤整/寒冬 🔥/🟡/❄
+      · VIX 現值    → >30 全倉現金旗標
+      · TNX 現值    → >4% / <3% 對板塊加減碼
+      · 配置上限對照表 → 核心/動能/衝刺/現金 %
+    回傳 dict 給 manifest 用
+    """
+    import yfinance as yf
+    log("Fetching market context (VOO / ^VIX / ^TNX)...")
+    tickers = ["VOO", "^VIX", "^TNX"]
+    data = yf.download(
+        tickers, period="4mo", interval="1d",
+        auto_adjust=True, progress=False, threads=True, group_by="ticker",
+    )
+    # 擋掉「今天」的 partial bar
+    data = _drop_today_bar(data, "market")
+
+    def _extract(t):
+        return extract_ohlcv(data, t)
+
+    voo = _extract("VOO")
+    vix = _extract("^VIX")
+    tnx = _extract("^TNX")
+
+    ctx = {"as_of_date": None, "voo": None, "vix": None, "tnx": None,
+           "trend_label": "?", "vs_50ma_label": "?",
+           "quadrant_key": None, "allocation": None,
+           "vix_override_all_cash": False,
+           "tnx_boost": [], "tnx_penalty": [],
+           "notes": []}
+
+    if voo is not None and len(voo) >= 60:
+        cur = float(voo["Close"].iloc[-1])
+        past = float(voo["Close"].iloc[-61])  # ~60 交易日前
+        ma50 = float(voo["Close"].iloc[-50:].mean())
+        ctx["as_of_date"] = voo.index[-1].strftime("%Y-%m-%d")
+        ctx["voo"] = {"price": round(cur, 2), "vs_60d_pct": round((cur / past - 1) * 100, 2),
+                       "ma50": round(ma50, 2), "vs_50ma_pct": round((cur / ma50 - 1) * 100, 2)}
+        # 趨勢：VOO 高於 60 日前 = 🟢多頭
+        ctx["trend_label"] = "🟢" if cur > past else "🔴"
+        # 溫度：VOO 相對 50MA
+        vs_ma = (cur / ma50 - 1) * 100
+        if vs_ma > 2:
+            ctx["vs_50ma_label"] = "🔥"
+        elif vs_ma > -2:
+            ctx["vs_50ma_label"] = "🟡"
+        else:
+            ctx["vs_50ma_label"] = "❄"
+
+    if vix is not None and len(vix) > 0:
+        vix_cur = float(vix["Close"].iloc[-1])
+        ctx["vix"] = {"value": round(vix_cur, 2)}
+        ctx["vix_override_all_cash"] = vix_cur > VIX_STOP_LEVEL
+        if ctx["vix_override_all_cash"]:
+            ctx["notes"].append(f"⛔ VIX={vix_cur:.1f} > {VIX_STOP_LEVEL} · 全倉現金覆蓋所有象限")
+
+    if tnx is not None and len(tnx) > 0:
+        # ^TNX 是「10 年公債殖利率 × 100」· 例如 4.2% → 42
+        tnx_raw = float(tnx["Close"].iloc[-1])
+        tnx_pct = tnx_raw / 10.0 if tnx_raw > 10 else tnx_raw
+        ctx["tnx"] = {"value": round(tnx_pct, 2), "raw": round(tnx_raw, 2)}
+        if tnx_pct > TNX_HIGH_LEVEL:
+            ctx["tnx_boost"] = TNX_HIGH_BOOST
+            ctx["tnx_penalty"] = TNX_HIGH_PENALTY
+            ctx["notes"].append(f"📈 TNX={tnx_pct:.2f}% > {TNX_HIGH_LEVEL}% · 利多 {'/'.join(TNX_HIGH_BOOST)} · 利空 {'/'.join(TNX_HIGH_PENALTY)}")
+        elif tnx_pct < TNX_LOW_LEVEL:
+            ctx["tnx_boost"] = TNX_LOW_BOOST
+            ctx["tnx_penalty"] = TNX_LOW_PENALTY
+            ctx["notes"].append(f"📉 TNX={tnx_pct:.2f}% < {TNX_LOW_LEVEL}% · 利多 {'/'.join(TNX_LOW_BOOST)} · 利空 {'/'.join(TNX_LOW_PENALTY)}")
+        else:
+            ctx["notes"].append(f"➖ TNX={tnx_pct:.2f}% 介於 {TNX_LOW_LEVEL}-{TNX_HIGH_LEVEL}% · 中性")
+
+    # 決定象限 + 配置上限
+    if ctx["trend_label"] != "?" and ctx["vs_50ma_label"] != "?":
+        key = f"{ctx['vs_50ma_label']}+{ctx['trend_label']}"
+        ctx["quadrant_key"] = key
+        base = ALLOCATION_MATRIX.get(key)
+        if ctx["vix_override_all_cash"]:
+            ctx["allocation"] = {"core": 0, "momentum": 0, "sprint": 0, "cash": 100}
+        else:
+            ctx["allocation"] = base
+
+    log(f"  · VOO ${ctx['voo']['price'] if ctx['voo'] else '?'} · trend={ctx['trend_label']} vs_50ma={ctx['vs_50ma_label']} · quadrant={ctx['quadrant_key']}")
+    log(f"  · VIX={ctx['vix']['value'] if ctx['vix'] else '?'} · TNX={ctx['tnx']['value'] if ctx['tnx'] else '?'}%")
+    if ctx["allocation"]:
+        a = ctx["allocation"]
+        log(f"  · 配置上限：核心 {a['core']}% / 動能 {a['momentum']}% / 衝刺 {a['sprint']}% / 現金 {a['cash']}%")
+    return ctx
 
 
 # ============================================================
@@ -304,7 +420,7 @@ def add_ranks_and_composite(df):
 # ============================================================
 # 4. 輸出
 # ============================================================
-def save_outputs(df):
+def save_outputs(df, market_ctx=None):
     os.makedirs(OUTDIR, exist_ok=True)
     # 檔名用 as_of_date（不是 today）· T-1 基準
     as_of = df["as_of_date"].iloc[0] if len(df) else date.today().strftime("%Y-%m-%d")
@@ -313,12 +429,22 @@ def save_outputs(df):
     df.to_csv(csv_path, index=False)
     log(f"  saved {csv_path}")
 
+    # 為每個 sector 加 TNX / 象限的 boost/penalty 標記
+    if market_ctx:
+        df = df.copy()
+        boost = set(market_ctx.get("tnx_boost", []))
+        penalty = set(market_ctx.get("tnx_penalty", []))
+        df["tnx_flag"] = df["sector"].apply(
+            lambda s: "boost" if s in boost else ("penalty" if s in penalty else None)
+        )
+
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "as_of_date": as_of,
         "as_of_date_note": "基準日 = 抓到的最後一根 close 的日期（T-1）· 非腳本執行當日",
         "sector_count": int(len(df)),
         "csv": os.path.basename(csv_path),
+        "market_context": market_ctx,
         "formulas": {
             "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
             "cms_a": "0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）",
@@ -326,6 +452,8 @@ def save_outputs(df):
             "vp_score": "MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35 + UD×100×0.15 + 50))",
             "composite": "Point_rank×0.40 + vp_score_rank×0.40 + vol_rank×0.20（越小越強）",
             "gap_alert": f"|Point_rank - vp_score_rank| > {GAP_ALERT_THRESHOLD} → 吃老本(漲多動能弱) / 剛爆發(量價強漲幅追不上)",
+            "market_regime": "VOO vs 60d → 🟢/🔴 · VOO vs 50MA → 🔥/🟡/❄ · VIX > 30 → 全倉現金",
+            "tnx_filter": f"TNX > {TNX_HIGH_LEVEL}% → 利多 {TNX_HIGH_BOOST}·利空 {TNX_HIGH_PENALTY} · TNX < {TNX_LOW_LEVEL}% → 利多 {TNX_LOW_BOOST}·利空 {TNX_LOW_PENALTY}",
         },
         "rows": df.where(pd.notna(df), None).to_dict(orient="records"),
     }
@@ -339,6 +467,13 @@ def save_outputs(df):
 # ============================================================
 def main():
     daily, weekly = fetch_data()
+
+    # 市場環境（策略 A · Step 1 + Step 2）
+    try:
+        market_ctx = fetch_market_context()
+    except Exception as e:
+        log(f"⚠ 市場環境抓取失敗（不影響 sector 評分）: {e}")
+        market_ctx = None
 
     rows = []
     for ticker, name_zh, name_en in SECTORS:
@@ -366,7 +501,7 @@ def main():
             f"CMS_A={r['cms_a']:5.2f}  di={r['di']:.2f}  {alert}"
         )
 
-    save_outputs(df)
+    save_outputs(df, market_ctx=market_ctx)
 
 
 if __name__ == "__main__":

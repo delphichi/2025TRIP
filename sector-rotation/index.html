@@ -57,6 +57,42 @@
             </p>
         </section>
 
+        <section class="panel market-panel" id="market-panel" style="display:none">
+            <h2>🌐 市場環境（策略 A · Step 1 + 2）</h2>
+            <div class="market-grid">
+                <div class="market-cell">
+                    <div class="market-label">📈 VOO 趨勢 vs 60 日前</div>
+                    <div class="market-value" id="mkt-trend">—</div>
+                    <div class="market-sub" id="mkt-trend-detail">—</div>
+                </div>
+                <div class="market-cell">
+                    <div class="market-label">🌡 VOO vs 50MA</div>
+                    <div class="market-value" id="mkt-heat">—</div>
+                    <div class="market-sub" id="mkt-heat-detail">—</div>
+                </div>
+                <div class="market-cell">
+                    <div class="market-label">😱 VIX</div>
+                    <div class="market-value" id="mkt-vix">—</div>
+                    <div class="market-sub" id="mkt-vix-detail">—</div>
+                </div>
+                <div class="market-cell">
+                    <div class="market-label">💰 10Y TNX</div>
+                    <div class="market-value" id="mkt-tnx">—</div>
+                    <div class="market-sub" id="mkt-tnx-detail">—</div>
+                </div>
+            </div>
+            <div class="market-quadrant" id="mkt-quadrant">
+                <b>象限：</b><span id="mkt-quadrant-key">—</span>
+            </div>
+            <div class="allocation-bars" id="mkt-allocation">
+                <div class="alloc-row"><span class="alloc-label">🟢 核心</span><div class="alloc-bar"><div class="alloc-fill alloc-core" id="alloc-core-fill"></div></div><span class="alloc-pct" id="alloc-core">—</span></div>
+                <div class="alloc-row"><span class="alloc-label">🟡 動能</span><div class="alloc-bar"><div class="alloc-fill alloc-momentum" id="alloc-momentum-fill"></div></div><span class="alloc-pct" id="alloc-momentum">—</span></div>
+                <div class="alloc-row"><span class="alloc-label">🔴 衝刺</span><div class="alloc-bar"><div class="alloc-fill alloc-sprint" id="alloc-sprint-fill"></div></div><span class="alloc-pct" id="alloc-sprint">—</span></div>
+                <div class="alloc-row"><span class="alloc-label">💵 現金</span><div class="alloc-bar"><div class="alloc-fill alloc-cash" id="alloc-cash-fill"></div></div><span class="alloc-pct" id="alloc-cash">—</span></div>
+            </div>
+            <div class="market-notes" id="mkt-notes"></div>
+        </section>
+
         <section class="panel status-panel">
             <div class="status-row">
                 <div class="status-item">
@@ -173,6 +209,10 @@
                                 <th class="num">di</th>
                                 <th class="num">L1 surp%</th>
                                 <th class="num">L2 surp%</th>
+                                <th class="num">50MA</th>
+                                <th class="num">10日振幅</th>
+                                <th class="num">VP</th>
+                                <th>VCP</th>
                             </tr>
                         </thead>
                         <tbody id="heat-tbody"></tbody>

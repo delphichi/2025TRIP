@@ -94,6 +94,63 @@ async function loadStage2Optional() {
     }
 }
 
+// ---------- render: market context ----------
+function renderMarketPanel() {
+    const ctx = STATE.scorecard?.market_context;
+    if (!ctx) return;
+    $("#market-panel").style.display = "";
+
+    const v = ctx.voo || {};
+    $("#mkt-trend").textContent = ctx.trend_label || "—";
+    $("#mkt-trend-detail").textContent = v.vs_60d_pct !== undefined
+        ? `${v.vs_60d_pct > 0 ? '+' : ''}${v.vs_60d_pct.toFixed(2)}% (VOO=$${v.price})`
+        : "—";
+
+    $("#mkt-heat").textContent = ctx.vs_50ma_label || "—";
+    $("#mkt-heat-detail").textContent = v.vs_50ma_pct !== undefined
+        ? `${v.vs_50ma_pct > 0 ? '+' : ''}${v.vs_50ma_pct.toFixed(2)}% vs $${v.ma50}`
+        : "—";
+
+    const vix = ctx.vix?.value;
+    $("#mkt-vix").textContent = vix !== undefined ? vix.toFixed(1) : "—";
+    $("#mkt-vix-detail").textContent = vix !== undefined
+        ? (ctx.vix_override_all_cash ? "⛔ >30 · 全倉現金覆蓋" : (vix > 20 ? "⚠ 偏高" : "✅ 正常"))
+        : "—";
+
+    const tnx = ctx.tnx?.value;
+    $("#mkt-tnx").textContent = tnx !== undefined ? `${tnx.toFixed(2)}%` : "—";
+    let tnxDetail = "—";
+    if (tnx !== undefined) {
+        if (tnx > 4) tnxDetail = "📈 高利率 · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU";
+        else if (tnx < 3) tnxDetail = "📉 低利率 · 利多 XLK · 利空 XLE/XLF";
+        else tnxDetail = "➖ 中性 3-4%";
+    }
+    $("#mkt-tnx-detail").textContent = tnxDetail;
+
+    // 象限 key
+    $("#mkt-quadrant-key").textContent = ctx.quadrant_key || "—";
+    $("#mkt-quadrant").style.background = ctx.vix_override_all_cash
+        ? "rgba(239, 68, 68, 0.15)"
+        : "";
+
+    // 配置條
+    const a = ctx.allocation || {core: 0, momentum: 0, sprint: 0, cash: 100};
+    ["core", "momentum", "sprint", "cash"].forEach(k => {
+        $(`#alloc-${k}`).textContent = `${a[k]}%`;
+        $(`#alloc-${k}-fill`).style.width = `${a[k]}%`;
+    });
+
+    // notes
+    const notesEl = $("#mkt-notes");
+    notesEl.innerHTML = "";
+    (ctx.notes || []).forEach(n => {
+        const el = document.createElement("div");
+        el.className = "market-note";
+        el.textContent = n;
+        notesEl.appendChild(el);
+    });
+}
+
 // ---------- render: status ----------
 function renderStatus() {
     const m = STATE.scorecard;
@@ -147,10 +204,15 @@ function renderScoreTable() {
         // Point 熱區：正=綠負=紅
         const pointVal = r.point ?? r.price_point;
 
+        // TNX flag: boost=綠上箭 · penalty=紅下箭
+        let tnxIcon = "";
+        if (r.tnx_flag === "boost") tnxIcon = ` <span class="tnx-flag tnx-boost" title="TNX 利多">📈</span>`;
+        else if (r.tnx_flag === "penalty") tnxIcon = ` <span class="tnx-flag tnx-penalty" title="TNX 利空">📉</span>`;
+
         tr.innerHTML = `
             <td class="rank-cell composite-rank"><b>#${rk}</b></td>
             <td class="sector-cell">
-                <b>${r.sector}</b>
+                <b>${r.sector}</b>${tnxIcon}
                 <span class="sector-name-zh">${r.sector_name || ""}</span>
             </td>
             <td class="num price-t"><b>${fmtPrice(r.t_price)}</b></td>
@@ -218,8 +280,9 @@ function renderStage2Tab(tabKey) {
     const rows = STATE.stage2?.top3?.[tabKey] || [];
     const tbody = $("#heat-tbody");
     tbody.innerHTML = "";
+    const COLSPAN = 14;
     if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="empty-row">沒資料</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${COLSPAN}" class="empty-row">沒資料</td></tr>`;
         return;
     }
     let prevSector = null;
@@ -227,11 +290,27 @@ function renderStage2Tab(tabKey) {
         if (prevSector !== null && r.sector !== prevSector) {
             const sep = document.createElement("tr");
             sep.className = "sector-sep";
-            sep.innerHTML = `<td colspan="10"></td>`;
+            sep.innerHTML = `<td colspan="${COLSPAN}"></td>`;
             tbody.appendChild(sep);
         }
         prevSector = r.sector;
         const diColor = r.di >= 1 ? "var(--good)" : r.di >= 0.67 ? "var(--warn)" : "var(--danger)";
+        // VCP badge
+        let vcpBadge = "—";
+        if (r.vcp === true || r.vcp === "True") vcpBadge = `<span class="vcp-badge vcp-yes" title="站上50MA + 振幅<3% + VP>1">✅ VCP</span>`;
+        else if (r.vcp === false || r.vcp === "False") vcpBadge = `<span class="vcp-badge vcp-no" title="不符合 VCP 三條件">—</span>`;
+        // MA50 相對顯示
+        const above50 = r.above_50ma === true || r.above_50ma === "True";
+        const maColor = above50 ? "var(--good)" : "var(--danger)";
+        // 振幅：<3 綠 · >5 紅
+        const ampColor = r.amp_10d_pct === null || r.amp_10d_pct === undefined
+            ? "var(--text-dim)"
+            : (r.amp_10d_pct < 3 ? "var(--good)" : r.amp_10d_pct < 5 ? "var(--warn)" : "var(--danger)");
+        // VP：>1 綠 · <1 紅
+        const vpColor = r.vp_ratio_stock === null || r.vp_ratio_stock === undefined
+            ? "var(--text-dim)"
+            : (r.vp_ratio_stock > 1 ? "var(--good)" : "var(--danger)");
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td class="sym"><b>${r.symbol}</b></td>
@@ -244,6 +323,10 @@ function renderStage2Tab(tabKey) {
             <td class="num" style="color:${diColor}"><b>${fmtNum(r.di, 2)}</b></td>
             <td class="num heat" style="background:${heatBgRet(r.surprise_l1)}; color:${heatText(r.surprise_l1)}">${fmtPct(r.surprise_l1)}</td>
             <td class="num heat" style="background:${heatBgRet(r.surprise_l2)}; color:${heatText(r.surprise_l2)}">${fmtPct(r.surprise_l2)}</td>
+            <td class="num" style="color:${maColor}">${fmtPrice(r.ma50)}</td>
+            <td class="num" style="color:${ampColor}"><b>${fmtNum(r.amp_10d_pct, 2)}%</b></td>
+            <td class="num" style="color:${vpColor}"><b>${fmtNum(r.vp_ratio_stock, 2)}</b></td>
+            <td class="vcp-cell">${vcpBadge}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -258,6 +341,7 @@ async function init() {
     } catch (e) {
         return;
     }
+    renderMarketPanel();
     renderStatus();
     renderScoreTable();
 
