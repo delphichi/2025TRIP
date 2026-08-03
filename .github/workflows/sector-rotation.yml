@@ -1,0 +1,104 @@
+name: sector-rotation-daily
+
+# 目的：每交易日收盤後跑 sector 量價評分 · commit data/sector_rotation/
+# 供 sector-rotation/index.html 讀 scorecard_latest.json。
+#
+# 排程：US 東岸收盤 4pm ET · 冬季(EST) = UTC 21:00 · 夏季(EDT) = UTC 20:00
+#   簡單起見 · 週一~五 UTC 21:30 跑（EDT 17:30 / EST 16:30 · 都保證收盤後）
+#   假日 yfinance 會回前一日資料 · 不會失敗 · 只是 commit 內容不變
+#
+# 手動觸發：Actions → sector-rotation-daily → Run workflow
+#
+# 另有 Stage 2（S&P 500 個股熱區）· 需 FMP_API_KEY · 每週五跑一次
+
+on:
+  schedule:
+    - cron: '30 21 * * 1-5'      # 週一~五 UTC 21:30
+    - cron: '0 22 * * 5'         # 週五 UTC 22:00 · 額外跑 stage 2
+  workflow_dispatch:
+    inputs:
+      run_stage2:
+        description: '順便跑 stage 2（S&P 500 個股 · 需 FMP_API_KEY · 耗時較久）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  scorecard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install yfinance pandas requests lxml
+
+      - name: Run sector scorecard (stage 1)
+        run: |
+          python scripts/sector_scorecard.py 2>&1 | tee /tmp/scorecard.log
+
+      - name: Decide if stage 2 should run
+        id: decide
+        run: |
+          # 週五 22:00 cron OR 手動勾選 → 跑 stage 2
+          IS_FRI_LATE=$([ "$(date -u +%u)" = "5" ] && [ "$(date -u +%H)" -ge "22" ] && echo "yes" || echo "no")
+          MANUAL="${{ inputs.run_stage2 }}"
+          if [ "$IS_FRI_LATE" = "yes" ] || [ "$MANUAL" = "true" ]; then
+            echo "run_stage2=true" >> $GITHUB_OUTPUT
+          else
+            echo "run_stage2=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run S&P 500 individual screener (stage 2)
+        if: steps.decide.outputs.run_stage2 == 'true'
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+        run: |
+          python scripts/sector_rotation_screener.py 2>&1 | tee /tmp/stage2.log
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 板塊量價評分 · $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo '### Stage 1 · scorecard' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -30 /tmp/scorecard.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "(no log)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -f /tmp/stage2.log ]; then
+            echo '### Stage 2 · S&P 500 screener' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -30 /tmp/stage2.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f data/sector_rotation/scorecard_latest.json ]; then
+            echo '### scorecard_latest.json (excerpt)' >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            python -c "import json; d=json.load(open('data/sector_rotation/scorecard_latest.json')); d.pop('rows',None); print(json.dumps(d,indent=2,ensure_ascii=False))" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Commit snapshots
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sector_rotation/ 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No new data to commit"
+            exit 0
+          fi
+          git commit -m "chore(sector-rotation): snapshot $(date -u '+%Y-%m-%d')"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main && git push origin HEAD:main && break
+            echo "Push attempt $i failed · sleep $((2**i))s"
+            sleep $((2**i))
+          done
