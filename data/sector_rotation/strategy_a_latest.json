@@ -1,151 +1,214 @@
 {
-  "generated_at": "2026-08-04T13:25:23.785285+00:00",
-  "as_of_date": "2023-12-29",
+  "generated_at": "2026-08-04T13:34:57.835579+00:00",
+  "as_of_date": "2023-08-25",
   "market_context": {
-    "as_of_date": "2023-12-29",
+    "as_of_date": "2023-08-25",
     "voo": {
-      "price": 423.32,
-      "vs_60d_pct": 12.39,
-      "ma50": 398.82,
-      "vs_50ma_pct": 6.14
+      "price": 388.63,
+      "vs_60d_pct": 5.7,
+      "ma50": 392.89,
+      "vs_50ma_pct": -1.08
     },
     "vix": {
-      "value": 12.45
+      "value": 15.68
     },
     "tnx": {
-      "value": 3.87,
-      "raw": 3.87
+      "value": 4.24,
+      "raw": 4.24
     },
     "trend_label": "🟢",
-    "vs_50ma_label": "🔥",
-    "quadrant_key": "🔥+🟢",
+    "vs_50ma_label": "🟡",
+    "quadrant_key": "🟡+🟢",
     "allocation": {
-      "core": 40,
-      "momentum": 35,
-      "sprint": 15,
-      "cash": 10
+      "core": 30,
+      "momentum": 25,
+      "sprint": 0,
+      "cash": 45
     },
     "vix_override_all_cash": false,
-    "tnx_boost": [],
-    "tnx_penalty": [],
+    "tnx_boost": [
+      "XLE",
+      "XLF",
+      "XLV"
+    ],
+    "tnx_penalty": [
+      "XLK",
+      "XLRE",
+      "XLU"
+    ],
     "notes": [
-      "➖ TNX=3.87% 介於 3.0-4.0% · 中性"
+      "📈 TNX=4.24% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ]
   },
   "effective_sectors": [
     {
-      "sector": "XLK",
-      "sector_name": "資訊科技",
+      "sector": "XLY",
+      "sector_name": "非必需消費",
       "composite_rank": 1,
-      "point_rank": 1,
-      "cms_a": 4.2,
+      "point_rank": 3,
+      "cms_a": 4.5,
       "tnx_flag": null
     },
     {
-      "sector": "XLF",
-      "sector_name": "金融",
-      "composite_rank": 2,
-      "point_rank": 2,
-      "cms_a": 3.1,
-      "tnx_flag": null
+      "sector": "XLE",
+      "sector_name": "能源",
+      "composite_rank": 3,
+      "point_rank": 4,
+      "cms_a": 1.8,
+      "tnx_flag": "boost"
     },
     {
       "sector": "XLI",
       "sector_name": "工業",
-      "composite_rank": 2,
+      "composite_rank": 4,
       "point_rank": 5,
-      "cms_a": 3.2,
+      "cms_a": 2.9,
       "tnx_flag": null
     }
   ],
-  "demoted_sectors": [],
+  "demoted_sectors": [
+    {
+      "sector": "XLK",
+      "sector_name": "資訊科技",
+      "reason": "TNX 濾網降級"
+    }
+  ],
   "allocation": {
-    "core": 40,
-    "momentum": 35,
-    "sprint": 15,
-    "cash": 10
+    "core": 30,
+    "momentum": 25,
+    "sprint": 0,
+    "cash": 45
   },
   "positions": {
     "core": [],
-    "momentum": [],
+    "momentum": [
+      {
+        "symbol": "APA",
+        "name": "APA Corporation",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 13.98,
+        "cms_a": 4.2,
+        "di": 1.0,
+        "cum_ret_4w": 6.43,
+        "cum_ret_13w": 28.74,
+        "cum_ret_26w": 10.38,
+        "vcp": false,
+        "vp_ratio_stock": 1.26,
+        "pct_from_high": -13.93,
+        "high_52w": 44.29,
+        "surprise_l1": 18.87,
+        "surprise_l2": 22.23,
+        "pre_earnings_14d": false,
+        "tier": "momentum",
+        "reason": "TNX順風 + VP 1.26 + 4W +6.4%",
+        "weight_pct": 25.0
+      }
+    ],
     "sprint": [
       {
-        "symbol": "COIN",
-        "name": "Coinbase",
-        "sector": "Financials",
-        "sector_etf": "XLF",
-        "point": 111.95,
-        "cms_a": 1.5,
-        "di": 1.0,
-        "cum_ret_4w": 30.02,
-        "cum_ret_13w": 131.65,
-        "cum_ret_26w": 143.07,
-        "vcp": false,
-        "vp_ratio_stock": 0.938,
-        "pct_from_high": -7.19,
-        "high_52w": 187.39,
-        "surprise_l1": 98.13,
-        "surprise_l2": 44.98,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "CMS_A=1.5 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 5.0
-      },
-      {
-        "symbol": "AMD",
-        "name": "Advanced Micro Devices",
-        "sector": "Information Technology",
-        "sector_etf": "XLK",
-        "point": 30.91,
-        "cms_a": 3.9,
-        "di": 1.0,
-        "cum_ret_4w": 21.44,
-        "cum_ret_13w": 43.37,
-        "cum_ret_26w": 29.41,
-        "vcp": false,
-        "vp_ratio_stock": 1.399,
-        "pct_from_high": -2.41,
-        "high_52w": 151.05,
-        "surprise_l1": 3.59,
-        "surprise_l2": 1.05,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "CMS_A=3.9 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 5.0
-      },
-      {
-        "symbol": "URI",
-        "name": "United Rentals",
+        "symbol": "VRT",
+        "name": "Vertiv",
         "sector": "Industrials",
         "sector_etf": "XLI",
-        "point": 25.71,
-        "cms_a": 4.8,
+        "point": 102.22,
+        "cms_a": 1.0,
         "di": 1.0,
-        "cum_ret_4w": 14.27,
-        "cum_ret_13w": 29.42,
-        "cum_ret_26w": 29.58,
+        "cum_ret_4w": 44.51,
+        "cum_ret_13w": 89.97,
+        "cum_ret_26w": 137.19,
         "vcp": false,
-        "vp_ratio_stock": 1.135,
-        "pct_from_high": -2.06,
-        "high_52w": 572.6,
-        "surprise_l1": 5.02,
-        "surprise_l2": 10.46,
+        "vp_ratio_stock": 1.453,
+        "pct_from_high": -1.19,
+        "high_52w": 37.81,
+        "surprise_l1": 59.38,
+        "surprise_l2": 46.63,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=4.8 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 5.0
+        "reason": "CMS_A=1.0 靠前但缺 VCP 或非 TNX 順風"
+      },
+      {
+        "symbol": "MPC",
+        "name": "Marathon Petroleum",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 19.01,
+        "cms_a": 2.2,
+        "di": 1.0,
+        "cum_ret_4w": 9.77,
+        "cum_ret_13w": 32.99,
+        "cum_ret_26w": 16.63,
+        "vcp": false,
+        "vp_ratio_stock": 0.941,
+        "pct_from_high": -3.37,
+        "high_52w": 140.83,
+        "surprise_l1": 15.98,
+        "surprise_l2": 8.66,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "CMS_A=2.2 靠前但缺 VCP 或非 TNX 順風"
+      },
+      {
+        "symbol": "TPL",
+        "name": "Texas Pacific Land Corporation",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 21.93,
+        "cms_a": 3.0,
+        "di": 1.0,
+        "cum_ret_4w": 26.51,
+        "cum_ret_13w": 44.99,
+        "cum_ret_26w": 8.12,
+        "vcp": false,
+        "vp_ratio_stock": 1.024,
+        "pct_from_high": -30.18,
+        "high_52w": 292.97,
+        "surprise_l1": 16.31,
+        "surprise_l2": -18.79,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "距高點 -30.2% 深度反彈 · 只能衝刺"
+      },
+      {
+        "symbol": "CVNA",
+        "name": "Carvana",
+        "sector": "Consumer Discretionary",
+        "sector_etf": "XLY",
+        "point": 268.31,
+        "cms_a": 13.0,
+        "di": 0.667,
+        "cum_ret_4w": -6.41,
+        "cum_ret_13w": 250.94,
+        "cum_ret_26w": 414.36,
+        "vcp": false,
+        "vp_ratio_stock": 1.245,
+        "pct_from_high": -27.96,
+        "high_52w": 11.44,
+        "surprise_l1": 48.06,
+        "surprise_l2": 19.6,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "破格 · 全場 Point 最高(268.3)且領先池內第 3 名 50%+"
       }
     ],
     "hold_earnings": []
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 0,
-    "sprint_count": 3,
+    "momentum_count": 1,
+    "sprint_count": 4,
     "hold_count": 0
   },
   "correlation_warnings": [],
-  "dark_horses": [],
+  "dark_horses": [
+    {
+      "sector": "XLI",
+      "sector_name": "工業",
+      "point_rank": 5,
+      "vp_score_rank": 6,
+      "vol_rank": 1
+    }
+  ],
   "watchlist_promoted": [],
   "notes": [
     "策略 A 九步驟輸出 · 每檔 weight_pct = 該 tier 配置上限 / 該 tier 檔數",
