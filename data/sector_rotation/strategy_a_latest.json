@@ -1,29 +1,29 @@
 {
-  "generated_at": "2026-08-04T00:21:43.100712+00:00",
-  "as_of_date": "2024-12-27",
+  "generated_at": "2026-08-04T00:33:12.902936+00:00",
+  "as_of_date": "2025-03-28",
   "market_context": {
-    "as_of_date": "2024-12-27",
+    "as_of_date": "2025-03-28",
     "voo": {
-      "price": 537.17,
-      "vs_60d_pct": 4.97,
-      "ma50": 533.44,
-      "vs_50ma_pct": 0.7
+      "price": 503.28,
+      "vs_60d_pct": -5.25,
+      "ma50": 531.45,
+      "vs_50ma_pct": -5.3
     },
     "vix": {
-      "value": 15.95
+      "value": 21.65
     },
     "tnx": {
-      "value": 4.62,
-      "raw": 4.62
+      "value": 4.26,
+      "raw": 4.26
     },
-    "trend_label": "🟢",
-    "vs_50ma_label": "🟡",
-    "quadrant_key": "🟡+🟢",
+    "trend_label": "🔴",
+    "vs_50ma_label": "❄",
+    "quadrant_key": "❄+🔴",
     "allocation": {
-      "core": 30,
-      "momentum": 25,
+      "core": 0,
+      "momentum": 0,
       "sprint": 0,
-      "cash": 45
+      "cash": 100
     },
     "vix_override_all_cash": false,
     "tnx_boost": [
@@ -37,24 +37,24 @@
       "XLU"
     ],
     "notes": [
-      "📈 TNX=4.62% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "📈 TNX=4.26% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ]
   },
   "effective_sectors": [
     {
-      "sector": "XLY",
-      "sector_name": "非必需消費",
+      "sector": "XLE",
+      "sector_name": "能源",
       "composite_rank": 1,
       "point_rank": 1,
-      "cms_a": 1.0,
-      "tnx_flag": null
+      "cms_a": 1.2,
+      "tnx_flag": "boost"
     },
     {
       "sector": "XLC",
       "sector_name": "通訊服務",
       "composite_rank": 3,
       "point_rank": 3,
-      "cms_a": 2.7,
+      "cms_a": 7.8,
       "tnx_flag": null
     },
     {
@@ -62,139 +62,119 @@
       "sector_name": "金融",
       "composite_rank": 4,
       "point_rank": 2,
-      "cms_a": 3.8,
+      "cms_a": 6.0,
       "tnx_flag": "boost"
     }
   ],
   "demoted_sectors": [
     {
-      "sector": "XLK",
-      "sector_name": "資訊科技",
+      "sector": "XLU",
+      "sector_name": "公用事業",
       "reason": "TNX 濾網降級"
     }
   ],
   "allocation": {
-    "core": 30,
-    "momentum": 25,
+    "core": 0,
+    "momentum": 0,
     "sprint": 0,
-    "cash": 45
+    "cash": 100
   },
   "positions": {
     "core": [],
-    "momentum": [],
-    "sprint": [
+    "momentum": [
       {
-        "symbol": "HOOD",
-        "name": "Robinhood Markets",
+        "symbol": "WRB",
+        "name": "W. R. Berkley Corporation",
         "sector": "Financials",
         "sector_etf": "XLF",
-        "point": 52.73,
-        "cms_a": 1.0,
+        "point": 22.28,
+        "cms_a": 1.4,
         "di": 1.0,
-        "cum_ret_4w": 3.94,
-        "cum_ret_13w": 63.33,
-        "cum_ret_26w": 71.82,
+        "cum_ret_4w": 13.13,
+        "cum_ret_13w": 21.01,
+        "cum_ret_26w": 27.5,
         "vcp": false,
-        "vp_ratio_stock": 0.916,
-        "pct_from_high": -10.97,
-        "high_52w": 43.83,
-        "surprise_l1": 0.38,
-        "surprise_l2": 15.99,
+        "vp_ratio_stock": 1.063,
+        "pct_from_high": -6.69,
+        "high_52w": 73.73,
+        "surprise_l1": 18.49,
+        "surprise_l2": -5.45,
+        "pre_earnings_14d": false,
+        "tier": "momentum",
+        "reason": "TNX順風 + VP 1.06 + 4W +13.1%"
+      }
+    ],
+    "sprint": [
+      {
+        "symbol": "EQT",
+        "name": "EQT Corporation",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 30.58,
+        "cms_a": 1.7,
+        "di": 1.0,
+        "cum_ret_4w": 10.05,
+        "cum_ret_13w": 19.96,
+        "cum_ret_26w": 46.16,
+        "vcp": false,
+        "vp_ratio_stock": 0.907,
+        "pct_from_high": -6.44,
+        "high_52w": 55.84,
+        "surprise_l1": 31.27,
+        "surprise_l2": 77.17,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=1.0 靠前但缺 VCP 或非 TNX 順風"
+        "reason": "CMS_A=1.7 靠前但缺 VCP 或非 TNX 順風"
       },
       {
-        "symbol": "FOXA",
-        "name": "Fox Corporation (Class A)",
+        "symbol": "T",
+        "name": "AT&T",
         "sector": "Communication Services",
         "sector_etf": "XLC",
-        "point": 27.95,
-        "cms_a": 4.3,
+        "point": 22.9,
+        "cms_a": 2.4,
         "di": 1.0,
-        "cum_ret_4w": 4.99,
-        "cum_ret_13w": 17.03,
-        "cum_ret_26w": 44.89,
+        "cum_ret_4w": 2.81,
+        "cum_ret_13w": 24.84,
+        "cum_ret_26w": 31.98,
         "vcp": false,
-        "vp_ratio_stock": 1.563,
-        "pct_from_high": -2.29,
-        "high_52w": 49.91,
-        "surprise_l1": 27.05,
-        "surprise_l2": 11.03,
+        "vp_ratio_stock": 0.929,
+        "pct_from_high": -1.16,
+        "high_52w": 26.67,
+        "surprise_l1": 6.81,
+        "surprise_l2": 5.07,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=4.3 靠前但缺 VCP 或非 TNX 順風"
+        "reason": "CMS_A=2.4 靠前但缺 VCP 或非 TNX 順風"
       },
       {
-        "symbol": "LULU",
-        "name": "Lululemon Athletica",
-        "sector": "Consumer Discretionary",
-        "sector_etf": "XLY",
-        "point": 29.39,
-        "cms_a": 4.3,
-        "di": 1.0,
-        "cum_ret_4w": 20.59,
-        "cum_ret_13w": 38.09,
-        "cum_ret_26w": 29.45,
-        "vcp": false,
-        "vp_ratio_stock": 1.35,
-        "pct_from_high": -25.12,
-        "high_52w": 516.39,
-        "surprise_l1": 5.46,
-        "surprise_l2": 7.31,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "距高點 -25.1% 深度反彈 · 只能衝刺"
-      },
-      {
-        "symbol": "FOX",
-        "name": "Fox Corporation (Class B)",
+        "symbol": "VZ",
+        "name": "Verizon",
         "sector": "Communication Services",
         "sector_etf": "XLC",
-        "point": 29.41,
-        "cms_a": 4.7,
+        "point": 6.42,
+        "cms_a": 4.5,
         "di": 1.0,
         "cum_ret_4w": 4.25,
-        "cum_ret_13w": 20.06,
-        "cum_ret_26w": 46.67,
+        "cum_ret_13w": 14.54,
+        "cum_ret_26w": 3.45,
         "vcp": false,
-        "vp_ratio_stock": 1.134,
-        "pct_from_high": -2.45,
-        "high_52w": 47.06,
-        "surprise_l1": 26.09,
-        "surprise_l2": 12.5,
+        "vp_ratio_stock": 1.114,
+        "pct_from_high": -5.13,
+        "high_52w": 42.94,
+        "surprise_l1": 0.32,
+        "surprise_l2": 0.71,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=4.7 靠前但缺 VCP 或非 TNX 順風"
-      },
-      {
-        "symbol": "APP",
-        "name": "AppLovin",
-        "sector": "Information Technology",
-        "sector_etf": "XLK",
-        "point": 191.85,
-        "cms_a": 15.5,
-        "di": 0.667,
-        "cum_ret_4w": -0.47,
-        "cum_ret_13w": 162.36,
-        "cum_ret_26w": 302.75,
-        "vcp": false,
-        "vp_ratio_stock": 0.912,
-        "pct_from_high": -19.75,
-        "high_52w": 417.64,
-        "surprise_l1": 19.64,
-        "surprise_l2": -7.16,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "破格 · 全場 Point 最高(191.8)且領先池內第 3 名 50%+"
+        "reason": "CMS_A=4.5 靠前但缺 VCP 或非 TNX 順風"
       }
     ],
     "hold_earnings": []
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 0,
-    "sprint_count": 5,
+    "momentum_count": 1,
+    "sprint_count": 3,
     "hold_count": 0
   },
   "correlation_warnings": [],
