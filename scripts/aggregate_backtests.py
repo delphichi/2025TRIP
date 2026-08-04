@@ -44,11 +44,46 @@ def main():
     for fp in files:
         df = pd.read_csv(fp)
         df["_source_file"] = os.path.basename(fp)
+        df["_source_type"] = "composite_top3"
         all_rows.append(df)
     if not all_rows:
         sys.exit("❌ 沒 snapshot")
     big = pd.concat(all_rows, ignore_index=True)
-    log(f"合併 {len(big)} 個 (sample × stock) row")
+    log(f"合併 {len(big)} 個 (composite_top3) row")
+
+    # === 從 all.csv 擴大 universe · 撈 explosive 候選 ===
+    # 目標：抓 composite 沒選中但財報大 beat + 剛爆發 的股（如 NVDA 2024-01）
+    EXPLOSIVE_SURP_MIN     = 30.0    # L1+L2 財報意外合計 ≥ 30%
+    EXPLOSIVE_COMP_MAX     = 10      # 至少 sector top 10（不要太廢）
+    EXPLOSIVE_26W_MAX      = 50.0    # 個股還沒狂噴（避免 late-stage）
+    explosive_rows = []
+    for fp in sorted(glob.glob("data/sector_rotation/*_all.csv")):
+        df_all = pd.read_csv(fp)
+        surp_sum = df_all["surprise_l1"].fillna(0).astype(float) + df_all["surprise_l2"].fillna(0).astype(float)
+        mask = (
+            (df_all["vp_score_stock"] >= 95)
+            & (df_all["stock_gap_alert"] == "剛爆發")
+            & (surp_sum >= EXPLOSIVE_SURP_MIN)
+            & (df_all["composite_rank_in_sector"] <= EXPLOSIVE_COMP_MAX)
+            & (df_all["cum_ret_26w"].fillna(0) <= EXPLOSIVE_26W_MAX)
+        )
+        cand = df_all[mask].copy()
+        if len(cand):
+            cand["_source_file"] = os.path.basename(fp)
+            cand["_source_type"] = "explosive_all"
+            cand["_surp_sum"] = surp_sum[mask]
+            explosive_rows.append(cand)
+    if explosive_rows:
+        exp_df = pd.concat(explosive_rows, ignore_index=True)
+        # de-dup: 若 (symbol, as_of_date) 已在 composite_top3 · 直接標 flag 不加 row
+        existing_keys = set(zip(big["symbol"], big["as_of_date"]))
+        new_only = exp_df[~exp_df.apply(lambda r: (r["symbol"], r["as_of_date"]) in existing_keys, axis=1)]
+        log(f"explosive 候選: 共 {len(exp_df)} · 其中新增 {len(new_only)} 支不在 composite_top3")
+        # union
+        big = pd.concat([big, new_only], ignore_index=True)
+        log(f"最終 aggregate rows: {len(big)}")
+    else:
+        log("沒找到 explosive 候選 (all.csv 可能沒 push 或 rule 太嚴)")
 
     # === strong_buy v1 hard rules (8-sample 統計驗證：1y avg +50%+ / hit 90%+) ===
     big["strong_buy"] = (
@@ -108,6 +143,18 @@ def main():
     log(f"strong_buy_v2 命中 {int(big['strong_buy_v2'].sum())} / {int(big['strong_buy'].sum())} v1 · "
         f"剃掉 market_overheat={int((big['strong_buy']&big['market_overheated']).sum())} "
         f"stock_overbought={int((big['strong_buy']&big['stock_overbought']).sum())}")
+
+    # === strong_buy_explosive · 財報大 beat + 剛爆發（並存規則） ===
+    surp_sum_col = big["surprise_l1"].fillna(0).astype(float) + big["surprise_l2"].fillna(0).astype(float)
+    big["surp_sum"] = surp_sum_col.round(2)
+    big["strong_buy_explosive"] = (
+        (big["vp_score_stock"] >= 95)
+        & (big["stock_gap_alert"] == "剛爆發")
+        & (surp_sum_col >= EXPLOSIVE_SURP_MIN)
+        & (big["composite_rank_in_sector"] <= EXPLOSIVE_COMP_MAX)
+        & (big["cum_ret_26w"].fillna(0) <= EXPLOSIVE_26W_MAX)
+    )
+    log(f"strong_buy_explosive 命中 {int(big['strong_buy_explosive'].sum())} row")
 
     # 對每 row 算 forward returns
     for lbl, days in CHECKPOINTS:
@@ -235,6 +282,17 @@ def main():
                 "hit_rate_pct": round(100 * (sb2_g[col] > 0).mean(), 1),
             }
 
+        # strong_buy_explosive · 財報大 beat + 剛爆發（並存規則）
+        sbe_g = valid[valid["strong_buy_explosive"] == True]
+        strong_buy_explosive_stats = None
+        if len(sbe_g) > 0:
+            strong_buy_explosive_stats = {
+                "n": int(len(sbe_g)),
+                "avg": round(float(sbe_g[col].mean()), 2),
+                "wins": int((sbe_g[col] > 0).sum()),
+                "hit_rate_pct": round(100 * (sbe_g[col] > 0).mean(), 1),
+            }
+
         # 被過熱濾網剃掉的 v1 樣本
         rejected_g = valid[valid["strong_buy"] & ~valid["strong_buy_v2"]]
         rejected_stats = None
@@ -260,6 +318,14 @@ def main():
                 "stock_overbought_26w_pct": 50.0,
             },
             "rejected_by_v2_filter": rejected_stats,
+            "strong_buy_explosive": strong_buy_explosive_stats,
+            "strong_buy_explosive_thresholds": {
+                "vp_score_min": 95,
+                "alert_required": "剛爆發",
+                "surp_l1_plus_l2_min_pct": EXPLOSIVE_SURP_MIN,
+                "composite_rank_max": EXPLOSIVE_COMP_MAX,
+                "cum_ret_26w_max_pct": EXPLOSIVE_26W_MAX,
+            },
             "by_composite_rank": by_rank,
             "by_alert": by_alert,
             "vcp_true": {"n": int(len(vcp_g)), "avg": round(float(vcp_g[col].mean()), 2) if len(vcp_g) else None,
@@ -292,6 +358,9 @@ def main():
         if p.get("strong_buy_v2"):
             sb2 = p["strong_buy_v2"]
             log(f"  ★ strong_buy_v2 (+overheat)  n={sb2['n']:3d}  avg {sb2['avg']:+7.2f}%  hit {sb2['hit_rate_pct']:5.1f}%")
+        if p.get("strong_buy_explosive"):
+            sbe = p["strong_buy_explosive"]
+            log(f"  🚀 strong_buy_explosive       n={sbe['n']:3d}  avg {sbe['avg']:+7.2f}%  hit {sbe['hit_rate_pct']:5.1f}%")
         if p.get("rejected_by_v2_filter"):
             rj = p["rejected_by_v2_filter"]
             log(f"    (v2 剔除 {rj['n']} 支 · 平均 {rj['avg']:+.2f}% · hit {rj['hit_rate_pct']}% · "
