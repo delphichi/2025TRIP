@@ -433,7 +433,7 @@ const STAGE2_TAB_HINTS = {
     "13w":   "Past 13 Weeks · 各板塊 13W 動能最強前 3 名（一季趨勢）",
     "26w":   "Past 26 Weeks · 各板塊 26W 動能最強前 3 名（半年主線）",
     "cms_a": "各板塊 CMS_A 最強前 3 名（.5·4Wr+.3·13Wr+.2·26Wr · 純漲幅排名 · 越小越強）",
-    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄 · 💎=strong_buy_v2（穩健王者）· 💎⚠=v1 命中但過熱期（AMD 2024-01 -27% 教訓）· 🚀=strong_buy_explosive（財報大 beat + 剛爆發 · 抓 NVDA 型早期爆發）",
+    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄 · 💎=strong_buy（#1+vp≥95+非吃老本 · 11 樣本 1y avg +45.9% / 命中 90.2%）· 🚀=strong_buy_explosive（財報大 beat + 剛爆發 · 抓 NVDA 型早期爆發）",
 };
 
 function renderStage2() {
@@ -505,20 +505,13 @@ function renderStage2Tab(tabKey) {
         const compRank = r.composite_rank_in_sector;
         const compCell = compRank ? `<b style="color:var(--warn)">#${compRank}</b>` : "—";
 
-        // strong_buy v1 三條硬規則（8 樣本回測 1y avg +50% / hit 92%）
+        // strong_buy 三條硬規則（11 樣本回測 1y avg +45.90% / hit 90.2%）
+        //   NOTE: 過熱濾網 v2 於 11-sample 驗證失敗（剃掉的反而漲更多）· 已回收
         const isStrongBuy = (
             compRank === 1 &&
             (r.vp_score_stock ?? 0) >= 95 &&
             r.stock_gap_alert !== "吃老本"
         );
-
-        // strong_buy v2 過熱濾網（2024-01 case 教訓）：
-        //   1. 市場過熱：VOO 60d > +15%
-        //   2. 個股過買：cum_ret_26w > +50%
-        const voo60d = STATE.scorecard?.market_context?.voo?.vs_60d_pct;
-        const marketOverheated = voo60d !== undefined && voo60d > 15;
-        const stockOverbought  = (r.cum_ret_26w ?? 0) > 50;
-        const isStrongBuyV2 = isStrongBuy && !marketOverheated && !stockOverbought;
 
         // strong_buy_explosive · 財報大 beat + 剛爆發（並存規則 · 抓 NVDA 型）
         const surpSum = (Number(r.surprise_l1) || 0) + (Number(r.surprise_l2) || 0);
@@ -531,22 +524,15 @@ function renderStage2Tab(tabKey) {
         );
 
         let sbBadge = "";
-        if (isStrongBuyV2) {
-            sbBadge = ` <span class="sb-badge" title="strong_buy_v2 · #1+vp≥95+非吃老本+市場非過熱+個股非過買 · 10 樣本回測歷史最強">💎</span>`;
-        } else if (isStrongBuy) {
-            const why = [
-                marketOverheated ? `市場過熱 VOO 60d +${voo60d.toFixed(1)}%` : null,
-                stockOverbought ? `個股過買 26W +${r.cum_ret_26w.toFixed(1)}%` : null,
-            ].filter(Boolean).join(" · ");
-            sbBadge = ` <span class="sb-badge sb-warn" title="strong_buy v1 命中但被 v2 濾網剃掉：${why} · 2024-01-22 AMD -27% 就是這種">💎⚠</span>`;
+        if (isStrongBuy) {
+            sbBadge = ` <span class="sb-badge" title="strong_buy · #1+vp≥95+非吃老本 · 11 樣本 1y avg +45.9% / 命中 90.2%">💎</span>`;
         }
         if (isExplosive) {
-            sbBadge += ` <span class="sb-badge sb-boom" title="strong_buy_explosive · 財報連兩季 beat 合計 ${surpSum.toFixed(0)}% · 剛爆發 · comp≤10 · 26W ≤50% · 抓 NVDA 2024-01 型早期爆發">🚀</span>`;
+            sbBadge += ` <span class="sb-badge sb-boom" title="strong_buy_explosive · 財報連兩季 beat 合計 ${surpSum.toFixed(0)}% · 剛爆發 · comp≤10 · 26W ≤50% · 抓 NVDA 型早期爆發">🚀</span>`;
         }
 
         const tr = document.createElement("tr");
-        if (isStrongBuyV2) tr.classList.add("strong-buy");
-        else if (isStrongBuy) tr.classList.add("strong-buy-warn");
+        if (isStrongBuy) tr.classList.add("strong-buy");
         if (isExplosive) tr.classList.add("strong-buy-boom");
         tr.innerHTML = `
             <td class="sym"><b>${r.symbol}</b>${sbBadge}</td>

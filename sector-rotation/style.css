@@ -562,19 +562,12 @@ body.rot-body {
 .score-table tr.row-alert-old { background: rgba(127, 29, 29, 0.12) !important; }
 .score-table tr.row-alert-new { background: rgba(120, 53, 15, 0.10) !important; }
 
-/* strong_buy_v2 完美命中（v1 + 市場非過熱 + 個股非過買） */
+/* strong_buy 三條硬規則命中（11 樣本 1y +45.9% / hit 90.2%） */
 .score-table tr.strong-buy {
     background: linear-gradient(90deg, rgba(201, 162, 75, 0.18), rgba(201, 162, 75, 0.06)) !important;
     box-shadow: inset 3px 0 0 #c9a24b;
 }
 .score-table tr.strong-buy td.sym { color: #fef3c7; }
-
-/* strong_buy v1 命中但被 v2 過熱濾網剃掉（警示金色 · 帶紅邊） */
-.score-table tr.strong-buy-warn {
-    background: linear-gradient(90deg, rgba(180, 83, 9, 0.16), rgba(180, 83, 9, 0.05)) !important;
-    box-shadow: inset 3px 0 0 #b45309;
-}
-.score-table tr.strong-buy-warn td.sym { color: #fed7aa; }
 
 .sb-badge {
     display: inline-block;
@@ -582,9 +575,6 @@ body.rot-body {
     margin-left: 4px;
     filter: drop-shadow(0 0 3px rgba(201, 162, 75, 0.6));
     cursor: help;
-}
-.sb-badge.sb-warn {
-    filter: drop-shadow(0 0 3px rgba(180, 83, 9, 0.6));
 }
 .sb-badge.sb-boom {
     filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.8));
