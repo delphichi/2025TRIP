@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-08-03T23:53:25.930777+00:00",
+  "generated_at": "2026-08-04T00:12:53.840078+00:00",
   "as_of_date": "2025-12-22",
   "as_of_date_note": "基準日 = 抓到的最後一根週線 close 的日期（T-1）",
   "counts": {
     "universe": 500,
-    "after_earnings_filter": 226,
+    "after_earnings_filter": 224,
     "vcp_true": 4,
     "top3_4w": 33,
     "top3_13w": 33,
@@ -64,7 +64,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 4.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 108.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 122.5,
+            "return_pct": 12.51
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 109.49,
+            "return_pct": 0.56
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 106.4,
+            "return_pct": -2.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "WBD",
@@ -108,7 +132,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 28.75,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 28.53,
+            "return_pct": -0.77
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 27.4,
+            "return_pct": -4.7
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 26.95,
+            "return_pct": -6.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "FOXA",
@@ -152,7 +200,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 73.26,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 72.35,
+            "return_pct": -1.25
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 57.28,
+            "return_pct": -21.81
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 49.39,
+            "return_pct": -32.58
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "NCLH",
@@ -196,7 +268,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 7.8,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 24.27,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 20.87,
+            "return_pct": -14.01
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 20.12,
+            "return_pct": -17.1
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 20.04,
+            "return_pct": -17.43
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "TPR",
@@ -240,7 +336,31 @@
         "vol_rank_in_sector": 2,
         "composite_in_sector": 2.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 128.26,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 131.51,
+            "return_pct": 2.54
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 144.01,
+            "return_pct": 12.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 149.2,
+            "return_pct": 16.33
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CCL",
@@ -284,7 +404,31 @@
         "vol_rank_in_sector": 8,
         "composite_in_sector": 7.6,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 31.86,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 27.95,
+            "return_pct": -12.27
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 25.3,
+            "return_pct": -20.6
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 30.19,
+            "return_pct": -5.23
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DG",
@@ -301,7 +445,7 @@
         "cum_ret_13w_rank_in_sector": 1,
         "cum_ret_26w_rank_in_sector": 4,
         "cms_a": 1.6,
-        "surprise_l1": 38.27,
+        "surprise_l1": 37.55,
         "surprise_l2": 18.47,
         "pre_earnings_14d": false,
         "above_50ma": true,
@@ -328,7 +472,31 @@
         "vol_rank_in_sector": 18,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 135.6,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 145.72,
+            "return_pct": 7.47
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 123.89,
+            "return_pct": -8.64
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 111.89,
+            "return_pct": -17.48
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EL",
@@ -372,7 +540,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 107.89,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 117.05,
+            "return_pct": 8.49
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 78.98,
+            "return_pct": -26.79
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 84.53,
+            "return_pct": -21.65
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DLTR",
@@ -416,7 +608,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 6.2,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 122.49,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 132.94,
+            "return_pct": 8.53
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 108.27,
+            "return_pct": -11.61
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 113.93,
+            "return_pct": -6.99
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HAL",
@@ -460,7 +676,31 @@
         "vol_rank_in_sector": 20,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 27.94,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 33.06,
+            "return_pct": 18.34
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 37.35,
+            "return_pct": 33.71
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 35.17,
+            "return_pct": 25.9
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SLB",
@@ -504,7 +744,31 @@
         "vol_rank_in_sector": 19,
         "composite_in_sector": 7.0,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 37.91,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 47.98,
+            "return_pct": 26.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 48.99,
+            "return_pct": 29.25
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 47.95,
+            "return_pct": 26.5
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "TRGP",
@@ -548,7 +812,31 @@
         "vol_rank_in_sector": 21,
         "composite_in_sector": 7.4,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 180.0,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 187.3,
+            "return_pct": 4.05
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 237.61,
+            "return_pct": 32.0
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 263.28,
+            "return_pct": 46.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "KEY",
@@ -592,7 +880,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 5.6,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 20.8,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 21.27,
+            "return_pct": 2.26
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 19.46,
+            "return_pct": -6.44
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 22.83,
+            "return_pct": 9.78
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "C",
@@ -636,7 +948,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 1.4,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 116.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 112.74,
+            "return_pct": -3.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 111.11,
+            "return_pct": -4.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 145.67,
+            "return_pct": 24.58
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "AIG",
@@ -680,7 +1016,31 @@
         "vol_rank_in_sector": 24,
         "composite_in_sector": 18.0,
         "composite_rank_in_sector": 22,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 85.36,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 71.0,
+            "return_pct": -16.82
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 74.59,
+            "return_pct": -12.61
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 76.37,
+            "return_pct": -10.53
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MRNA",
@@ -697,8 +1057,8 @@
         "cum_ret_13w_rank_in_sector": 10,
         "cum_ret_26w_rank_in_sector": 25,
         "cms_a": 8.5,
-        "surprise_l1": 76.42,
-        "surprise_l2": 28.96,
+        "surprise_l1": 76.6,
+        "surprise_l2": 28.28,
         "pre_earnings_14d": false,
         "above_50ma": true,
         "ma50": 26.91,
@@ -724,7 +1084,31 @@
         "vol_rank_in_sector": 2,
         "composite_in_sector": 6.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 34.9,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 49.81,
+            "return_pct": 42.72
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 51.28,
+            "return_pct": 46.93
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 59.35,
+            "return_pct": 70.04
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "VTRS",
@@ -768,7 +1152,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 11.82,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 12.85,
+            "return_pct": 8.66
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 13.19,
+            "return_pct": 11.6
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 15.38,
+            "return_pct": 30.1
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CRL",
@@ -812,7 +1220,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 7.8,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 203.02,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 226.77,
+            "return_pct": 11.7
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 158.0,
+            "return_pct": -22.18
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 181.56,
+            "return_pct": -10.57
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LUV",
@@ -856,7 +1288,31 @@
         "vol_rank_in_sector": 6,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 41.69,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 42.48,
+            "return_pct": 1.89
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 40.17,
+            "return_pct": -3.64
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 48.57,
+            "return_pct": 16.49
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ODFL",
@@ -873,7 +1329,7 @@
         "cum_ret_13w_rank_in_sector": 17,
         "cum_ret_26w_rank_in_sector": 58,
         "cms_a": 17.7,
-        "surprise_l1": 5.15,
+        "surprise_l1": 5.24,
         "surprise_l2": -1.21,
         "pre_earnings_14d": false,
         "above_50ma": true,
@@ -900,7 +1356,31 @@
         "vol_rank_in_sector": 19,
         "composite_in_sector": 18.2,
         "composite_rank_in_sector": 19,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 158.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 177.93,
+            "return_pct": 11.99
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 187.46,
+            "return_pct": 17.99
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 219.52,
+            "return_pct": 38.17
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "JBHT",
@@ -944,7 +1424,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 198.81,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 208.89,
+            "return_pct": 5.07
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 202.4,
+            "return_pct": 1.81
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 273.48,
+            "return_pct": 37.56
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MCHP",
@@ -988,7 +1492,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 17.4,
         "composite_rank_in_sector": 20,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 65.52,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 75.38,
+            "return_pct": 15.04
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 64.02,
+            "return_pct": -2.3
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 102.71,
+            "return_pct": 56.75
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MU",
@@ -1032,7 +1560,31 @@
         "vol_rank_in_sector": 3,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 276.32,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 388.89,
+            "return_pct": 40.74
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 404.12,
+            "return_pct": 46.25
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 1211.19,
+            "return_pct": 338.33
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LITE",
@@ -1076,7 +1628,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 389.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 362.44,
+            "return_pct": -7.04
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 728.95,
+            "return_pct": 86.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 893.93,
+            "return_pct": 129.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "FCX",
@@ -1120,7 +1696,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 2.2,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 50.28,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 60.3,
+            "return_pct": 19.93
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 54.69,
+            "return_pct": 8.76
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 69.04,
+            "return_pct": 37.31
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "NEM",
@@ -1164,7 +1764,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 4.4,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 104.42,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 118.39,
+            "return_pct": 13.38
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 97.91,
+            "return_pct": -6.24
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 101.8,
+            "return_pct": -2.51
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ALB",
@@ -1208,7 +1832,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 144.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 179.16,
+            "return_pct": 23.85
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 167.13,
+            "return_pct": 15.54
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 156.69,
+            "return_pct": 8.32
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "WY",
@@ -1252,7 +1900,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 11.2,
         "composite_rank_in_sector": 12,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 23.31,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 26.61,
+            "return_pct": 14.17
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 22.96,
+            "return_pct": -1.47
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 24.25,
+            "return_pct": 4.05
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HST",
@@ -1296,7 +1968,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 17.41,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 17.8,
+            "return_pct": 2.22
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 18.24,
+            "return_pct": 4.74
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 24.2,
+            "return_pct": 38.99
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SPG",
@@ -1340,7 +2036,31 @@
         "vol_rank_in_sector": 18,
         "composite_in_sector": 6.4,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 182.53,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 181.07,
+            "return_pct": -0.8
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 179.52,
+            "return_pct": -1.65
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 214.57,
+            "return_pct": 17.55
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ES",
@@ -1384,7 +2104,31 @@
         "vol_rank_in_sector": 15,
         "composite_in_sector": 10.2,
         "composite_rank_in_sector": 9,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 64.58,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 69.8,
+            "return_pct": 8.09
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 66.86,
+            "return_pct": 3.52
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 70.12,
+            "return_pct": 8.57
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EIX",
@@ -1428,7 +2172,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 58.34,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 59.0,
+            "return_pct": 1.12
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 69.01,
+            "return_pct": 18.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 71.35,
+            "return_pct": 22.3
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "AWK",
@@ -1472,7 +2240,31 @@
         "vol_rank_in_sector": 22,
         "composite_in_sector": 17.2,
         "composite_rank_in_sector": 20,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 129.85,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 129.18,
+            "return_pct": -0.52
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 134.77,
+            "return_pct": 3.78
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 124.92,
+            "return_pct": -3.8
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       }
     ],
     "13w": [
@@ -1518,7 +2310,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 28.75,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 28.53,
+            "return_pct": -0.77
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 27.4,
+            "return_pct": -4.7
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 26.95,
+            "return_pct": -6.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ECHO",
@@ -1562,7 +2378,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 4.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 108.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 122.5,
+            "return_pct": 12.51
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 109.49,
+            "return_pct": 0.56
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 106.4,
+            "return_pct": -2.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "GOOG",
@@ -1606,7 +2446,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 9.8,
         "composite_rank_in_sector": 11,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 310.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 327.95,
+            "return_pct": 5.48
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 298.84,
+            "return_pct": -3.89
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 348.78,
+            "return_pct": 12.18
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "GM",
@@ -1650,7 +2514,31 @@
         "vol_rank_in_sector": 22,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 82.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 80.56,
+            "return_pct": -2.53
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 75.56,
+            "return_pct": -8.59
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 80.43,
+            "return_pct": -2.69
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EXPE",
@@ -1694,7 +2582,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.8,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 288.05,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 270.4,
+            "return_pct": -6.13
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 236.15,
+            "return_pct": -18.02
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 238.02,
+            "return_pct": -17.37
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LVS",
@@ -1738,7 +2650,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 13.8,
         "composite_rank_in_sector": 13,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 66.18,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 58.95,
+            "return_pct": -10.93
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 53.69,
+            "return_pct": -18.87
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 47.8,
+            "return_pct": -27.77
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DG",
@@ -1755,7 +2691,7 @@
         "cum_ret_13w_rank_in_sector": 1,
         "cum_ret_26w_rank_in_sector": 4,
         "cms_a": 1.6,
-        "surprise_l1": 38.27,
+        "surprise_l1": 37.55,
         "surprise_l2": 18.47,
         "pre_earnings_14d": false,
         "above_50ma": true,
@@ -1782,7 +2718,31 @@
         "vol_rank_in_sector": 18,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 135.6,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 145.72,
+            "return_pct": 7.47
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 123.89,
+            "return_pct": -8.64
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 111.89,
+            "return_pct": -17.48
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DLTR",
@@ -1826,7 +2786,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 6.2,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 122.49,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 132.94,
+            "return_pct": 8.53
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 108.27,
+            "return_pct": -11.61
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 113.93,
+            "return_pct": -6.99
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EL",
@@ -1870,7 +2854,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 107.89,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 117.05,
+            "return_pct": 8.49
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 78.98,
+            "return_pct": -26.79
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 84.53,
+            "return_pct": -21.65
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HAL",
@@ -1914,7 +2922,31 @@
         "vol_rank_in_sector": 20,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 27.94,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 33.06,
+            "return_pct": 18.34
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 37.35,
+            "return_pct": 33.71
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 35.17,
+            "return_pct": 25.9
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SLB",
@@ -1958,7 +2990,31 @@
         "vol_rank_in_sector": 19,
         "composite_in_sector": 7.0,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 37.91,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 47.98,
+            "return_pct": 26.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 48.99,
+            "return_pct": 29.25
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 47.95,
+            "return_pct": 26.5
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "TRGP",
@@ -2002,7 +3058,31 @@
         "vol_rank_in_sector": 21,
         "composite_in_sector": 7.4,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 180.0,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 187.3,
+            "return_pct": 4.05
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 237.61,
+            "return_pct": 32.0
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 263.28,
+            "return_pct": 46.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "JKHY",
@@ -2046,7 +3126,31 @@
         "vol_rank_in_sector": 20,
         "composite_in_sector": 22.0,
         "composite_rank_in_sector": 24,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 183.83,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 186.3,
+            "return_pct": 1.34
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 162.57,
+            "return_pct": -11.57
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 123.42,
+            "return_pct": -32.86
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "IVZ",
@@ -2090,7 +3194,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 3.2,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 26.91,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 28.71,
+            "return_pct": 6.69
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 23.59,
+            "return_pct": -12.36
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 28.78,
+            "return_pct": 6.95
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "C",
@@ -2134,7 +3262,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 1.4,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 116.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 112.74,
+            "return_pct": -3.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 111.11,
+            "return_pct": -4.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 145.67,
+            "return_pct": 24.58
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LLY",
@@ -2178,7 +3330,31 @@
         "vol_rank_in_sector": 21,
         "composite_in_sector": 14.2,
         "composite_rank_in_sector": 9,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 1072.84,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 1074.87,
+            "return_pct": 0.19
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 908.99,
+            "return_pct": -15.27
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 1102.08,
+            "return_pct": 2.73
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "REGN",
@@ -2222,7 +3398,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 11.4,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 777.26,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 747.31,
+            "return_pct": -3.85
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 735.43,
+            "return_pct": -5.38
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 612.5,
+            "return_pct": -21.2
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CRL",
@@ -2266,7 +3466,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 7.8,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 203.02,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 226.77,
+            "return_pct": 11.7
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 158.0,
+            "return_pct": -22.18
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 181.56,
+            "return_pct": -10.57
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "JBHT",
@@ -2310,7 +3534,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 198.81,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 208.89,
+            "return_pct": 5.07
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 202.4,
+            "return_pct": 1.81
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 273.48,
+            "return_pct": 37.56
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LUV",
@@ -2354,7 +3602,31 @@
         "vol_rank_in_sector": 6,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 41.69,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 42.48,
+            "return_pct": 1.89
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 40.17,
+            "return_pct": -3.64
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 48.57,
+            "return_pct": 16.49
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HII",
@@ -2398,7 +3670,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 2.6,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 350.9,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 419.55,
+            "return_pct": 19.56
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 394.86,
+            "return_pct": 12.53
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 278.19,
+            "return_pct": -20.72
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SNDK",
@@ -2442,7 +3738,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 1.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 241.05,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 501.29,
+            "return_pct": 107.96
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 702.49,
+            "return_pct": 191.43
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 2273.73,
+            "return_pct": 843.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LITE",
@@ -2486,7 +3806,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 389.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 362.44,
+            "return_pct": -7.04
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 728.95,
+            "return_pct": 86.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 893.93,
+            "return_pct": 129.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MU",
@@ -2530,7 +3874,31 @@
         "vol_rank_in_sector": 3,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 276.32,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 388.89,
+            "return_pct": 40.74
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 404.12,
+            "return_pct": 46.25
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 1211.19,
+            "return_pct": 338.33
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ALB",
@@ -2574,7 +3942,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 144.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 179.16,
+            "return_pct": 23.85
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 167.13,
+            "return_pct": 15.54
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 156.69,
+            "return_pct": 8.32
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "FCX",
@@ -2618,7 +4010,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 2.2,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 50.28,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 60.3,
+            "return_pct": 19.93
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 54.69,
+            "return_pct": 8.76
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 69.04,
+            "return_pct": 37.31
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DD",
@@ -2662,7 +4078,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 123.45,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 129.11,
+            "return_pct": 4.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 131.9,
+            "return_pct": 6.84
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 144.57,
+            "return_pct": 17.11
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "VTR",
@@ -2706,7 +4146,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 9.6,
         "composite_rank_in_sector": 10,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 77.74,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 76.83,
+            "return_pct": -1.17
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 80.85,
+            "return_pct": 4.01
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 82.56,
+            "return_pct": 6.19
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "PLD",
@@ -2750,7 +4214,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 7.8,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 125.66,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 129.16,
+            "return_pct": 2.78
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 129.37,
+            "return_pct": 2.95
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 143.83,
+            "return_pct": 14.46
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "WELL",
@@ -2794,7 +4282,31 @@
         "vol_rank_in_sector": 22,
         "composite_in_sector": 14.8,
         "composite_rank_in_sector": 16,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 185.14,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 184.71,
+            "return_pct": -0.23
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 194.34,
+            "return_pct": 4.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 211.45,
+            "return_pct": 14.21
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EIX",
@@ -2838,7 +4350,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 58.34,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 59.0,
+            "return_pct": 1.12
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 69.01,
+            "return_pct": 18.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 71.35,
+            "return_pct": 22.3
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "NEE",
@@ -2882,7 +4418,31 @@
         "vol_rank_in_sector": 14,
         "composite_in_sector": 13.6,
         "composite_rank_in_sector": 14,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 78.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 82.68,
+            "return_pct": 4.76
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 89.57,
+            "return_pct": 13.5
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 86.08,
+            "return_pct": 9.07
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "PCG",
@@ -2926,7 +4486,31 @@
         "vol_rank_in_sector": 8,
         "composite_in_sector": 8.4,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 15.84,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 15.08,
+            "return_pct": -4.77
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 17.29,
+            "return_pct": 9.16
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 16.58,
+            "return_pct": 4.69
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       }
     ],
     "26w": [
@@ -2972,7 +4556,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 4.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 108.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 122.5,
+            "return_pct": 12.51
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 109.49,
+            "return_pct": 0.56
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 106.4,
+            "return_pct": -2.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "WBD",
@@ -3016,7 +4624,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 28.75,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 28.53,
+            "return_pct": -0.77
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 27.4,
+            "return_pct": -4.7
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 26.95,
+            "return_pct": -6.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "GOOG",
@@ -3060,7 +4692,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 9.8,
         "composite_rank_in_sector": 11,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 310.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 327.95,
+            "return_pct": 5.48
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 298.84,
+            "return_pct": -3.89
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 348.78,
+            "return_pct": 12.18
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EXPE",
@@ -3104,7 +4760,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.8,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 288.05,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 270.4,
+            "return_pct": -6.13
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 236.15,
+            "return_pct": -18.02
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 238.02,
+            "return_pct": -17.37
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "GM",
@@ -3148,7 +4828,31 @@
         "vol_rank_in_sector": 22,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 82.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 80.56,
+            "return_pct": -2.53
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 75.56,
+            "return_pct": -8.59
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 80.43,
+            "return_pct": -2.69
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "TPR",
@@ -3192,7 +4896,31 @@
         "vol_rank_in_sector": 2,
         "composite_in_sector": 2.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 128.26,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 131.51,
+            "return_pct": 2.54
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 144.01,
+            "return_pct": 12.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 149.2,
+            "return_pct": 16.33
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EL",
@@ -3236,7 +4964,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 107.89,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 117.05,
+            "return_pct": 8.49
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 78.98,
+            "return_pct": -26.79
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 84.53,
+            "return_pct": -21.65
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DLTR",
@@ -3280,7 +5032,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 6.2,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 122.49,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 132.94,
+            "return_pct": 8.53
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 108.27,
+            "return_pct": -11.61
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 113.93,
+            "return_pct": -6.99
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MNST",
@@ -3297,8 +5073,8 @@
         "cum_ret_13w_rank_in_sector": 4,
         "cum_ret_26w_rank_in_sector": 3,
         "cms_a": 5.3,
-        "surprise_l1": 13.36,
-        "surprise_l2": 6.73,
+        "surprise_l1": 9.22,
+        "surprise_l2": 4.1,
         "pre_earnings_14d": false,
         "above_50ma": true,
         "ma50": 72.09,
@@ -3324,7 +5100,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 6.6,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 77.66,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 81.6,
+            "return_pct": 5.07
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 73.96,
+            "return_pct": -4.76
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 93.02,
+            "return_pct": 19.78
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HAL",
@@ -3368,7 +5168,31 @@
         "vol_rank_in_sector": 20,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 27.94,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 33.06,
+            "return_pct": 18.34
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 37.35,
+            "return_pct": 33.71
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 35.17,
+            "return_pct": 25.9
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "APA",
@@ -3412,7 +5236,31 @@
         "vol_rank_in_sector": 4,
         "composite_in_sector": 4.4,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 23.85,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 25.93,
+            "return_pct": 8.73
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 38.5,
+            "return_pct": 61.41
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 33.96,
+            "return_pct": 42.39
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "VLO",
@@ -3456,7 +5304,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 8.2,
         "composite_rank_in_sector": 7,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 161.16,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 185.44,
+            "return_pct": 15.07
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 235.36,
+            "return_pct": 46.04
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 242.84,
+            "return_pct": 50.68
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "IVZ",
@@ -3500,7 +5372,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 3.2,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 26.91,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 28.71,
+            "return_pct": 6.69
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 23.59,
+            "return_pct": -12.36
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 28.78,
+            "return_pct": 6.95
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "C",
@@ -3544,7 +5440,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 1.4,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 116.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 112.74,
+            "return_pct": -3.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 111.11,
+            "return_pct": -4.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 145.67,
+            "return_pct": 24.58
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HOOD",
@@ -3588,7 +5508,31 @@
         "vol_rank_in_sector": 4,
         "composite_in_sector": 14.0,
         "composite_rank_in_sector": 18,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 122.37,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 105.92,
+            "return_pct": -13.44
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 72.49,
+            "return_pct": -40.76
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 105.71,
+            "return_pct": -13.61
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "REGN",
@@ -3632,7 +5576,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 11.4,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 777.26,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 747.31,
+            "return_pct": -3.85
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 735.43,
+            "return_pct": -5.38
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 612.5,
+            "return_pct": -21.2
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "INCY",
@@ -3676,7 +5644,31 @@
         "vol_rank_in_sector": 28,
         "composite_in_sector": 17.2,
         "composite_rank_in_sector": 12,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 100.71,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 104.67,
+            "return_pct": 3.93
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 90.45,
+            "return_pct": -10.19
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 103.66,
+            "return_pct": 2.93
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "IQV",
@@ -3720,7 +5712,31 @@
         "vol_rank_in_sector": 22,
         "composite_in_sector": 18.4,
         "composite_rank_in_sector": 15,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 224.37,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 241.4,
+            "return_pct": 7.59
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 166.96,
+            "return_pct": -25.59
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 167.81,
+            "return_pct": -25.21
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "FIX",
@@ -3764,7 +5780,31 @@
         "vol_rank_in_sector": 25,
         "composite_in_sector": 5.8,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 949.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 1146.95,
+            "return_pct": 20.74
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 1407.7,
+            "return_pct": 48.19
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 2066.51,
+            "return_pct": 117.54
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CHRW",
@@ -3808,7 +5848,31 @@
         "vol_rank_in_sector": 21,
         "composite_in_sector": 13.0,
         "composite_rank_in_sector": 11,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 163.87,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 178.16,
+            "return_pct": 8.72
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 166.27,
+            "return_pct": 1.47
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 187.07,
+            "return_pct": 14.16
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CAT",
@@ -3852,7 +5916,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 13.2,
         "composite_rank_in_sector": 12,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 578.87,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 642.96,
+            "return_pct": 11.07
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 699.07,
+            "return_pct": 20.76
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 1020.39,
+            "return_pct": 76.27
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SNDK",
@@ -3896,7 +5984,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 1.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 241.05,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 501.29,
+            "return_pct": 107.96
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 702.49,
+            "return_pct": 191.43
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 2273.73,
+            "return_pct": 843.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LITE",
@@ -3940,7 +6052,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 389.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 362.44,
+            "return_pct": -7.04
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 728.95,
+            "return_pct": 86.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 893.93,
+            "return_pct": 129.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CIEN",
@@ -3984,7 +6120,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 6.2,
         "composite_rank_in_sector": 9,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 236.75,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 231.89,
+            "return_pct": -2.05
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 407.9,
+            "return_pct": 72.29
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 460.33,
+            "return_pct": 94.44
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ALB",
@@ -4028,7 +6188,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 144.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 179.16,
+            "return_pct": 23.85
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 167.13,
+            "return_pct": 15.54
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 156.69,
+            "return_pct": 8.32
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "NEM",
@@ -4072,7 +6256,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 4.4,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 104.42,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 118.39,
+            "return_pct": 13.38
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 97.91,
+            "return_pct": -6.24
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 101.8,
+            "return_pct": -2.51
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DD",
@@ -4116,7 +6324,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 123.45,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 129.11,
+            "return_pct": 4.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 131.9,
+            "return_pct": 6.84
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 144.57,
+            "return_pct": 17.11
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "VTR",
@@ -4160,7 +6392,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 9.6,
         "composite_rank_in_sector": 10,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 77.74,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 76.83,
+            "return_pct": -1.17
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 80.85,
+            "return_pct": 4.01
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 82.56,
+            "return_pct": 6.19
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "WELL",
@@ -4204,7 +6460,31 @@
         "vol_rank_in_sector": 22,
         "composite_in_sector": 14.8,
         "composite_rank_in_sector": 16,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 185.14,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 184.71,
+            "return_pct": -0.23
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 194.34,
+            "return_pct": 4.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 211.45,
+            "return_pct": 14.21
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "PLD",
@@ -4248,7 +6528,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 7.8,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 125.66,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 129.16,
+            "return_pct": 2.78
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 129.37,
+            "return_pct": 2.95
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 143.83,
+            "return_pct": 14.46
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EIX",
@@ -4292,7 +6596,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 58.34,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 59.0,
+            "return_pct": 1.12
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 69.01,
+            "return_pct": 18.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 71.35,
+            "return_pct": 22.3
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SRE",
@@ -4336,7 +6664,31 @@
         "vol_rank_in_sector": 20,
         "composite_in_sector": 9.6,
         "composite_rank_in_sector": 8,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 86.86,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 84.78,
+            "return_pct": -2.4
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 92.8,
+            "return_pct": 6.84
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 90.97,
+            "return_pct": 4.73
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "NEE",
@@ -4380,7 +6732,31 @@
         "vol_rank_in_sector": 14,
         "composite_in_sector": 13.6,
         "composite_rank_in_sector": 14,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 78.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 82.68,
+            "return_pct": 4.76
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 89.57,
+            "return_pct": 13.5
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 86.08,
+            "return_pct": 9.07
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       }
     ],
     "cms_a": [
@@ -4426,7 +6802,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 4.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 108.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 122.5,
+            "return_pct": 12.51
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 109.49,
+            "return_pct": 0.56
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 106.4,
+            "return_pct": -2.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "WBD",
@@ -4470,7 +6870,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 28.75,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 28.53,
+            "return_pct": -0.77
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 27.4,
+            "return_pct": -4.7
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 26.95,
+            "return_pct": -6.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "FOXA",
@@ -4514,7 +6938,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 73.26,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 72.35,
+            "return_pct": -1.25
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 57.28,
+            "return_pct": -21.81
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 49.39,
+            "return_pct": -32.58
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "TPR",
@@ -4558,7 +7006,31 @@
         "vol_rank_in_sector": 2,
         "composite_in_sector": 2.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 128.26,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 131.51,
+            "return_pct": 2.54
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 144.01,
+            "return_pct": 12.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 149.2,
+            "return_pct": 16.33
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "GM",
@@ -4602,7 +7074,31 @@
         "vol_rank_in_sector": 22,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 82.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 80.56,
+            "return_pct": -2.53
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 75.56,
+            "return_pct": -8.59
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 80.43,
+            "return_pct": -2.69
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EXPE",
@@ -4646,7 +7142,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.8,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 288.05,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 270.4,
+            "return_pct": -6.13
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 236.15,
+            "return_pct": -18.02
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 238.02,
+            "return_pct": -17.37
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DG",
@@ -4663,7 +7183,7 @@
         "cum_ret_13w_rank_in_sector": 1,
         "cum_ret_26w_rank_in_sector": 4,
         "cms_a": 1.6,
-        "surprise_l1": 38.27,
+        "surprise_l1": 37.55,
         "surprise_l2": 18.47,
         "pre_earnings_14d": false,
         "above_50ma": true,
@@ -4690,7 +7210,31 @@
         "vol_rank_in_sector": 18,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 135.6,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 145.72,
+            "return_pct": 7.47
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 123.89,
+            "return_pct": -8.64
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 111.89,
+            "return_pct": -17.48
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EL",
@@ -4734,7 +7278,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 107.89,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 117.05,
+            "return_pct": 8.49
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 78.98,
+            "return_pct": -26.79
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 84.53,
+            "return_pct": -21.65
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DLTR",
@@ -4778,7 +7346,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 6.2,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 122.49,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 132.94,
+            "return_pct": 8.53
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 108.27,
+            "return_pct": -11.61
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 113.93,
+            "return_pct": -6.99
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HAL",
@@ -4822,7 +7414,31 @@
         "vol_rank_in_sector": 20,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 27.94,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 33.06,
+            "return_pct": 18.34
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 37.35,
+            "return_pct": 33.71
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 35.17,
+            "return_pct": 25.9
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SLB",
@@ -4866,7 +7482,31 @@
         "vol_rank_in_sector": 19,
         "composite_in_sector": 7.0,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 37.91,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 47.98,
+            "return_pct": 26.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 48.99,
+            "return_pct": 29.25
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 47.95,
+            "return_pct": 26.5
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "TRGP",
@@ -4910,7 +7550,31 @@
         "vol_rank_in_sector": 21,
         "composite_in_sector": 7.4,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 180.0,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 187.3,
+            "return_pct": 4.05
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 237.61,
+            "return_pct": 32.0
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 263.28,
+            "return_pct": 46.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "C",
@@ -4954,7 +7618,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 1.4,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 116.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 112.74,
+            "return_pct": -3.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 111.11,
+            "return_pct": -4.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 145.67,
+            "return_pct": 24.58
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "KEY",
@@ -4998,7 +7686,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 5.6,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 20.8,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 21.27,
+            "return_pct": 2.26
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 19.46,
+            "return_pct": -6.44
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 22.83,
+            "return_pct": 9.78
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SYF",
@@ -5015,7 +7727,7 @@
         "cum_ret_13w_rank_in_sector": 4,
         "cum_ret_26w_rank_in_sector": 6,
         "cms_a": 6.9,
-        "surprise_l1": 29.32,
+        "surprise_l1": 28.94,
         "surprise_l2": 39.29,
         "pre_earnings_14d": false,
         "above_50ma": true,
@@ -5042,7 +7754,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 7.0,
         "composite_rank_in_sector": 8,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 85.16,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 76.51,
+            "return_pct": -10.16
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 66.28,
+            "return_pct": -22.17
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 75.71,
+            "return_pct": -11.09
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CRL",
@@ -5086,7 +7822,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 7.8,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 203.02,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 226.77,
+            "return_pct": 11.7
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 158.0,
+            "return_pct": -22.18
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 181.56,
+            "return_pct": -10.57
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "VTRS",
@@ -5130,7 +7890,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 11.82,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 12.85,
+            "return_pct": 8.66
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 13.19,
+            "return_pct": 11.6
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 15.38,
+            "return_pct": 30.1
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MRNA",
@@ -5147,8 +7931,8 @@
         "cum_ret_13w_rank_in_sector": 10,
         "cum_ret_26w_rank_in_sector": 25,
         "cms_a": 8.5,
-        "surprise_l1": 76.42,
-        "surprise_l2": 28.96,
+        "surprise_l1": 76.6,
+        "surprise_l2": 28.28,
         "pre_earnings_14d": false,
         "above_50ma": true,
         "ma50": 26.91,
@@ -5174,7 +7958,31 @@
         "vol_rank_in_sector": 2,
         "composite_in_sector": 6.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 34.9,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 49.81,
+            "return_pct": 42.72
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 51.28,
+            "return_pct": 46.93
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 59.35,
+            "return_pct": 70.04
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LUV",
@@ -5218,7 +8026,31 @@
         "vol_rank_in_sector": 6,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 41.69,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 42.48,
+            "return_pct": 1.89
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 40.17,
+            "return_pct": -3.64
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 48.57,
+            "return_pct": 16.49
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "JBHT",
@@ -5262,7 +8094,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 198.81,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 208.89,
+            "return_pct": 5.07
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 202.4,
+            "return_pct": 1.81
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 273.48,
+            "return_pct": 37.56
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HII",
@@ -5306,7 +8162,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 2.6,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 350.9,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 419.55,
+            "return_pct": 19.56
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 394.86,
+            "return_pct": 12.53
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 278.19,
+            "return_pct": -20.72
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LITE",
@@ -5350,7 +8230,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 389.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 362.44,
+            "return_pct": -7.04
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 728.95,
+            "return_pct": 86.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 893.93,
+            "return_pct": 129.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MU",
@@ -5394,7 +8298,31 @@
         "vol_rank_in_sector": 3,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 276.32,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 388.89,
+            "return_pct": 40.74
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 404.12,
+            "return_pct": 46.25
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 1211.19,
+            "return_pct": 338.33
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CIEN",
@@ -5438,7 +8366,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 6.2,
         "composite_rank_in_sector": 9,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 236.75,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 231.89,
+            "return_pct": -2.05
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 407.9,
+            "return_pct": 72.29
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 460.33,
+            "return_pct": 94.44
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ALB",
@@ -5482,7 +8434,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 144.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 179.16,
+            "return_pct": 23.85
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 167.13,
+            "return_pct": 15.54
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 156.69,
+            "return_pct": 8.32
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "FCX",
@@ -5526,7 +8502,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 2.2,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 50.28,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 60.3,
+            "return_pct": 19.93
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 54.69,
+            "return_pct": 8.76
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 69.04,
+            "return_pct": 37.31
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "NEM",
@@ -5570,7 +8570,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 4.4,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 104.42,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 118.39,
+            "return_pct": 13.38
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 97.91,
+            "return_pct": -6.24
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 101.8,
+            "return_pct": -2.51
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HST",
@@ -5614,7 +8638,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 17.41,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 17.8,
+            "return_pct": 2.22
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 18.24,
+            "return_pct": 4.74
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 24.2,
+            "return_pct": 38.99
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "CBRE",
@@ -5658,7 +8706,31 @@
         "vol_rank_in_sector": 21,
         "composite_in_sector": 8.6,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 164.06,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 170.29,
+            "return_pct": 3.8
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 135.75,
+            "return_pct": -17.26
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 129.95,
+            "return_pct": -20.79
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "PLD",
@@ -5702,7 +8774,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 7.8,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 125.66,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 129.16,
+            "return_pct": 2.78
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 129.37,
+            "return_pct": 2.95
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 143.83,
+            "return_pct": 14.46
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EIX",
@@ -5746,7 +8842,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 58.34,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 59.0,
+            "return_pct": 1.12
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 69.01,
+            "return_pct": 18.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 71.35,
+            "return_pct": 22.3
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "PCG",
@@ -5790,7 +8910,31 @@
         "vol_rank_in_sector": 8,
         "composite_in_sector": 8.4,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 15.84,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 15.08,
+            "return_pct": -4.77
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 17.29,
+            "return_pct": 9.16
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 16.58,
+            "return_pct": 4.69
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ES",
@@ -5834,7 +8978,31 @@
         "vol_rank_in_sector": 15,
         "composite_in_sector": 10.2,
         "composite_rank_in_sector": 9,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 64.58,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 69.8,
+            "return_pct": 8.09
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 66.86,
+            "return_pct": 3.52
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 70.12,
+            "return_pct": 8.57
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       }
     ],
     "composite": [
@@ -5880,7 +9048,31 @@
         "vol_rank_in_sector": 5,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 64.2,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 65.12,
+            "return_pct": 1.43
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 51.63,
+            "return_pct": -19.59
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 44.93,
+            "return_pct": -30.02
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "WBD",
@@ -5924,7 +9116,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 28.75,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 28.53,
+            "return_pct": -0.77
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 27.4,
+            "return_pct": -4.7
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 26.95,
+            "return_pct": -6.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ECHO",
@@ -5968,7 +9184,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 4.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 108.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 122.5,
+            "return_pct": 12.51
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 109.49,
+            "return_pct": 0.56
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 106.4,
+            "return_pct": -2.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "TPR",
@@ -6012,7 +9252,31 @@
         "vol_rank_in_sector": 2,
         "composite_in_sector": 2.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 128.26,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 131.51,
+            "return_pct": 2.54
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 144.01,
+            "return_pct": 12.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 149.2,
+            "return_pct": 16.33
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "GM",
@@ -6056,7 +9320,31 @@
         "vol_rank_in_sector": 22,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 82.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 80.56,
+            "return_pct": -2.53
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 75.56,
+            "return_pct": -8.59
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 80.43,
+            "return_pct": -2.69
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EXPE",
@@ -6100,7 +9388,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.8,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 288.05,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 270.4,
+            "return_pct": -6.13
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 236.15,
+            "return_pct": -18.02
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 238.02,
+            "return_pct": -17.37
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "TGT",
@@ -6144,7 +9456,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 93.36,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 103.99,
+            "return_pct": 11.39
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 113.85,
+            "return_pct": 21.95
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 129.73,
+            "return_pct": 38.96
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DG",
@@ -6161,7 +9497,7 @@
         "cum_ret_13w_rank_in_sector": 1,
         "cum_ret_26w_rank_in_sector": 4,
         "cms_a": 1.6,
-        "surprise_l1": 38.27,
+        "surprise_l1": 37.55,
         "surprise_l2": 18.47,
         "pre_earnings_14d": false,
         "above_50ma": true,
@@ -6188,7 +9524,31 @@
         "vol_rank_in_sector": 18,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 135.6,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 145.72,
+            "return_pct": 7.47
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 123.89,
+            "return_pct": -8.64
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 111.89,
+            "return_pct": -17.48
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EL",
@@ -6232,7 +9592,31 @@
         "vol_rank_in_sector": 23,
         "composite_in_sector": 5.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 107.89,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 117.05,
+            "return_pct": 8.49
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 78.98,
+            "return_pct": -26.79
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 84.53,
+            "return_pct": -21.65
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "APA",
@@ -6276,7 +9660,31 @@
         "vol_rank_in_sector": 4,
         "composite_in_sector": 4.4,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 23.85,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 25.93,
+            "return_pct": 8.73
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 38.5,
+            "return_pct": 61.41
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 33.96,
+            "return_pct": 42.39
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HAL",
@@ -6320,7 +9728,31 @@
         "vol_rank_in_sector": 20,
         "composite_in_sector": 4.8,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 27.94,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 33.06,
+            "return_pct": 18.34
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 37.35,
+            "return_pct": 33.71
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 35.17,
+            "return_pct": 25.9
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DVN",
@@ -6364,7 +9796,31 @@
         "vol_rank_in_sector": 2,
         "composite_in_sector": 6.0,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 35.98,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 37.29,
+            "return_pct": 3.62
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 48.15,
+            "return_pct": 33.8
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 43.05,
+            "return_pct": 19.63
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "C",
@@ -6408,7 +9864,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 1.4,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 116.92,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 112.74,
+            "return_pct": -3.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 111.11,
+            "return_pct": -4.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 145.67,
+            "return_pct": 24.58
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "IVZ",
@@ -6452,7 +9932,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 3.2,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 26.91,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 28.71,
+            "return_pct": 6.69
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 23.59,
+            "return_pct": -12.36
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 28.78,
+            "return_pct": 6.95
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "GS",
@@ -6496,7 +10000,31 @@
         "vol_rank_in_sector": 9,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 890.37,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 943.86,
+            "return_pct": 6.01
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 827.62,
+            "return_pct": -7.05
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 1106.37,
+            "return_pct": 24.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "VTRS",
@@ -6540,7 +10068,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 11.82,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 12.85,
+            "return_pct": 8.66
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 13.19,
+            "return_pct": 11.6
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 15.38,
+            "return_pct": 30.1
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MRK",
@@ -6584,7 +10136,31 @@
         "vol_rank_in_sector": 12,
         "composite_in_sector": 6.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 103.21,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 109.51,
+            "return_pct": 6.1
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 114.85,
+            "return_pct": 11.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 115.48,
+            "return_pct": 11.89
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MRNA",
@@ -6601,8 +10177,8 @@
         "cum_ret_13w_rank_in_sector": 10,
         "cum_ret_26w_rank_in_sector": 25,
         "cms_a": 8.5,
-        "surprise_l1": 76.42,
-        "surprise_l2": 28.96,
+        "surprise_l1": 76.6,
+        "surprise_l2": 28.28,
         "pre_earnings_14d": false,
         "above_50ma": true,
         "ma50": 26.91,
@@ -6628,7 +10204,31 @@
         "vol_rank_in_sector": 2,
         "composite_in_sector": 6.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 34.9,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 49.81,
+            "return_pct": 42.72
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 51.28,
+            "return_pct": 46.93
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 59.35,
+            "return_pct": 70.04
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HII",
@@ -6672,7 +10272,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 2.6,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 350.9,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 419.55,
+            "return_pct": 19.56
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 394.86,
+            "return_pct": 12.53
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 278.19,
+            "return_pct": -20.72
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "UAL",
@@ -6716,7 +10340,31 @@
         "vol_rank_in_sector": 5,
         "composite_in_sector": 4.6,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": "剛爆發"
+        "stock_gap_alert": "剛爆發",
+        "forward_returns": {
+          "entry_price": 116.02,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 110.96,
+            "return_pct": -4.36
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 93.96,
+            "return_pct": -19.01
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 118.68,
+            "return_pct": 2.29
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "JBHT",
@@ -6760,7 +10408,31 @@
         "vol_rank_in_sector": 16,
         "composite_in_sector": 5.2,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 198.81,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 208.89,
+            "return_pct": 5.07
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 202.4,
+            "return_pct": 1.81
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 273.48,
+            "return_pct": 37.56
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SNDK",
@@ -6804,7 +10476,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 1.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 241.05,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 501.29,
+            "return_pct": 107.96
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 702.49,
+            "return_pct": 191.43
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 2273.73,
+            "return_pct": 843.26
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "MU",
@@ -6848,7 +10544,31 @@
         "vol_rank_in_sector": 3,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 276.32,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 388.89,
+            "return_pct": 40.74
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 404.12,
+            "return_pct": 46.25
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 1211.19,
+            "return_pct": 338.33
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "LITE",
@@ -6892,7 +10612,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.4,
         "composite_rank_in_sector": 3,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 389.88,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 362.44,
+            "return_pct": -7.04
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 728.95,
+            "return_pct": 86.97
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 893.93,
+            "return_pct": 129.28
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "FCX",
@@ -6936,7 +10680,31 @@
         "vol_rank_in_sector": 1,
         "composite_in_sector": 2.2,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 50.28,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 60.3,
+            "return_pct": 19.93
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 54.69,
+            "return_pct": 8.76
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 69.04,
+            "return_pct": 37.31
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ALB",
@@ -6980,7 +10748,31 @@
         "vol_rank_in_sector": 11,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 144.65,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 179.16,
+            "return_pct": 23.85
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 167.13,
+            "return_pct": 15.54
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 156.69,
+            "return_pct": 8.32
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "DD",
@@ -7024,7 +10816,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 2,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 123.45,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 129.11,
+            "return_pct": 4.58
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 131.9,
+            "return_pct": 6.84
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 144.57,
+            "return_pct": 17.11
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "HST",
@@ -7068,7 +10884,31 @@
         "vol_rank_in_sector": 7,
         "composite_in_sector": 3.0,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 17.41,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 17.8,
+            "return_pct": 2.22
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 18.24,
+            "return_pct": 4.74
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 24.2,
+            "return_pct": 38.99
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "SPG",
@@ -7112,7 +10952,31 @@
         "vol_rank_in_sector": 18,
         "composite_in_sector": 6.4,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 182.53,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 181.07,
+            "return_pct": -0.8
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 179.52,
+            "return_pct": -1.65
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 214.57,
+            "return_pct": 17.55
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "PLD",
@@ -7156,7 +11020,31 @@
         "vol_rank_in_sector": 17,
         "composite_in_sector": 7.8,
         "composite_rank_in_sector": 5,
-        "stock_gap_alert": "吃老本"
+        "stock_gap_alert": "吃老本",
+        "forward_returns": {
+          "entry_price": 125.66,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 129.16,
+            "return_pct": 2.78
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 129.37,
+            "return_pct": 2.95
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 143.83,
+            "return_pct": 14.46
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "EIX",
@@ -7200,7 +11088,31 @@
         "vol_rank_in_sector": 13,
         "composite_in_sector": 3.8,
         "composite_rank_in_sector": 1,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 58.34,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 59.0,
+            "return_pct": 1.12
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 69.01,
+            "return_pct": 18.28
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 71.35,
+            "return_pct": 22.3
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "ETR",
@@ -7244,7 +11156,31 @@
         "vol_rank_in_sector": 6,
         "composite_in_sector": 6.8,
         "composite_rank_in_sector": 4,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 90.89,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 94.59,
+            "return_pct": 4.07
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 100.79,
+            "return_pct": 10.89
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 112.2,
+            "return_pct": 23.44
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       },
       {
         "symbol": "PCG",
@@ -7288,7 +11224,31 @@
         "vol_rank_in_sector": 8,
         "composite_in_sector": 8.4,
         "composite_rank_in_sector": 6,
-        "stock_gap_alert": null
+        "stock_gap_alert": null,
+        "forward_returns": {
+          "entry_price": 15.84,
+          "entry_date_actual": "2025-12-22",
+          "1m": {
+            "date": "2026-01-21",
+            "price": 15.08,
+            "return_pct": -4.77
+          },
+          "3m": {
+            "date": "2026-03-23",
+            "price": 17.29,
+            "return_pct": 9.16
+          },
+          "6m": {
+            "date": "2026-06-22",
+            "price": 16.58,
+            "return_pct": 4.69
+          },
+          "1y": {
+            "date": null,
+            "price": null,
+            "return_pct": null
+          }
+        }
       }
     ]
   },
@@ -7314,5 +11274,21 @@
     "Real Estate",
     "Utilities"
   ],
-  "surprise_source": "yfinance (earnings_dates)"
+  "surprise_source": "yfinance (earnings_dates)",
+  "forward_returns_meta": {
+    "generated_at": "2026-08-04T00:12:57.308902+00:00",
+    "as_of_date": "2025-12-22",
+    "days_since_as_of": 225,
+    "fillable_checkpoints": [
+      "1m",
+      "3m",
+      "6m"
+    ],
+    "checkpoint_definitions": {
+      "1m": "+30 calendar days",
+      "3m": "+91 calendar days",
+      "6m": "+182 calendar days",
+      "1y": "+365 calendar days"
+    }
+  }
 }
