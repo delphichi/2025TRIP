@@ -1,29 +1,29 @@
 {
-  "generated_at": "2026-08-04T00:33:12.902936+00:00",
-  "as_of_date": "2025-03-28",
+  "generated_at": "2026-08-04T00:44:24.429873+00:00",
+  "as_of_date": "2025-06-27",
   "market_context": {
-    "as_of_date": "2025-03-28",
+    "as_of_date": "2025-06-27",
     "voo": {
-      "price": 503.28,
-      "vs_60d_pct": -5.25,
-      "ma50": 531.45,
-      "vs_50ma_pct": -5.3
+      "price": 558.61,
+      "vs_60d_pct": 9.92,
+      "ma50": 524.96,
+      "vs_50ma_pct": 6.41
     },
     "vix": {
-      "value": 21.65
+      "value": 16.32
     },
     "tnx": {
-      "value": 4.26,
-      "raw": 4.26
+      "value": 4.28,
+      "raw": 4.28
     },
-    "trend_label": "🔴",
-    "vs_50ma_label": "❄",
-    "quadrant_key": "❄+🔴",
+    "trend_label": "🟢",
+    "vs_50ma_label": "🔥",
+    "quadrant_key": "🔥+🟢",
     "allocation": {
-      "core": 0,
-      "momentum": 0,
-      "sprint": 0,
-      "cash": 100
+      "core": 40,
+      "momentum": 35,
+      "sprint": 15,
+      "cash": 10
     },
     "vix_override_all_cash": false,
     "tnx_boost": [
@@ -37,36 +37,41 @@
       "XLU"
     ],
     "notes": [
-      "📈 TNX=4.26% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "📈 TNX=4.28% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ]
   },
   "effective_sectors": [
     {
-      "sector": "XLE",
-      "sector_name": "能源",
-      "composite_rank": 1,
-      "point_rank": 1,
-      "cms_a": 1.2,
-      "tnx_flag": "boost"
-    },
-    {
       "sector": "XLC",
       "sector_name": "通訊服務",
-      "composite_rank": 3,
-      "point_rank": 3,
-      "cms_a": 7.8,
+      "composite_rank": 2,
+      "point_rank": 2,
+      "cms_a": 2.3,
       "tnx_flag": null
     },
     {
       "sector": "XLF",
       "sector_name": "金融",
-      "composite_rank": 4,
-      "point_rank": 2,
-      "cms_a": 6.0,
+      "composite_rank": 3,
+      "point_rank": 4,
+      "cms_a": 5.8,
       "tnx_flag": "boost"
+    },
+    {
+      "sector": "XLB",
+      "sector_name": "材料",
+      "composite_rank": 5,
+      "point_rank": 6,
+      "cms_a": 6.3,
+      "tnx_flag": null
     }
   ],
   "demoted_sectors": [
+    {
+      "sector": "XLK",
+      "sector_name": "資訊科技",
+      "reason": "TNX 濾網降級"
+    },
     {
       "sector": "XLU",
       "sector_name": "公用事業",
@@ -74,99 +79,125 @@
     }
   ],
   "allocation": {
-    "core": 0,
-    "momentum": 0,
-    "sprint": 0,
-    "cash": 100
+    "core": 40,
+    "momentum": 35,
+    "sprint": 15,
+    "cash": 10
   },
   "positions": {
     "core": [],
     "momentum": [
       {
-        "symbol": "WRB",
-        "name": "W. R. Berkley Corporation",
+        "symbol": "HOOD",
+        "name": "Robinhood Markets",
         "sector": "Financials",
         "sector_etf": "XLF",
-        "point": 22.28,
-        "cms_a": 1.4,
+        "point": 87.29,
+        "cms_a": 1.8,
         "di": 1.0,
-        "cum_ret_4w": 13.13,
-        "cum_ret_13w": 21.01,
-        "cum_ret_26w": 27.5,
+        "cum_ret_4w": 25.52,
+        "cum_ret_13w": 98.07,
+        "cum_ret_26w": 112.79,
         "vcp": false,
-        "vp_ratio_stock": 1.063,
-        "pct_from_high": -6.69,
-        "high_52w": 73.73,
-        "surprise_l1": 18.49,
-        "surprise_l2": -5.45,
+        "vp_ratio_stock": 1.087,
+        "pct_from_high": -2.95,
+        "high_52w": 85.55,
+        "surprise_l1": 13.48,
+        "surprise_l2": 99.1,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.06 + 4W +13.1%"
+        "reason": "TNX順風 + VP 1.09 + 4W +25.5%",
+        "weight_pct": 35.0
       }
     ],
     "sprint": [
       {
-        "symbol": "EQT",
-        "name": "EQT Corporation",
-        "sector": "Energy",
-        "sector_etf": "XLE",
-        "point": 30.58,
-        "cms_a": 1.7,
+        "symbol": "NEM",
+        "name": "Newmont",
+        "sector": "Materials",
+        "sector_etf": "XLB",
+        "point": 32.37,
+        "cms_a": 3.1,
         "di": 1.0,
-        "cum_ret_4w": 10.05,
-        "cum_ret_13w": 19.96,
-        "cum_ret_26w": 46.16,
+        "cum_ret_4w": 7.66,
+        "cum_ret_13w": 18.61,
+        "cum_ret_26w": 51.6,
         "vcp": false,
-        "vp_ratio_stock": 0.907,
-        "pct_from_high": -6.44,
-        "high_52w": 55.84,
-        "surprise_l1": 31.27,
-        "surprise_l2": 77.17,
+        "vp_ratio_stock": 1.019,
+        "pct_from_high": -5.89,
+        "high_52w": 59.68,
+        "surprise_l1": 37.08,
+        "surprise_l2": 35.75,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=1.7 靠前但缺 VCP 或非 TNX 順風"
+        "reason": "CMS_A=3.1 靠前但缺 VCP 或非 TNX 順風",
+        "weight_pct": 3.75
       },
       {
-        "symbol": "T",
-        "name": "AT&T",
+        "symbol": "META",
+        "name": "Meta Platforms",
         "sector": "Communication Services",
         "sector_etf": "XLC",
-        "point": 22.9,
-        "cms_a": 2.4,
+        "point": 21.43,
+        "cms_a": 3.3,
         "di": 1.0,
-        "cum_ret_4w": 2.81,
-        "cum_ret_13w": 24.84,
-        "cum_ret_26w": 31.98,
+        "cum_ret_4w": 13.39,
+        "cum_ret_13w": 27.3,
+        "cum_ret_26w": 22.51,
         "vcp": false,
-        "vp_ratio_stock": 0.929,
-        "pct_from_high": -1.16,
-        "high_52w": 26.67,
-        "surprise_l1": 6.81,
-        "surprise_l2": 5.07,
+        "vp_ratio_stock": 1.211,
+        "pct_from_high": -0.82,
+        "high_52w": 737.27,
+        "surprise_l1": 23.11,
+        "surprise_l2": 18.67,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=2.4 靠前但缺 VCP 或非 TNX 順風"
+        "reason": "CMS_A=3.3 靠前但缺 VCP 或非 TNX 順風",
+        "weight_pct": 3.75
       },
       {
-        "symbol": "VZ",
-        "name": "Verizon",
+        "symbol": "ECHO",
+        "name": "EchoStar",
         "sector": "Communication Services",
         "sector_etf": "XLC",
-        "point": 6.42,
-        "cms_a": 4.5,
+        "point": 33.27,
+        "cms_a": 3.5,
         "di": 1.0,
-        "cum_ret_4w": 4.25,
-        "cum_ret_13w": 14.54,
-        "cum_ret_26w": 3.45,
+        "cum_ret_4w": 62.49,
+        "cum_ret_13w": 15.29,
+        "cum_ret_26w": 27.65,
         "vcp": false,
-        "vp_ratio_stock": 1.114,
-        "pct_from_high": -5.13,
-        "high_52w": 42.94,
-        "surprise_l1": 0.32,
-        "surprise_l2": 0.71,
+        "vp_ratio_stock": 0.926,
+        "pct_from_high": -11.3,
+        "high_52w": 32.48,
+        "surprise_l1": 17.98,
+        "surprise_l2": 348.59,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=4.5 靠前但缺 VCP 或非 TNX 順風"
+        "reason": "CMS_A=3.5 靠前但缺 VCP 或非 TNX 順風",
+        "weight_pct": 3.75
+      },
+      {
+        "symbol": "TKO",
+        "name": "TKO Group Holdings",
+        "sector": "Communication Services",
+        "sector_etf": "XLC",
+        "point": 21.08,
+        "cms_a": 3.5,
+        "di": 1.0,
+        "cum_ret_4w": 13.91,
+        "cum_ret_13w": 20.08,
+        "cum_ret_26w": 25.16,
+        "vcp": false,
+        "vp_ratio_stock": 1.026,
+        "pct_from_high": -0.02,
+        "high_52w": 176.65,
+        "surprise_l1": 24.4,
+        "surprise_l2": 141.28,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "CMS_A=3.5 靠前但缺 VCP 或非 TNX 順風",
+        "weight_pct": 3.75
       }
     ],
     "hold_earnings": []
@@ -174,7 +205,7 @@
   "totals": {
     "core_count": 0,
     "momentum_count": 1,
-    "sprint_count": 3,
+    "sprint_count": 4,
     "hold_count": 0
   },
   "correlation_warnings": [],
