@@ -1,9 +1,11 @@
 {
-  "total_rows": 264,
-  "unique_samples": 8,
+  "total_rows": 330,
+  "unique_samples": 10,
   "sample_dates": [
     "2022-02-21",
+    "2023-08-21",
     "2023-11-20",
+    "2023-12-25",
     "2024-12-23",
     "2025-03-24",
     "2025-06-23",
@@ -11,49 +13,47 @@
     "2026-06-22",
     "2026-07-27"
   ],
-  "unique_symbols": 189,
-  "strong_buy_row_count": 65,
-  "strong_buy_definition": "composite_rank_in_sector == 1  AND  vp_score_stock >= 95  AND  stock_gap_alert != '吃老本'",
+  "unique_symbols": 219,
   "1m": {
-    "n_samples": 231,
-    "overall_avg_pct": 5.6,
-    "hit_rate_pct": 66.2,
+    "n_samples": 297,
+    "overall_avg_pct": 4.32,
+    "hit_rate_pct": 63.0,
     "strong_buy": {
-      "n": 57,
-      "avg": 8.5,
-      "wins": 37,
-      "hit_rate_pct": 64.9
+      "n": 72,
+      "avg": 6.76,
+      "wins": 46,
+      "hit_rate_pct": 63.9
     },
     "by_composite_rank": {
       "1": {
-        "n": 70,
-        "avg": 8.39,
-        "wins": 49,
-        "hit_rate_pct": 70.0
+        "n": 88,
+        "avg": 6.79,
+        "wins": 61,
+        "hit_rate_pct": 69.3
       },
       "2": {
-        "n": 68,
-        "avg": 4.78,
-        "wins": 38,
-        "hit_rate_pct": 55.9
+        "n": 89,
+        "avg": 3.87,
+        "wins": 47,
+        "hit_rate_pct": 52.8
       },
       "3": {
-        "n": 62,
-        "avg": 3.64,
-        "wins": 43,
-        "hit_rate_pct": 69.4
+        "n": 79,
+        "avg": 2.6,
+        "wins": 52,
+        "hit_rate_pct": 65.8
       },
       "4": {
-        "n": 20,
-        "avg": 6.42,
-        "wins": 16,
-        "hit_rate_pct": 80.0
+        "n": 24,
+        "avg": 5.1,
+        "wins": 19,
+        "hit_rate_pct": 79.2
       },
       "5": {
-        "n": 8,
-        "avg": 4.01,
-        "wins": 6,
-        "hit_rate_pct": 75.0
+        "n": 14,
+        "avg": 1.13,
+        "wins": 7,
+        "hit_rate_pct": 50.0
       },
       "6": {
         "n": 2,
@@ -70,87 +70,165 @@
     },
     "by_alert": {
       "吃老本": {
-        "n": 21,
-        "avg": 2.96,
-        "wins": 14,
-        "hit_rate_pct": 66.7
+        "n": 27,
+        "avg": 1.93,
+        "wins": 16,
+        "hit_rate_pct": 59.3
       },
       "剛爆發": {
-        "n": 34,
-        "avg": 6.29,
-        "wins": 27,
-        "hit_rate_pct": 79.4
+        "n": 48,
+        "avg": 4.55,
+        "wins": 36,
+        "hit_rate_pct": 75.0
       },
       "無": {
-        "n": 176,
-        "avg": 5.79,
-        "wins": 112,
-        "hit_rate_pct": 63.6
+        "n": 222,
+        "avg": 4.56,
+        "wins": 135,
+        "hit_rate_pct": 60.8
+      }
+    },
+    "vcp_true": {
+      "n": 3,
+      "avg": 2.85,
+      "hit_rate_pct": 100.0
+    },
+    "vcp_false": {
+      "n": 294,
+      "avg": 4.33,
+      "hit_rate_pct": 62.6
+    },
+    "by_sector": {
+      "Communication Services": {
+        "n": 27,
+        "avg": 0.58,
+        "wins": 15,
+        "hit_rate_pct": 55.6
+      },
+      "Consumer Discretionary": {
+        "n": 27,
+        "avg": 1.11,
+        "wins": 13,
+        "hit_rate_pct": 48.1
+      },
+      "Consumer Staples": {
+        "n": 27,
+        "avg": 4.21,
+        "wins": 19,
+        "hit_rate_pct": 70.4
+      },
+      "Energy": {
+        "n": 27,
+        "avg": 5.16,
+        "wins": 16,
+        "hit_rate_pct": 59.3
+      },
+      "Financials": {
+        "n": 27,
+        "avg": 5.49,
+        "wins": 18,
+        "hit_rate_pct": 66.7
+      },
+      "Health Care": {
+        "n": 27,
+        "avg": 5.11,
+        "wins": 19,
+        "hit_rate_pct": 70.4
+      },
+      "Industrials": {
+        "n": 27,
+        "avg": 3.83,
+        "wins": 19,
+        "hit_rate_pct": 70.4
+      },
+      "Information Technology": {
+        "n": 27,
+        "avg": 7.91,
+        "wins": 17,
+        "hit_rate_pct": 63.0
+      },
+      "Materials": {
+        "n": 27,
+        "avg": 8.27,
+        "wins": 16,
+        "hit_rate_pct": 59.3
+      },
+      "Real Estate": {
+        "n": 27,
+        "avg": 1.68,
+        "wins": 14,
+        "hit_rate_pct": 51.9
+      },
+      "Utilities": {
+        "n": 27,
+        "avg": 4.16,
+        "wins": 21,
+        "hit_rate_pct": 77.8
       }
     },
     "by_vp_score": {
       "≥95": {
-        "n": 161,
-        "avg": 6.65,
-        "hit_rate_pct": 66.5
+        "n": 206,
+        "avg": 5.3,
+        "hit_rate_pct": 63.6
       },
       "90-95": {
-        "n": 25,
-        "avg": -0.48,
-        "hit_rate_pct": 56.0
+        "n": 32,
+        "avg": -1.24,
+        "hit_rate_pct": 53.1
       },
       "80-90": {
-        "n": 38,
-        "avg": 4.6,
-        "hit_rate_pct": 71.1
+        "n": 46,
+        "avg": 3.59,
+        "hit_rate_pct": 67.4
       },
       "<80": {
-        "n": 7,
-        "avg": 8.75,
-        "hit_rate_pct": 71.4
+        "n": 13,
+        "avg": 4.95,
+        "hit_rate_pct": 61.5
       }
     }
   },
   "3m": {
-    "n_samples": 198,
-    "overall_avg_pct": 9.06,
-    "hit_rate_pct": 63.6,
+    "n_samples": 264,
+    "overall_avg_pct": 9.01,
+    "hit_rate_pct": 65.2,
     "strong_buy": {
-      "n": 48,
-      "avg": 17.27,
-      "wins": 39,
-      "hit_rate_pct": 81.2
+      "n": 63,
+      "avg": 16.06,
+      "wins": 52,
+      "hit_rate_pct": 82.5
     },
     "by_composite_rank": {
       "1": {
-        "n": 60,
-        "avg": 16.21,
-        "wins": 47,
-        "hit_rate_pct": 78.3
+        "n": 78,
+        "avg": 15.1,
+        "wins": 62,
+        "hit_rate_pct": 79.5
       },
       "2": {
-        "n": 58,
-        "avg": 8.73,
-        "wins": 35,
-        "hit_rate_pct": 60.3
+        "n": 79,
+        "avg": 9.06,
+        "wins": 48,
+        "hit_rate_pct": 60.8
       },
       "3": {
-        "n": 52,
-        "avg": 3.87,
-        "wins": 26,
-        "hit_rate_pct": 50.0
+        "n": 69,
+        "avg": 4.96,
+        "wins": 39,
+        "hit_rate_pct": 56.5
       },
       "4": {
-        "n": 17,
-        "avg": 5.45,
-        "wins": 11,
-        "hit_rate_pct": 64.7
+        "n": 21,
+        "avg": 3.93,
+        "wins": 12,
+        "hit_rate_pct": 57.1
       },
       "5": {
-        "n": 8,
-        "avg": 2.18,
-        "wins": 5,
-        "hit_rate_pct": 62.5
+        "n": 14,
+        "avg": 4.11,
+        "wins": 9,
+        "hit_rate_pct": 64.3
       },
       "6": {
         "n": 2,
@@ -167,87 +245,165 @@
     },
     "by_alert": {
       "吃老本": {
-        "n": 18,
-        "avg": 0.52,
-        "wins": 8,
-        "hit_rate_pct": 44.4
+        "n": 24,
+        "avg": 1.79,
+        "wins": 12,
+        "hit_rate_pct": 50.0
       },
       "剛爆發": {
-        "n": 26,
-        "avg": 10.11,
-        "wins": 20,
-        "hit_rate_pct": 76.9
+        "n": 40,
+        "avg": 7.82,
+        "wins": 28,
+        "hit_rate_pct": 70.0
       },
       "無": {
-        "n": 154,
-        "avg": 9.88,
-        "wins": 98,
-        "hit_rate_pct": 63.6
+        "n": 200,
+        "avg": 10.12,
+        "wins": 132,
+        "hit_rate_pct": 66.0
+      }
+    },
+    "vcp_true": {
+      "n": 2,
+      "avg": 11.29,
+      "hit_rate_pct": 100.0
+    },
+    "vcp_false": {
+      "n": 262,
+      "avg": 9.0,
+      "hit_rate_pct": 64.9
+    },
+    "by_sector": {
+      "Communication Services": {
+        "n": 24,
+        "avg": 11.03,
+        "wins": 17,
+        "hit_rate_pct": 70.8
+      },
+      "Consumer Discretionary": {
+        "n": 24,
+        "avg": -0.85,
+        "wins": 13,
+        "hit_rate_pct": 54.2
+      },
+      "Consumer Staples": {
+        "n": 24,
+        "avg": 3.74,
+        "wins": 13,
+        "hit_rate_pct": 54.2
+      },
+      "Energy": {
+        "n": 24,
+        "avg": 13.09,
+        "wins": 17,
+        "hit_rate_pct": 70.8
+      },
+      "Financials": {
+        "n": 24,
+        "avg": 9.26,
+        "wins": 14,
+        "hit_rate_pct": 58.3
+      },
+      "Health Care": {
+        "n": 24,
+        "avg": 7.17,
+        "wins": 18,
+        "hit_rate_pct": 75.0
+      },
+      "Industrials": {
+        "n": 24,
+        "avg": 10.22,
+        "wins": 15,
+        "hit_rate_pct": 62.5
+      },
+      "Information Technology": {
+        "n": 24,
+        "avg": 25.4,
+        "wins": 18,
+        "hit_rate_pct": 75.0
+      },
+      "Materials": {
+        "n": 24,
+        "avg": 9.72,
+        "wins": 17,
+        "hit_rate_pct": 70.8
+      },
+      "Real Estate": {
+        "n": 24,
+        "avg": 1.65,
+        "wins": 14,
+        "hit_rate_pct": 58.3
+      },
+      "Utilities": {
+        "n": 24,
+        "avg": 8.74,
+        "wins": 16,
+        "hit_rate_pct": 66.7
       }
     },
     "by_vp_score": {
       "≥95": {
-        "n": 131,
-        "avg": 11.68,
-        "hit_rate_pct": 69.5
+        "n": 176,
+        "avg": 11.78,
+        "hit_rate_pct": 72.2
       },
       "90-95": {
-        "n": 24,
-        "avg": -1.6,
-        "hit_rate_pct": 45.8
+        "n": 31,
+        "avg": -1.61,
+        "hit_rate_pct": 38.7
       },
       "80-90": {
-        "n": 36,
-        "avg": 8.18,
-        "hit_rate_pct": 58.3
+        "n": 44,
+        "avg": 7.26,
+        "hit_rate_pct": 61.4
       },
       "<80": {
-        "n": 7,
-        "avg": 1.21,
-        "hit_rate_pct": 42.9
+        "n": 13,
+        "avg": 2.92,
+        "hit_rate_pct": 46.2
       }
     }
   },
   "6m": {
-    "n_samples": 198,
-    "overall_avg_pct": 21.47,
-    "hit_rate_pct": 67.7,
+    "n_samples": 264,
+    "overall_avg_pct": 20.26,
+    "hit_rate_pct": 69.3,
     "strong_buy": {
-      "n": 48,
-      "avg": 42.8,
-      "wins": 36,
-      "hit_rate_pct": 75.0
+      "n": 63,
+      "avg": 37.24,
+      "wins": 48,
+      "hit_rate_pct": 76.2
     },
     "by_composite_rank": {
       "1": {
-        "n": 60,
-        "avg": 39.08,
-        "wins": 46,
-        "hit_rate_pct": 76.7
+        "n": 78,
+        "avg": 34.26,
+        "wins": 61,
+        "hit_rate_pct": 78.2
       },
       "2": {
-        "n": 58,
-        "avg": 18.56,
-        "wins": 40,
-        "hit_rate_pct": 69.0
+        "n": 79,
+        "avg": 18.64,
+        "wins": 54,
+        "hit_rate_pct": 68.4
       },
       "3": {
-        "n": 52,
-        "avg": 11.6,
-        "wins": 31,
-        "hit_rate_pct": 59.6
+        "n": 69,
+        "avg": 13.61,
+        "wins": 44,
+        "hit_rate_pct": 63.8
       },
       "4": {
-        "n": 17,
-        "avg": 10.85,
-        "wins": 10,
-        "hit_rate_pct": 58.8
+        "n": 21,
+        "avg": 9.55,
+        "wins": 13,
+        "hit_rate_pct": 61.9
       },
       "5": {
-        "n": 8,
-        "avg": 5.03,
-        "wins": 5,
-        "hit_rate_pct": 62.5
+        "n": 14,
+        "avg": 4.59,
+        "wins": 9,
+        "hit_rate_pct": 64.3
       },
       "6": {
         "n": 2,
@@ -264,87 +420,165 @@
     },
     "by_alert": {
       "吃老本": {
-        "n": 18,
-        "avg": 11.85,
-        "wins": 10,
-        "hit_rate_pct": 55.6
+        "n": 24,
+        "avg": 14.02,
+        "wins": 15,
+        "hit_rate_pct": 62.5
       },
       "剛爆發": {
-        "n": 26,
-        "avg": 16.62,
-        "wins": 21,
-        "hit_rate_pct": 80.8
+        "n": 40,
+        "avg": 14.86,
+        "wins": 32,
+        "hit_rate_pct": 80.0
       },
       "無": {
-        "n": 154,
-        "avg": 23.41,
-        "wins": 103,
-        "hit_rate_pct": 66.9
+        "n": 200,
+        "avg": 22.09,
+        "wins": 136,
+        "hit_rate_pct": 68.0
+      }
+    },
+    "vcp_true": {
+      "n": 2,
+      "avg": 33.58,
+      "hit_rate_pct": 100.0
+    },
+    "vcp_false": {
+      "n": 262,
+      "avg": 20.16,
+      "hit_rate_pct": 69.1
+    },
+    "by_sector": {
+      "Communication Services": {
+        "n": 24,
+        "avg": 22.26,
+        "wins": 16,
+        "hit_rate_pct": 66.7
+      },
+      "Consumer Discretionary": {
+        "n": 24,
+        "avg": 6.12,
+        "wins": 13,
+        "hit_rate_pct": 54.2
+      },
+      "Consumer Staples": {
+        "n": 24,
+        "avg": 7.71,
+        "wins": 16,
+        "hit_rate_pct": 66.7
+      },
+      "Energy": {
+        "n": 24,
+        "avg": 13.07,
+        "wins": 16,
+        "hit_rate_pct": 66.7
+      },
+      "Financials": {
+        "n": 24,
+        "avg": 17.33,
+        "wins": 15,
+        "hit_rate_pct": 62.5
+      },
+      "Health Care": {
+        "n": 24,
+        "avg": 13.41,
+        "wins": 15,
+        "hit_rate_pct": 62.5
+      },
+      "Industrials": {
+        "n": 24,
+        "avg": 24.06,
+        "wins": 19,
+        "hit_rate_pct": 79.2
+      },
+      "Information Technology": {
+        "n": 24,
+        "avg": 83.5,
+        "wins": 20,
+        "hit_rate_pct": 83.3
+      },
+      "Materials": {
+        "n": 24,
+        "avg": 14.35,
+        "wins": 18,
+        "hit_rate_pct": 75.0
+      },
+      "Real Estate": {
+        "n": 24,
+        "avg": 4.59,
+        "wins": 14,
+        "hit_rate_pct": 58.3
+      },
+      "Utilities": {
+        "n": 24,
+        "avg": 16.51,
+        "wins": 21,
+        "hit_rate_pct": 87.5
       }
     },
     "by_vp_score": {
       "≥95": {
-        "n": 131,
-        "avg": 27.13,
-        "hit_rate_pct": 71.8
+        "n": 176,
+        "avg": 25.04,
+        "hit_rate_pct": 71.0
       },
       "90-95": {
-        "n": 24,
-        "avg": 4.59,
-        "hit_rate_pct": 50.0
+        "n": 31,
+        "avg": 4.3,
+        "hit_rate_pct": 58.1
       },
       "80-90": {
-        "n": 36,
-        "avg": 15.21,
-        "hit_rate_pct": 69.4
+        "n": 44,
+        "avg": 16.05,
+        "hit_rate_pct": 72.7
       },
       "<80": {
-        "n": 7,
-        "avg": 5.47,
-        "hit_rate_pct": 42.9
+        "n": 13,
+        "avg": 7.95,
+        "hit_rate_pct": 61.5
       }
     }
   },
   "1y": {
-    "n_samples": 165,
-    "overall_avg_pct": 29.58,
-    "hit_rate_pct": 70.3,
+    "n_samples": 231,
+    "overall_avg_pct": 34.21,
+    "hit_rate_pct": 73.6,
     "strong_buy": {
-      "n": 39,
-      "avg": 50.58,
-      "wins": 36,
-      "hit_rate_pct": 92.3
+      "n": 54,
+      "avg": 49.98,
+      "wins": 50,
+      "hit_rate_pct": 92.6
     },
     "by_composite_rank": {
       "1": {
-        "n": 48,
-        "avg": 45.54,
-        "wins": 42,
-        "hit_rate_pct": 87.5
+        "n": 66,
+        "avg": 45.88,
+        "wins": 59,
+        "hit_rate_pct": 89.4
       },
       "2": {
-        "n": 48,
-        "avg": 30.9,
-        "wins": 30,
-        "hit_rate_pct": 62.5
+        "n": 69,
+        "avg": 37.75,
+        "wins": 47,
+        "hit_rate_pct": 68.1
       },
       "3": {
-        "n": 45,
-        "avg": 19.08,
-        "wins": 27,
-        "hit_rate_pct": 60.0
+        "n": 62,
+        "avg": 29.24,
+        "wins": 41,
+        "hit_rate_pct": 66.1
       },
       "4": {
-        "n": 15,
-        "avg": 15.65,
-        "wins": 9,
-        "hit_rate_pct": 60.0
+        "n": 19,
+        "avg": 13.72,
+        "wins": 11,
+        "hit_rate_pct": 57.9
       },
       "5": {
-        "n": 7,
-        "avg": 18.35,
-        "wins": 7,
-        "hit_rate_pct": 100.0
+        "n": 13,
+        "avg": 15.94,
+        "wins": 11,
+        "hit_rate_pct": 84.6
       },
       "6": {
         "n": 1,
@@ -361,44 +595,122 @@
     },
     "by_alert": {
       "吃老本": {
-        "n": 17,
-        "avg": 13.41,
-        "wins": 7,
-        "hit_rate_pct": 41.2
+        "n": 23,
+        "avg": 30.21,
+        "wins": 11,
+        "hit_rate_pct": 47.8
       },
       "剛爆發": {
-        "n": 24,
-        "avg": 26.37,
-        "wins": 20,
-        "hit_rate_pct": 83.3
+        "n": 38,
+        "avg": 26.77,
+        "wins": 32,
+        "hit_rate_pct": 84.2
       },
       "無": {
-        "n": 124,
-        "avg": 32.41,
-        "wins": 89,
-        "hit_rate_pct": 71.8
+        "n": 170,
+        "avg": 36.42,
+        "wins": 127,
+        "hit_rate_pct": 74.7
+      }
+    },
+    "vcp_true": {
+      "n": 1,
+      "avg": 38.56,
+      "hit_rate_pct": 100.0
+    },
+    "vcp_false": {
+      "n": 230,
+      "avg": 34.19,
+      "hit_rate_pct": 73.5
+    },
+    "by_sector": {
+      "Communication Services": {
+        "n": 21,
+        "avg": 36.38,
+        "wins": 16,
+        "hit_rate_pct": 76.2
+      },
+      "Consumer Discretionary": {
+        "n": 21,
+        "avg": 45.86,
+        "wins": 13,
+        "hit_rate_pct": 61.9
+      },
+      "Consumer Staples": {
+        "n": 21,
+        "avg": 12.4,
+        "wins": 16,
+        "hit_rate_pct": 76.2
+      },
+      "Energy": {
+        "n": 21,
+        "avg": 16.21,
+        "wins": 16,
+        "hit_rate_pct": 76.2
+      },
+      "Financials": {
+        "n": 21,
+        "avg": 43.12,
+        "wins": 16,
+        "hit_rate_pct": 76.2
+      },
+      "Health Care": {
+        "n": 21,
+        "avg": 21.65,
+        "wins": 15,
+        "hit_rate_pct": 71.4
+      },
+      "Industrials": {
+        "n": 21,
+        "avg": 55.68,
+        "wins": 19,
+        "hit_rate_pct": 90.5
+      },
+      "Information Technology": {
+        "n": 21,
+        "avg": 87.63,
+        "wins": 16,
+        "hit_rate_pct": 76.2
+      },
+      "Materials": {
+        "n": 21,
+        "avg": 20.18,
+        "wins": 16,
+        "hit_rate_pct": 76.2
+      },
+      "Real Estate": {
+        "n": 21,
+        "avg": 2.76,
+        "wins": 10,
+        "hit_rate_pct": 47.6
+      },
+      "Utilities": {
+        "n": 21,
+        "avg": 34.45,
+        "wins": 17,
+        "hit_rate_pct": 81.0
       }
     },
     "by_vp_score": {
       "≥95": {
-        "n": 106,
-        "avg": 41.04,
-        "hit_rate_pct": 78.3
+        "n": 151,
+        "avg": 43.56,
+        "hit_rate_pct": 80.1
       },
       "90-95": {
-        "n": 22,
-        "avg": 8.34,
-        "hit_rate_pct": 68.2
+        "n": 29,
+        "avg": 10.43,
+        "hit_rate_pct": 69.0
       },
       "80-90": {
-        "n": 31,
-        "avg": 10.28,
-        "hit_rate_pct": 48.4
+        "n": 39,
+        "avg": 17.14,
+        "hit_rate_pct": 56.4
       },
       "<80": {
-        "n": 6,
-        "avg": 4.73,
-        "hit_rate_pct": 50.0
+        "n": 12,
+        "avg": 29.56,
+        "hit_rate_pct": 58.3
       }
     }
   }

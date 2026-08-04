@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-04T13:35:27.147828+00:00",
-  "as_of_date": "2026-08-04",
+  "generated_at": "2026-08-04T14:00:36.208502+00:00",
+  "as_of_date": "2024-01-26",
   "as_of_date_note": "T-1 · 抓到的最後一根 close 的日期（非腳本執行當日）",
   "scanned_count": 503,
-  "hits_count": 0,
+  "hits_count": 1,
   "conditions": {
     "daily_drop_pct": "< -5.0% （當日跌 > 5%）",
     "ma50_up": "50MA 向上（今日 MA > 6 天前 MA）",
@@ -16,6 +16,24 @@
     "不是進場當天立刻買 · 建議等大跌後量縮 · 量縮後放量再進場（策略 B 進場時機）",
     "trigger 訊號 · 不代表 all-in · 位置管理仍需搭配策略 A 的配置上限"
   ],
-  "hits": [],
-  "csv": null
+  "hits": [
+    {
+      "symbol": "INTC",
+      "name": "Intel",
+      "sector": "Information Technology",
+      "as_of_date": "2024-01-26",
+      "t_price": 43.07,
+      "prev_price": 48.9,
+      "daily_drop_pct": -11.91,
+      "ma50": 45.19,
+      "ma200": 36.17,
+      "ma50_up": true,
+      "ma200_up": true,
+      "rsi_14": 38.2,
+      "vol_today": 127665300,
+      "vol_20d_avg": 41650510,
+      "vol_ratio_vs_20d": 3.07
+    }
+  ],
+  "csv": "20240126_strategy_b.csv"
 }
