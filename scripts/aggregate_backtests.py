@@ -50,6 +50,14 @@ def main():
     big = pd.concat(all_rows, ignore_index=True)
     log(f"合併 {len(big)} 個 (sample × stock) row")
 
+    # === strong_buy hard rules (8-sample 統計驗證：1y avg +50%+ / hit 90%+) ===
+    big["strong_buy"] = (
+        (big["composite_rank_in_sector"] == 1)
+        & (big["vp_score_stock"] >= 95)
+        & (big["stock_gap_alert"] != "吃老本")
+    )
+    log(f"strong_buy 命中 {int(big['strong_buy'].sum())} / {len(big)} row")
+
     # unique symbol · 一次抓
     symbols = sorted(big["symbol"].dropna().unique().tolist())
     log(f"unique symbols: {len(symbols)}")
@@ -175,10 +183,22 @@ def main():
                 by_vp[b] = {"n": int(len(g)), "avg": round(float(g[col].mean()), 2),
                             "hit_rate_pct": round(100 * (g[col] > 0).mean(), 1)}
 
+        # strong_buy 三條硬規則
+        sb_g = valid[valid["strong_buy"] == True]
+        strong_buy_stats = None
+        if len(sb_g) > 0:
+            strong_buy_stats = {
+                "n": int(len(sb_g)),
+                "avg": round(float(sb_g[col].mean()), 2),
+                "wins": int((sb_g[col] > 0).sum()),
+                "hit_rate_pct": round(100 * (sb_g[col] > 0).mean(), 1),
+            }
+
         patterns[ck_lbl] = {
             "n_samples": n,
             "overall_avg_pct": round(avg, 2),
             "hit_rate_pct": round(100 * wins / n, 1),
+            "strong_buy": strong_buy_stats,
             "by_composite_rank": by_rank,
             "by_alert": by_alert,
             "vcp_true": {"n": int(len(vcp_g)), "avg": round(float(vcp_g[col].mean()), 2) if len(vcp_g) else None,
@@ -205,6 +225,9 @@ def main():
         log("  By 警示:")
         for a, s in p["by_alert"].items():
             log(f"    {a:5s} n={s['n']:3d}  avg {s['avg']:+7.2f}%  hit {s['hit_rate_pct']:5.1f}%")
+        if p.get("strong_buy"):
+            sb = p["strong_buy"]
+            log(f"  ★ strong_buy (3 rules) n={sb['n']:3d}  avg {sb['avg']:+7.2f}%  hit {sb['hit_rate_pct']:5.1f}%")
         if p['vcp_true']['n'] > 0:
             log(f"  VCP=TRUE n={p['vcp_true']['n']}  avg {p['vcp_true']['avg']:+.2f}%  hit {p['vcp_true']['hit_rate_pct']}%")
 

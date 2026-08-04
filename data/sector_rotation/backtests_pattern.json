@@ -12,10 +12,18 @@
     "2026-07-27"
   ],
   "unique_symbols": 189,
+  "strong_buy_row_count": 65,
+  "strong_buy_definition": "composite_rank_in_sector == 1  AND  vp_score_stock >= 95  AND  stock_gap_alert != '吃老本'",
   "1m": {
     "n_samples": 231,
     "overall_avg_pct": 5.6,
     "hit_rate_pct": 66.2,
+    "strong_buy": {
+      "n": 57,
+      "avg": 8.5,
+      "wins": 37,
+      "hit_rate_pct": 64.9
+    },
     "by_composite_rank": {
       "1": {
         "n": 70,
@@ -80,84 +88,6 @@
         "hit_rate_pct": 63.6
       }
     },
-    "vcp_true": {
-      "n": 2,
-      "avg": 2.58,
-      "hit_rate_pct": 100.0
-    },
-    "vcp_false": {
-      "n": 229,
-      "avg": 5.63,
-      "hit_rate_pct": 65.9
-    },
-    "by_sector": {
-      "Communication Services": {
-        "n": 21,
-        "avg": 0.59,
-        "wins": 11,
-        "hit_rate_pct": 52.4
-      },
-      "Consumer Discretionary": {
-        "n": 21,
-        "avg": 2.04,
-        "wins": 10,
-        "hit_rate_pct": 47.6
-      },
-      "Consumer Staples": {
-        "n": 21,
-        "avg": 5.11,
-        "wins": 15,
-        "hit_rate_pct": 71.4
-      },
-      "Energy": {
-        "n": 21,
-        "avg": 6.76,
-        "wins": 13,
-        "hit_rate_pct": 61.9
-      },
-      "Financials": {
-        "n": 21,
-        "avg": 8.74,
-        "wins": 15,
-        "hit_rate_pct": 71.4
-      },
-      "Health Care": {
-        "n": 21,
-        "avg": 6.12,
-        "wins": 16,
-        "hit_rate_pct": 76.2
-      },
-      "Industrials": {
-        "n": 21,
-        "avg": 4.11,
-        "wins": 15,
-        "hit_rate_pct": 71.4
-      },
-      "Information Technology": {
-        "n": 21,
-        "avg": 8.85,
-        "wins": 14,
-        "hit_rate_pct": 66.7
-      },
-      "Materials": {
-        "n": 21,
-        "avg": 11.19,
-        "wins": 15,
-        "hit_rate_pct": 71.4
-      },
-      "Real Estate": {
-        "n": 21,
-        "avg": 2.81,
-        "wins": 12,
-        "hit_rate_pct": 57.1
-      },
-      "Utilities": {
-        "n": 21,
-        "avg": 5.32,
-        "wins": 17,
-        "hit_rate_pct": 81.0
-      }
-    },
     "by_vp_score": {
       "≥95": {
         "n": 161,
@@ -185,6 +115,12 @@
     "n_samples": 198,
     "overall_avg_pct": 9.06,
     "hit_rate_pct": 63.6,
+    "strong_buy": {
+      "n": 48,
+      "avg": 17.27,
+      "wins": 39,
+      "hit_rate_pct": 81.2
+    },
     "by_composite_rank": {
       "1": {
         "n": 60,
@@ -249,84 +185,6 @@
         "hit_rate_pct": 63.6
       }
     },
-    "vcp_true": {
-      "n": 1,
-      "avg": 4.74,
-      "hit_rate_pct": 100.0
-    },
-    "vcp_false": {
-      "n": 197,
-      "avg": 9.08,
-      "hit_rate_pct": 63.5
-    },
-    "by_sector": {
-      "Communication Services": {
-        "n": 18,
-        "avg": 12.08,
-        "wins": 11,
-        "hit_rate_pct": 61.1
-      },
-      "Consumer Discretionary": {
-        "n": 18,
-        "avg": -2.39,
-        "wins": 10,
-        "hit_rate_pct": 55.6
-      },
-      "Consumer Staples": {
-        "n": 18,
-        "avg": 4.54,
-        "wins": 10,
-        "hit_rate_pct": 55.6
-      },
-      "Energy": {
-        "n": 18,
-        "avg": 14.58,
-        "wins": 13,
-        "hit_rate_pct": 72.2
-      },
-      "Financials": {
-        "n": 18,
-        "avg": 6.25,
-        "wins": 8,
-        "hit_rate_pct": 44.4
-      },
-      "Health Care": {
-        "n": 18,
-        "avg": 8.77,
-        "wins": 14,
-        "hit_rate_pct": 77.8
-      },
-      "Industrials": {
-        "n": 18,
-        "avg": 6.22,
-        "wins": 11,
-        "hit_rate_pct": 61.1
-      },
-      "Information Technology": {
-        "n": 18,
-        "avg": 30.6,
-        "wins": 13,
-        "hit_rate_pct": 72.2
-      },
-      "Materials": {
-        "n": 18,
-        "avg": 10.06,
-        "wins": 12,
-        "hit_rate_pct": 66.7
-      },
-      "Real Estate": {
-        "n": 18,
-        "avg": 3.05,
-        "wins": 11,
-        "hit_rate_pct": 61.1
-      },
-      "Utilities": {
-        "n": 18,
-        "avg": 5.92,
-        "wins": 13,
-        "hit_rate_pct": 72.2
-      }
-    },
     "by_vp_score": {
       "≥95": {
         "n": 131,
@@ -354,6 +212,12 @@
     "n_samples": 198,
     "overall_avg_pct": 21.47,
     "hit_rate_pct": 67.7,
+    "strong_buy": {
+      "n": 48,
+      "avg": 42.8,
+      "wins": 36,
+      "hit_rate_pct": 75.0
+    },
     "by_composite_rank": {
       "1": {
         "n": 60,
@@ -418,84 +282,6 @@
         "hit_rate_pct": 66.9
       }
     },
-    "vcp_true": {
-      "n": 1,
-      "avg": 38.99,
-      "hit_rate_pct": 100.0
-    },
-    "vcp_false": {
-      "n": 197,
-      "avg": 21.38,
-      "hit_rate_pct": 67.5
-    },
-    "by_sector": {
-      "Communication Services": {
-        "n": 18,
-        "avg": 22.84,
-        "wins": 10,
-        "hit_rate_pct": 55.6
-      },
-      "Consumer Discretionary": {
-        "n": 18,
-        "avg": -0.78,
-        "wins": 9,
-        "hit_rate_pct": 50.0
-      },
-      "Consumer Staples": {
-        "n": 18,
-        "avg": 10.6,
-        "wins": 13,
-        "hit_rate_pct": 72.2
-      },
-      "Energy": {
-        "n": 18,
-        "avg": 13.75,
-        "wins": 11,
-        "hit_rate_pct": 61.1
-      },
-      "Financials": {
-        "n": 18,
-        "avg": 20.35,
-        "wins": 11,
-        "hit_rate_pct": 61.1
-      },
-      "Health Care": {
-        "n": 18,
-        "avg": 16.99,
-        "wins": 13,
-        "hit_rate_pct": 72.2
-      },
-      "Industrials": {
-        "n": 18,
-        "avg": 18.73,
-        "wins": 13,
-        "hit_rate_pct": 72.2
-      },
-      "Information Technology": {
-        "n": 18,
-        "avg": 102.74,
-        "wins": 15,
-        "hit_rate_pct": 83.3
-      },
-      "Materials": {
-        "n": 18,
-        "avg": 15.29,
-        "wins": 13,
-        "hit_rate_pct": 72.2
-      },
-      "Real Estate": {
-        "n": 18,
-        "avg": 5.15,
-        "wins": 10,
-        "hit_rate_pct": 55.6
-      },
-      "Utilities": {
-        "n": 18,
-        "avg": 10.46,
-        "wins": 16,
-        "hit_rate_pct": 88.9
-      }
-    },
     "by_vp_score": {
       "≥95": {
         "n": 131,
@@ -523,6 +309,12 @@
     "n_samples": 165,
     "overall_avg_pct": 29.58,
     "hit_rate_pct": 70.3,
+    "strong_buy": {
+      "n": 39,
+      "avg": 50.58,
+      "wins": 36,
+      "hit_rate_pct": 92.3
+    },
     "by_composite_rank": {
       "1": {
         "n": 48,
@@ -585,84 +377,6 @@
         "avg": 32.41,
         "wins": 89,
         "hit_rate_pct": 71.8
-      }
-    },
-    "vcp_true": {
-      "n": 0,
-      "avg": null,
-      "hit_rate_pct": null
-    },
-    "vcp_false": {
-      "n": 165,
-      "avg": 29.58,
-      "hit_rate_pct": 70.3
-    },
-    "by_sector": {
-      "Communication Services": {
-        "n": 15,
-        "avg": 35.88,
-        "wins": 10,
-        "hit_rate_pct": 66.7
-      },
-      "Consumer Discretionary": {
-        "n": 15,
-        "avg": 14.06,
-        "wins": 7,
-        "hit_rate_pct": 46.7
-      },
-      "Consumer Staples": {
-        "n": 15,
-        "avg": 13.91,
-        "wins": 13,
-        "hit_rate_pct": 86.7
-      },
-      "Energy": {
-        "n": 15,
-        "avg": 16.63,
-        "wins": 11,
-        "hit_rate_pct": 73.3
-      },
-      "Financials": {
-        "n": 15,
-        "avg": 47.32,
-        "wins": 10,
-        "hit_rate_pct": 66.7
-      },
-      "Health Care": {
-        "n": 15,
-        "avg": 24.29,
-        "wins": 11,
-        "hit_rate_pct": 73.3
-      },
-      "Industrials": {
-        "n": 15,
-        "avg": 41.61,
-        "wins": 13,
-        "hit_rate_pct": 86.7
-      },
-      "Information Technology": {
-        "n": 15,
-        "avg": 98.99,
-        "wins": 12,
-        "hit_rate_pct": 80.0
-      },
-      "Materials": {
-        "n": 15,
-        "avg": 21.39,
-        "wins": 10,
-        "hit_rate_pct": 66.7
-      },
-      "Real Estate": {
-        "n": 15,
-        "avg": -2.56,
-        "wins": 6,
-        "hit_rate_pct": 40.0
-      },
-      "Utilities": {
-        "n": 15,
-        "avg": 13.82,
-        "wins": 13,
-        "hit_rate_pct": 86.7
       }
     },
     "by_vp_score": {
