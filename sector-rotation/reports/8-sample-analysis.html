@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>8 樣本回測終極 pattern · sector-rotation</title>
+<style>
+  :root{
+    --navy:#1b2a4a; --navy-dark:#0f1930;
+    --gold:#c9a24b; --gold-light:#e8d9ae;
+    --red:#c0392b; --green:#1e8449; --orange:#d97706;
+    --bg:#f4f5f7; --card:#ffffff; --line:#e2e5ea;
+    --text:#2a2f3a; --muted:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:24px; background:var(--bg);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--text); line-height:1.55;
+  }
+  .sheet{max-width:1180px;margin:0 auto;}
+  a{color:var(--navy);text-decoration:none;border-bottom:1px dotted var(--navy);}
+  .up{color:var(--green);font-weight:700;}
+  .down{color:var(--red);font-weight:700;}
+  .flat{color:var(--muted);font-weight:700;}
+  .muted{color:var(--muted);font-size:12px;}
+  .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+  .badge-hot{background:#fef3c7;color:#92400e;}
+  .badge-mid{background:#dcfce7;color:#166534;}
+  .badge-cold{background:#e0e7ff;color:#3730a3;}
+  .badge-red{background:#fee2e2;color:#991b1b;}
+
+  .header{
+    display:flex;align-items:center;gap:20px;background:var(--card);
+    border-radius:10px;padding:20px 24px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:16px;flex-wrap:wrap;
+  }
+  .logo{
+    width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(135deg,var(--navy),var(--navy-dark));
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold-light);font-weight:800;font-size:22px;
+    border:2px solid var(--gold);
+  }
+  .htitle{flex:1;min-width:280px;}
+  .htitle .tag{
+    display:inline-block;background:var(--navy);color:var(--gold-light);
+    font-size:11px;padding:2px 10px;border-radius:12px;margin-bottom:6px;letter-spacing:1px;
+  }
+  .htitle h1{margin:0 0 6px 0;font-size:22px;color:var(--navy);}
+  .htitle p{margin:0;font-size:13px;color:var(--muted);}
+  .hstats{display:flex;gap:14px;flex-wrap:wrap;}
+  .hstat{text-align:center;min-width:88px;}
+  .hstat .l{font-size:10px;color:var(--muted);}
+  .hstat .v{font-size:22px;font-weight:800;color:var(--navy);}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+  .card{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;margin-bottom:16px;}
+  .card-h{
+    background:var(--navy);color:#fff;padding:9px 16px;font-size:13px;font-weight:700;
+    display:flex;justify-content:space-between;align-items:center;letter-spacing:.5px;
+  }
+  .card-h span.n{background:var(--gold);color:var(--navy-dark);font-size:11px;padding:1px 8px;border-radius:10px;}
+  .card-b{padding:14px 18px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:#f9fafb;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;
+     border-bottom:2px solid var(--line);font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;}
+  td.sym{font-weight:700;color:var(--navy);}
+  tr.hi{background:#dcfce7;}
+  tr.lo{background:#fee2e2;}
+
+  .hero{
+    background:linear-gradient(135deg,#0f1930,#1b2a4a 60%,#c9a24b);
+    color:#fff;padding:26px 28px;border-radius:12px;margin-bottom:16px;
+    display:flex;gap:24px;flex-wrap:wrap;align-items:center;
+  }
+  .hero .lft{flex:1;min-width:260px;}
+  .hero h2{margin:0 0 6px 0;font-size:22px;color:#fff;}
+  .hero p{margin:0;font-size:14px;color:#e8d9ae;line-height:1.65;}
+  .hero .kpi{display:flex;gap:24px;flex-wrap:wrap;}
+  .hero .kpi .k{text-align:center;min-width:100px;}
+  .hero .kpi .k .l{font-size:10px;color:#c9a24b;letter-spacing:1px;}
+  .hero .kpi .k .v{font-size:34px;font-weight:900;color:#fff;}
+  .hero .kpi .k .s{font-size:11px;color:#e8d9ae;}
+
+  .callout{
+    background:linear-gradient(135deg,#fef3c7,#fde68a);
+    border-left:5px solid var(--gold);
+    padding:14px 18px;border-radius:8px;margin-bottom:16px;font-size:14px;
+  }
+  .code{
+    background:#0f1930;color:#e8d9ae;padding:12px 16px;border-radius:6px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+    line-height:1.65;overflow-x:auto;
+  }
+  .rule-nb{color:#c9a24b;font-weight:700;}
+  .rule-key{color:#93c5fd;}
+
+  .foot{text-align:center;font-size:11px;color:var(--muted);padding:16px;}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">📊</div>
+    <div class="htitle">
+      <span class="tag">8-SAMPLE BACKTEST · FINAL</span>
+      <h1>8 樣本 · 165 stock × 1y 觀察 · 終極 pattern</h1>
+      <p>樣本日期跨 2022 熊、2023-24 牛、2025 修正、2025Q4 峰值 → 各種市場環境全覆蓋</p>
+    </div>
+    <div class="hstats">
+      <div class="hstat"><div class="l">SAMPLES</div><div class="v">8</div></div>
+      <div class="hstat"><div class="l">STOCK ROWS</div><div class="v">264</div></div>
+      <div class="hstat"><div class="l">1Y VALID</div><div class="v">165</div></div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="lft">
+      <h2>🏆 3 條硬規則 · 1y avg <span style="color:#fef3c7">+50.58%</span></h2>
+      <p>綜合分 #1 + vp_score ≥95 + 非「吃老本」<br>
+         39 個有效樣本 · 36 個賺 · 3 個賠 · 命中率 92.3%</p>
+    </div>
+    <div class="kpi">
+      <div class="k"><div class="l">1Y AVG</div><div class="v">+50.6%</div><div class="s">大盤 +30% 級</div></div>
+      <div class="k"><div class="l">HIT RATE</div><div class="v">92.3%</div><div class="s">36/39 賺錢</div></div>
+      <div class="k"><div class="l">N</div><div class="v">39</div><div class="s">1y forward 有效</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📋 8 樣本 · 覆蓋市場全象限 <span class="n">8 dates</span></div>
+    <div class="card-b">
+      <table>
+        <thead><tr><th>樣本日期</th><th>市場象限</th><th>市場敘事</th><th class="n">33 stocks 1y avg</th></tr></thead>
+        <tbody>
+          <tr><td>2022-02-21</td><td><span class="badge badge-cold">❄ + 🔴</span></td><td>熊市開端 · 俄烏戰前 3 日</td><td class="n up">+3.19%</td></tr>
+          <tr><td>2023-11-20</td><td><span class="badge badge-hot">🔥 + 🟢</span></td><td>完美牛市 · AI 行情啟動</td><td class="n up">+60.92%</td></tr>
+          <tr><td>2024-12-23</td><td><span class="badge badge-hot">🔥 + 🟢</span></td><td>牛市峰值 · 川普當選後噴出</td><td class="n up">+19.51%</td></tr>
+          <tr><td>2025-03-24</td><td><span class="badge badge-cold">❄ + 🔴</span></td><td>Q1 修正 · 關稅疑慮</td><td class="n up">+9.91%</td></tr>
+          <tr><td>2025-06-23</td><td><span class="badge badge-mid">🌱 復甦</span></td><td>反彈初期 · 底部確認</td><td class="n up">+54.36%</td></tr>
+          <tr><td>2025-12-22</td><td><span class="badge badge-hot">🔥 + 🟢</span></td><td>冠軍樣本 · 年底噴出</td><td class="n muted">未到 1y</td></tr>
+          <tr><td>2026-06-22</td><td><span class="badge badge-mid">🟡 + 🟢</span></td><td>近期 · 中性</td><td class="n muted">未到 1y</td></tr>
+          <tr><td>2026-07-27</td><td><span class="badge badge-mid">🟡 + 🟢</span></td><td>最新 · 觀察中</td><td class="n muted">未到 1y</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h">綜合分 #1 是穩健王者 <span class="n">1y n=165</span></div>
+      <div class="card-b">
+        <table>
+          <thead><tr><th>Rank</th><th class="n">n</th><th class="n">1y avg</th><th class="n">1y 命中率</th></tr></thead>
+          <tbody>
+            <tr class="hi"><td><b>#1</b></td><td class="n">48</td><td class="n up">+45.54%</td><td class="n up">87.5%</td></tr>
+            <tr><td>#2</td><td class="n">48</td><td class="n up">+30.90%</td><td class="n">62.5%</td></tr>
+            <tr><td>#3</td><td class="n">45</td><td class="n up">+19.08%</td><td class="n">60.0%</td></tr>
+            <tr><td>#4</td><td class="n">15</td><td class="n up">+15.65%</td><td class="n">60.0%</td></tr>
+            <tr><td>#5</td><td class="n">7</td><td class="n up">+18.35%</td><td class="n up">100.0%</td></tr>
+          </tbody>
+        </table>
+        <p class="muted" style="margin-top:10px;">
+          #1 平均 <b>+45.54%</b> · 命中率 <b>87.5%</b>，領先 #2 一個 sigma。
+          #1 每投 10 次有 9 次賺，是策略的核心 alpha 來源。
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">警示 badge 精準重定義 <span class="n">1y n=165</span></div>
+      <div class="card-b">
+        <table>
+          <thead><tr><th>警示</th><th class="n">n</th><th class="n">1y avg</th><th class="n">命中率</th><th>判定</th></tr></thead>
+          <tbody>
+            <tr><td>⚠ 剛爆發</td><td class="n">24</td><td class="n up">+26.37%</td><td class="n up">83.3%</td><td><span class="badge badge-mid">名字錯 · 是「加速中」</span></td></tr>
+            <tr class="lo"><td>⚠ 吃老本</td><td class="n">17</td><td class="n up">+13.41%</td><td class="n down">41.2%</td><td><span class="badge badge-red">唯一有效 negative</span></td></tr>
+            <tr><td>無警示</td><td class="n">124</td><td class="n up">+32.41%</td><td class="n">71.8%</td><td>一般</td></tr>
+          </tbody>
+        </table>
+        <p class="muted" style="margin-top:10px;">
+          「剛爆發」名字有誤導性 · 統計上是 <b>加速中</b> · 應該加倉不是警戒。<br>
+          「吃老本」是唯一有效的負面訊號 · 命中率跌到 41% · 應該剃除。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">vp_score ≥95 是硬門檻 <span class="n">1y n=165</span></div>
+    <div class="card-b">
+      <table>
+        <thead><tr><th>Bucket</th><th class="n">n</th><th class="n">1y avg</th><th class="n">1y 命中率</th><th>解讀</th></tr></thead>
+        <tbody>
+          <tr class="hi"><td><b>≥95</b></td><td class="n">106</td><td class="n up">+41.04%</td><td class="n up">78.3%</td><td>絕對 alpha 來源</td></tr>
+          <tr><td>90-95</td><td class="n">22</td><td class="n up">+8.34%</td><td class="n">68.2%</td><td>報酬幾乎腰斬</td></tr>
+          <tr><td>80-90</td><td class="n">31</td><td class="n up">+10.28%</td><td class="n down">48.4%</td><td>擲硬幣</td></tr>
+          <tr><td>&lt;80</td><td class="n">6</td><td class="n up">+4.73%</td><td class="n">50.0%</td><td>樣本少 · 但明顯差</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:10px;">
+        vp_score ≥95 vs 90-95：平均報酬差 <b>5 倍</b>。這不是連續變數 · 是硬門檻。
+      </p>
+    </div>
+  </div>
+
+  <div class="card" style="border:2px solid var(--gold);">
+    <div class="card-h" style="background:linear-gradient(90deg,#0f1930,#c9a24b);">💎 3 條硬規則 · strong_buy definition</div>
+    <div class="card-b">
+      <div class="code">
+strong_buy = (<br>
+&nbsp;&nbsp;<span class="rule-key">composite_rank_in_sector</span> == <span class="rule-nb">1</span>&nbsp;&nbsp;<span class="muted">// #1 in sector</span><br>
+&nbsp;&nbsp;AND&nbsp;<span class="rule-key">vp_score_stock</span> &gt;= <span class="rule-nb">95</span>&nbsp;&nbsp;<span class="muted">// 硬門檻</span><br>
+&nbsp;&nbsp;AND&nbsp;<span class="rule-key">stock_gap_alert</span> != <span class="rule-nb">"吃老本"</span>&nbsp;&nbsp;<span class="muted">// 剃除負訊號</span><br>
+)
+      </div>
+
+      <table style="margin-top:14px;">
+        <thead><tr><th>Horizon</th><th class="n">n</th><th class="n">avg</th><th class="n">hit rate</th><th class="n">wins</th></tr></thead>
+        <tbody>
+          <tr><td>1 個月</td><td class="n">57</td><td class="n up">+8.50%</td><td class="n">64.9%</td><td class="n">37 / 57</td></tr>
+          <tr><td>3 個月</td><td class="n">48</td><td class="n up">+17.27%</td><td class="n up">81.2%</td><td class="n">39 / 48</td></tr>
+          <tr><td>6 個月</td><td class="n">48</td><td class="n up">+42.80%</td><td class="n">75.0%</td><td class="n">36 / 48</td></tr>
+          <tr class="hi"><td><b>1 年</b></td><td class="n"><b>39</b></td><td class="n up"><b>+50.58%</b></td><td class="n up"><b>92.3%</b></td><td class="n"><b>36 / 39</b></td></tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:14px;">
+        <b>1 年後 92.3% 命中率</b>：三條規則同時通過的 39 個歷史樣本裡，只有 3 個 1 年後虧錢。
+        平均報酬 <b>+50.58%</b>，是大盤（同期 SPY 約 +30%）的 <b>1.7 倍</b>。
+      </p>
+      <p class="muted" style="margin-top:8px;">
+        ⚠ 統計注意事項：8 個樣本中 5 個有完整 1y 資料。牛市樣本（2023-11、2025-06）拉高平均。
+        建議搭配 <a href="backtest-summary.html">baseline pipeline 回測報告</a> · 看 pipeline 整體不是靠單一 pattern 賺錢。
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🔬 使用方法：把 strong_buy 當「重壓 signal」</div>
+    <div class="card-b">
+      <table>
+        <thead><tr><th>訊號</th><th>意義</th><th>建議倉位</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-hot">strong_buy = True</span></td><td>#1 in sector + vp≥95 + 非吃老本</td><td>核心倉 · 重壓 · 觀察 1 年</td></tr>
+          <tr><td><span class="badge badge-mid">composite #1 但 vp&lt;95</span></td><td>領先但動能不足</td><td>觀察倉 · 等 vp 突破</td></tr>
+          <tr><td><span class="badge badge-red">吃老本</span></td><td>停止進場</td><td>不進 · 若持有考慮減碼</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:10px;">
+        資料檔：<code>data/sector_rotation/backtests_aggregate.csv</code> ·
+        pattern JSON：<code>data/sector_rotation/backtests_pattern.json</code>
+      </p>
+    </div>
+  </div>
+
+  <div class="foot">
+    8-sample backtest analysis · 產生時間 2026-08-04 ·
+    <a href="../index.html">回主頁</a> ·
+    <a href="backtest-summary.html">baseline pipeline 回測報告</a> ·
+    <a href="2026-07.html">2026-07 月報</a>
+  </div>
+
+</div>
+</body>
+</html>
