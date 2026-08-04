@@ -25,25 +25,6 @@
       "wins": 52,
       "hit_rate_pct": 65.8
     },
-    "strong_buy_v2": {
-      "n": 56,
-      "avg": 6.37,
-      "wins": 41,
-      "hit_rate_pct": 73.2
-    },
-    "strong_buy_v2_filter_thresholds": {
-      "market_overheat_voo_60d_pct": 15.0,
-      "stock_overbought_26w_pct": 50.0
-    },
-    "rejected_by_v2_filter": {
-      "n": 23,
-      "avg": 7.27,
-      "hit_rate_pct": 47.8,
-      "reasons": {
-        "market_overheated": 9,
-        "stock_overbought": 16
-      }
-    },
     "strong_buy_explosive": {
       "n": 55,
       "avg": 3.35,
@@ -249,25 +230,6 @@
       "avg": 15.02,
       "wins": 58,
       "hit_rate_pct": 82.9
-    },
-    "strong_buy_v2": {
-      "n": 49,
-      "avg": 11.34,
-      "wins": 40,
-      "hit_rate_pct": 81.6
-    },
-    "strong_buy_v2_filter_thresholds": {
-      "market_overheat_voo_60d_pct": 15.0,
-      "stock_overbought_26w_pct": 50.0
-    },
-    "rejected_by_v2_filter": {
-      "n": 21,
-      "avg": 23.6,
-      "hit_rate_pct": 85.7,
-      "reasons": {
-        "market_overheated": 9,
-        "stock_overbought": 14
-      }
     },
     "strong_buy_explosive": {
       "n": 50,
@@ -475,25 +437,6 @@
       "wins": 54,
       "hit_rate_pct": 77.1
     },
-    "strong_buy_v2": {
-      "n": 49,
-      "avg": 20.2,
-      "wins": 37,
-      "hit_rate_pct": 75.5
-    },
-    "strong_buy_v2_filter_thresholds": {
-      "market_overheat_voo_60d_pct": 15.0,
-      "stock_overbought_26w_pct": 50.0
-    },
-    "rejected_by_v2_filter": {
-      "n": 21,
-      "avg": 68.26,
-      "hit_rate_pct": 81.0,
-      "reasons": {
-        "market_overheated": 9,
-        "stock_overbought": 14
-      }
-    },
     "strong_buy_explosive": {
       "n": 50,
       "avg": 18.95,
@@ -699,25 +642,6 @@
       "avg": 45.9,
       "wins": 55,
       "hit_rate_pct": 90.2
-    },
-    "strong_buy_v2": {
-      "n": 43,
-      "avg": 37.92,
-      "wins": 38,
-      "hit_rate_pct": 88.4
-    },
-    "strong_buy_v2_filter_thresholds": {
-      "market_overheat_voo_60d_pct": 15.0,
-      "stock_overbought_26w_pct": 50.0
-    },
-    "rejected_by_v2_filter": {
-      "n": 18,
-      "avg": 64.97,
-      "hit_rate_pct": 94.4,
-      "reasons": {
-        "market_overheated": 9,
-        "stock_overbought": 11
-      }
     },
     "strong_buy_explosive": {
       "n": 40,
