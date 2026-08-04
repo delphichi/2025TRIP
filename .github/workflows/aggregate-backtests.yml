@@ -1,0 +1,58 @@
+name: aggregate-backtests
+
+# 目的：一次讀所有 data/sector_rotation/*_top3_composite.csv · 從 yfinance 補算所有 forward returns
+# 產出：data/sector_rotation/backtests_aggregate.csv + backtests_pattern.json
+#
+# 用法：Actions → aggregate-backtests → Run workflow
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install yfinance pandas requests lxml
+
+      - name: Run aggregate
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/aggregate_backtests.py 2>&1 | tee /tmp/agg.log
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Backtest aggregate · $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -80 /tmp/agg.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Commit outputs
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sector_rotation/backtests_aggregate.csv data/sector_rotation/backtests_pattern.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(backtests): aggregate all composite snapshots + forward returns"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main && git push origin HEAD:main && break
+            sleep $((2**i))
+          done
