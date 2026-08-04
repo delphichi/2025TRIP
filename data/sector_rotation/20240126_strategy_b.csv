@@ -1,0 +1,2 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+INTC,Intel,Information Technology,2024-01-26,43.07,48.9,-11.91,45.19,36.17,True,True,38.2,127665300,41650510,3.07
