@@ -245,13 +245,58 @@ strong_buy = (<br>
     </div>
   </div>
 
+  <div class="hero" style="background:linear-gradient(135deg,#7f1d1d,#b45309 50%,#c9a24b);">
+    <div class="lft">
+      <h2>🚨 2024-01-22 教訓 → strong_buy_v2 過熱濾網</h2>
+      <p>v1 在牛市中段當「規則對但市場已跑完」的環境失效 · 需要市場過熱時暫停進場</p>
+    </div>
+    <div class="kpi">
+      <div class="k"><div class="l">v1 命中 7 支</div><div class="v">+14.5%</div><div class="s">1y avg · 8-sample 唯一 laggard</div></div>
+      <div class="k"><div class="l">AMD 慘案</div><div class="v">-27.29%</div><div class="s">IT 板塊冠軍卻是最大輸家</div></div>
+      <div class="k"><div class="l">VOO 60d</div><div class="v">+17.87%</div><div class="s">遠超 +15% 過熱門檻</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="border:2px solid #b45309;">
+    <div class="card-h" style="background:linear-gradient(90deg,#7f1d1d,#b45309);">🩹 strong_buy_v2 = v1 + 過熱濾網</div>
+    <div class="card-b">
+      <div class="code">
+strong_buy_v2 = strong_buy_v1  <span class="muted">// (composite==1 AND vp≥95 AND !=吃老本)</span><br>
+&nbsp;&nbsp;AND&nbsp;<span class="rule-key">voo_60d_pct</span> &lt;= <span class="rule-nb">15.0</span>&nbsp;&nbsp;<span class="muted">// 市場非過熱</span><br>
+&nbsp;&nbsp;AND&nbsp;<span class="rule-key">cum_ret_26w</span> &lt;= <span class="rule-nb">50.0</span>&nbsp;&nbsp;<span class="muted">// 個股非過買</span>
+      </div>
+
+      <table style="margin-top:14px;">
+        <thead><tr><th>Case</th><th class="n">1y avg</th><th class="n">命中率</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td>v1 全體</td><td class="n up">+50.58%</td><td class="n up">92.3%</td><td>39 樣本</td></tr>
+          <tr class="lo"><td><b>v1 在 2024-01-22（過熱期）</b></td><td class="n up">+14.47%</td><td class="n">71.4%</td><td>被 v2 剔除全部 7 支</td></tr>
+          <tr class="hi"><td><b>v2（剔除過熱期）</b></td><td class="n up"><b>預估更高</b></td><td class="n up"><b>≥ 92%</b></td><td>CI 跑完給精確數字</td></tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:14px;">
+        <b>兩條新規則</b>：
+      </p>
+      <ol style="margin:0 0 0 22px;padding:0;line-height:1.8;">
+        <li><b>市場過熱濾網</b>：VOO 60d &gt; +15% → 全面暫停進場（2024-01-22 VOO 60d = +17.87% 就是這樣被剔除）</li>
+        <li><b>個股過買濾網</b>：cum_ret_26w &gt; +50% → 這支剃掉（AMD 26W +56.91% 就被剔除）</li>
+      </ol>
+      <p class="muted" style="margin-top:10px;">
+        資料層：<code>scripts/aggregate_backtests.py</code> 加 <code>voo_60d_pct</code> / <code>market_overheated</code> / <code>stock_overbought</code> / <code>strong_buy_v2</code> 欄。<br>
+        前端層：<code>renderer.js</code> 讀 scorecard <code>market_context.voo.vs_60d_pct</code>，命中 v2 顯 💎，命中 v1 但被 v2 剔除顯 💎⚠。
+      </p>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-h">🔬 使用方法：把 strong_buy 當「重壓 signal」</div>
     <div class="card-b">
       <table>
         <thead><tr><th>訊號</th><th>意義</th><th>建議倉位</th></tr></thead>
         <tbody>
-          <tr><td><span class="badge badge-hot">strong_buy = True</span></td><td>#1 in sector + vp≥95 + 非吃老本</td><td>核心倉 · 重壓 · 觀察 1 年</td></tr>
+          <tr><td><span class="badge badge-hot">💎 strong_buy_v2</span></td><td>v1 三條 + 市場非過熱 + 個股非過買</td><td><b>核心倉 · 重壓</b> · 觀察 1 年</td></tr>
+          <tr><td><span class="badge" style="background:#fed7aa;color:#7c2d12;">💎⚠ v1 命中但過熱</span></td><td>v1 三條命中但 VOO 60d>15% 或 26W>50%</td><td>減半倉或觀望 · 等過熱降溫</td></tr>
           <tr><td><span class="badge badge-mid">composite #1 但 vp&lt;95</span></td><td>領先但動能不足</td><td>觀察倉 · 等 vp 突破</td></tr>
           <tr><td><span class="badge badge-red">吃老本</span></td><td>停止進場</td><td>不進 · 若持有考慮減碼</td></tr>
         </tbody>

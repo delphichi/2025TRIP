@@ -433,7 +433,7 @@ const STAGE2_TAB_HINTS = {
     "13w":   "Past 13 Weeks · 各板塊 13W 動能最強前 3 名（一季趨勢）",
     "26w":   "Past 26 Weeks · 各板塊 26W 動能最強前 3 名（半年主線）",
     "cms_a": "各板塊 CMS_A 最強前 3 名（.5·4Wr+.3·13Wr+.2·26Wr · 純漲幅排名 · 越小越強）",
-    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄 · 💎 = strong_buy 三條硬規則（#1 + vp≥95 + 非吃老本 · 8 樣本 1y avg +50% / 命中 92%）",
+    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄 · 💎 = strong_buy_v2（v1 三條 + 市場非過熱 VOO 60d ≤15% + 個股非過買 26W ≤50%）· 💎⚠ = v1 命中但過熱期買（歷史 2024-01 AMD -27% 教訓）",
 };
 
 function renderStage2() {
@@ -505,18 +505,35 @@ function renderStage2Tab(tabKey) {
         const compRank = r.composite_rank_in_sector;
         const compCell = compRank ? `<b style="color:var(--warn)">#${compRank}</b>` : "—";
 
-        // strong_buy 三條硬規則（8 樣本回測 1y avg +50% / hit 92%）
+        // strong_buy v1 三條硬規則（8 樣本回測 1y avg +50% / hit 92%）
         const isStrongBuy = (
             compRank === 1 &&
             (r.vp_score_stock ?? 0) >= 95 &&
             r.stock_gap_alert !== "吃老本"
         );
-        const sbBadge = isStrongBuy
-            ? ` <span class="sb-badge" title="strong_buy · #1 in sector + vp≥95 + 非吃老本 · 8 樣本 1y avg +50% / 命中 92%">💎</span>`
-            : "";
+
+        // strong_buy v2 過熱濾網（2024-01 case 教訓）：
+        //   1. 市場過熱：VOO 60d > +15%
+        //   2. 個股過買：cum_ret_26w > +50%
+        const voo60d = STATE.scorecard?.market_context?.voo?.vs_60d_pct;
+        const marketOverheated = voo60d !== undefined && voo60d > 15;
+        const stockOverbought  = (r.cum_ret_26w ?? 0) > 50;
+        const isStrongBuyV2 = isStrongBuy && !marketOverheated && !stockOverbought;
+
+        let sbBadge = "";
+        if (isStrongBuyV2) {
+            sbBadge = ` <span class="sb-badge" title="strong_buy_v2 · #1+vp≥95+非吃老本+市場非過熱+個股非過買 · 10 樣本回測歷史最強">💎</span>`;
+        } else if (isStrongBuy) {
+            const why = [
+                marketOverheated ? `市場過熱 VOO 60d +${voo60d.toFixed(1)}%` : null,
+                stockOverbought ? `個股過買 26W +${r.cum_ret_26w.toFixed(1)}%` : null,
+            ].filter(Boolean).join(" · ");
+            sbBadge = ` <span class="sb-badge sb-warn" title="strong_buy v1 命中但被 v2 濾網剃掉：${why} · 2024-01-22 AMD -27% 就是這種">💎⚠</span>`;
+        }
 
         const tr = document.createElement("tr");
-        if (isStrongBuy) tr.classList.add("strong-buy");
+        if (isStrongBuyV2) tr.classList.add("strong-buy");
+        else if (isStrongBuy) tr.classList.add("strong-buy-warn");
         tr.innerHTML = `
             <td class="sym"><b>${r.symbol}</b>${sbBadge}</td>
             <td class="sector">${r.sector || ""}</td>
