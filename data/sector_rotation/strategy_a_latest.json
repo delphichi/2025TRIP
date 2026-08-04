@@ -1,214 +1,202 @@
 {
-  "generated_at": "2026-08-04T00:44:24.429873+00:00",
-  "as_of_date": "2025-06-27",
+  "generated_at": "2026-08-04T00:48:56.555282+00:00",
+  "as_of_date": "2022-02-25",
   "market_context": {
-    "as_of_date": "2025-06-27",
+    "as_of_date": "2022-02-25",
     "voo": {
-      "price": 558.61,
-      "vs_60d_pct": 9.92,
-      "ma50": 524.96,
-      "vs_50ma_pct": 6.41
+      "price": 377.45,
+      "vs_60d_pct": -3.63,
+      "ma50": 391.91,
+      "vs_50ma_pct": -3.69
     },
     "vix": {
-      "value": 16.32
+      "value": 27.59
     },
     "tnx": {
-      "value": 4.28,
-      "raw": 4.28
+      "value": 1.99,
+      "raw": 1.99
     },
-    "trend_label": "🟢",
-    "vs_50ma_label": "🔥",
-    "quadrant_key": "🔥+🟢",
+    "trend_label": "🔴",
+    "vs_50ma_label": "❄",
+    "quadrant_key": "❄+🔴",
     "allocation": {
-      "core": 40,
-      "momentum": 35,
-      "sprint": 15,
-      "cash": 10
+      "core": 0,
+      "momentum": 0,
+      "sprint": 0,
+      "cash": 100
     },
     "vix_override_all_cash": false,
     "tnx_boost": [
-      "XLE",
-      "XLF",
-      "XLV"
+      "XLK"
     ],
     "tnx_penalty": [
-      "XLK",
-      "XLRE",
-      "XLU"
+      "XLE",
+      "XLF"
     ],
     "notes": [
-      "📈 TNX=4.28% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "📉 TNX=1.99% < 3.0% · 利多 XLK · 利空 XLE/XLF"
     ]
   },
   "effective_sectors": [
     {
-      "sector": "XLC",
-      "sector_name": "通訊服務",
-      "composite_rank": 2,
+      "sector": "XLP",
+      "sector_name": "必需消費",
+      "composite_rank": 1,
       "point_rank": 2,
-      "cms_a": 2.3,
+      "cms_a": 3.5,
       "tnx_flag": null
     },
     {
-      "sector": "XLF",
-      "sector_name": "金融",
-      "composite_rank": 3,
-      "point_rank": 4,
-      "cms_a": 5.8,
-      "tnx_flag": "boost"
-    },
-    {
-      "sector": "XLB",
-      "sector_name": "材料",
-      "composite_rank": 5,
+      "sector": "XLV",
+      "sector_name": "醫療保健",
+      "composite_rank": 2,
       "point_rank": 6,
-      "cms_a": 6.3,
+      "cms_a": 5.1,
       "tnx_flag": null
-    }
-  ],
-  "demoted_sectors": [
-    {
-      "sector": "XLK",
-      "sector_name": "資訊科技",
-      "reason": "TNX 濾網降級"
     },
     {
       "sector": "XLU",
       "sector_name": "公用事業",
-      "reason": "TNX 濾網降級"
+      "composite_rank": 3,
+      "point_rank": 4,
+      "cms_a": 4.7,
+      "tnx_flag": null
     }
   ],
+  "demoted_sectors": [],
   "allocation": {
-    "core": 40,
-    "momentum": 35,
-    "sprint": 15,
-    "cash": 10
+    "core": 0,
+    "momentum": 0,
+    "sprint": 0,
+    "cash": 100
   },
   "positions": {
     "core": [],
-    "momentum": [
-      {
-        "symbol": "HOOD",
-        "name": "Robinhood Markets",
-        "sector": "Financials",
-        "sector_etf": "XLF",
-        "point": 87.29,
-        "cms_a": 1.8,
-        "di": 1.0,
-        "cum_ret_4w": 25.52,
-        "cum_ret_13w": 98.07,
-        "cum_ret_26w": 112.79,
-        "vcp": false,
-        "vp_ratio_stock": 1.087,
-        "pct_from_high": -2.95,
-        "high_52w": 85.55,
-        "surprise_l1": 13.48,
-        "surprise_l2": 99.1,
-        "pre_earnings_14d": false,
-        "tier": "momentum",
-        "reason": "TNX順風 + VP 1.09 + 4W +25.5%",
-        "weight_pct": 35.0
-      }
-    ],
+    "momentum": [],
     "sprint": [
       {
-        "symbol": "NEM",
-        "name": "Newmont",
-        "sector": "Materials",
-        "sector_etf": "XLB",
-        "point": 32.37,
-        "cms_a": 3.1,
+        "symbol": "EXC",
+        "name": "Exelon",
+        "sector": "Utilities",
+        "sector_etf": "XLU",
+        "point": 16.21,
+        "cms_a": 2.6,
         "di": 1.0,
-        "cum_ret_4w": 7.66,
-        "cum_ret_13w": 18.61,
-        "cum_ret_26w": 51.6,
+        "cum_ret_4w": 5.04,
+        "cum_ret_13w": 12.71,
+        "cum_ret_26w": 23.54,
         "vcp": false,
-        "vp_ratio_stock": 1.019,
-        "pct_from_high": -5.89,
-        "high_52w": 59.68,
-        "surprise_l1": 37.08,
-        "surprise_l2": 35.75,
+        "vp_ratio_stock": 1.313,
+        "pct_from_high": -2.42,
+        "high_52w": 37.46,
+        "surprise_l1": 14.93,
+        "surprise_l2": -0.48,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=3.1 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 3.75
+        "reason": "CMS_A=2.6 靠前但缺 VCP 或非 TNX 順風"
       },
       {
-        "symbol": "META",
-        "name": "Meta Platforms",
-        "sector": "Communication Services",
-        "sector_etf": "XLC",
-        "point": 21.43,
-        "cms_a": 3.3,
+        "symbol": "HSIC",
+        "name": "Henry Schein",
+        "sector": "Health Care",
+        "sector_etf": "XLV",
+        "point": 16.52,
+        "cms_a": 3.9,
         "di": 1.0,
-        "cum_ret_4w": 13.39,
-        "cum_ret_13w": 27.3,
-        "cum_ret_26w": 22.51,
+        "cum_ret_4w": 15.35,
+        "cum_ret_13w": 18.58,
+        "cum_ret_26w": 16.07,
         "vcp": false,
-        "vp_ratio_stock": 1.211,
-        "pct_from_high": -0.82,
-        "high_52w": 737.27,
-        "surprise_l1": 23.11,
-        "surprise_l2": 18.67,
+        "vp_ratio_stock": 1.179,
+        "pct_from_high": -0.26,
+        "high_52w": 87.55,
+        "surprise_l1": 17.05,
+        "surprise_l2": 14.79,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=3.3 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 3.75
+        "reason": "CMS_A=3.9 靠前但缺 VCP 或非 TNX 順風"
       },
       {
-        "symbol": "ECHO",
-        "name": "EchoStar",
-        "sector": "Communication Services",
-        "sector_etf": "XLC",
-        "point": 33.27,
-        "cms_a": 3.5,
+        "symbol": "SRE",
+        "name": "Sempra",
+        "sector": "Utilities",
+        "sector_etf": "XLU",
+        "point": 9.7,
+        "cms_a": 4.4,
         "di": 1.0,
-        "cum_ret_4w": 62.49,
-        "cum_ret_13w": 15.29,
-        "cum_ret_26w": 27.65,
+        "cum_ret_4w": 3.35,
+        "cum_ret_13w": 17.24,
+        "cum_ret_26w": 9.11,
         "vcp": false,
-        "vp_ratio_stock": 0.926,
-        "pct_from_high": -11.3,
-        "high_52w": 32.48,
-        "surprise_l1": 17.98,
-        "surprise_l2": 348.59,
+        "vp_ratio_stock": 1.196,
+        "pct_from_high": -0.36,
+        "high_52w": 61.72,
+        "surprise_l1": 8.16,
+        "surprise_l2": 0.45,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=3.5 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 3.75
+        "reason": "CMS_A=4.4 靠前但缺 VCP 或非 TNX 順風"
       },
       {
-        "symbol": "TKO",
-        "name": "TKO Group Holdings",
-        "sector": "Communication Services",
-        "sector_etf": "XLC",
-        "point": 21.08,
-        "cms_a": 3.5,
+        "symbol": "ADM",
+        "name": "Archer Daniels Midland",
+        "sector": "Consumer Staples",
+        "sector_etf": "XLP",
+        "point": 22.75,
+        "cms_a": 4.9,
         "di": 1.0,
-        "cum_ret_4w": 13.91,
-        "cum_ret_13w": 20.08,
-        "cum_ret_26w": 25.16,
+        "cum_ret_4w": 4.48,
+        "cum_ret_13w": 23.17,
+        "cum_ret_26w": 31.68,
         "vcp": false,
-        "vp_ratio_stock": 1.026,
-        "pct_from_high": -0.02,
-        "high_52w": 176.65,
-        "surprise_l1": 24.4,
-        "surprise_l2": 141.28,
+        "vp_ratio_stock": 1.021,
+        "pct_from_high": -0.2,
+        "high_52w": 69.83,
+        "surprise_l1": 9.53,
+        "surprise_l2": 8.95,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=3.5 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 3.75
+        "reason": "CMS_A=4.9 靠前但缺 VCP 或非 TNX 順風"
+      },
+      {
+        "symbol": "DVN",
+        "name": "Devon Energy",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 53.97,
+        "cms_a": 5.1,
+        "di": 1.0,
+        "cum_ret_4w": 7.08,
+        "cum_ret_13w": 31.74,
+        "cum_ret_26w": 88.53,
+        "vcp": false,
+        "vp_ratio_stock": 0.97,
+        "pct_from_high": -4.88,
+        "high_52w": 46.98,
+        "surprise_l1": 12.23,
+        "surprise_l2": 16.47,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "破格 · 全場 Point 最高(54.0)且領先池內第 3 名 50%+"
       }
     ],
     "hold_earnings": []
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 1,
-    "sprint_count": 4,
+    "momentum_count": 0,
+    "sprint_count": 5,
     "hold_count": 0
   },
-  "correlation_warnings": [],
+  "correlation_warnings": [
+    {
+      "kind": "low_corr_ok",
+      "sectors": [
+        "XLV"
+      ],
+      "msg": "✅ XLV 與多數板塊低相關 · 分散配置佳"
+    }
+  ],
   "dark_horses": [],
   "watchlist_promoted": [],
   "notes": [
