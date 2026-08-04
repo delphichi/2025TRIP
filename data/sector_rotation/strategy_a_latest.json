@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-08-04T01:10:15.603760+00:00",
-  "as_of_date": "2023-11-24",
+  "generated_at": "2026-08-04T13:25:23.785285+00:00",
+  "as_of_date": "2023-12-29",
   "market_context": {
-    "as_of_date": "2023-11-24",
+    "as_of_date": "2023-12-29",
     "voo": {
-      "price": 403.79,
-      "vs_60d_pct": 1.35,
-      "ma50": 384.23,
-      "vs_50ma_pct": 5.09
+      "price": 423.32,
+      "vs_60d_pct": 12.39,
+      "ma50": 398.82,
+      "vs_50ma_pct": 6.14
     },
     "vix": {
-      "value": 12.46
+      "value": 12.45
     },
     "tnx": {
-      "value": 4.47,
-      "raw": 4.47
+      "value": 3.87,
+      "raw": 3.87
     },
     "trend_label": "🟢",
     "vs_50ma_label": "🔥",
@@ -26,27 +26,27 @@
       "cash": 10
     },
     "vix_override_all_cash": false,
-    "tnx_boost": [
-      "XLE",
-      "XLF",
-      "XLV"
-    ],
-    "tnx_penalty": [
-      "XLK",
-      "XLRE",
-      "XLU"
-    ],
+    "tnx_boost": [],
+    "tnx_penalty": [],
     "notes": [
-      "📈 TNX=4.47% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "➖ TNX=3.87% 介於 3.0-4.0% · 中性"
     ]
   },
   "effective_sectors": [
     {
-      "sector": "XLC",
-      "sector_name": "通訊服務",
+      "sector": "XLK",
+      "sector_name": "資訊科技",
       "composite_rank": 1,
       "point_rank": 1,
-      "cms_a": 2.3,
+      "cms_a": 4.2,
+      "tnx_flag": null
+    },
+    {
+      "sector": "XLF",
+      "sector_name": "金融",
+      "composite_rank": 2,
+      "point_rank": 2,
+      "cms_a": 3.1,
       "tnx_flag": null
     },
     {
@@ -54,16 +54,8 @@
       "sector_name": "工業",
       "composite_rank": 2,
       "point_rank": 5,
-      "cms_a": 6.3,
+      "cms_a": 3.2,
       "tnx_flag": null
-    },
-    {
-      "sector": "XLF",
-      "sector_name": "金融",
-      "composite_rank": 3,
-      "point_rank": 3,
-      "cms_a": 2.5,
-      "tnx_flag": "boost"
     }
   ],
   "demoted_sectors": [],
@@ -75,117 +67,72 @@
   },
   "positions": {
     "core": [],
-    "momentum": [
+    "momentum": [],
+    "sprint": [
       {
         "symbol": "COIN",
         "name": "Coinbase",
         "sector": "Financials",
         "sector_etf": "XLF",
-        "point": 81.2,
-        "cms_a": 1.0,
+        "point": 111.95,
+        "cms_a": 1.5,
         "di": 1.0,
-        "cum_ret_4w": 63.24,
-        "cum_ret_13w": 55.59,
-        "cum_ret_26w": 102.99,
+        "cum_ret_4w": 30.02,
+        "cum_ret_13w": 131.65,
+        "cum_ret_26w": 143.07,
         "vcp": false,
-        "vp_ratio_stock": 1.195,
-        "pct_from_high": -1.2,
-        "high_52w": 116.94,
+        "vp_ratio_stock": 0.938,
+        "pct_from_high": -7.19,
+        "high_52w": 187.39,
         "surprise_l1": 98.13,
         "surprise_l2": 44.98,
         "pre_earnings_14d": false,
-        "tier": "momentum",
-        "reason": "TNX順風 + VP 1.20 + 4W +63.2%",
-        "weight_pct": 17.5
-      },
-      {
-        "symbol": "KKR",
-        "name": "KKR & Co.",
-        "sector": "Financials",
-        "sector_etf": "XLF",
-        "point": 28.51,
-        "cms_a": 5.2,
-        "di": 1.0,
-        "cum_ret_4w": 28.23,
-        "cum_ret_13w": 16.59,
-        "cum_ret_26w": 34.6,
-        "vcp": false,
-        "vp_ratio_stock": 1.073,
-        "pct_from_high": -0.35,
-        "high_52w": 68.36,
-        "surprise_l1": 6.24,
-        "surprise_l2": 2.34,
-        "pre_earnings_14d": false,
-        "tier": "momentum",
-        "reason": "TNX順風 + VP 1.07 + 4W +28.2%",
-        "weight_pct": 17.5
-      }
-    ],
-    "sprint": [
-      {
-        "symbol": "NFLX",
-        "name": "Netflix",
-        "sector": "Communication Services",
-        "sector_etf": "XLC",
-        "point": 22.24,
-        "cms_a": 2.8,
-        "di": 1.0,
-        "cum_ret_4w": 20.53,
-        "cum_ret_13w": 15.27,
-        "cum_ret_26w": 26.57,
-        "vcp": false,
-        "vp_ratio_stock": 1.108,
-        "pct_from_high": -1.12,
-        "high_52w": 48.5,
-        "surprise_l1": 6.74,
-        "surprise_l2": 15.36,
-        "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=2.8 靠前但缺 VCP 或非 TNX 順風",
+        "reason": "CMS_A=1.5 靠前但缺 VCP 或非 TNX 順風",
         "weight_pct": 5.0
       },
       {
-        "symbol": "META",
-        "name": "Meta Platforms",
-        "sector": "Communication Services",
-        "sector_etf": "XLC",
-        "point": 22.65,
-        "cms_a": 3.0,
+        "symbol": "AMD",
+        "name": "Advanced Micro Devices",
+        "sector": "Information Technology",
+        "sector_etf": "XLK",
+        "point": 30.91,
+        "cms_a": 3.9,
         "di": 1.0,
-        "cum_ret_4w": 13.99,
-        "cum_ret_13w": 18.47,
-        "cum_ret_26w": 29.08,
+        "cum_ret_4w": 21.44,
+        "cum_ret_13w": 43.37,
+        "cum_ret_26w": 29.41,
         "vcp": false,
-        "vp_ratio_stock": 1.214,
-        "pct_from_high": -1.37,
-        "high_52w": 339.93,
-        "surprise_l1": 20.9,
-        "surprise_l2": 2.51,
+        "vp_ratio_stock": 1.399,
+        "pct_from_high": -2.41,
+        "high_52w": 151.05,
+        "surprise_l1": 3.59,
+        "surprise_l2": 1.05,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=3.0 靠前但缺 VCP 或非 TNX 順風",
+        "reason": "CMS_A=3.9 靠前但缺 VCP 或非 TNX 順風",
         "weight_pct": 5.0
       },
       {
-        "symbol": "DIS",
-        "name": "Walt Disney Company (The)",
-        "sector": "Communication Services",
-        "sector_etf": "XLC",
-        "point": 13.48,
-        "cms_a": 4.6,
+        "symbol": "URI",
+        "name": "United Rentals",
+        "sector": "Industrials",
+        "sector_etf": "XLI",
+        "point": 25.71,
+        "cms_a": 4.8,
         "di": 1.0,
-        "cum_ret_4w": 21.09,
-        "cum_ret_13w": 15.24,
-        "cum_ret_26w": 8.8,
+        "cum_ret_4w": 14.27,
+        "cum_ret_13w": 29.42,
+        "cum_ret_26w": 29.58,
         "vcp": false,
-        "vp_ratio_stock": 0.969,
-        "pct_from_high": -18.72,
-        "high_52w": 114.58,
-        "surprise_l1": 15.11,
-        "surprise_l2": 6.77,
+        "vp_ratio_stock": 1.135,
+        "pct_from_high": -2.06,
+        "high_52w": 572.6,
+        "surprise_l1": 5.02,
+        "surprise_l2": 10.46,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=4.6 靠前但缺 VCP 或非 TNX 順風",
+        "reason": "CMS_A=4.8 靠前但缺 VCP 或非 TNX 順風",
         "weight_pct": 5.0
       }
     ],
@@ -193,7 +140,7 @@
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 2,
+    "momentum_count": 0,
     "sprint_count": 3,
     "hold_count": 0
   },
