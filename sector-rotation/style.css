@@ -561,6 +561,22 @@ body.rot-body {
 }
 .score-table tr.row-alert-old { background: rgba(127, 29, 29, 0.12) !important; }
 .score-table tr.row-alert-new { background: rgba(120, 53, 15, 0.10) !important; }
+
+/* strong_buy 三條硬規則命中 (8 樣本 1y avg +50% / hit 92%) */
+.score-table tr.strong-buy {
+    background: linear-gradient(90deg, rgba(201, 162, 75, 0.18), rgba(201, 162, 75, 0.06)) !important;
+    box-shadow: inset 3px 0 0 #c9a24b;
+}
+.score-table tr.strong-buy td.sym {
+    color: #fef3c7;
+}
+.sb-badge {
+    display: inline-block;
+    font-size: 13px;
+    margin-left: 4px;
+    filter: drop-shadow(0 0 3px rgba(201, 162, 75, 0.6));
+    cursor: help;
+}
 .empty-row {
     text-align: center;
     color: var(--text-mute);

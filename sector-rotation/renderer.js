@@ -433,7 +433,7 @@ const STAGE2_TAB_HINTS = {
     "13w":   "Past 13 Weeks · 各板塊 13W 動能最強前 3 名（一季趨勢）",
     "26w":   "Past 26 Weeks · 各板塊 26W 動能最強前 3 名（半年主線）",
     "cms_a": "各板塊 CMS_A 最強前 3 名（.5·4Wr+.3·13Wr+.2·26Wr · 純漲幅排名 · 越小越強）",
-    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄",
+    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄 · 💎 = strong_buy 三條硬規則（#1 + vp≥95 + 非吃老本 · 8 樣本 1y avg +50% / 命中 92%）",
 };
 
 function renderStage2() {
@@ -505,9 +505,20 @@ function renderStage2Tab(tabKey) {
         const compRank = r.composite_rank_in_sector;
         const compCell = compRank ? `<b style="color:var(--warn)">#${compRank}</b>` : "—";
 
+        // strong_buy 三條硬規則（8 樣本回測 1y avg +50% / hit 92%）
+        const isStrongBuy = (
+            compRank === 1 &&
+            (r.vp_score_stock ?? 0) >= 95 &&
+            r.stock_gap_alert !== "吃老本"
+        );
+        const sbBadge = isStrongBuy
+            ? ` <span class="sb-badge" title="strong_buy · #1 in sector + vp≥95 + 非吃老本 · 8 樣本 1y avg +50% / 命中 92%">💎</span>`
+            : "";
+
         const tr = document.createElement("tr");
+        if (isStrongBuy) tr.classList.add("strong-buy");
         tr.innerHTML = `
-            <td class="sym"><b>${r.symbol}</b></td>
+            <td class="sym"><b>${r.symbol}</b>${sbBadge}</td>
             <td class="sector">${r.sector || ""}</td>
             <td class="num heat" style="background:${heatBgRet(r.cum_ret_4w)}; color:${heatText(r.cum_ret_4w)}">${fmtPct(r.cum_ret_4w)}</td>
             <td class="num heat" style="background:${heatBgRet(r.cum_ret_13w)}; color:${heatText(r.cum_ret_13w)}">${fmtPct(r.cum_ret_13w)}</td>
