@@ -93,56 +93,30 @@ def main():
     )
     log(f"strong_buy v1 命中 {int(big['strong_buy'].sum())} / {len(big)} row")
 
-    # unique symbol · 一次抓（加 VOO 供 market overheat 濾網）
+    # unique symbol · 一次抓
     symbols = sorted(big["symbol"].dropna().unique().tolist())
-    fetch_syms = symbols + (["VOO"] if "VOO" not in symbols else [])
-    log(f"unique symbols: {len(symbols)} (+VOO for overheat filter)")
+    log(f"unique symbols: {len(symbols)}")
     min_as_of = pd.to_datetime(big["as_of_date"]).min().date()
-    # VOO 需要 as_of - 60d，min_as_of 再往前 90 天
-    fetch_start = min_as_of - timedelta(days=90)
     max_end = min(datetime.now().date(), pd.to_datetime(big["as_of_date"]).max().date() + timedelta(days=380))
-    log(f"yfinance fetch {fetch_start} → {max_end}")
+    log(f"yfinance fetch {min_as_of} → {max_end}")
 
     import yfinance as yf
     data = yf.download(
-        fetch_syms, start=fetch_start.strftime("%Y-%m-%d"), end=(max_end + timedelta(days=1)).strftime("%Y-%m-%d"),
+        symbols, start=min_as_of.strftime("%Y-%m-%d"), end=(max_end + timedelta(days=1)).strftime("%Y-%m-%d"),
         interval="1d", auto_adjust=True, progress=False, threads=True, group_by="ticker",
     )
     close_by_sym = {}
     if isinstance(data.columns, pd.MultiIndex):
-        for s in fetch_syms:
+        for s in symbols:
             if s in data.columns.get_level_values(0):
                 close_by_sym[s] = data[s]["Close"].dropna()
     else:
-        close_by_sym[fetch_syms[0]] = data["Close"].dropna()
-    log(f"got close series for {len(close_by_sym)}/{len(fetch_syms)} symbols")
+        close_by_sym[symbols[0]] = data["Close"].dropna()
+    log(f"got close series for {len(close_by_sym)}/{len(symbols)} symbols")
 
-    # === VOO 60d 過熱溫度：對每個 unique as_of_date 算一次 ===
-    voo_cs = close_by_sym.get("VOO")
-    voo_60d_by_date = {}
-    if voo_cs is not None and len(voo_cs):
-        for d_str in big["as_of_date"].unique():
-            d = pd.to_datetime(d_str).date()
-            p_now = find_price_at(voo_cs, d)
-            p_60d = find_price_at(voo_cs, d - timedelta(days=60))
-            if p_now and p_60d:
-                voo_60d_by_date[d_str] = round((p_now / p_60d - 1) * 100, 2)
-    big["voo_60d_pct"] = big["as_of_date"].map(voo_60d_by_date)
-    log(f"VOO 60d 過熱溫度 · 每個 sample: {voo_60d_by_date}")
-
-    # === strong_buy_v2 = v1 AND 市場非過熱 AND 個股非過買 ===
-    OVERHEAT_VOO_60D = 15.0     # VOO 60d > 15% → 市場過熱不進場
-    OVERBOUGHT_26W  = 50.0      # 個股 26W > 50% → 已狂噴不追高
-    big["market_overheated"] = big["voo_60d_pct"].fillna(0) > OVERHEAT_VOO_60D
-    big["stock_overbought"]  = big["cum_ret_26w"].fillna(0) > OVERBOUGHT_26W
-    big["strong_buy_v2"] = (
-        big["strong_buy"]
-        & (~big["market_overheated"])
-        & (~big["stock_overbought"])
-    )
-    log(f"strong_buy_v2 命中 {int(big['strong_buy_v2'].sum())} / {int(big['strong_buy'].sum())} v1 · "
-        f"剃掉 market_overheat={int((big['strong_buy']&big['market_overheated']).sum())} "
-        f"stock_overbought={int((big['strong_buy']&big['stock_overbought']).sum())}")
+    # NOTE: strong_buy_v2（VOO 60d + 26W 過熱濾網）已於 11-sample 驗證失敗被移除
+    # v2 剃掉的 18 支平均 1y +65% 比 v2 留下的 43 支 +38% 好 · 明顯誤殺
+    # → 保留 v1 為主 signal · 保留 explosive 為輔助 signal
 
     # === strong_buy_explosive · 財報大 beat + 剛爆發（並存規則） ===
     surp_sum_col = big["surprise_l1"].fillna(0).astype(float) + big["surprise_l2"].fillna(0).astype(float)
@@ -271,17 +245,6 @@ def main():
                 "hit_rate_pct": round(100 * (sb_g[col] > 0).mean(), 1),
             }
 
-        # strong_buy_v2 = v1 + 過熱濾網
-        sb2_g = valid[valid["strong_buy_v2"] == True]
-        strong_buy_v2_stats = None
-        if len(sb2_g) > 0:
-            strong_buy_v2_stats = {
-                "n": int(len(sb2_g)),
-                "avg": round(float(sb2_g[col].mean()), 2),
-                "wins": int((sb2_g[col] > 0).sum()),
-                "hit_rate_pct": round(100 * (sb2_g[col] > 0).mean(), 1),
-            }
-
         # strong_buy_explosive · 財報大 beat + 剛爆發（並存規則）
         sbe_g = valid[valid["strong_buy_explosive"] == True]
         strong_buy_explosive_stats = None
@@ -293,31 +256,11 @@ def main():
                 "hit_rate_pct": round(100 * (sbe_g[col] > 0).mean(), 1),
             }
 
-        # 被過熱濾網剃掉的 v1 樣本
-        rejected_g = valid[valid["strong_buy"] & ~valid["strong_buy_v2"]]
-        rejected_stats = None
-        if len(rejected_g) > 0:
-            rejected_stats = {
-                "n": int(len(rejected_g)),
-                "avg": round(float(rejected_g[col].mean()), 2),
-                "hit_rate_pct": round(100 * (rejected_g[col] > 0).mean(), 1),
-                "reasons": {
-                    "market_overheated": int(rejected_g["market_overheated"].sum()),
-                    "stock_overbought": int(rejected_g["stock_overbought"].sum()),
-                },
-            }
-
         patterns[ck_lbl] = {
             "n_samples": n,
             "overall_avg_pct": round(avg, 2),
             "hit_rate_pct": round(100 * wins / n, 1),
             "strong_buy": strong_buy_stats,
-            "strong_buy_v2": strong_buy_v2_stats,
-            "strong_buy_v2_filter_thresholds": {
-                "market_overheat_voo_60d_pct": 15.0,
-                "stock_overbought_26w_pct": 50.0,
-            },
-            "rejected_by_v2_filter": rejected_stats,
             "strong_buy_explosive": strong_buy_explosive_stats,
             "strong_buy_explosive_thresholds": {
                 "vp_score_min": 95,
@@ -354,17 +297,10 @@ def main():
             log(f"    {a:5s} n={s['n']:3d}  avg {s['avg']:+7.2f}%  hit {s['hit_rate_pct']:5.1f}%")
         if p.get("strong_buy"):
             sb = p["strong_buy"]
-            log(f"  ★ strong_buy v1 (3 rules)    n={sb['n']:3d}  avg {sb['avg']:+7.2f}%  hit {sb['hit_rate_pct']:5.1f}%")
-        if p.get("strong_buy_v2"):
-            sb2 = p["strong_buy_v2"]
-            log(f"  ★ strong_buy_v2 (+overheat)  n={sb2['n']:3d}  avg {sb2['avg']:+7.2f}%  hit {sb2['hit_rate_pct']:5.1f}%")
+            log(f"  ★ strong_buy (main signal)   n={sb['n']:3d}  avg {sb['avg']:+7.2f}%  hit {sb['hit_rate_pct']:5.1f}%")
         if p.get("strong_buy_explosive"):
             sbe = p["strong_buy_explosive"]
             log(f"  🚀 strong_buy_explosive       n={sbe['n']:3d}  avg {sbe['avg']:+7.2f}%  hit {sbe['hit_rate_pct']:5.1f}%")
-        if p.get("rejected_by_v2_filter"):
-            rj = p["rejected_by_v2_filter"]
-            log(f"    (v2 剔除 {rj['n']} 支 · 平均 {rj['avg']:+.2f}% · hit {rj['hit_rate_pct']}% · "
-                f"市場過熱 {rj['reasons']['market_overheated']} / 個股過買 {rj['reasons']['stock_overbought']})")
         if p['vcp_true']['n'] > 0:
             log(f"  VCP=TRUE n={p['vcp_true']['n']}  avg {p['vcp_true']['avg']:+.2f}%  hit {p['vcp_true']['hit_rate_pct']}%")
 
