@@ -461,7 +461,7 @@ function renderStage2Tab(tabKey) {
     const rows = STATE.stage2?.top3?.[tabKey] || [];
     const tbody = $("#heat-tbody");
     tbody.innerHTML = "";
-    const COLSPAN = 18;
+    const COLSPAN = 22;
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${COLSPAN}" class="empty-row">沒資料</td></tr>`;
         return;
@@ -525,9 +525,28 @@ function renderStage2Tab(tabKey) {
             <td class="num" style="color:${vpColor}"><b>${fmtNum(r.vp_ratio_stock, 2)}</b></td>
             <td class="vcp-cell">${vcpBadge}</td>
             <td class="alert-cell">${stockAlertBadge}</td>
+            ${fwdCell(r, "1m")}
+            ${fwdCell(r, "3m")}
+            ${fwdCell(r, "6m")}
+            ${fwdCell(r, "1y")}
         `;
         tbody.appendChild(tr);
     });
+}
+
+// 前瞻報酬儲存格 · 塞在 heat table 每列尾巴 · 有值就 heat 上色 · 沒值 dash
+function fwdCell(r, key) {
+    const fr = r.forward_returns;
+    if (!fr) return `<td class="num" style="color:var(--text-dim)">—</td>`;
+    const cp = fr[key];
+    if (!cp || cp.return_pct === null || cp.return_pct === undefined) {
+        return `<td class="num" style="color:var(--text-dim)" title="尚未到 checkpoint">—</td>`;
+    }
+    const pct = cp.return_pct;
+    const bg = heatBgRet(pct);
+    const tc = heatText(pct);
+    const title = `${cp.date} · $${cp.price}`;
+    return `<td class="num heat" style="background:${bg}; color:${tc}" title="${title}"><b>${fmtPct(pct)}</b></td>`;
 }
 
 // ---------- init ----------

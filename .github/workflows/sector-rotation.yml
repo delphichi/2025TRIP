@@ -76,6 +76,16 @@ jobs:
           if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
           python scripts/sector_rotation_screener.py $ARGS 2>&1 | tee /tmp/stage2.log
 
+      # Enrich · 每檔 top 3 加 1m/3m/6m/1y 前瞻報酬（回放才有意義 · live 也會跑但全 null）
+      - name: Enrich forward returns on stage 2 top 3
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/enrich_forward_returns.py 2>&1 | tee /tmp/enrich_fwd.log
+
       # 策略 A · 九步驟選股 pipeline · 只在 stage 2 有跑時才跑（依賴 stage 2 輸出）
       - name: Run Strategy A pipeline (nine-step selection)
         if: |
