@@ -289,6 +289,54 @@ strong_buy_v2 = strong_buy_v1  <span class="muted">// (composite==1 AND vp≥95 
     </div>
   </div>
 
+  <div class="hero" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6 50%,#c084fc);">
+    <div class="lft">
+      <h2>🚀 strong_buy_explosive · 補 v1 的漏抓（NVDA 型早期爆發）</h2>
+      <p>v1 只看 composite #1 · 抓不到「財報連續大 beat + 剛爆發但綜合分不是 #1」的股 · 這條並存 rule 專抓爆發早期</p>
+    </div>
+    <div class="kpi">
+      <div class="k"><div class="l">NVDA 2024-01</div><div class="v">+136%</div><div class="s">v1 漏抓 · explosive 抓到</div></div>
+      <div class="k"><div class="l">L1+L2 beat</div><div class="v">48%</div><div class="s">vs AMD 只 4.6%</div></div>
+      <div class="k"><div class="l">初步命中</div><div class="v">80%</div><div class="s">5 樣本 · 待 CI 補算</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="border:2px solid #8b5cf6;">
+    <div class="card-h" style="background:linear-gradient(90deg,#4c1d95,#8b5cf6);">🚀 strong_buy_explosive definition</div>
+    <div class="card-b">
+      <div class="code">
+strong_buy_explosive = (<br>
+&nbsp;&nbsp;<span class="rule-key">vp_score_stock</span> &gt;= <span class="rule-nb">95</span>&nbsp;&nbsp;<span class="muted">// 量價強度硬門檻</span><br>
+&nbsp;&nbsp;AND&nbsp;<span class="rule-key">stock_gap_alert</span> == <span class="rule-nb">"剛爆發"</span>&nbsp;&nbsp;<span class="muted">// 動能加速中</span><br>
+&nbsp;&nbsp;AND&nbsp;(<span class="rule-key">surprise_l1</span> + <span class="rule-key">surprise_l2</span>) &gt;= <span class="rule-nb">30</span>&nbsp;&nbsp;<span class="muted">// 連兩季 beat 合計 30%+</span><br>
+&nbsp;&nbsp;AND&nbsp;<span class="rule-key">composite_rank_in_sector</span> &lt;= <span class="rule-nb">10</span>&nbsp;&nbsp;<span class="muted">// 至少 sector top 10</span><br>
+&nbsp;&nbsp;AND&nbsp;<span class="rule-key">cum_ret_26w</span> &lt;= <span class="rule-nb">50</span>&nbsp;&nbsp;<span class="muted">// 個股還沒狂噴</span><br>
+)
+      </div>
+
+      <p style="margin-top:14px;">
+        <b>設計 rationale：</b> composite 公式只有 Point(40%) + vp_score(40%) + vol_ratio(20%) · <b>沒 weight 財報意外</b>。
+        NVDA 2024-01 L1+L2 財報 beat 合計 48% 卻無用 · comp #7 落選。
+        explosive rule 專門補這個洞：財報連續大 beat 且動能剛開始加速的股，是最強 alpha 來源。
+      </p>
+
+      <table style="margin-top:14px;">
+        <thead><tr><th>Horizon</th><th class="n">n</th><th class="n">avg</th><th class="n">hit rate</th></tr></thead>
+        <tbody>
+          <tr><td>1 個月</td><td class="n">7</td><td class="n up">+12.92%</td><td class="n up">85.7%</td></tr>
+          <tr><td>3 個月</td><td class="n">6</td><td class="n up">+12.04%</td><td class="n up">83.3%</td></tr>
+          <tr><td>6 個月</td><td class="n">6</td><td class="n up">+18.80%</td><td class="n up">83.3%</td></tr>
+          <tr class="hi"><td><b>1 年</b></td><td class="n"><b>5</b></td><td class="n up"><b>+16.08%</b></td><td class="n up"><b>80.0%</b></td></tr>
+        </tbody>
+      </table>
+
+      <p class="muted" style="margin-top:12px;">
+        ⚠ 初步結果（只從 composite top3 universe 撈）· CI 跑完擴展到 all.csv 全 500 支後樣本會大幅增加。
+        NVDA 2024-01 目前不在 composite top3 · CI 補算後會納入。
+      </p>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-h">🔬 使用方法：把 strong_buy 當「重壓 signal」</div>
     <div class="card-b">
@@ -296,6 +344,7 @@ strong_buy_v2 = strong_buy_v1  <span class="muted">// (composite==1 AND vp≥95 
         <thead><tr><th>訊號</th><th>意義</th><th>建議倉位</th></tr></thead>
         <tbody>
           <tr><td><span class="badge badge-hot">💎 strong_buy_v2</span></td><td>v1 三條 + 市場非過熱 + 個股非過買</td><td><b>核心倉 · 重壓</b> · 觀察 1 年</td></tr>
+          <tr><td><span class="badge" style="background:#ede9fe;color:#5b21b6;">🚀 strong_buy_explosive</span></td><td>財報連兩季 beat ≥30% + 剛爆發 + comp≤10 + 26W≤50%</td><td><b>爆發倉 · 加碼</b> · 抓 NVDA 型早期</td></tr>
           <tr><td><span class="badge" style="background:#fed7aa;color:#7c2d12;">💎⚠ v1 命中但過熱</span></td><td>v1 三條命中但 VOO 60d>15% 或 26W>50%</td><td>減半倉或觀望 · 等過熱降溫</td></tr>
           <tr><td><span class="badge badge-mid">composite #1 但 vp&lt;95</span></td><td>領先但動能不足</td><td>觀察倉 · 等 vp 突破</td></tr>
           <tr><td><span class="badge badge-red">吃老本</span></td><td>停止進場</td><td>不進 · 若持有考慮減碼</td></tr>

@@ -433,7 +433,7 @@ const STAGE2_TAB_HINTS = {
     "13w":   "Past 13 Weeks · 各板塊 13W 動能最強前 3 名（一季趨勢）",
     "26w":   "Past 26 Weeks · 各板塊 26W 動能最強前 3 名（半年主線）",
     "cms_a": "各板塊 CMS_A 最強前 3 名（.5·4Wr+.3·13Wr+.2·26Wr · 純漲幅排名 · 越小越強）",
-    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄 · 💎 = strong_buy_v2（v1 三條 + 市場非過熱 VOO 60d ≤15% + 個股非過買 26W ≤50%）· 💎⚠ = v1 命中但過熱期買（歷史 2024-01 AMD -27% 教訓）",
+    "composite": "各板塊「Point + vp_score + vol_ratio」綜合分最強前 3 名（同 sector 表公式 · 越小越強）· 表格加顯 vp_score / vol_ratio_stock 兩欄 · 💎=strong_buy_v2（穩健王者）· 💎⚠=v1 命中但過熱期（AMD 2024-01 -27% 教訓）· 🚀=strong_buy_explosive（財報大 beat + 剛爆發 · 抓 NVDA 型早期爆發）",
 };
 
 function renderStage2() {
@@ -520,6 +520,16 @@ function renderStage2Tab(tabKey) {
         const stockOverbought  = (r.cum_ret_26w ?? 0) > 50;
         const isStrongBuyV2 = isStrongBuy && !marketOverheated && !stockOverbought;
 
+        // strong_buy_explosive · 財報大 beat + 剛爆發（並存規則 · 抓 NVDA 型）
+        const surpSum = (Number(r.surprise_l1) || 0) + (Number(r.surprise_l2) || 0);
+        const isExplosive = (
+            (r.vp_score_stock ?? 0) >= 95 &&
+            r.stock_gap_alert === "剛爆發" &&
+            surpSum >= 30 &&
+            (compRank ?? 999) <= 10 &&
+            (r.cum_ret_26w ?? 0) <= 50
+        );
+
         let sbBadge = "";
         if (isStrongBuyV2) {
             sbBadge = ` <span class="sb-badge" title="strong_buy_v2 · #1+vp≥95+非吃老本+市場非過熱+個股非過買 · 10 樣本回測歷史最強">💎</span>`;
@@ -530,10 +540,14 @@ function renderStage2Tab(tabKey) {
             ].filter(Boolean).join(" · ");
             sbBadge = ` <span class="sb-badge sb-warn" title="strong_buy v1 命中但被 v2 濾網剃掉：${why} · 2024-01-22 AMD -27% 就是這種">💎⚠</span>`;
         }
+        if (isExplosive) {
+            sbBadge += ` <span class="sb-badge sb-boom" title="strong_buy_explosive · 財報連兩季 beat 合計 ${surpSum.toFixed(0)}% · 剛爆發 · comp≤10 · 26W ≤50% · 抓 NVDA 2024-01 型早期爆發">🚀</span>`;
+        }
 
         const tr = document.createElement("tr");
         if (isStrongBuyV2) tr.classList.add("strong-buy");
         else if (isStrongBuy) tr.classList.add("strong-buy-warn");
+        if (isExplosive) tr.classList.add("strong-buy-boom");
         tr.innerHTML = `
             <td class="sym"><b>${r.symbol}</b>${sbBadge}</td>
             <td class="sector">${r.sector || ""}</td>

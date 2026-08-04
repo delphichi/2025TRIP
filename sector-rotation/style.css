@@ -586,6 +586,21 @@ body.rot-body {
 .sb-badge.sb-warn {
     filter: drop-shadow(0 0 3px rgba(180, 83, 9, 0.6));
 }
+.sb-badge.sb-boom {
+    filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.8));
+}
+
+/* strong_buy_explosive · 財報大 beat + 剛爆發（並存規則） */
+.score-table tr.strong-buy-boom {
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.14), rgba(139, 92, 246, 0.04)) !important;
+    box-shadow: inset 3px 0 0 #8b5cf6;
+}
+.score-table tr.strong-buy.strong-buy-boom {
+    /* v2 + explosive 都命中：金色+紫色雙金線 */
+    background: linear-gradient(90deg, rgba(201, 162, 75, 0.18), rgba(139, 92, 246, 0.12)) !important;
+    box-shadow: inset 3px 0 0 #c9a24b, inset 6px 0 0 #8b5cf6;
+}
+.score-table tr.strong-buy-boom td.sym { color: #ddd6fe; }
 .empty-row {
     text-align: center;
     color: var(--text-mute);
