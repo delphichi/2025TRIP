@@ -1,0 +1,4 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+BBY,Best Buy,Consumer Discretionary,2026-08-06,80.02,84.5,-5.3,79.24,69.45,True,True,38.3,6054600,3401720,1.78
+VTRS,Viatris,Health Care,2026-08-06,16.29,17.65,-7.71,16.54,13.96,True,True,38.3,21024400,9268510,2.27
+DDOG,Datadog,Information Technology,2026-08-06,229.29,283.17,-19.03,248.83,169.51,True,True,38.6,15031100,4273410,3.52
