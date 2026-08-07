@@ -1,37 +1,24 @@
 {
-  "date": "2026-08-06",
-  "generated_at": "2026-08-06T20:24:30+08:00",
-  "consensus_date": "2026-08-06",
+  "date": "2026-08-07",
+  "generated_at": "2026-08-07T19:15:56+08:00",
+  "consensus_date": "2026-08-07",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260806.csv",
-      "snapshot_date": "2026-08-06",
+      "snapshot": "00991A_20260807.csv",
+      "snapshot_date": "2026-08-07",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [
-          {
-            "code": "3189",
-            "name": "景碩科技",
-            "pct": 12.5,
-            "weight": 3.433
-          },
-          {
-            "code": "6274",
-            "name": "台燿科技",
-            "pct": 6.976744186046512,
-            "weight": 3.934
-          }
-        ],
+        "add": [],
         "reduce": [
           {
-            "code": "2881",
-            "name": "富邦金融",
-            "pct": -99.71875,
-            "weight": 0.001
+            "code": "2330",
+            "name": "台灣積體",
+            "pct": -3.7037037037037033,
+            "weight": 14.115
           }
         ],
         "build": []
@@ -104,8 +91,8 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260806.csv",
-      "snapshot_date": "2026-08-06",
+      "snapshot": "00403A_20260807.csv",
+      "snapshot_date": "2026-08-07",
       "holdings_count": 50,
       "actions": {
         "new": [],
@@ -114,53 +101,53 @@
           {
             "code": "3450",
             "name": "聯鈞",
-            "pct": 53.84615384615385,
-            "weight": 0.27
+            "pct": 20.0,
+            "weight": 0.33
           },
           {
-            "code": "3008",
-            "name": "大立光",
-            "pct": 51.162790697674424,
-            "weight": 0.66
-          },
-          {
-            "code": "6239",
-            "name": "力成",
-            "pct": 21.136363636363637,
-            "weight": 0.76
+            "code": "5274",
+            "name": "信驊",
+            "pct": 16.40378548895899,
+            "weight": 1.72
           },
           {
             "code": "3189",
             "name": "景碩",
-            "pct": 19.342839429634225,
-            "weight": 1.78
+            "pct": 10.38961038961039,
+            "weight": 2.02
+          },
+          {
+            "code": "3665",
+            "name": "貿聯-KY",
+            "pct": 8.991825613079019,
+            "weight": 1.58
           }
         ],
         "reduce": [
           {
             "code": "1303",
             "name": "南亞",
-            "pct": -56.39851754959668,
+            "pct": -50.0,
+            "weight": 0.1
+          },
+          {
+            "code": "4966",
+            "name": "譜瑞-KY",
+            "pct": -13.432835820895523,
             "weight": 0.2
           },
           {
-            "code": "6415",
-            "name": "矽力*-KY",
-            "pct": -51.92307692307693,
-            "weight": 0.07
-          },
-          {
-            "code": "6669",
-            "name": "緯穎",
-            "pct": -16.666666666666664,
-            "weight": 1.73
+            "code": "7769",
+            "name": "鴻勁",
+            "pct": -13.333333333333334,
+            "weight": 0.94
           }
         ],
         "build": [
           {
             "code": "1717",
             "name": "長興",
-            "weight": 0.04
+            "weight": 0.05
           }
         ]
       }
@@ -168,35 +155,19 @@
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260806.csv",
-      "snapshot_date": "2026-08-06",
+      "snapshot": "00988A_20260807.csv",
+      "snapshot_date": "2026-08-07",
       "holdings_count": 11,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [
-          {
-            "code": "6223",
-            "name": "旺矽",
-            "pct": 21.052631578947366,
-            "weight": 2.33
-          }
-        ],
+        "add": [],
         "reduce": [],
         "build": []
       }
     }
   ],
-  "consensus_buy": [
-    {
-      "stock_id": "3189",
-      "funds": [
-        "復華未來50",
-        "統一升級50"
-      ],
-      "name": "景碩科技"
-    }
-  ],
+  "consensus_buy": [],
   "consensus_sell": [],
   "divergence": []
 }
