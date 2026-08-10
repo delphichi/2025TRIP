@@ -8,6 +8,7 @@
 |---|---|
 | [`ericchi-ig-masterclass.md`](./ericchi-ig-masterclass.md) | @ericchi_6666 的 IG 內容工程完整拆解（25 張貼文精華），含 5 個 Prompt、9 個 Hook 公式、封面 5 關檢核 |
 | [`channel-playbook.md`](./channel-playbook.md) | 本頻道專屬應用：如何把 `research/` 的財經分析包裝成輪播/Reels/限動 |
+| [`episode-production-playbook.md`](./episode-production-playbook.md) | **從零到一集的 7 步驟 SOP** —— 基於 EP.01 實戰紀錄，之後每集照這個走 |
 
 ## 使用流程
 
