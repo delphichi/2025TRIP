@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini × Google Sheets 看盤神器實戰</title>
+<link rel="stylesheet" href="style.css">
+<meta name="theme-color" content="#0f172a">
+</head>
+<body>
+
+<header class="hero">
+    <div class="hero-inner">
+        <span class="badge">Gemini × Google Sheets</span>
+        <h1>用 AI 幫你寫公式，打造專屬<span class="hl">看盤神器</span></h1>
+        <p class="lead">
+            看盤軟體的圖表總是不夠客製化？<br>
+            透過 Gemini 的公式撰寫能力，搭配 Google Sheets，就能做出專業級財經儀表板。
+            這一頁把三個核心技法 —— <b>SPARKLINE 微型趨勢圖</b>、<b>布林通道</b>、<b>本益比河流圖</b> ——
+            全部用真實計算跑一次給你看。
+        </p>
+    </div>
+</header>
+
+<main class="dash">
+
+    <!-- =============== 儀表板總覽 =============== -->
+    <section class="panel overview">
+        <div class="panel-title">
+            <span class="step">🎯</span>
+            <h2>2330 台積電 · 儀表板總覽</h2>
+        </div>
+
+        <div class="tile-grid">
+            <div class="tile">
+                <div class="tile-label">最新收盤</div>
+                <div class="tile-value" id="tile-close">—</div>
+                <div class="tile-sub" id="tile-change">—</div>
+            </div>
+            <div class="tile">
+                <div class="tile-label">30 日趨勢（SPARKLINE）</div>
+                <svg id="mini-spark" class="mini-spark" viewBox="0 0 200 60" preserveAspectRatio="none"></svg>
+                <div class="tile-sub"><span class="dot dot-hi"></span>最高 <span class="dot dot-lo"></span>最低</div>
+            </div>
+            <div class="tile">
+                <div class="tile-label">20 日均線 (MA20)</div>
+                <div class="tile-value" id="tile-ma20">—</div>
+                <div class="tile-sub" id="tile-ma20-diff">—</div>
+            </div>
+            <div class="tile">
+                <div class="tile-label">布林通道位置</div>
+                <div class="tile-value" id="tile-bb-pos">—</div>
+                <div class="tile-sub" id="tile-bb-hint">—</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =============== Step 1 SPARKLINE =============== -->
+    <section class="panel">
+        <div class="panel-title">
+            <span class="step step-1">1</span>
+            <h2>單格微型趨勢圖 · SPARKLINE</h2>
+        </div>
+        <p class="hint">
+            極簡儀表板的靈魂。把近 30 天的漲跌趨勢，濃縮進一個儲存格，並標出最高／最低點。
+            右邊是真實跑出來的效果 —— 每一格都是獨立的 SPARKLINE。
+        </p>
+
+        <div class="two-col">
+            <div>
+                <div class="code-label">📋 Gemini 幫你寫的公式（可直接貼進 Google Sheets）</div>
+                <pre class="code">=SPARKLINE(B2:B31, {
+  "charttype","line";
+  "color1","#2962FF";
+  "linewidth", 2;
+  "highcolor","#D32F2F";
+  "lowcolor","#388E3C";
+  "markers", TRUE;
+  "minspotcolor","#388E3C";
+  "maxspotcolor","#D32F2F"
+})</pre>
+                <ul class="tip-list">
+                    <li><b>charttype</b>：line / column / bar / winloss</li>
+                    <li><b>markers</b>：TRUE 才會在最高最低點畫出小圓點</li>
+                    <li><b>highcolor / lowcolor</b>：讓極值一眼看得出來</li>
+                </ul>
+            </div>
+
+            <div class="sparkline-table">
+                <div class="mini-row mini-header">
+                    <span>股票</span><span>收盤</span><span>近 30 日</span>
+                </div>
+                <div class="mini-row">
+                    <span>2330 台積電</span>
+                    <span id="s1-close">—</span>
+                    <svg class="sparkline" data-symbol="TSMC" viewBox="0 0 180 40" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="mini-row">
+                    <span>2454 聯發科</span>
+                    <span id="s2-close">—</span>
+                    <svg class="sparkline" data-symbol="MTK" viewBox="0 0 180 40" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="mini-row">
+                    <span>2317 鴻海</span>
+                    <span id="s3-close">—</span>
+                    <svg class="sparkline" data-symbol="HHPC" viewBox="0 0 180 40" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="mini-row">
+                    <span>2603 長榮</span>
+                    <span id="s4-close">—</span>
+                    <svg class="sparkline" data-symbol="EVA" viewBox="0 0 180 40" preserveAspectRatio="none"></svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =============== Step 2 布林通道 =============== -->
+    <section class="panel">
+        <div class="panel-title">
+            <span class="step step-2">2</span>
+            <h2>精準算出布林通道 · Bollinger Bands</h2>
+        </div>
+        <p class="hint">
+            單靠 SPARKLINE 是畫不出通道的。請 Gemini 幫你寫下面 4 條公式算出上下軌，
+            把 4 欄資料一起框起來 → 插入「折線圖」，就是右邊這張圖。
+        </p>
+
+        <div class="two-col">
+            <div>
+                <div class="code-label">📋 從第 21 列開始貼下去</div>
+                <table class="formula-table">
+                    <tr><th>欄位</th><th>公式</th></tr>
+                    <tr><td>20 日均線 <br><small>C21</small></td><td><code>=AVERAGE(B2:B21)</code></td></tr>
+                    <tr><td>標準差 <br><small>D21</small></td><td><code>=STDEV(B2:B21)</code></td></tr>
+                    <tr><td>上軌 <br><small>E21</small></td><td><code>=C21 + 2*D21</code></td></tr>
+                    <tr><td>下軌 <br><small>F21</small></td><td><code>=C21 - 2*D21</code></td></tr>
+                </table>
+                <ul class="tip-list">
+                    <li>股價<b>觸上軌</b>：市場短期偏熱，觀察是否回檔</li>
+                    <li>股價<b>觸下軌</b>：跌深區，注意有無支撐</li>
+                    <li>通道<b>收斂</b>：波動壓縮，往往醞釀方向性行情</li>
+                </ul>
+            </div>
+
+            <div>
+                <svg id="bb-chart" class="chart" viewBox="0 0 620 320" preserveAspectRatio="xMidYMid meet"></svg>
+                <div class="legend">
+                    <span><i class="lg-price"></i>收盤價</span>
+                    <span><i class="lg-ma"></i>MA20</span>
+                    <span><i class="lg-band"></i>±2σ 通道</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =============== Step 3 河流圖 =============== -->
+    <section class="panel">
+        <div class="panel-title">
+            <span class="step step-3">3</span>
+            <h2>進階繪製 · 本益比河流圖（面積堆疊）</h2>
+        </div>
+        <p class="hint">
+            把每日的市場結構切成幾個本益比區間，看哪一段的股票佔比在放大／收縮。
+            這裡示範四個區間：PE ≤ 10、10&lt;PE≤15、15&lt;PE≤25、PE&gt;25，堆疊起來就是「河流」。
+        </p>
+
+        <div class="two-col two-col-alt">
+            <div>
+                <div class="code-label">📋 每一列的結構</div>
+                <pre class="code">日期      收盤    PE≤10  10&lt;PE≤15  15&lt;PE≤25  PE&gt;25
+11/10    980.00   0.18    0.32       0.28       0.22
+11/11    978.00   0.16    0.33       0.29       0.22
+11/12    984.00   0.17    0.31       0.28       0.24
+...
+</pre>
+                <ul class="tip-list">
+                    <li>把後面四欄框起來 → 插入圖表 → 選<b>面積圖 · 堆疊</b></li>
+                    <li>要疊到 100%？用<b>「百分比堆疊面積圖」</b></li>
+                    <li>要看絕對家數也行 —— 把比例換成家數即可</li>
+                </ul>
+            </div>
+
+            <div>
+                <svg id="river-chart" class="chart" viewBox="0 0 620 320" preserveAspectRatio="xMidYMid meet"></svg>
+                <div class="legend legend-river">
+                    <span><i style="background:#93c5fd"></i>PE ≤ 10</span>
+                    <span><i style="background:#34d399"></i>10 &lt; PE ≤ 15</span>
+                    <span><i style="background:#fbbf24"></i>15 &lt; PE ≤ 25</span>
+                    <span><i style="background:#f87171"></i>PE &gt; 25</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =============== Prompt 抄襲區 =============== -->
+    <section class="panel prompt-panel">
+        <div class="panel-title">
+            <span class="step">💬</span>
+            <h2>超實用 Gemini 詠唱指令 · 直接抄</h2>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-title">📌 Prompt 1 · 布林通道一次搞定</div>
+            <blockquote>
+                我現在使用 Google Sheets，A 欄是日期，B 欄是每日收盤價，資料從第 2 列到第 200 列。
+                請幫我寫出完整的公式，計算出 <b>20 日移動平均線</b>、以及<b>布林通道的上軌與下軌</b>（±2 標準差），
+                並告訴我要選哪一種圖表、如何把 <b>±2σ 區間畫成陰影帶</b>。
+            </blockquote>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-title">📌 Prompt 2 · 迷你趨勢圖</div>
+            <blockquote>
+                我在 Google Sheets 有一張表，A 欄是股票代號，B~AE 欄是近 30 天的收盤價。
+                請幫我用 SPARKLINE，在 AF 欄產出<b>帶顏色與最高／最低標記</b>的微型趨勢圖。
+                上漲藍色、最高點紅、最低點綠。
+            </blockquote>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-title">📌 Prompt 3 · 河流圖分層</div>
+            <blockquote>
+                我有一份台股每日資料，B 欄是收盤價，C 欄是本益比。
+                請幫我用公式把每一天分到四個桶：PE≤10、10&lt;PE≤15、15&lt;PE≤25、PE&gt;25，
+                並計算出每一桶的<b>當日家數佔比</b>，最後告訴我要選哪一種圖表把它畫成「河流」。
+            </blockquote>
+        </div>
+
+        <div class="gemini-do">
+            <div>✅ 撰寫公式</div>
+            <div>✅ 解釋公式邏輯</div>
+            <div>✅ 提供圖表製作步驟</div>
+            <div>✅ 優化你的分析流程</div>
+        </div>
+    </section>
+
+    <footer class="foot">
+        <p>善用 AI 工具，讓數據分析更有效率，投資決策更精準。</p>
+        <p class="foot-small">本頁圖表為示意，價格資料由前端合成，僅供教學展示。</p>
+    </footer>
+
+</main>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
