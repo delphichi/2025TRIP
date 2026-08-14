@@ -1,5 +1,14 @@
 {
-  "horses": [],
+  "horses": [
+    {
+      "sector": "XLB",
+      "sector_name": "材料",
+      "point_rank": 8,
+      "vp_score_rank": 5,
+      "vol_rank": 3,
+      "added_at": "2026-08-14T22:18:09.748721+00:00"
+    }
+  ],
   "history": [
     {
       "as_of": "2026-08-03T17:35:09.139307+00:00",
@@ -104,6 +113,20 @@
       "as_of": "2026-08-07T22:30:07.637898+00:00",
       "promoted": [],
       "new": []
+    },
+    {
+      "as_of": "2026-08-14T22:18:09.748721+00:00",
+      "promoted": [],
+      "new": [
+        {
+          "sector": "XLB",
+          "sector_name": "材料",
+          "point_rank": 8,
+          "vp_score_rank": 5,
+          "vol_rank": 3,
+          "added_at": "2026-08-14T22:18:09.748721+00:00"
+        }
+      ]
     }
   ]
 }
