@@ -6,9 +6,10 @@
 
 | 檔案 | 用途 |
 |---|---|
-| [`ericchi-ig-masterclass.md`](./ericchi-ig-masterclass.md) | @ericchi_6666 的 IG 內容工程完整拆解（25 張貼文精華），含 5 個 Prompt、9 個 Hook 公式、封面 5 關檢核 |
-| [`channel-playbook.md`](./channel-playbook.md) | 本頻道專屬應用：如何把 `research/` 的財經分析包裝成輪播/Reels/限動 |
-| [`episode-production-playbook.md`](./episode-production-playbook.md) | **從零到一集的 7 步驟 SOP** —— 基於 EP.01 實戰紀錄，之後每集照這個走 |
+| [`ericchi-ig-masterclass.md`](./ericchi-ig-masterclass.md) | @ericchi_6666 的 IG 內容工程完整拆解（25 張貼文精華）· **戰術層** |
+| [`12-strategic-prompts.md`](./12-strategic-prompts.md) | 西方 12 個戰略級 Prompt 完整整理 · **戰略層** |
+| [`channel-playbook.md`](./channel-playbook.md) | 本頻道專屬應用：頻道定位、素材倉庫、標題重寫規則 |
+| [`episode-production-playbook.md`](./episode-production-playbook.md) | 從零到一集的 7 步驟 SOP —— 基於 EP.01 實戰紀錄 |
 
 ## 使用流程
 
