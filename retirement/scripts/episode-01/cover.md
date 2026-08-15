@@ -1,6 +1,7 @@
-# EP.01 · 封面設計系統 + Iteration Log
+# S01E01 · 封面設計系統 + Iteration Log
 
 > P1 首頁封面已定稿。P2–P10 依此設計系統延伸。
+> 集標：**S01E01 · 第五願 · 恢復清淨 · 台積電漲 3 倍，我沒賺到錢**
 > 原始檔：[`cover-p1.html`](./cover-p1.html)
 > 線上預覽：<https://claude.ai/code/artifact/6835e71b-1fbf-4ae9-8e81-1295d86571a4>
 
