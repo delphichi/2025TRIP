@@ -6,6 +6,8 @@
 
 | 檔案 | 用途 |
 |---|---|
+| [`channel-doctrine-yaoshi-jing.md`](./channel-doctrine-yaoshi-jing.md) | **頻道教典 · 方向之塔** — 藥師 12 願 + 9 橫 = 21 集骨架 |
+| [`channel-doctrine-shaoyung.md`](./channel-doctrine-shaoyung.md) | **頻道教典 · 方法之塔** — 邵雍以物觀物三步法 = 分析框架 |
 | [`ericchi-ig-masterclass.md`](./ericchi-ig-masterclass.md) | @ericchi_6666 的 IG 內容工程完整拆解（25 張貼文精華）· **戰術層** |
 | [`12-strategic-prompts.md`](./12-strategic-prompts.md) | 西方 12 個戰略級 Prompt 完整整理 · **戰略層** |
 | [`channel-playbook.md`](./channel-playbook.md) | 本頻道專屬應用：頻道定位、素材倉庫、標題重寫規則 |
