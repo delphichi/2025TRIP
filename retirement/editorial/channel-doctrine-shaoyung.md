@@ -1,8 +1,8 @@
 # 通無法師頻道教典 · 邵雍 · 皇極經世投資心法
 
 > 建檔：2026-08-10
-> 定位：**方法之塔** —— 藥師經給方向，邵雍給方法。
-> 姊妹篇：[`channel-doctrine-yaoshi-jing.md`](./channel-doctrine-yaoshi-jing.md)
+> 定位：**方法之塔** —— 藥師給方向 · 邵雍給方法 · 金剛經給定力
+> 姊妹篇：[`channel-doctrine-yaoshi-jing.md`](./channel-doctrine-yaoshi-jing.md) · [`channel-doctrine-jingang.md`](./channel-doctrine-jingang.md)
 
 ---
 

@@ -39,7 +39,7 @@
 
 | 檔案 | 用途 |
 |---|---|
-| [`scripts.md`](./scripts.md) | 完整文案（10 頁輪播 + Reel + 單圖，都是 Prompt 4 優化版） |
+| [`scripts.md`](./scripts.md) | 完整文案（**11 頁輪播** · 加藥師偈子頁 signature + Reel + 單圖，Prompt 4 優化版） |
 | [`voice-variants.md`](./voice-variants.md) | Prompt 5 三個語氣版本（優雅 / 直接 / 高端感） |
 | [`cover.md`](./cover.md) | 封面設計系統 + 從奶油底到煙燻藍的 iteration log |
 | [`cover-p1.html`](./cover-p1.html) | P1 封面原始檔（HTML/SVG，開瀏覽器截圖即可導出） |
