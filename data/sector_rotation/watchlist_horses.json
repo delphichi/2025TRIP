@@ -1,12 +1,12 @@
 {
   "horses": [
     {
-      "sector": "XLB",
-      "sector_name": "材料",
-      "point_rank": 8,
-      "vp_score_rank": 5,
-      "vol_rank": 3,
-      "added_at": "2026-08-14T22:18:09.748721+00:00"
+      "sector": "XLI",
+      "sector_name": "工業",
+      "point_rank": 6,
+      "vp_score_rank": 8,
+      "vol_rank": 2,
+      "added_at": "2026-08-21T22:18:36.913024+00:00"
     }
   ],
   "history": [
@@ -125,6 +125,30 @@
           "vp_score_rank": 5,
           "vol_rank": 3,
           "added_at": "2026-08-14T22:18:09.748721+00:00"
+        }
+      ]
+    },
+    {
+      "as_of": "2026-08-21T22:18:36.913024+00:00",
+      "promoted": [
+        {
+          "sector": "XLB",
+          "sector_name": "材料",
+          "point_rank": 8,
+          "vp_score_rank": 5,
+          "vol_rank": 3,
+          "added_at": "2026-08-14T22:18:09.748721+00:00",
+          "_status": "promoted"
+        }
+      ],
+      "new": [
+        {
+          "sector": "XLI",
+          "sector_name": "工業",
+          "point_rank": 6,
+          "vp_score_rank": 8,
+          "vol_rank": 2,
+          "added_at": "2026-08-21T22:18:36.913024+00:00"
         }
       ]
     }

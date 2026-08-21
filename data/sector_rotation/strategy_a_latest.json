@@ -1,29 +1,29 @@
 {
-  "generated_at": "2026-08-14T22:18:09.749094+00:00",
-  "as_of_date": "2026-08-13",
+  "generated_at": "2026-08-21T22:18:36.913416+00:00",
+  "as_of_date": "2026-08-20",
   "market_context": {
-    "as_of_date": "2026-08-13",
+    "as_of_date": "2026-08-20",
     "voo": {
-      "price": 714.95,
-      "vs_60d_pct": 5.62,
-      "ma50": 687.57,
-      "vs_50ma_pct": 3.98
+      "price": 701.01,
+      "vs_60d_pct": 1.89,
+      "ma50": 690.01,
+      "vs_50ma_pct": 1.59
     },
     "vix": {
-      "value": 14.63
+      "value": 16.01
     },
     "tnx": {
-      "value": 4.64,
-      "raw": 4.64
+      "value": 4.7,
+      "raw": 4.7
     },
     "trend_label": "🟢",
-    "vs_50ma_label": "🔥",
-    "quadrant_key": "🔥+🟢",
+    "vs_50ma_label": "🟡",
+    "quadrant_key": "🟡+🟢",
     "allocation": {
-      "core": 40,
-      "momentum": 35,
-      "sprint": 15,
-      "cash": 10
+      "core": 30,
+      "momentum": 25,
+      "sprint": 0,
+      "cash": 45
     },
     "vix_override_all_cash": false,
     "tnx_boost": [
@@ -37,7 +37,7 @@
       "XLU"
     ],
     "notes": [
-      "📈 TNX=4.64% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "📈 TNX=4.70% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ]
   },
   "effective_sectors": [
@@ -45,191 +45,180 @@
       "sector": "XLE",
       "sector_name": "能源",
       "composite_rank": 1,
+      "point_rank": 2,
+      "cms_a": 1.8,
+      "tnx_flag": "boost"
+    },
+    {
+      "sector": "XLV",
+      "sector_name": "醫療保健",
+      "composite_rank": 2,
       "point_rank": 3,
-      "cms_a": 3.5,
+      "cms_a": 2.4,
       "tnx_flag": "boost"
     },
     {
       "sector": "XLF",
       "sector_name": "金融",
-      "composite_rank": 2,
-      "point_rank": 2,
-      "cms_a": 3.7,
-      "tnx_flag": "boost"
-    },
-    {
-      "sector": "XLI",
-      "sector_name": "工業",
       "composite_rank": 3,
-      "point_rank": 5,
-      "cms_a": 3.9,
-      "tnx_flag": null
+      "point_rank": 4,
+      "cms_a": 5.4,
+      "tnx_flag": "boost"
     }
   ],
   "demoted_sectors": [],
   "allocation": {
-    "core": 40,
-    "momentum": 35,
-    "sprint": 15,
-    "cash": 10
+    "core": 30,
+    "momentum": 25,
+    "sprint": 0,
+    "cash": 45
   },
   "positions": {
     "core": [],
     "momentum": [
       {
-        "symbol": "GPN",
-        "name": "Global Payments",
-        "sector": "Financials",
-        "sector_etf": "XLF",
-        "point": 32.87,
-        "cms_a": 2.3,
-        "di": 1.0,
-        "cum_ret_4w": 19.57,
-        "cum_ret_13w": 38.22,
-        "cum_ret_26w": 36.85,
-        "vcp": false,
-        "vp_ratio_stock": 1.187,
-        "pct_from_high": -0.78,
-        "high_52w": 95.58,
-        "surprise_l1": 0.63,
-        "surprise_l2": 5.43,
-        "pre_earnings_14d": false,
-        "tier": "momentum",
-        "reason": "TNX順風 + VP 1.19 + 4W +19.6%",
-        "weight_pct": 11.67
-      },
-      {
         "symbol": "MPC",
         "name": "Marathon Petroleum",
         "sector": "Energy",
         "sector_etf": "XLE",
-        "point": 51.6,
-        "cms_a": 2.5,
+        "point": 57.02,
+        "cms_a": 2.0,
         "di": 1.0,
-        "cum_ret_4w": 13.7,
-        "cum_ret_13w": 39.9,
-        "cum_ret_26w": 76.41,
+        "cum_ret_4w": 16.97,
+        "cum_ret_13w": 42.04,
+        "cum_ret_26w": 84.53,
         "vcp": false,
-        "vp_ratio_stock": 1.03,
-        "pct_from_high": -0.23,
-        "high_52w": 357.2,
+        "vp_ratio_stock": 1.069,
+        "pct_from_high": -2.55,
+        "high_52w": 367.6,
         "surprise_l1": 27.08,
         "surprise_l2": 120.63,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.03 + 4W +13.7%",
-        "weight_pct": 11.67
+        "reason": "TNX順風 + VP 1.07 + 4W +17.0%",
+        "weight_pct": 12.5
       },
       {
-        "symbol": "APA",
-        "name": "APA Corporation",
-        "sector": "Energy",
-        "sector_etf": "XLE",
-        "point": 28.54,
-        "cms_a": 3.3,
+        "symbol": "CRL",
+        "name": "Charles River Laboratories",
+        "sector": "Health Care",
+        "sector_etf": "XLV",
+        "point": 65.98,
+        "cms_a": 2.7,
         "di": 1.0,
-        "cum_ret_4w": 15.72,
-        "cum_ret_13w": 4.55,
-        "cum_ret_26w": 46.95,
+        "cum_ret_4w": 30.28,
+        "cum_ret_13w": 84.15,
+        "cum_ret_26w": 74.75,
         "vcp": false,
-        "vp_ratio_stock": 1.062,
-        "pct_from_high": -11.19,
-        "high_52w": 45.04,
-        "surprise_l1": 1.01,
-        "surprise_l2": 20.9,
+        "vp_ratio_stock": 1.487,
+        "pct_from_high": -2.63,
+        "high_52w": 299.32,
+        "surprise_l1": 10.31,
+        "surprise_l2": 5.42,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.06 + 4W +15.7%",
-        "weight_pct": 11.67
+        "reason": "TNX順風 + VP 1.49 + 4W +30.3%",
+        "weight_pct": 12.5
       }
     ],
     "sprint": [
       {
-        "symbol": "AXON",
-        "name": "Axon Enterprise",
-        "sector": "Industrials",
-        "sector_etf": "XLI",
-        "point": 40.43,
-        "cms_a": 2.0,
+        "symbol": "MRNA",
+        "name": "Moderna",
+        "sector": "Health Care",
+        "sector_etf": "XLV",
+        "point": 190.01,
+        "cms_a": 1.0,
         "di": 1.0,
-        "cum_ret_4w": 20.1,
-        "cum_ret_13w": 56.38,
-        "cum_ret_26w": 42.63,
+        "cum_ret_4w": 168.41,
+        "cum_ret_13w": 209.58,
+        "cum_ret_26w": 191.02,
         "vcp": false,
-        "vp_ratio_stock": 1.003,
-        "pct_from_high": -22.5,
-        "high_52w": 794.29,
-        "surprise_l1": 1.96,
-        "surprise_l2": 0.8,
+        "vp_ratio_stock": 1.441,
+        "pct_from_high": -24.53,
+        "high_52w": 176.66,
+        "surprise_l1": 4.33,
+        "surprise_l2": 12.37,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "距高點 -22.5% 深度反彈 · 只能衝刺",
-        "weight_pct": 5.0
+        "reason": "距高點 -24.5% 深度反彈 · 只能衝刺"
       },
       {
-        "symbol": "VLO",
-        "name": "Valero Energy",
+        "symbol": "FDS",
+        "name": "FactSet",
+        "sector": "Financials",
+        "sector_etf": "XLF",
+        "point": 39.61,
+        "cms_a": 2.4,
+        "di": 1.0,
+        "cum_ret_4w": 17.91,
+        "cum_ret_13w": 29.9,
+        "cum_ret_26w": 55.31,
+        "vcp": false,
+        "vp_ratio_stock": 1.096,
+        "pct_from_high": -21.04,
+        "high_52w": 380.04,
+        "surprise_l1": 1.76,
+        "surprise_l2": 1.89,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "距高點 -21.0% 深度反彈 · 只能衝刺"
+      },
+      {
+        "symbol": "PSX",
+        "name": "Phillips 66",
         "sector": "Energy",
         "sector_etf": "XLE",
-        "point": 48.13,
-        "cms_a": 4.0,
+        "point": 43.47,
+        "cms_a": 2.5,
         "di": 1.0,
-        "cum_ret_4w": 10.77,
-        "cum_ret_13w": 37.44,
-        "cum_ret_26w": 72.16,
+        "cum_ret_4w": 18.08,
+        "cum_ret_13w": 37.41,
+        "cum_ret_26w": 59.2,
         "vcp": false,
-        "vp_ratio_stock": 0.936,
-        "pct_from_high": -0.24,
-        "high_52w": 343.73,
-        "surprise_l1": 23.84,
-        "surprise_l2": 33.47,
+        "vp_ratio_stock": 0.972,
+        "pct_from_high": -2.81,
+        "high_52w": 246.95,
+        "surprise_l1": 25.45,
+        "surprise_l2": 225.68,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=4.0 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 5.0
-      },
-      {
-        "symbol": "DELL",
-        "name": "Dell Technologies",
-        "sector": "Information Technology",
-        "sector_etf": "XLK",
-        "point": 191.67,
-        "cms_a": 6.5,
-        "di": 1.0,
-        "cum_ret_4w": 24.04,
-        "cum_ret_13w": 103.16,
-        "cum_ret_26w": 319.73,
-        "vcp": false,
-        "vp_ratio_stock": 1.044,
-        "pct_from_high": -3.79,
-        "high_52w": 514.0,
-        "surprise_l1": 63.99,
-        "surprise_l2": 10.74,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "破格 · 全場 Point 最高(191.7)且領先池內第 3 名 50%+",
-        "weight_pct": 5.0
+        "reason": "CMS_A=2.5 靠前但缺 VCP 或非 TNX 順風"
       }
     ],
     "hold_earnings": []
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 3,
+    "momentum_count": 2,
     "sprint_count": 3,
     "hold_count": 0
   },
-  "correlation_warnings": [],
+  "correlation_warnings": [
+    {
+      "kind": "low_corr_ok",
+      "sectors": [
+        "XLV"
+      ],
+      "msg": "✅ XLV 與多數板塊低相關 · 分散配置佳"
+    }
+  ],
   "dark_horses": [
+    {
+      "sector": "XLI",
+      "sector_name": "工業",
+      "point_rank": 6,
+      "vp_score_rank": 8,
+      "vol_rank": 2
+    }
+  ],
+  "watchlist_promoted": [
     {
       "sector": "XLB",
       "sector_name": "材料",
-      "point_rank": 8,
-      "vp_score_rank": 5,
-      "vol_rank": 3
+      "added_at": "2026-08-14T22:18:09.748721+00:00"
     }
   ],
-  "watchlist_promoted": [],
   "notes": [
     "策略 A 九步驟輸出 · 每檔 weight_pct = 該 tier 配置上限 / 該 tier 檔數",
     "hold_earnings：暫緩（財報 14 天內），等財報後再評估",
