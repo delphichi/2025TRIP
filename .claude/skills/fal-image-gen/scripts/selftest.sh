@@ -170,8 +170,80 @@ else
   bad "找不到 $WF"
 fi
 
+head_ "12. 影片模型與接口"
+for ep in "minimax/h3/text-to-video" "minimax/h3/image-to-video" "minimax/h3/reference-to-video" \
+          "bytedance/seedance-2.0/text-to-video" "bytedance/seedance-2.0/fast/text-to-video" \
+          "bytedance/seedance-2.0/image-to-video" "bytedance/seedance-2.0/reference-to-video" \
+          "fal-ai/kling-video/v3/pro/text-to-video" "fal-ai/kling-video/v3/pro/image-to-video"; do
+  "$CLI" --list-models 2>/dev/null | grep -q "$ep" && ok "影片接口已註冊：$ep" || bad "影片接口缺失：$ep"
+done
+
+head_ "13. 影片參數組裝"
+v="$("$CLI" -m minimax-h3 -p t --dry-run 2>&1)"
+echo "$v" | grep -q '"aspect_ratio": "16:9"' && ok "影片預設長寬比 = 16:9" || bad "影片預設長寬比不是 16:9"
+echo "$v" | grep -q '"resolution": "2K"'     && ok "minimax-h3 預設 2K"    || bad "minimax-h3 解析度預設不對"
+echo "$v" | grep -q 'num_images'             && bad "影片不該送 num_images" || ok "影片不送 num_images"
+
+sd="$("$CLI" -m seedance -p t -d 10 -r 1080p --generate-audio --dry-run 2>&1)"
+echo "$sd" | grep -q '"duration": "10"'      && ok "seedance 長度參數"   || bad "seedance 長度參數錯誤"
+echo "$sd" | grep -q '"resolution": "1080p"' && ok "seedance 解析度參數" || bad "seedance 解析度參數錯誤"
+echo "$sd" | grep -q '"generate_audio": true' && ok "seedance 音訊參數"  || bad "seedance 音訊參數錯誤"
+
+kl="$("$CLI" -m kling -p t --no-audio --negative-prompt x --cfg-scale 0.7 --dry-run 2>&1)"
+echo "$kl" | grep -q '"generate_audio": false' && ok "kling --no-audio"      || bad "kling --no-audio 無效"
+echo "$kl" | grep -q '"cfg_scale": 0.7'        && ok "kling cfg_scale"       || bad "kling cfg_scale 無效"
+echo "$kl" | grep -q '"negative_prompt"'       && ok "kling negative_prompt" || bad "kling negative_prompt 無效"
+echo "$kl" | grep -q 'resolution'              && bad "kling 不該送 resolution" || ok "kling 不送 resolution"
+
+expect_ok   "簡稱 seedance / kling / h3 都認得" "$CLI" -m h3 -p t --dry-run
+expect_ok   "完整 id minimax/h3 認得"           "$CLI" -m minimax/h3 -p t --dry-run
+expect_fail "kling 不吃 reference-to-video"     "$CLI" -m kling -e reference-to-video -p t --dry-run
+
+head_ "14. 影片接口自動判斷與存檔"
+TMPREF="$ROOT/參考圖/_selftest.png"
+python3 -c "
+import base64,pathlib
+pathlib.Path('$TMPREF').write_bytes(base64.b64decode(
+ 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='))"
+i2v="$("$CLI" -m seedance -p t --ref _selftest.png --dry-run 2>&1)"
+echo "$i2v" | grep -q 'seedance-2.0/image-to-video' && ok "1 張參考圖 → image-to-video" || bad "沒有自動切到 image-to-video"
+echo "$i2v" | grep -q '"image_url"'                 && ok "首幀放進 image_url"          || bad "image_url 缺失"
+rm -f "$TMPREF"
+
+python3 - <<'PYEOF'
+import os, sys, pathlib, tempfile, re
+sys.path.insert(0, os.environ["SCRIPT_DIR"])
+import fal_image as f
+f.download = lambda url, timeout=180: b"x"
+out = pathlib.Path(tempfile.mkdtemp())
+vid = [{"url": "http://x/v.mp4", "content_type": "video/mp4"}]
+p = f.save_images(vid, "kling-v3-pro", out, "mp4")[0]
+assert re.fullmatch(r"kling-v3-pro-\d{8}-\d{4}\.mp4", p.name), p.name
+# content_type 應覆寫掉傳入的副檔名
+p2 = f.save_images([{"url": "http://x/v.mp4", "content_type": "video/mp4"}],
+                   "minimax-h3", out, "png")[0]
+assert p2.name.endswith(".mp4"), p2.name
+assert f.extract_media({"video": {"url": "u"}}, "video") == [{"url": "u"}]
+assert f.extract_media({"images": [{"url": "u"}]}, "image") == [{"url": "u"}]
+print(f"  影片檔名 {p.name}；content_type 可覆寫副檔名；video/image 解析皆正確")
+PYEOF
+[ $? -eq 0 ] && ok "影片存檔為 .mp4、檔名格式正確" || bad "影片存檔規則有誤"
+
+head_ "15. Workflow 影片支援"
+if [ -f "$WF" ]; then
+  for m in minimax-h3 seedance-2.0 kling-v3-pro; do
+    grep -q "'$m'" "$WF" && ok "workflow 模型選項有 $m" || bad "workflow 模型選項缺 $m"
+  done
+  for e in text-to-video image-to-video reference-to-video; do
+    grep -q "'$e'" "$WF" && ok "workflow 接口選項有 $e" || bad "workflow 接口選項缺 $e"
+  done
+  grep -q -- "--duration" "$WF"        && ok "workflow 會傳影片長度"   || bad "workflow 沒傳 --duration"
+  grep -q -- "--generate-audio" "$WF"  && ok "workflow 會傳音訊開關"   || bad "workflow 沒傳音訊開關"
+  grep -q '完成檔/\*.mp4' "$WF"        && ok "workflow artifact 收 mp4" || bad "workflow artifact 沒收 mp4"
+fi
+
 if [ "${1:-}" = "--live" ]; then
-  head_ "12. 真實 API 測試（會消耗額度）"
+  head_ "16. 真實 API 測試（會消耗額度）"
   if "$CLI" -m nano-banana-2 -p "a single red apple on a white table, studio lighting" -r 1K; then
     ok "成功呼叫 FAL 並存檔到「完成檔」"
     ls -t "$ROOT/完成檔"/*.png 2>/dev/null | head -1

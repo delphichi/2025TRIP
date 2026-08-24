@@ -76,9 +76,88 @@
 
 > `4:1`, `1:4`, `8:1`, `1:8` 這類超過 3:1 的極端比例只有 nano-banana-2 支援。
 
+
 ---
 
-## 3. 新增模型 / 接口
+## 3. 影片模型
+
+影片生成一律走佇列模式，通常要跑數分鐘；腳本會自動把等待上限拉到 30 分鐘（`--timeout` 可調）。
+回應格式為 `{ "video": { "url", "content_type", "file_size" } }`，腳本存成 `.mp4`。
+
+### 3-1 minimax-h3（MiniMax H3）
+
+| 接口 | Endpoint ID | 說明 |
+|------|-------------|------|
+| text-to-video | `minimax/h3/text-to-video` | 純文字生影片 |
+| image-to-video | `minimax/h3/image-to-video` | 首幀動畫化；給第二張圖時當尾幀（`end_image_url`），比例跟隨輸入圖 |
+| reference-to-video | `minimax/h3/reference-to-video` | 用參考圖控制角色 / 風格 |
+
+| 參數 | 型別 | 說明 |
+|------|------|------|
+| `prompt` | string | 必填 |
+| `aspect_ratio` | enum | `21:9`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16`（image-to-video 由輸入圖決定） |
+| `resolution` | enum | `2K`（目前唯一值，短邊約 1440px） |
+| `duration` | string | `5`–`15` 秒 |
+| `prompt_optimizer` | bool | 讓模型自己再優化提示詞 |
+| `image_url` / `end_image_url` | string | 首幀／尾幀（image-to-video） |
+| `image_urls` | string[] | 參考圖（reference-to-video） |
+
+### 3-2 seedance-2.0（ByteDance Seedance 2.0）
+
+| 接口 | Endpoint ID |
+|------|-------------|
+| text-to-video | `bytedance/seedance-2.0/text-to-video` |
+| fast-text-to-video | `bytedance/seedance-2.0/fast/text-to-video` |
+| image-to-video | `bytedance/seedance-2.0/image-to-video` |
+| fast-image-to-video | `bytedance/seedance-2.0/fast/image-to-video` |
+| reference-to-video | `bytedance/seedance-2.0/reference-to-video` |
+| fast-reference-to-video | `bytedance/seedance-2.0/fast/reference-to-video` |
+
+`fast` 版延遲低、費用低；標準版畫質優先。
+
+| 參數 | 型別 | 說明 |
+|------|------|------|
+| `prompt` | string | 必填 |
+| `aspect_ratio` | enum | `21:9`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16` |
+| `resolution` | enum | `480p`, `720p`（預設）, `1080p`（reference-to-video 可到 1080p） |
+| `duration` | string | `4`–`15` 秒，或 `auto` 由模型決定 |
+| `generate_audio` | bool | 原生音訊 |
+| `image_url` | string | 首幀（image-to-video） |
+| `image_urls` | string[] | 參考檔，最多 12 個（reference-to-video，可含圖片 / 影片 / 音訊） |
+
+### 3-3 kling-v3-pro（Kling Video v3 Pro）
+
+| 接口 | Endpoint ID |
+|------|-------------|
+| text-to-video | `fal-ai/kling-video/v3/pro/text-to-video` |
+| image-to-video | `fal-ai/kling-video/v3/pro/image-to-video` |
+
+| 參數 | 型別 | 說明 |
+|------|------|------|
+| `prompt` | string | 必填（或 `multi_prompt`，兩者擇一） |
+| `duration` | string | `3`–`15` 秒，預設 `5` |
+| `aspect_ratio` | enum | `16:9`, `9:16`, `1:1`（image-to-video 會被忽略，比例跟隨首幀） |
+| `generate_audio` | bool | 原生音訊，預設 `true`，支援中英文語音 |
+| `negative_prompt` | string | 不想出現的內容 |
+| `cfg_scale` | float | 貼合提示詞的程度，預設 `0.5` |
+| `image_url` | string | 首幀（image-to-video） |
+
+### 3-4 尚待實機確認的欄位
+
+以下是依官方文件整理、但尚未實際呼叫驗證過的部分，第一次跑若回 HTTP 422，
+先看錯誤訊息指出哪個欄位，再改 `scripts/fal_image.py` 的 `MODELS` 表：
+
+- reference-to-video 的參考圖欄位名（目前用 `image_urls`），三個模型都是。
+- minimax-h3 的尾幀欄位名（目前用 `end_image_url`）。
+- seedance-2.0 `duration` 是否接受 `auto` 字串。
+- 各模型 `duration` 是送字串還是數字（目前一律送字串）。
+
+改法：每個接口的 `image_field` / `end_image_field` / `supports` 都在 `MODELS` 表裡，改一個地方就好。
+臨時繞過也可以用 `--extra '{"欄位":"值"}'` 直接覆寫送出的參數。
+
+---
+
+## 4. 新增模型 / 接口
 
 編輯 `scripts/fal_image.py` 最上方的 `MODELS` 字典，例如：
 
@@ -101,7 +180,7 @@
 
 ---
 
-## 4. 常見錯誤
+## 5. 常見錯誤
 
 | 症狀 | 原因 / 解法 |
 |------|-------------|
@@ -110,3 +189,4 @@
 | `HTTP 429` | 速率限制 → 稍後重試或降低張數 |
 | 等待逾時 | 加大 `--timeout`，或改用 `--sync` |
 | 找不到參考圖 | 檔案要放在專案根目錄的「參考圖」資料夾內 |
+| 影片等待逾時 | 影片預設等 30 分鐘，可加大 `--timeout` |
