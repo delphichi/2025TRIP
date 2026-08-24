@@ -130,8 +130,48 @@ for facet in 主題 構圖 場景 風格 鏡頭; do
 done
 [ -f "$GUIDE" ] && ok "prompt-guide.md 存在" || bad "缺少 references/prompt-guide.md"
 
+head_ "10. 提示詞擴寫功能（--expand / --expand-only）"
+for flag in "--expand" "--expand-only" "--llm-model" "--prompt-file"; do
+  "$CLI" --help 2>/dev/null | grep -q -- "$flag" && ok "CLI 有 $flag" || bad "CLI 缺少 $flag"
+done
+printf 'a cat on a table' > /tmp/_selftest_prompt.txt
+expect_ok "--prompt-file 讀得到提示詞" "$CLI" --prompt-file /tmp/_selftest_prompt.txt --dry-run
+expect_fail "--prompt-file 檔案不存在會報錯" "$CLI" --prompt-file /tmp/_no_such_prompt.txt --dry-run
+rm -f /tmp/_selftest_prompt.txt
+
+python3 - <<'PYEOF'
+import os, sys
+sys.path.insert(0, os.environ["SCRIPT_DIR"])
+import fal_image as f
+cases = {
+    '{"english":"A cat","chinese":"一隻貓"}': {"english": "A cat", "chinese": "一隻貓"},
+    '```json\n{"english":"A cat","chinese":"一隻貓"}\n```': {"english": "A cat", "chinese": "一隻貓"},
+    'Sure!\n{"english":"A cat","chinese":"一隻貓"}\nDone.': {"english": "A cat", "chinese": "一隻貓"},
+    '{"english":"A cat"}': None,
+    'not json': None,
+    '': None,
+}
+for text, want in cases.items():
+    got = f.parse_llm_json(text)
+    assert got == want, f"parse_llm_json({text!r}) -> {got}, 應為 {want}"
+print("  ✅ LLM 回應解析：純 JSON / ```圍欄 / 前後雜訊 / 缺欄位 / 壞資料 全部正確")
+PYEOF
+[ $? -eq 0 ] && PASS=$((PASS+1)) || { bad "parse_llm_json 行為有誤"; }
+
+head_ "11. Workflow 模式設定"
+WF="$ROOT/.github/workflows/fal-image.yml"
+if [ -f "$WF" ]; then
+  for m in preview generate raw; do
+    grep -q "'$m'" "$WF" && ok "workflow 有 $m 模式" || bad "workflow 缺少 $m 模式"
+  done
+  grep -q -- "--expand-only" "$WF" && ok "workflow 會呼叫擴寫" || bad "workflow 沒有呼叫擴寫"
+  grep -q -- "--prompt-file /tmp/prompt.txt" "$WF" && ok "generate 會用擴寫後的提示詞" || bad "generate 沒有接上擴寫結果"
+else
+  bad "找不到 $WF"
+fi
+
 if [ "${1:-}" = "--live" ]; then
-  head_ "10. 真實 API 測試（會消耗額度）"
+  head_ "12. 真實 API 測試（會消耗額度）"
   if "$CLI" -m nano-banana-2 -p "a single red apple on a white table, studio lighting" -r 1K; then
     ok "成功呼叫 FAL 並存檔到「完成檔」"
     ls -t "$ROOT/完成檔"/*.png 2>/dev/null | head -1

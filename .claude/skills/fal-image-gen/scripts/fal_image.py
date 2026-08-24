@@ -197,7 +197,8 @@ def resolve_api_key(explicit_env: Path | None = None) -> str:
 
 
 def http_json(url: str, api_key: str, payload: dict | None = None,
-              method: str = "POST", timeout: int = 300) -> dict:
+              method: str = "POST", timeout: int = 300, soft: bool = False):
+    """soft=True 時失敗回傳 None（不中止），讓呼叫端可以換一個模型再試。"""
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     req = urllib.request.Request(url, data=data, method=method)
     req.add_header("Authorization", f"Key {api_key}")
@@ -209,6 +210,9 @@ def http_json(url: str, api_key: str, payload: dict | None = None,
             body = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", "replace")
+        if soft:
+            log(f"   （HTTP {exc.code}：{detail[:200]}）")
+            return None
         hint = ""
         if exc.code in (401, 403):
             hint = "\n   → 金鑰無效或沒有權限，請確認 .env 內的 FAL_KEY。"
@@ -216,6 +220,9 @@ def http_json(url: str, api_key: str, payload: dict | None = None,
             hint = "\n   → 參數不被此接口接受，請對照 references/endpoints.md。"
         die(f"FAL API 回傳 HTTP {exc.code}：{detail[:1500]}{hint}")
     except urllib.error.URLError as exc:
+        if soft:
+            log(f"   （連線失敗：{exc.reason}）")
+            return None
         die(f"無法連線到 FAL（{exc.reason}）。請檢查網路或 Proxy 設定。")
     return json.loads(body) if body else {}
 
@@ -310,6 +317,93 @@ def image_size_for(aspect: str, resolution: str) -> dict:
             break
         width, height = build(target)
     return {"width": int(width), "height": int(height)}
+
+
+# --------------------------------------------------------------------------
+# 提示詞擴寫（透過 FAL 自家的 any-llm 端點，用同一把 FAL_KEY）
+# --------------------------------------------------------------------------
+ANY_LLM_ENDPOINT = "fal-ai/any-llm"
+
+# 依序嘗試，第一個成功的就用；可用 --llm-model 指定
+LLM_CANDIDATES = [
+    "anthropic/claude-3.5-sonnet",
+    "openai/gpt-4o",
+    "google/gemini-pro-1.5",
+    "meta-llama/llama-3.2-3b-instruct",
+]
+
+EXPAND_SYSTEM_PROMPT = """You expand a short image idea into one production-ready prompt for a \
+text-to-image model, then translate it to Traditional Chinese (Taiwan).
+
+Cover all five facets, weaving them into ONE flowing paragraph (do not use headings or bullets):
+1. SUBJECT - the visual focus; facial expression, pose, emotion; clothing, props, accessories.
+2. COMPOSITION - subject scale and placement in frame; camera angle (close-up / medium / wide,
+   low / high / eye level); visual balance and negative space.
+3. SCENE - background environment; lighting (natural, backlit, neon, candlelight, fog...);
+   mood; atmospheric details (smoke, water droplets, dust motes, reflections...).
+4. STYLE - artistic style (photorealistic, watercolour, 3D render, minimalist, cyberpunk...);
+   colour palette; material texture.
+5. LENS - a concrete lens spec such as 85mm f/1.4 or 24mm f/8; depth of field.
+
+Rules:
+- Keep every detail the user explicitly asked for; never contradict or drop it.
+- Invent sensible specifics only for facets the user left open.
+- 60-120 words of English. Concrete nouns and numbers, never vague praise like "beautiful".
+- The model has no negative-prompt parameter, so state exclusions inline
+  (e.g. "no text, no watermark").
+- The Chinese translation must faithfully mirror the English, for the user to review.
+
+Reply with ONLY this JSON object and nothing else:
+{"english": "<the expanded English prompt>", "chinese": "<Traditional Chinese translation>"}"""
+
+
+def parse_llm_json(text: str) -> dict | None:
+    """從 LLM 回應中取出 {"english": ..., "chinese": ...}，容忍 ```json 圍欄與前後雜訊。"""
+    if not text:
+        return None
+    cleaned = re.sub(r"^\s*```(?:json)?|```\s*$", "", text.strip(), flags=re.MULTILINE).strip()
+    candidates = [cleaned]
+    start, end = cleaned.find("{"), cleaned.rfind("}")
+    if start != -1 and end > start:
+        candidates.append(cleaned[start:end + 1])
+    for candidate in candidates:
+        try:
+            data = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            english = str(data.get("english", "")).strip()
+            chinese = str(data.get("chinese", "")).strip()
+            if english and chinese:
+                return {"english": english, "chinese": chinese}
+    return None
+
+
+def expand_prompt(raw_prompt: str, api_key: str, llm_model: str | None = None,
+                  context: str = "") -> dict:
+    """把使用者的簡短想法擴寫成完整英文提示詞 + 中文翻譯。"""
+    models = [llm_model] if llm_model else LLM_CANDIDATES
+    user_msg = raw_prompt if not context else f"{raw_prompt}\n\n(Context: {context})"
+
+    for model in models:
+        log(f"→ 擴寫提示詞（{ANY_LLM_ENDPOINT} / {model}）")
+        result = http_json(
+            f"{SYNC_BASE}/{ANY_LLM_ENDPOINT}", api_key,
+            {"model": model, "prompt": user_msg, "system_prompt": EXPAND_SYSTEM_PROMPT},
+            timeout=240, soft=True,
+        )
+        if not result:
+            continue
+        text = result.get("output") or result.get("text") or result.get("response") or ""
+        parsed = parse_llm_json(text)
+        if parsed:
+            parsed["llm_model"] = model
+            return parsed
+        log("   （回應不是預期的 JSON，換下一個模型）")
+
+    die("提示詞擴寫失敗：所有候選 LLM 模型都無法使用。\n"
+        "   可用 --llm-model 指定一個 FAL any-llm 支援的模型，\n"
+        "   或改用不擴寫的方式（不要加 --expand / --expand-only）直接送出原提示詞。")
 
 
 # --------------------------------------------------------------------------
@@ -501,6 +595,8 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--prompt", "-p", help="提示詞")
+    parser.add_argument("--prompt-file", default=None,
+                        help="從檔案讀提示詞（優先於 --prompt，避免長文字的引號問題）")
     parser.add_argument("--model", "-m", default="nano-banana-2",
                         help="模型：nano-banana-2 或 gpt-image-2（預設 nano-banana-2）")
     parser.add_argument("--endpoint", "-e", default=None,
@@ -518,6 +614,12 @@ def main() -> None:
     parser.add_argument("--ref-all", action="store_true",
                         help=f"使用「{REF_DIR_NAME}」資料夾內的所有圖片")
     parser.add_argument("--mask", default=None, help="遮罩圖（gpt-image-2 edit 專用）")
+    parser.add_argument("--expand", action="store_true",
+                        help="先用 AI 把提示詞擴寫成完整版（主題/構圖/場景/風格/鏡頭）再生成")
+    parser.add_argument("--expand-only", action="store_true",
+                        help="只擴寫並輸出英文+中文，不生成圖片（給人確認用）")
+    parser.add_argument("--llm-model", default=None,
+                        help="擴寫用的 LLM（預設自動挑一個可用的 FAL any-llm 模型）")
     parser.add_argument("--seed", type=int, default=None, help="隨機種子")
     parser.add_argument("--output-format", default="png", help="輸出格式，預設 png")
     parser.add_argument("--output-dir", default=None,
@@ -536,8 +638,13 @@ def main() -> None:
     if args.list_models:
         print_models()
         return
+    if args.prompt_file:
+        path = Path(args.prompt_file).expanduser()
+        if not path.is_file():
+            die(f"找不到提示詞檔案：{path}")
+        args.prompt = path.read_text(encoding="utf-8").strip()
     if not args.prompt:
-        parser.error("需要 --prompt")
+        parser.error("需要 --prompt 或 --prompt-file")
 
     model_key = normalize_model(args.model)
     ref_dir = Path(args.ref_dir).expanduser() if args.ref_dir else PROJECT_ROOT / REF_DIR_NAME
@@ -552,6 +659,35 @@ def main() -> None:
 
     if args.num_images < 1:
         die("--num-images 至少要 1")
+
+    expanded = None
+    if args.expand or args.expand_only:
+        api_key = resolve_api_key(Path(args.env_file).expanduser() if args.env_file else None)
+        context = (f"target aspect ratio {args.aspect_ratio}, "
+                   f"{'image editing task' if endpoint['kind'] == 'edit' else 'text-to-image'}")
+        expanded = expand_prompt(args.prompt, api_key, args.llm_model, context)
+        log("")
+        log("──────── English prompt（送給模型的版本）────────")
+        log(expanded["english"])
+        log("")
+        log("──────── 中文翻譯（給你確認用）────────")
+        log(expanded["chinese"])
+        log("")
+        args.prompt = expanded["english"]
+
+        if args.expand_only:
+            print(json.dumps({
+                "english": expanded["english"],
+                "chinese": expanded["chinese"],
+                "llm_model": expanded["llm_model"],
+                "model": model_key,
+                "endpoint": endpoint_key,
+                "aspect_ratio": args.aspect_ratio,
+                "num_images": args.num_images,
+                "resolution": args.resolution,
+            }, ensure_ascii=False, indent=2))
+            log("（--expand-only：只擴寫，未生成圖片）")
+            return
 
     payload = build_payload(model_key, endpoint_key, args, ref_paths)
 
