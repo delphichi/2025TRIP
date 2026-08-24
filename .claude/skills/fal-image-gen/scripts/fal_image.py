@@ -60,6 +60,7 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".heic", ".heif"
 # --------------------------------------------------------------------------
 MODELS = {
     "nano-banana-2": {
+        "media": "image",
         "file_slug": "nano-banana-2",
         "endpoints": {
             # 接口名稱: {id: FAL endpoint id, kind: text-to-image / edit}
@@ -81,6 +82,7 @@ MODELS = {
         "resolutions": ["1K", "2K", "4K"],
     },
     "gpt-image-2": {
+        "media": "image",
         "file_slug": "gpt-image-2",
         "endpoints": {
             "text-to-image": {
@@ -102,6 +104,113 @@ MODELS = {
         "resolutions": ["1K", "2K", "4K"],
         "qualities": ["low", "medium", "high"],
     },
+
+    # ---------------- 影片模型 ----------------
+    "minimax-h3": {
+        "media": "video",
+        "file_slug": "minimax-h3",
+        "endpoints": {
+            "text-to-video": {
+                "id": "minimax/h3/text-to-video",
+                "kind": "text-to-video",
+                "supports": ["aspect_ratio", "duration", "resolution", "prompt_optimizer"],
+            },
+            "image-to-video": {
+                "id": "minimax/h3/image-to-video",
+                "kind": "image-to-video",
+                "image_field": "image_url",          # 首幀；第二張參考圖會放進 end_image_url
+                "end_image_field": "end_image_url",  # 尾幀（可選）
+                "max_refs": 2,
+                "supports": ["duration", "resolution", "prompt_optimizer", "image_url"],
+            },
+            "reference-to-video": {
+                "id": "minimax/h3/reference-to-video",
+                "kind": "reference-to-video",
+                "image_field": "image_urls",
+                "max_refs": 4,
+                "supports": ["aspect_ratio", "duration", "resolution",
+                             "prompt_optimizer", "image_urls"],
+            },
+        },
+        "aspect_ratios": ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+        "resolutions": ["2K"],
+        "default_resolution": "2K",
+        "durations": [str(n) for n in range(5, 16)],
+    },
+    "seedance-2.0": {
+        "media": "video",
+        "file_slug": "seedance-2.0",
+        "endpoints": {
+            "text-to-video": {
+                "id": "bytedance/seedance-2.0/text-to-video",
+                "kind": "text-to-video",
+                "supports": ["aspect_ratio", "duration", "resolution", "generate_audio"],
+            },
+            "fast-text-to-video": {
+                "id": "bytedance/seedance-2.0/fast/text-to-video",
+                "kind": "text-to-video",
+                "supports": ["aspect_ratio", "duration", "resolution", "generate_audio"],
+            },
+            "image-to-video": {
+                "id": "bytedance/seedance-2.0/image-to-video",
+                "kind": "image-to-video",
+                "image_field": "image_url",
+                "max_refs": 1,
+                "supports": ["duration", "resolution", "generate_audio", "image_url"],
+            },
+            "fast-image-to-video": {
+                "id": "bytedance/seedance-2.0/fast/image-to-video",
+                "kind": "image-to-video",
+                "image_field": "image_url",
+                "max_refs": 1,
+                "supports": ["duration", "resolution", "generate_audio", "image_url"],
+            },
+            "reference-to-video": {
+                "id": "bytedance/seedance-2.0/reference-to-video",
+                "kind": "reference-to-video",
+                "image_field": "image_urls",
+                "max_refs": 12,
+                "supports": ["aspect_ratio", "duration", "resolution",
+                             "generate_audio", "image_urls"],
+            },
+            "fast-reference-to-video": {
+                "id": "bytedance/seedance-2.0/fast/reference-to-video",
+                "kind": "reference-to-video",
+                "image_field": "image_urls",
+                "max_refs": 12,
+                "supports": ["aspect_ratio", "duration", "resolution",
+                             "generate_audio", "image_urls"],
+            },
+        },
+        "aspect_ratios": ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+        "resolutions": ["480p", "720p", "1080p"],
+        "default_resolution": "720p",
+        "durations": ["auto"] + [str(n) for n in range(4, 16)],
+    },
+    "kling-v3-pro": {
+        "media": "video",
+        "file_slug": "kling-v3-pro",
+        "endpoints": {
+            "text-to-video": {
+                "id": "fal-ai/kling-video/v3/pro/text-to-video",
+                "kind": "text-to-video",
+                "supports": ["aspect_ratio", "duration", "generate_audio",
+                             "negative_prompt", "cfg_scale"],
+            },
+            "image-to-video": {
+                "id": "fal-ai/kling-video/v3/pro/image-to-video",
+                "kind": "image-to-video",
+                "image_field": "image_url",
+                "max_refs": 1,
+                # 比例由首幀決定，送 aspect_ratio 也會被忽略
+                "supports": ["duration", "generate_audio", "negative_prompt",
+                             "cfg_scale", "image_url"],
+            },
+        },
+        "aspect_ratios": ["16:9", "9:16", "1:1"],
+        "resolutions": [],
+        "durations": [str(n) for n in range(3, 16)],
+    },
 }
 
 # 常見別名，方便使用者/Claude 直接用官方 endpoint id 呼叫
@@ -114,6 +223,20 @@ MODEL_ALIASES = {
     "gpt_image_2": "gpt-image-2",
     "gptimage2": "gpt-image-2",
     "gpt-image": "gpt-image-2",
+    # 影片
+    "minimax/h3": "minimax-h3",
+    "minimax-h3": "minimax-h3",
+    "minimax": "minimax-h3",
+    "h3": "minimax-h3",
+    "hailuo": "minimax-h3",
+    "bytedance/seedance-2.0": "seedance-2.0",
+    "seedance": "seedance-2.0",
+    "seedance-2": "seedance-2.0",
+    "seedance2": "seedance-2.0",
+    "fal-ai/kling-video/v3/pro": "kling-v3-pro",
+    "kling": "kling-v3-pro",
+    "kling-v3": "kling-v3-pro",
+    "kling-video-v3-pro": "kling-v3-pro",
 }
 
 ENDPOINT_ALIASES = {
@@ -125,6 +248,18 @@ ENDPOINT_ALIASES = {
     "i2i": "edit",
     "img2img": "edit",
     "editing": "edit",
+    # 影片
+    "t2v": "text-to-video",
+    "text2video": "text-to-video",
+    "i2v": "image-to-video",
+    "image2video": "image-to-video",
+    "img2video": "image-to-video",
+    "ref": "reference-to-video",
+    "reference": "reference-to-video",
+    "r2v": "reference-to-video",
+    "fast": "fast-text-to-video",
+    "fast-t2v": "fast-text-to-video",
+    "fast-i2v": "fast-image-to-video",
 }
 
 # gpt-image-2 的像素預算（total pixels 需介於 655,360 ~ 8,294,400）
@@ -357,6 +492,34 @@ Reply with ONLY this JSON object and nothing else:
 {"english": "<the expanded English prompt>", "chinese": "<Traditional Chinese translation>"}"""
 
 
+EXPAND_SYSTEM_PROMPT_VIDEO = """You expand a short video idea into one production-ready prompt for a \
+text-to-video model, then translate it to Traditional Chinese (Taiwan).
+
+Cover all of these, woven into ONE flowing paragraph (no headings, no shot list, no timestamps):
+1. SUBJECT & PERFORMANCE - who or what is on screen; how the pose, gesture and facial expression
+   CHANGE over the clip (e.g. "her guarded frown softens into a half-smile as she looks up").
+   Motion is the point: describe what moves, in what order, at what speed.
+2. ENVIRONMENT IN MOTION - the setting plus its moving elements: drifting steam, swaying branches,
+   passing traffic, rain streaking a window, crowd movement, shifting light and shadow.
+3. CAMERA WORK - a concrete camera move (slow dolly in, orbit around the subject, handheld follow,
+   crane down, static locked-off tripod, whip pan) plus shot size and angle, and how framing
+   changes as the move progresses.
+4. LIGHT & MOOD - lighting setup, colour palette, atmosphere, and any change in them over time.
+5. STYLE - overall look (cinematic live action, anime, stop-motion, documentary handheld, 3D render),
+   film stock or lens character, depth of field.
+
+Rules:
+- Keep every detail the user explicitly asked for; never contradict or drop it.
+- Invent sensible specifics only for what the user left open.
+- 70-140 words of English. Concrete, filmable actions - never vague praise like "stunning".
+- Describe ONE continuous shot unless the user asked for multiple shots.
+- Do not write camera-direction abbreviations or scene numbers; write it as flowing description.
+- The Chinese translation must faithfully mirror the English, for the user to review.
+
+Reply with ONLY this JSON object and nothing else:
+{"english": "<the expanded English prompt>", "chinese": "<Traditional Chinese translation>"}"""
+
+
 def parse_llm_json(text: str) -> dict | None:
     """從 LLM 回應中取出 {"english": ..., "chinese": ...}，容忍 ```json 圍欄與前後雜訊。"""
     if not text:
@@ -380,16 +543,17 @@ def parse_llm_json(text: str) -> dict | None:
 
 
 def expand_prompt(raw_prompt: str, api_key: str, llm_model: str | None = None,
-                  context: str = "") -> dict:
+                  context: str = "", media: str = "image") -> dict:
     """把使用者的簡短想法擴寫成完整英文提示詞 + 中文翻譯。"""
     models = [llm_model] if llm_model else LLM_CANDIDATES
+    system = EXPAND_SYSTEM_PROMPT_VIDEO if media == "video" else EXPAND_SYSTEM_PROMPT
     user_msg = raw_prompt if not context else f"{raw_prompt}\n\n(Context: {context})"
 
     for model in models:
         log(f"→ 擴寫提示詞（{ANY_LLM_ENDPOINT} / {model}）")
         result = http_json(
             f"{SYNC_BASE}/{ANY_LLM_ENDPOINT}", api_key,
-            {"model": model, "prompt": user_msg, "system_prompt": EXPAND_SYSTEM_PROMPT},
+            {"model": model, "prompt": user_msg, "system_prompt": system},
             timeout=240, soft=True,
         )
         if not result:
@@ -423,36 +587,71 @@ def build_payload(model_key: str, endpoint_key: str, args, ref_paths: list) -> d
 
     if "aspect_ratio" in supports:
         if args.aspect_ratio not in model["aspect_ratios"]:
-            die(f"{model_key} 不支援長寬比 {args.aspect_ratio}。"
-                f"可用：{', '.join(model['aspect_ratios'])}")
+            if model["media"] == "image":
+                die(f"{model_key} 不支援長寬比 {args.aspect_ratio}。"
+                    f"可用：{', '.join(model['aspect_ratios'])}")
+            log(f"⚠️  {model_key} 的已知長寬比為 {', '.join(model['aspect_ratios'])}，"
+                f"仍照你指定的 {args.aspect_ratio} 送出。")
         payload["aspect_ratio"] = args.aspect_ratio
-    if "resolution" in supports:
-        payload["resolution"] = args.resolution.upper()
+    if "resolution" in supports and args.resolution:
+        # 影片解析度是 720p / 2K 這種寫法，圖片是 1K / 2K / 4K
+        payload["resolution"] = (args.resolution if model["media"] == "video"
+                                 else args.resolution.upper())
 
     if "image_size" in supports:
         if args.aspect_ratio == "auto":
             payload["image_size"] = "auto"
         else:
-            payload["image_size"] = image_size_for(args.aspect_ratio, args.resolution)
+            payload["image_size"] = image_size_for(args.aspect_ratio, args.resolution or "1K")
+
+    if "duration" in supports:
+        duration = str(args.duration) if args.duration is not None else None
+        if duration:
+            known = model.get("durations", [])
+            if known and duration not in known:
+                log(f"⚠️  {model_key} 的已知長度為 {', '.join(known)} 秒，"
+                    f"仍照你指定的 {duration} 送出。")
+            payload["duration"] = duration
+    if "generate_audio" in supports and args.generate_audio is not None:
+        payload["generate_audio"] = args.generate_audio
+    if "negative_prompt" in supports and args.negative_prompt:
+        payload["negative_prompt"] = args.negative_prompt
+    if "cfg_scale" in supports and args.cfg_scale is not None:
+        payload["cfg_scale"] = args.cfg_scale
+    if "prompt_optimizer" in supports and args.prompt_optimizer is not None:
+        payload["prompt_optimizer"] = args.prompt_optimizer
 
     if "quality" in supports:
         payload["quality"] = args.quality
     if "input_fidelity" in supports and args.input_fidelity:
         payload["input_fidelity"] = args.input_fidelity
 
-    if endpoint["kind"] == "edit":
+    needs_refs = endpoint["kind"] in ("edit", "image-to-video", "reference-to-video")
+    if needs_refs:
         if not ref_paths:
             die(f"接口 {endpoint['id']} 需要參考圖。"
                 f"請用 --ref <檔名>（放在「{REF_DIR_NAME}」資料夾）或 --ref-all。")
         max_refs = endpoint.get("max_refs", 8)
         if len(ref_paths) > max_refs:
             die(f"{endpoint['id']} 最多接受 {max_refs} 張參考圖，收到 {len(ref_paths)} 張。")
-        payload["image_urls"] = [to_data_uri(p) for p in ref_paths]
+
+        field = endpoint.get("image_field", "image_urls")
+        if field == "image_url":
+            payload["image_url"] = to_data_uri(ref_paths[0])
+            end_field = endpoint.get("end_image_field")
+            if len(ref_paths) > 1 and end_field:
+                payload[end_field] = to_data_uri(ref_paths[1])   # 尾幀
+            elif len(ref_paths) > 1:
+                log(f"⚠️  {endpoint['id']} 只吃一張圖，忽略其餘 {len(ref_paths) - 1} 張。")
+        else:
+            payload[field] = [to_data_uri(p) for p in ref_paths]
+
         if getattr(args, "mask", None) and "mask_url" in supports:
             payload["mask_url"] = to_data_uri(Path(args.mask).expanduser())
     elif ref_paths:
-        log(f"⚠️  接口 {endpoint['id']} 是文生圖，忽略 {len(ref_paths)} 張參考圖"
-            f"（要用參考圖請加 --endpoint edit）。")
+        hint = "--endpoint edit" if model["media"] == "image" else "--endpoint image-to-video"
+        log(f"⚠️  接口 {endpoint['id']} 不吃參考圖，忽略 {len(ref_paths)} 張"
+            f"（要用參考圖請加 {hint}）。")
 
     if args.seed is not None:
         payload["seed"] = args.seed
@@ -469,6 +668,9 @@ def redact(payload: dict) -> dict:
     clone = dict(payload)
     if "image_urls" in clone:
         clone["image_urls"] = [f"<data-uri {len(u)} bytes>" for u in clone["image_urls"]]
+    for key in ("image_url", "end_image_url"):
+        if key in clone:
+            clone[key] = f"<data-uri {len(clone[key])} bytes>"
     if "mask_url" in clone:
         clone["mask_url"] = f"<data-uri {len(clone['mask_url'])} bytes>"
     return clone
@@ -513,15 +715,26 @@ def call_fal(endpoint_id: str, payload: dict, api_key: str,
 # --------------------------------------------------------------------------
 # 儲存結果
 # --------------------------------------------------------------------------
-def extract_images(result: dict) -> list:
-    images = result.get("images")
-    if not images and isinstance(result.get("image"), dict):
-        images = [result["image"]]
-    if not images and isinstance(result.get("data"), dict):
-        return extract_images(result["data"])
-    if not images:
+def extract_media(result: dict, media: str) -> list:
+    """從回應取出圖片或影片清單。"""
+    if media == "video":
+        items = result.get("videos")
+        if not items and isinstance(result.get("video"), dict):
+            items = [result["video"]]
+        if not items and isinstance(result.get("data"), dict):
+            return extract_media(result["data"], media)
+        if not items:
+            die(f"回應中找不到影片：{json.dumps(result, ensure_ascii=False)[:1200]}")
+        return items
+
+    items = result.get("images")
+    if not items and isinstance(result.get("image"), dict):
+        items = [result["image"]]
+    if not items and isinstance(result.get("data"), dict):
+        return extract_media(result["data"], media)
+    if not items:
         die(f"回應中找不到圖片：{json.dumps(result, ensure_ascii=False)[:1200]}")
-    return images
+    return items
 
 
 def download(url: str, timeout: int = 180) -> bytes:
@@ -533,17 +746,27 @@ def download(url: str, timeout: int = 180) -> bytes:
         return resp.read()
 
 
-def save_images(images: list, model_key: str, out_dir: Path, ext: str) -> list:
+CONTENT_TYPE_EXT = {
+    "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov",
+    "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
+}
+
+
+def save_images(items: list, model_key: str, out_dir: Path, ext: str) -> list:
+    """存檔為「完成檔/模型名稱-年月日-時分.<副檔名>」。"""
     out_dir.mkdir(parents=True, exist_ok=True)
     slug = MODELS[model_key]["file_slug"]
     stamp = datetime.now().strftime("%Y%m%d-%H%M")   # 年月日-時分
     saved = []
-    multiple = len(images) > 1
-    for idx, image in enumerate(images, start=1):
+    multiple = len(items) > 1
+    for idx, image in enumerate(items, start=1):
         url = image.get("url") if isinstance(image, dict) else str(image)
         if not url:
-            log(f"⚠️  第 {idx} 張圖片沒有 url，略過。")
+            log(f"⚠️  第 {idx} 個檔案沒有 url，略過。")
             continue
+        if isinstance(image, dict):
+            ctype = (image.get("content_type") or "").split(";")[0].strip()
+            ext = CONTENT_TYPE_EXT.get(ctype, ext)
         base = f"{slug}-{stamp}"
         name = f"{base}-{idx:02d}.{ext}" if multiple else f"{base}.{ext}"
         path = out_dir / name
@@ -569,6 +792,20 @@ def normalize_model(name: str) -> str:
     return key
 
 
+def default_endpoint(model_key: str, ref_paths: list) -> str:
+    """沒指定 --endpoint 時，依模型類型與有沒有參考圖挑一個。"""
+    endpoints = MODELS[model_key]["endpoints"]
+    if MODELS[model_key]["media"] == "video":
+        if not ref_paths:
+            return "text-to-video"
+        if len(ref_paths) == 1 and "image-to-video" in endpoints:
+            return "image-to-video"
+        if "reference-to-video" in endpoints:
+            return "reference-to-video"
+        return "image-to-video"
+    return "edit" if ref_paths else "text-to-image"
+
+
 def normalize_endpoint(model_key: str, name: str) -> str:
     key = name.strip().lower()
     key = ENDPOINT_ALIASES.get(key, key)
@@ -579,14 +816,26 @@ def normalize_endpoint(model_key: str, name: str) -> str:
 
 
 def print_models() -> None:
-    for model_key, model in MODELS.items():
+    for media, title in (("image", "圖片模型"), ("video", "影片模型")):
+        print(f"\n════════ {title} ════════")
+        for model_key, model in MODELS.items():
+            if model["media"] != media:
+                continue
+            print_one_model(model_key, model)
+    print()
+
+
+def print_one_model(model_key: str, model: dict) -> None:
+    if True:
         print(f"\n■ {model_key}")
         for ep_key, ep in model["endpoints"].items():
             print(f"   - {ep_key:<14} → {ep['id']}  ({ep['kind']})")
             print(f"     參數：{', '.join(ep['supports'])}")
         print(f"   長寬比：{', '.join(model['aspect_ratios'])}")
-        print(f"   解析度：{', '.join(model['resolutions'])}")
-    print()
+        if model.get("resolutions"):
+            print(f"   解析度：{', '.join(model['resolutions'])}")
+        if model.get("durations"):
+            print(f"   長度（秒）：{', '.join(model['durations'])}")
 
 
 def main() -> None:
@@ -604,7 +853,25 @@ def main() -> None:
     parser.add_argument("--aspect-ratio", "-a", default="16:9",
                         help="長寬比，預設 16:9；edit 想保留原圖比例可用 auto")
     parser.add_argument("--num-images", "-n", type=int, default=1, help="生成張數，預設 1")
-    parser.add_argument("--resolution", "-r", default="1K", help="解析度：1K / 2K / 4K")
+    parser.add_argument("--resolution", "-r", default=None,
+                        help="解析度。圖片：1K / 2K / 4K（預設 1K）；"
+                             "影片：依模型而定（seedance 480p/720p/1080p、minimax-h3 2K）")
+    parser.add_argument("--duration", "-d", default=None,
+                        help="影片長度（秒）。kling 3-15、minimax-h3 5-15、seedance 4-15 或 auto")
+    parser.add_argument("--generate-audio", dest="generate_audio",
+                        action="store_true", default=None,
+                        help="影片生成原生音訊（seedance / kling 支援）")
+    parser.add_argument("--no-audio", dest="generate_audio", action="store_false",
+                        help="影片不要音訊")
+    parser.add_argument("--negative-prompt", default=None,
+                        help="負面提示詞（kling 支援）")
+    parser.add_argument("--cfg-scale", type=float, default=None,
+                        help="貼合提示詞的程度（kling，預設 0.5）")
+    parser.add_argument("--prompt-optimizer", dest="prompt_optimizer",
+                        action="store_true", default=None,
+                        help="讓 minimax-h3 自動優化提示詞")
+    parser.add_argument("--no-prompt-optimizer", dest="prompt_optimizer",
+                        action="store_false", help="關閉 minimax-h3 的提示詞優化")
     parser.add_argument("--quality", default="high",
                         help="gpt-image-2 專用：low / medium / high（預設 high）")
     parser.add_argument("--input-fidelity", default=None,
@@ -653,9 +920,17 @@ def main() -> None:
     ref_paths = collect_all_refs(ref_dir) if args.ref_all else \
         [resolve_ref(r, ref_dir) for r in args.ref]
 
-    endpoint_key = normalize_endpoint(model_key, args.endpoint) if args.endpoint else \
-        ("edit" if ref_paths else "text-to-image")
+    endpoint_key = (normalize_endpoint(model_key, args.endpoint) if args.endpoint
+                    else default_endpoint(model_key, ref_paths))
     endpoint = MODELS[model_key]["endpoints"][endpoint_key]
+    media = MODELS[model_key]["media"]
+
+    # 解析度預設值依模型而定；影片通常要跑幾分鐘，等待時間拉長
+    if args.resolution is None:
+        args.resolution = MODELS[model_key].get("default_resolution",
+                                                "1K" if media == "image" else None)
+    if media == "video" and args.timeout == 900:
+        args.timeout = 1800
 
     if args.num_images < 1:
         die("--num-images 至少要 1")
@@ -663,9 +938,11 @@ def main() -> None:
     expanded = None
     if args.expand or args.expand_only:
         api_key = resolve_api_key(Path(args.env_file).expanduser() if args.env_file else None)
-        context = (f"target aspect ratio {args.aspect_ratio}, "
-                   f"{'image editing task' if endpoint['kind'] == 'edit' else 'text-to-image'}")
-        expanded = expand_prompt(args.prompt, api_key, args.llm_model, context)
+        bits = [f"target aspect ratio {args.aspect_ratio}", f"endpoint {endpoint['kind']}"]
+        if media == "video" and args.duration:
+            bits.append(f"clip length {args.duration} seconds")
+        context = ", ".join(bits)
+        expanded = expand_prompt(args.prompt, api_key, args.llm_model, context, media)
         log("")
         log("──────── English prompt（送給模型的版本）────────")
         log(expanded["english"])
@@ -703,7 +980,9 @@ def main() -> None:
     api_key = resolve_api_key(Path(args.env_file).expanduser() if args.env_file else None)
     result = call_fal(endpoint["id"], payload, api_key,
                       sync=args.sync, max_wait=args.timeout)
-    saved = save_images(extract_images(result), model_key, out_dir, args.output_format)
+    media = MODELS[model_key]["media"]
+    default_ext = "mp4" if media == "video" else args.output_format
+    saved = save_images(extract_media(result, media), model_key, out_dir, default_ext)
 
     if result.get("description"):
         log(f"模型說明：{result['description']}")
