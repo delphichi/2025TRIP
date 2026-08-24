@@ -229,8 +229,21 @@ print(f"  影片檔名 {p.name}；content_type 可覆寫副檔名；video/image 
 PYEOF
 [ $? -eq 0 ] && ok "影片存檔為 .mp4、檔名格式正確" || bad "影片存檔規則有誤"
 
+head_ "15. Workflow 影片支援"
+if [ -f "$WF" ]; then
+  for m in minimax-h3 seedance-2.0 kling-v3-pro; do
+    grep -q "'$m'" "$WF" && ok "workflow 模型選項有 $m" || bad "workflow 模型選項缺 $m"
+  done
+  for e in text-to-video image-to-video reference-to-video; do
+    grep -q "'$e'" "$WF" && ok "workflow 接口選項有 $e" || bad "workflow 接口選項缺 $e"
+  done
+  grep -q -- "--duration" "$WF"        && ok "workflow 會傳影片長度"   || bad "workflow 沒傳 --duration"
+  grep -q -- "--generate-audio" "$WF"  && ok "workflow 會傳音訊開關"   || bad "workflow 沒傳音訊開關"
+  grep -q '完成檔/\*.mp4' "$WF"        && ok "workflow artifact 收 mp4" || bad "workflow artifact 沒收 mp4"
+fi
+
 if [ "${1:-}" = "--live" ]; then
-  head_ "15. 真實 API 測試（會消耗額度）"
+  head_ "16. 真實 API 測試（會消耗額度）"
   if "$CLI" -m nano-banana-2 -p "a single red apple on a white table, studio lighting" -r 1K; then
     ok "成功呼叫 FAL 並存檔到「完成檔」"
     ls -t "$ROOT/完成檔"/*.png 2>/dev/null | head -1

@@ -1,7 +1,8 @@
 name: fal-image
 
-# 目的：直接在 GitHub 上用 FAL AI 生成 / 編輯圖片
-# 產出：完成檔/<模型名稱>-<年月日>-<時分>.png（同時上傳成 artifact，可選擇是否 commit 回 repo）
+# 目的：直接在 GitHub 上用 FAL AI 生成 / 編輯圖片，或生成影片
+# 產出：完成檔/<模型名稱>-<年月日>-<時分>.png 或 .mp4
+#       （同時上傳成 artifact，可選擇是否 commit 回 repo）
 #
 # 三種模式（mode）：
 #   preview （預設）只把你的主題擴寫成完整提示詞，英文 + 中文印在執行摘要頁，不生圖、不花圖片額度
@@ -31,15 +32,29 @@ on:
         default: 'preview'
         options: ['preview', 'generate', 'raw']
       model:
-        description: '模型'
+        description: '模型（前兩個是圖片，後三個是影片）'
         type: choice
         default: 'nano-banana-2'
-        options: ['nano-banana-2', 'gpt-image-2']
+        options:
+          - 'nano-banana-2'
+          - 'gpt-image-2'
+          - 'minimax-h3'
+          - 'seedance-2.0'
+          - 'kling-v3-pro' 
       endpoint:
-        description: '接口（auto = 有參考圖就用 edit，否則 text-to-image）'
+        description: '接口（auto = 依模型與有無參考圖自動判斷）'
         type: choice
         default: 'auto'
-        options: ['auto', 'text-to-image', 'edit']
+        options:
+          - 'auto'
+          - 'text-to-image'
+          - 'edit'
+          - 'text-to-video'
+          - 'image-to-video'
+          - 'reference-to-video'
+          - 'fast-text-to-video'
+          - 'fast-image-to-video'
+          - 'fast-reference-to-video' 
       aspect_ratio:
         description: '長寬比（預設 16:9；edit 想保留原圖比例填 auto）'
         type: string
@@ -49,10 +64,19 @@ on:
         type: string
         default: '1'
       resolution:
-        description: '解析度'
+        description: '解析度（auto = 用該模型的預設。圖片 1K/2K/4K；影片 seedance 480p/720p/1080p、minimax-h3 只有 2K、kling 無此參數）'
         type: choice
-        default: '1K'
-        options: ['1K', '2K', '4K']
+        default: 'auto'
+        options: ['auto', '1K', '2K', '4K', '480p', '720p', '1080p']
+      duration:
+        description: '影片長度（秒）— 只有影片模型會用到。留空 = 用模型預設。minimax-h3 5-15／seedance 4-15 或 auto／kling 3-15'
+        type: string
+        default: ''
+      audio:
+        description: '影片原生音訊（seedance / kling 支援）'
+        type: choice
+        default: 'default'
+        options: ['default', 'on', 'off']
       refs:
         description: '參考圖檔名，多張用空白分隔；填 all 代表整個「參考圖」資料夾；留空代表不用參考圖'
         type: string
@@ -101,14 +125,16 @@ jobs:
           ASPECT_RATIO: ${{ inputs.aspect_ratio }}
           NUM_IMAGES:   ${{ inputs.num_images }}
           RESOLUTION:   ${{ inputs.resolution }}
+          DURATION:     ${{ inputs.duration }}
         run: |
           set -o pipefail
           ARGS=(--model "$MODEL" --prompt "$PROMPT"
                 --aspect-ratio "$ASPECT_RATIO"
                 --num-images "$NUM_IMAGES"
-                --resolution "$RESOLUTION"
                 --expand-only)
-          if [ "$ENDPOINT" != "auto" ]; then ARGS+=(--endpoint "$ENDPOINT"); fi
+          if [ "$ENDPOINT" != "auto" ];   then ARGS+=(--endpoint "$ENDPOINT"); fi
+          if [ "$RESOLUTION" != "auto" ]; then ARGS+=(--resolution "$RESOLUTION"); fi
+          if [ -n "$DURATION" ];          then ARGS+=(--duration "$DURATION"); fi
           python3 .claude/skills/fal-image-gen/scripts/fal_image.py "${ARGS[@]}" > /tmp/expanded.json
           python3 -c "
           import json
@@ -128,6 +154,8 @@ jobs:
           ASPECT_RATIO: ${{ inputs.aspect_ratio }}
           NUM_IMAGES:   ${{ inputs.num_images }}
           RESOLUTION:   ${{ inputs.resolution }}
+          DURATION:     ${{ inputs.duration }}
+          AUDIO:        ${{ inputs.audio }}
           REFS:         ${{ inputs.refs }}
           QUALITY:      ${{ inputs.quality }}
         run: |
@@ -140,12 +168,18 @@ jobs:
             echo "使用原始提示詞（raw 模式）"
             ARGS=(--model "$MODEL" --prompt "$PROMPT")
           fi
-          ARGS+=(--aspect-ratio "$ASPECT_RATIO"
-                 --num-images "$NUM_IMAGES"
-                 --resolution "$RESOLUTION")
+          ARGS+=(--aspect-ratio "$ASPECT_RATIO" --num-images "$NUM_IMAGES")
 
-          if [ "$ENDPOINT" != "auto" ]; then ARGS+=(--endpoint "$ENDPOINT"); fi
+          if [ "$RESOLUTION" != "auto" ]; then ARGS+=(--resolution "$RESOLUTION"); fi
+          if [ "$ENDPOINT" != "auto" ];   then ARGS+=(--endpoint "$ENDPOINT"); fi
           if [ "$MODEL" = "gpt-image-2" ]; then ARGS+=(--quality "$QUALITY"); fi
+
+          # 影片專用
+          if [ -n "$DURATION" ]; then ARGS+=(--duration "$DURATION"); fi
+          case "$AUDIO" in
+            on)  ARGS+=(--generate-audio) ;;
+            off) ARGS+=(--no-audio) ;;
+          esac
 
           if [ "$REFS" = "all" ]; then
             ARGS+=(--ref-all)
@@ -166,13 +200,16 @@ jobs:
           ASPECT_RATIO: ${{ inputs.aspect_ratio }}
           NUM_IMAGES:   ${{ inputs.num_images }}
           RESOLUTION:   ${{ inputs.resolution }}
+          DURATION:     ${{ inputs.duration }}
+          AUDIO:        ${{ inputs.audio }}
         run: |
           {
-            echo "## FAL 圖片生成 · $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "## FAL 圖片 / 影片生成 · $(date -u '+%Y-%m-%d %H:%M UTC')"
             echo
             echo "- 模式：\`$MODE\`"
             echo "- 模型：\`$MODEL\` ／ 接口：\`$ENDPOINT\`"
             echo "- 比例：\`$ASPECT_RATIO\` ／ 張數：\`$NUM_IMAGES\` ／ 解析度：\`$RESOLUTION\`"
+            if [ -n "$DURATION" ]; then echo "- 影片長度：\`$DURATION\` 秒 ／ 音訊：\`$AUDIO\`"; fi
             echo "- 你輸入的主題："
             echo '```'
             printf '%s\n' "$PROMPT"
@@ -200,8 +237,10 @@ jobs:
         if: always() && inputs.mode != 'preview'
         uses: actions/upload-artifact@v4
         with:
-          name: fal-image-${{ github.run_number }}
-          path: 完成檔/*.png
+          name: fal-media-${{ github.run_number }}
+          path: |
+            完成檔/*.png
+            完成檔/*.mp4
           if-no-files-found: warn
 
       - name: Commit images
@@ -215,7 +254,7 @@ jobs:
             echo "沒有新檔案可 commit"
             exit 0
           fi
-          git commit -m "chore(fal-image): 生成 ${{ inputs.model }} 圖片（run #${{ github.run_number }}）"
+          git commit -m "chore(fal-image): ${{ inputs.model }} 產出（run #${{ github.run_number }}）"
           for i in 1 2 3 4; do
             git pull --rebase origin "${{ github.ref_name }}" \
               && git push origin "HEAD:${{ github.ref_name }}" && break

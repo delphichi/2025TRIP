@@ -260,6 +260,10 @@ Action 不會執行這份技能檔（技能只有 Claude 會讀），所以擴�
 | `generate` | 擴寫後直接生圖 |
 | `raw` | 完全照輸入的字生圖，不擴寫 |
 
+Action 的 `model` 下拉同時涵蓋圖片與影片模型；影片另有 `duration`（長度秒數，留空用模型預設）
+與 `audio`（default／on／off）兩個欄位，`resolution` 選 `auto` 就交給模型預設。
+選到影片模型時，`preview` 擴寫會自動改用影片版規範（動作變化、環境動態、運鏡）。
+
 擴寫是在 Action 內呼叫 FAL 自家的 `fal-ai/any-llm` 端點完成的，用同一把 `FAL_KEY`，不需要另外的 API 金鑰。
 建議流程：先跑 `preview` 看提示詞 → 沒問題就再跑一次 `generate`；想微調就把摘要頁的 English prompt
 複製出來改一改，貼回 `prompt` 欄位並選 `raw`。
