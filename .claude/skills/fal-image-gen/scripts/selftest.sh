@@ -120,8 +120,18 @@ print(f"  單張 {p1.name}\n  同分鐘重跑 {p2.name}\n  多張 {p3[0].name} �
 PY
 [ $? -eq 0 ] && { ok "檔名格式 模型名稱-年月日-時分.png、不覆蓋、多張加序號"; } || bad "檔名規則有誤"
 
+head_ "9. 提示詞擴寫規範"
+SKILL="$SCRIPT_DIR/../SKILL.md"
+GUIDE="$SCRIPT_DIR/../references/prompt-guide.md"
+grep -q "提示詞擴寫" "$SKILL" && ok "SKILL.md 有提示詞擴寫章節" || bad "SKILL.md 缺少提示詞擴寫章節"
+grep -q "確認關卡" "$SKILL" && ok "SKILL.md 有送出前確認關卡" || bad "SKILL.md 缺少確認關卡"
+for facet in 主題 構圖 場景 風格 鏡頭; do
+  grep -q "$facet" "$SKILL" && ok "擴寫面向已列出：$facet" || bad "擴寫面向缺失：$facet"
+done
+[ -f "$GUIDE" ] && ok "prompt-guide.md 存在" || bad "缺少 references/prompt-guide.md"
+
 if [ "${1:-}" = "--live" ]; then
-  head_ "9. 真實 API 測試（會消耗額度）"
+  head_ "10. 真實 API 測試（會消耗額度）"
   if "$CLI" -m nano-banana-2 -p "a single red apple on a white table, studio lighting" -r 1K; then
     ok "成功呼叫 FAL 並存檔到「完成檔」"
     ls -t "$ROOT/完成檔"/*.png 2>/dev/null | head -1
