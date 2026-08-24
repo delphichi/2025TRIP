@@ -1,38 +1,19 @@
 {
-  "date": "2026-08-21",
-  "generated_at": "2026-08-21T18:56:34+08:00",
-  "consensus_date": "2026-08-21",
+  "date": "2026-08-24",
+  "generated_at": "2026-08-24T19:01:01+08:00",
+  "consensus_date": "2026-08-24",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260821.csv",
-      "snapshot_date": "2026-08-21",
+      "snapshot": "00991A_20260824.csv",
+      "snapshot_date": "2026-08-24",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
         "add": [],
-        "reduce": [
-          {
-            "code": "7769",
-            "name": "鴻勁精密",
-            "pct": -5.0,
-            "weight": 2.872
-          },
-          {
-            "code": "2345",
-            "name": "智邦科技",
-            "pct": -2.7777777777777777,
-            "weight": 4.202
-          },
-          {
-            "code": "2383",
-            "name": "台光電子",
-            "pct": -2.097902097902098,
-            "weight": 9.383
-          }
-        ],
+        "reduce": [],
         "build": []
       }
     },
@@ -103,8 +84,8 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260821.csv",
-      "snapshot_date": "2026-08-21",
+      "snapshot": "00403A_20260824.csv",
+      "snapshot_date": "2026-08-24",
       "holdings_count": 50,
       "actions": {
         "new": [],
@@ -113,68 +94,36 @@
           {
             "code": "3443",
             "name": "創意",
-            "pct": 7.8431372549019605,
-            "weight": 1.81
+            "pct": 10.909090909090908,
+            "weight": 2.02
           },
           {
-            "code": "6223",
-            "name": "旺矽",
-            "pct": 3.7735849056603774,
-            "weight": 3.63
+            "code": "6274",
+            "name": "台燿",
+            "pct": 7.142857142857142,
+            "weight": 1.59
           }
         ],
-        "reduce": [
+        "reduce": [],
+        "build": [
           {
             "code": "2481",
             "name": "強茂",
-            "pct": -53.333333333333336,
-            "weight": 0.06
-          },
-          {
-            "code": "1560",
-            "name": "中砂",
-            "pct": -43.857142857142854,
-            "weight": 0.16
-          },
-          {
-            "code": "2337",
-            "name": "旺宏",
-            "pct": -25.0,
-            "weight": 0.32
-          },
-          {
-            "code": "2344",
-            "name": "華邦電",
-            "pct": -16.666666666666664,
-            "weight": 1.55
-          },
-          {
-            "code": "2303",
-            "name": "聯電",
-            "pct": -14.285714285714285,
-            "weight": 4.05
+            "weight": 0.0
           }
-        ],
-        "build": []
+        ]
       }
     },
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260821.csv",
-      "snapshot_date": "2026-08-21",
+      "snapshot": "00988A_20260824.csv",
+      "snapshot_date": "2026-08-24",
       "holdings_count": 10,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [
-          {
-            "code": "3017",
-            "name": "奇鋐",
-            "pct": 27.906976744186046,
-            "weight": 1.55
-          }
-        ],
+        "add": [],
         "reduce": [],
         "build": []
       }
