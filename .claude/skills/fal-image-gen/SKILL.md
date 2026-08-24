@@ -103,3 +103,21 @@ python3 .claude/skills/fal-image-gen/scripts/fal_image.py -e edit \
 | gpt-image-2 | edit | `openai/gpt-image-2/edit`（支援 mask_url、input_fidelity） |
 
 各接口完整參數說明見 `references/endpoints.md`。要新增模型或接口，直接編輯 `scripts/fal_image.py` 最上方的 `MODELS` 表即可。
+
+## 測試
+
+**離線自測（不呼叫 API、不花錢）**
+```bash
+bash .claude/skills/fal-image-gen/scripts/selftest.sh
+```
+會檢查：接口註冊、預設值（16:9／1 張）、參數組裝、參考圖解析、image_size 換算合規性、檔名規則、錯誤處理。
+
+**真實 API 測試（會消耗額度）**
+```bash
+bash .claude/skills/fal-image-gen/scripts/selftest.sh --live
+```
+
+**在 GitHub 上跑**
+- `Actions → fal-image-selftest`：自測（推送到 `.claude/skills/fal-image-gen/**` 時也會自動跑）
+- `Actions → fal-image`：填提示詞直接生圖，結果上傳成 artifact，並可選擇 commit 回「完成檔」
+- 需先設定 repo secret `FAL_KEY`

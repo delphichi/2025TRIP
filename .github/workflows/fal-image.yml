@@ -1,0 +1,155 @@
+name: fal-image
+
+# 目的：直接在 GitHub 上用 FAL AI 生成 / 編輯圖片
+# 產出：完成檔/<模型名稱>-<年月日>-<時分>.png（同時上傳成 artifact，可選擇是否 commit 回 repo）
+#
+# 事前準備：
+#   1. Settings → Secrets and variables → Actions → New repository secret
+#      Name = FAL_KEY，Value = 你的 FAL API 金鑰
+#   2. 要用參考圖的話，先把圖片提交到「參考圖」資料夾
+#
+# 用法：Actions → fal-image → Run workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: '提示詞（必填）'
+        required: true
+        type: string
+      model:
+        description: '模型'
+        type: choice
+        default: 'nano-banana-2'
+        options: ['nano-banana-2', 'gpt-image-2']
+      endpoint:
+        description: '接口（auto = 有參考圖就用 edit，否則 text-to-image）'
+        type: choice
+        default: 'auto'
+        options: ['auto', 'text-to-image', 'edit']
+      aspect_ratio:
+        description: '長寬比（預設 16:9；edit 想保留原圖比例填 auto）'
+        type: string
+        default: '16:9'
+      num_images:
+        description: '張數（預設 1）'
+        type: string
+        default: '1'
+      resolution:
+        description: '解析度'
+        type: choice
+        default: '1K'
+        options: ['1K', '2K', '4K']
+      refs:
+        description: '參考圖檔名，多張用空白分隔；填 all 代表整個「參考圖」資料夾；留空代表不用參考圖'
+        type: string
+        default: ''
+      quality:
+        description: 'gpt-image-2 專用畫質'
+        type: choice
+        default: 'high'
+        options: ['high', 'medium', 'low']
+      commit:
+        description: '把成品 commit 回這個分支的「完成檔」資料夾'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check secret
+        env:
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+        run: |
+          if [ -z "$FAL_KEY" ]; then
+            echo "❌ 尚未設定 FAL_KEY secret（Settings → Secrets and variables → Actions）" >&2
+            exit 1
+          fi
+
+      # 所有使用者輸入都透過 env 傳入，不直接內插進 shell，避免命令注入
+      - name: Generate
+        shell: bash
+        env:
+          FAL_KEY:      ${{ secrets.FAL_KEY }}
+          PROMPT:       ${{ inputs.prompt }}
+          MODEL:        ${{ inputs.model }}
+          ENDPOINT:     ${{ inputs.endpoint }}
+          ASPECT_RATIO: ${{ inputs.aspect_ratio }}
+          NUM_IMAGES:   ${{ inputs.num_images }}
+          RESOLUTION:   ${{ inputs.resolution }}
+          REFS:         ${{ inputs.refs }}
+          QUALITY:      ${{ inputs.quality }}
+        run: |
+          set -o pipefail
+          ARGS=(--model "$MODEL" --prompt "$PROMPT"
+                --aspect-ratio "$ASPECT_RATIO"
+                --num-images "$NUM_IMAGES"
+                --resolution "$RESOLUTION")
+
+          if [ "$ENDPOINT" != "auto" ]; then ARGS+=(--endpoint "$ENDPOINT"); fi
+          if [ "$MODEL" = "gpt-image-2" ]; then ARGS+=(--quality "$QUALITY"); fi
+
+          if [ "$REFS" = "all" ]; then
+            ARGS+=(--ref-all)
+          elif [ -n "$REFS" ]; then
+            for ref in $REFS; do ARGS+=(--ref "$ref"); done
+          fi
+
+          python3 .claude/skills/fal-image-gen/scripts/fal_image.py "${ARGS[@]}" 2>&1 | tee /tmp/fal.log
+
+      - name: Summary
+        if: always()
+        shell: bash
+        env:
+          PROMPT: ${{ inputs.prompt }}
+        run: |
+          {
+            echo "## FAL 圖片生成 · $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo
+            echo "- 模型：\`${{ inputs.model }}\` ／ 接口：\`${{ inputs.endpoint }}\`"
+            echo "- 比例：\`${{ inputs.aspect_ratio }}\` ／ 張數：\`${{ inputs.num_images }}\` ／ 解析度：\`${{ inputs.resolution }}\`"
+            echo "- 提示詞："
+            echo '```'
+            printf '%s\n' "$PROMPT"
+            echo '```'
+            echo '### 執行紀錄'
+            echo '```'
+            tail -40 /tmp/fal.log 2>/dev/null || echo '(no log)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fal-image-${{ github.run_number }}
+          path: 完成檔/*.png
+          if-no-files-found: warn
+
+      - name: Commit images
+        if: success() && inputs.commit
+        shell: bash
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add 完成檔 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "沒有新檔案可 commit"
+            exit 0
+          fi
+          git commit -m "chore(fal-image): 生成 ${{ inputs.model }} 圖片（run #${{ github.run_number }}）"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${{ github.ref_name }}" \
+              && git push origin "HEAD:${{ github.ref_name }}" && break
+            sleep $((2**i))
+          done

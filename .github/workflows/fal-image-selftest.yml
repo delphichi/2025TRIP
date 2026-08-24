@@ -1,0 +1,70 @@
+name: fal-image-selftest
+
+# 目的：驗證 FAL 圖片技能的參數組裝、比例換算、檔名規則、錯誤處理
+# 預設不呼叫 FAL API（不花錢）；勾選 live 才會真的生成一張測試圖
+#
+# 用法：Actions → fal-image-selftest → Run workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: '同時做真實 API 測試（會消耗 FAL 額度，需要 FAL_KEY secret）'
+        type: boolean
+        default: false
+  push:
+    paths:
+      - '.claude/skills/fal-image-gen/**'
+      - '.github/workflows/fal-image-selftest.yml'
+  pull_request:
+    paths:
+      - '.claude/skills/fal-image-gen/**'
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run selftest
+        shell: bash
+        env:
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+          LIVE: ${{ inputs.live }}
+        run: |
+          set -o pipefail
+          ARGS=()
+          if [ "$LIVE" = "true" ]; then
+            if [ -z "$FAL_KEY" ]; then
+              echo "❌ 勾了 live 但 repo 沒有設定 FAL_KEY secret" >&2
+              exit 1
+            fi
+            ARGS+=(--live)
+          fi
+          bash .claude/skills/fal-image-gen/scripts/selftest.sh "${ARGS[@]}" 2>&1 | tee /tmp/selftest.log
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## FAL 圖片技能自測 · $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo '```'
+            cat /tmp/selftest.log 2>/dev/null || echo '(no log)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload live test image
+        if: always() && inputs.live
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-image
+          path: 完成檔/*.png
+          if-no-files-found: ignore
