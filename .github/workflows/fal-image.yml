@@ -3,6 +3,14 @@ name: fal-image
 # 目的：直接在 GitHub 上用 FAL AI 生成 / 編輯圖片
 # 產出：完成檔/<模型名稱>-<年月日>-<時分>.png（同時上傳成 artifact，可選擇是否 commit 回 repo）
 #
+# 三種模式（mode）：
+#   preview （預設）只把你的主題擴寫成完整提示詞，英文 + 中文印在執行摘要頁，不生圖、不花圖片額度
+#   generate 擴寫後直接生圖
+#   raw      完全照你打的字生圖，不做任何擴寫
+#
+# 建議流程：先跑 preview 看提示詞 → 滿意就再跑一次 generate
+#           想微調就把摘要頁的 English prompt 複製出來改，貼回 prompt 欄位並選 raw
+#
 # 事前準備：
 #   1. Settings → Secrets and variables → Actions → New repository secret
 #      Name = FAL_KEY，Value = 你的 FAL API 金鑰
@@ -17,6 +25,11 @@ on:
         description: '提示詞（必填）'
         required: true
         type: string
+      mode:
+        description: '模式：preview = 只擴寫提示詞給你看（不生圖、不花圖片額度）／ generate = 擴寫後直接生 ／ raw = 照你打的字生'
+        type: choice
+        default: 'preview'
+        options: ['preview', 'generate', 'raw']
       model:
         description: '模型'
         type: choice
@@ -77,7 +90,35 @@ jobs:
           fi
 
       # 所有使用者輸入都透過 env 傳入，不直接內插進 shell，避免命令注入
+      - name: Expand prompt
+        if: inputs.mode != 'raw'
+        shell: bash
+        env:
+          FAL_KEY:      ${{ secrets.FAL_KEY }}
+          PROMPT:       ${{ inputs.prompt }}
+          MODEL:        ${{ inputs.model }}
+          ENDPOINT:     ${{ inputs.endpoint }}
+          ASPECT_RATIO: ${{ inputs.aspect_ratio }}
+          NUM_IMAGES:   ${{ inputs.num_images }}
+          RESOLUTION:   ${{ inputs.resolution }}
+        run: |
+          set -o pipefail
+          ARGS=(--model "$MODEL" --prompt "$PROMPT"
+                --aspect-ratio "$ASPECT_RATIO"
+                --num-images "$NUM_IMAGES"
+                --resolution "$RESOLUTION"
+                --expand-only)
+          if [ "$ENDPOINT" != "auto" ]; then ARGS+=(--endpoint "$ENDPOINT"); fi
+          python3 .claude/skills/fal-image-gen/scripts/fal_image.py "${ARGS[@]}" > /tmp/expanded.json
+          python3 -c "
+          import json
+          d = json.load(open('/tmp/expanded.json', encoding='utf-8'))
+          open('/tmp/prompt.txt', 'w', encoding='utf-8').write(d['english'])
+          print('擴寫模型：', d['llm_model'])
+          "
+
       - name: Generate
+        if: inputs.mode != 'preview'
         shell: bash
         env:
           FAL_KEY:      ${{ secrets.FAL_KEY }}
@@ -91,10 +132,17 @@ jobs:
           QUALITY:      ${{ inputs.quality }}
         run: |
           set -o pipefail
-          ARGS=(--model "$MODEL" --prompt "$PROMPT"
-                --aspect-ratio "$ASPECT_RATIO"
-                --num-images "$NUM_IMAGES"
-                --resolution "$RESOLUTION")
+          # preview 以外的模式：raw 用你打的原句，generate 用上一步擴寫好的英文提示詞
+          if [ -s /tmp/prompt.txt ]; then
+            echo "使用擴寫後的提示詞"
+            ARGS=(--model "$MODEL" --prompt-file /tmp/prompt.txt)
+          else
+            echo "使用原始提示詞（raw 模式）"
+            ARGS=(--model "$MODEL" --prompt "$PROMPT")
+          fi
+          ARGS+=(--aspect-ratio "$ASPECT_RATIO"
+                 --num-images "$NUM_IMAGES"
+                 --resolution "$RESOLUTION")
 
           if [ "$ENDPOINT" != "auto" ]; then ARGS+=(--endpoint "$ENDPOINT"); fi
           if [ "$MODEL" = "gpt-image-2" ]; then ARGS+=(--quality "$QUALITY"); fi
@@ -111,25 +159,45 @@ jobs:
         if: always()
         shell: bash
         env:
-          PROMPT: ${{ inputs.prompt }}
+          PROMPT:       ${{ inputs.prompt }}
+          MODE:         ${{ inputs.mode }}
+          MODEL:        ${{ inputs.model }}
+          ENDPOINT:     ${{ inputs.endpoint }}
+          ASPECT_RATIO: ${{ inputs.aspect_ratio }}
+          NUM_IMAGES:   ${{ inputs.num_images }}
+          RESOLUTION:   ${{ inputs.resolution }}
         run: |
           {
             echo "## FAL 圖片生成 · $(date -u '+%Y-%m-%d %H:%M UTC')"
             echo
-            echo "- 模型：\`${{ inputs.model }}\` ／ 接口：\`${{ inputs.endpoint }}\`"
-            echo "- 比例：\`${{ inputs.aspect_ratio }}\` ／ 張數：\`${{ inputs.num_images }}\` ／ 解析度：\`${{ inputs.resolution }}\`"
-            echo "- 提示詞："
+            echo "- 模式：\`$MODE\`"
+            echo "- 模型：\`$MODEL\` ／ 接口：\`$ENDPOINT\`"
+            echo "- 比例：\`$ASPECT_RATIO\` ／ 張數：\`$NUM_IMAGES\` ／ 解析度：\`$RESOLUTION\`"
+            echo "- 你輸入的主題："
             echo '```'
             printf '%s\n' "$PROMPT"
             echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -s /tmp/expanded.json ]; then
+            python3 -c 'import json;d=json.load(open("/tmp/expanded.json",encoding="utf-8"));print("### English prompt（實際送給模型的版本）\n```\n"+d["english"]+"\n```\n\n### 中文翻譯（給你確認用）\n```\n"+d["chinese"]+"\n```\n\n_擴寫模型："+d["llm_model"]+"_\n")' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          {
             echo '### 執行紀錄'
             echo '```'
-            tail -40 /tmp/fal.log 2>/dev/null || echo '(no log)'
+            tail -40 /tmp/fal.log 2>/dev/null || echo '(未生成圖片)'
             echo '```'
+            if [ "$MODE" = "preview" ]; then
+              echo
+              echo '> 這是 **preview** 模式，只擴寫、沒有生圖。'
+              echo '> 提示詞沒問題的話，再跑一次 workflow 並把 mode 改成 `generate`；'
+              echo '> 想微調就把上面的 English prompt 複製出來改一改，貼進 prompt 欄位並選 `raw`。'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload images
-        if: always()
+        if: always() && inputs.mode != 'preview'
         uses: actions/upload-artifact@v4
         with:
           name: fal-image-${{ github.run_number }}
