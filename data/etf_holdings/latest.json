@@ -1,13 +1,13 @@
 {
-  "date": "2026-08-24",
-  "generated_at": "2026-08-24T19:01:01+08:00",
-  "consensus_date": "2026-08-24",
+  "date": "2026-08-25",
+  "generated_at": "2026-08-25T18:58:26+08:00",
+  "consensus_date": "2026-08-25",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260824.csv",
-      "snapshot_date": "2026-08-24",
+      "snapshot": "00991A_20260825.csv",
+      "snapshot_date": "2026-08-25",
       "holdings_count": 50,
       "actions": {
         "new": [],
@@ -84,41 +84,29 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260824.csv",
-      "snapshot_date": "2026-08-24",
+      "snapshot": "00403A_20260825.csv",
+      "snapshot_date": "2026-08-25",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
         "add": [
           {
-            "code": "3443",
-            "name": "創意",
-            "pct": 10.909090909090908,
-            "weight": 2.02
-          },
-          {
-            "code": "6274",
-            "name": "台燿",
-            "pct": 7.142857142857142,
-            "weight": 1.59
+            "code": "2059",
+            "name": "川湖",
+            "pct": 75.0,
+            "weight": 0.3
           }
         ],
         "reduce": [],
-        "build": [
-          {
-            "code": "2481",
-            "name": "強茂",
-            "weight": 0.0
-          }
-        ]
+        "build": []
       }
     },
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260824.csv",
-      "snapshot_date": "2026-08-24",
+      "snapshot": "00988A_20260825.csv",
+      "snapshot_date": "2026-08-25",
       "holdings_count": 10,
       "actions": {
         "new": [],
