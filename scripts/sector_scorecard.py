@@ -119,6 +119,123 @@ QUADRANT_MAP = {
 }
 
 
+def add_historical_percentiles(df, as_of):
+    """對每個 sector 算 point 在過去 30/90/365 天內的百分位（今天贏過多少比例的日子）
+    · 資料不足時填 None + n_days_actual 表示樣本數"""
+    import glob
+    files = sorted(glob.glob(os.path.join(OUTDIR, "*_scorecard.csv")))
+    stamp_today = as_of.replace("-", "")
+    files = [f for f in files if stamp_today not in os.path.basename(f)]
+
+    if not files:
+        for w in [30, 90, 365]:
+            df[f"pct_{w}d"] = None
+            df[f"n_{w}d"] = 0
+        return df
+
+    # 讀所有歷史 · 集中成一個大 df with sector + point + date
+    hist_frames = []
+    for fp in files:
+        try:
+            h = pd.read_csv(fp, usecols=["sector", "point"])
+            h["file_date"] = os.path.basename(fp).split("_")[0]  # YYYYMMDD
+            hist_frames.append(h)
+        except Exception:
+            continue
+    if not hist_frames:
+        for w in [30, 90, 365]:
+            df[f"pct_{w}d"] = None
+            df[f"n_{w}d"] = 0
+        return df
+    hist = pd.concat(hist_frames, ignore_index=True)
+    hist["file_date"] = pd.to_datetime(hist["file_date"], format="%Y%m%d")
+    today = pd.to_datetime(as_of.replace("-", ""), format="%Y%m%d")
+
+    df = df.copy()
+    for w in [30, 90, 365]:
+        cutoff = today - pd.Timedelta(days=w)
+        window = hist[hist["file_date"] >= cutoff]
+        pct_col = f"pct_{w}d"
+        n_col = f"n_{w}d"
+        pcts, ns = [], []
+        for _, row in df.iterrows():
+            sec = row["sector"]
+            pt = row["point"]
+            sec_hist = window[window["sector"] == sec]["point"].dropna()
+            n = len(sec_hist)
+            if n == 0 or pd.isna(pt):
+                pcts.append(None); ns.append(int(n)); continue
+            below = (sec_hist < pt).sum()
+            # 有等於就用中間點更公平
+            equal = (sec_hist == pt).sum()
+            pct = round(100 * (below + 0.5 * equal) / n, 1)
+            pcts.append(pct); ns.append(int(n))
+        df[pct_col] = pcts
+        df[n_col] = ns
+    return df
+
+
+def add_sector_breadth(df, as_of):
+    """讀同日或最近的 *_all.csv · 每 sector 算 breadth = 4W>0 股數 / 板塊總股數
+    · stage 2 通常週跑 · 若當日沒 all.csv 就回退到最近的一個（≤ 14 天）"""
+    import glob
+    stamp = as_of.replace("-", "")
+    all_fp = os.path.join(OUTDIR, f"{stamp}_all.csv")
+    breadth_source_date = None
+    if not os.path.exists(all_fp):
+        # fallback: 找 ≤ as_of 且不超過 14 天的最近 all.csv
+        today_dt = pd.to_datetime(stamp, format="%Y%m%d")
+        candidates = []
+        for fp in sorted(glob.glob(os.path.join(OUTDIR, "*_all.csv"))):
+            d_str = os.path.basename(fp).split("_")[0]
+            d_dt = pd.to_datetime(d_str, format="%Y%m%d")
+            delta_days = (today_dt - d_dt).days
+            if 0 <= delta_days <= 14:
+                candidates.append((delta_days, fp, d_str))
+        if not candidates:
+            df["breadth_pct"] = None
+            df["breadth_up"] = None
+            df["breadth_total"] = None
+            df["breadth_source_date"] = None
+            return df
+        candidates.sort(key=lambda x: x[0])
+        all_fp = candidates[0][1]
+        breadth_source_date = candidates[0][2]
+        log(f"  breadth: 用回退 all.csv = {breadth_source_date}（差 {candidates[0][0]} 天）")
+    try:
+        a = pd.read_csv(all_fp, usecols=["sector", "cum_ret_4w"])
+    except Exception:
+        df["breadth_pct"] = None
+        df["breadth_up"] = None
+        df["breadth_total"] = None
+        return df
+
+    # 板塊名對照：scorecard 用 sector_name_en (e.g. "Information Technology")
+    # all.csv 的 sector 欄也是 sector_name_en · 用它直接 groupby
+    stats = a.groupby("sector").agg(
+        breadth_up=("cum_ret_4w", lambda x: int((x.dropna().astype(float) > 0).sum())),
+        breadth_total=("cum_ret_4w", lambda x: int(x.dropna().count())),
+    ).reset_index()
+    stats["breadth_pct"] = (100 * stats["breadth_up"] / stats["breadth_total"]).round(1)
+
+    df = df.copy()
+    # scorecard df 有 sector (like "XLK") 與 sector_name_en (like "Information Technology")
+    if "sector_name_en" in df.columns:
+        merge_key = "sector_name_en"
+    else:
+        merge_key = "sector"
+    stats_map = stats.set_index("sector")
+    df["breadth_pct"] = df[merge_key].map(stats_map["breadth_pct"])
+    df["breadth_up"] = df[merge_key].map(stats_map["breadth_up"])
+    df["breadth_total"] = df[merge_key].map(stats_map["breadth_total"])
+    if breadth_source_date:
+        # 標記回退來源日期（前端 tooltip 可提示 "資料 N 天前"）
+        df["breadth_source_date"] = f"{breadth_source_date[:4]}-{breadth_source_date[4:6]}-{breadth_source_date[6:8]}"
+    else:
+        df["breadth_source_date"] = as_of
+    return df
+
+
 def add_acceleration_and_quadrant(df, as_of):
     """讀過去 N 天的 scorecard CSV · 計算 point 5d 平均 → acceleration → quadrant"""
     import glob
@@ -579,6 +696,8 @@ def save_outputs(df, market_ctx=None, quadrant_biggest_mover=None):
         "market_context": market_ctx,
         "quadrant_biggest_mover": quadrant_biggest_mover,
         "quadrant_note": f"acceleration = 今日 point - 過去 {ACCEL_LOOKBACK_DAYS} 天 point 平均 · 象限用 point 中位數 + acceleration 正負分四格",
+        "percentile_note": "pct_Nd = 今日 point 在過去 N 天 sector 分數中的百分位 (0-100 · 越大表越極端強)",
+        "breadth_note": "breadth_pct = 該 sector 個股中 4W 累報 > 0 的比例（讀同日 stage 2 all.csv）",
         "formulas": {
             "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
             "cms_a": "0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）",
@@ -631,6 +750,10 @@ def main():
     df = add_ranks_and_composite(df)
 
     as_of = df["as_of_date"].iloc[0]
+    # 加歷史百分位 (30/90/365d)
+    df = add_historical_percentiles(df, as_of)
+    # 加板塊 breadth (該日 stage 2 資料的 % up)
+    df = add_sector_breadth(df, as_of)
     # 加 acceleration + quadrant（Layer 1.5）
     df, biggest_mover = add_acceleration_and_quadrant(df, as_of)
     if biggest_mover:

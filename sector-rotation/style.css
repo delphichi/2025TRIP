@@ -234,6 +234,48 @@ body.rot-body {
 }
 .quad-mover b { color: var(--warn); }
 .quad-mover:empty { display: none; }
+
+/* ============================================================
+   歷史百分位 + 板塊寬度 mini table
+   ============================================================ */
+.hist-breadth-wrap {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: var(--bg-panel-2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+.hist-breadth-hdr { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.hist-breadth-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hist-breadth-table th {
+    text-align: left; padding: 6px 10px; font-size: 10.5px;
+    color: var(--text-mute); text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+}
+.hist-breadth-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+.hist-breadth-table td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.hist-breadth-table .dim { color: var(--text-mute); font-size: 11px; margin-left: 4px; }
+.hist-breadth-table tr:last-child td { border-bottom: none; }
+.hist-breadth-table .acc-up   { color: var(--good); font-weight: 700; }
+.hist-breadth-table .acc-down { color: var(--danger); font-weight: 700; }
+.hist-breadth-table .acc-flat { color: var(--text-dim); }
+.hist-breadth-foot {
+    margin-top: 10px; font-size: 11px; color: var(--text-dim);
+    padding-top: 8px; border-top: 1px dashed var(--border);
+}
+.hist-breadth-foot b { color: var(--warn); }
+
+.pct-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 12px; font-variant-numeric: tabular-nums;
+    background: var(--bg-panel); color: var(--text);
+}
+.pct-badge.pct-hot  { background: rgba(239, 68, 68, 0.20); color: #fca5a5; }
+.pct-badge.pct-warm { background: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+.pct-badge.pct-mid  { background: var(--bg-panel); color: var(--text-dim); }
+.pct-badge.pct-cool { background: rgba(56, 189, 248, 0.15); color: #93c5fd; }
+.pct-badge.pct-cold { background: rgba(148, 163, 184, 0.20); color: #cbd5e1; }
+.pct-dash { color: var(--text-mute); font-size: 11px; }
 .allocation-bars {
     padding: 12px 14px;
     background: var(--bg-panel-2);
