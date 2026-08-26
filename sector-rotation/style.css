@@ -173,6 +173,67 @@ body.rot-body {
 }
 .market-quadrant b { color: var(--accent); margin-right: 6px; }
 .market-quadrant span { font-size: 20px; }
+
+/* ============================================================
+   Layer 1.5 · 板塊輪動四象限
+   ============================================================ */
+.quadrant-panel h2 { color: var(--accent); }
+.quadrant-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+@media (max-width: 700px) { .quadrant-grid { grid-template-columns: 1fr; } }
+.quad {
+    position: relative;
+    padding: 14px 16px;
+    border-radius: 8px;
+    min-height: 130px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+}
+.quad-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px;
+}
+.quad-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+.quad-tag { font-size: 10px; color: var(--text-mute); background: var(--bg-panel); padding: 2px 8px; border-radius: 10px; }
+.quad-desc { font-size: 11.5px; color: var(--text-dim); margin-bottom: 10px; }
+.quad-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.quad-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.quad-empty { color: var(--text-mute); font-size: 12px; }
+.quad-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 12px; font-size: 12px;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    color: var(--text);
+}
+.quad-chip .chip-acc { font-size: 10px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.quad-chip.quad-chip-big {
+    border-color: var(--warn); box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+/* 象限配色 · 借鑒付費研報的紅/綠/黃分區 */
+.quad-leading   { background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), var(--bg-panel-2)); border-color: rgba(16, 185, 129, 0.35); }
+.quad-leading   .quad-dot { background: var(--good); }
+.quad-leading   .quad-title { color: var(--good); }
+.quad-weakening { background: linear-gradient(135deg, rgba(245, 158, 11, 0.10), var(--bg-panel-2)); border-color: rgba(245, 158, 11, 0.35); }
+.quad-weakening .quad-dot { background: var(--warn); }
+.quad-weakening .quad-title { color: var(--warn); }
+.quad-improving { background: linear-gradient(135deg, rgba(56, 189, 248, 0.10), var(--bg-panel-2)); border-color: rgba(56, 189, 248, 0.35); }
+.quad-improving .quad-dot { background: var(--accent); }
+.quad-improving .quad-title { color: var(--accent); }
+.quad-lagging   { background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), var(--bg-panel-2)); border-color: rgba(239, 68, 68, 0.35); }
+.quad-lagging   .quad-dot { background: var(--danger); }
+.quad-lagging   .quad-title { color: var(--danger); }
+
+.quad-mover {
+    margin-top: 12px; padding: 10px 14px;
+    background: var(--bg-panel-2); border-left: 3px solid var(--warn);
+    border-radius: 4px; font-size: 13px; color: var(--text);
+}
+.quad-mover b { color: var(--warn); }
+.quad-mover:empty { display: none; }
 .allocation-bars {
     padding: 12px 14px;
     background: var(--bg-panel-2);

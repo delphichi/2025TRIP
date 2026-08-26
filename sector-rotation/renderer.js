@@ -196,6 +196,48 @@ function renderStatus() {
     $("#stat-bot").innerHTML = `${bot.sector} <span class="dim">${bot.sector_name}</span> <b>${botLabel}</b>`;
 }
 
+// ---------- render: Layer 1.5 sector quadrant ----------
+function renderQuadrantPanel() {
+    const rows = STATE.scorecard?.rows || [];
+    const panel = document.getElementById("quadrant-panel");
+    if (!panel) return;
+    // 只在資料有 quadrant 欄時顯示（首次上線 / 歷史 scorecard 沒此欄會 skip）
+    const hasQuad = rows.length && "quadrant" in rows[0];
+    if (!hasQuad) return;
+    panel.style.display = "";
+
+    const buckets = { leading: [], weakening: [], improving: [], lagging: [] };
+    rows.forEach(r => {
+        if (r.quadrant && buckets[r.quadrant]) buckets[r.quadrant].push(r);
+    });
+
+    Object.entries(buckets).forEach(([key, list]) => {
+        // 每個象限內按 |acceleration| 大→小排
+        list.sort((a, b) => Math.abs(b.acceleration ?? 0) - Math.abs(a.acceleration ?? 0));
+        const el = document.getElementById(`quad-${key}`);
+        if (!el) return;
+        el.innerHTML = list.length
+            ? list.map(r => {
+                const pt = (r.point ?? 0).toFixed(1);
+                const acc = (r.acceleration ?? 0).toFixed(1);
+                const sign = (r.acceleration ?? 0) > 0 ? "+" : "";
+                const isBig = STATE.scorecard?.quadrant_biggest_mover?.sector === r.sector;
+                const cls = isBig ? "quad-chip quad-chip-big" : "quad-chip";
+                return `<span class="${cls}" title="${r.sector_name} · point ${pt} · acc ${sign}${acc}">${r.sector_name}<span class="chip-acc">${sign}${acc}</span></span>`;
+            }).join("")
+            : `<span class="quad-empty">—</span>`;
+    });
+
+    // 最大位移 callout
+    const big = STATE.scorecard?.quadrant_biggest_mover;
+    const moverEl = document.getElementById("quad-biggest-mover");
+    if (big && moverEl) {
+        const sign = big.acceleration > 0 ? "+" : "";
+        const dir = big.acceleration > 0 ? "湧入" : "撤出";
+        moverEl.innerHTML = `📍 <b>本日最大位移</b>：${big.sector_name} ${big.sector} · point ${big.point.toFixed(1)} · 加速度 <b>${sign}${big.acceleration.toFixed(1)}</b>（vs 5 日均 ${big.point_5d_avg.toFixed(1)}）· 資金 ${dir} · 象限 <b>「${big.quadrant_zh}」</b>`;
+    }
+}
+
 // ---------- render: score table ----------
 function renderScoreTable() {
     const rows = STATE.scorecard?.rows || [];
@@ -588,6 +630,7 @@ async function init() {
     }
     renderMarketPanel();
     renderStatus();
+    renderQuadrantPanel();
     renderScoreTable();
 
     await loadStage2Optional();

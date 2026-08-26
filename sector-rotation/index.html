@@ -122,6 +122,49 @@
             </div>
         </section>
 
+        <section class="panel quadrant-panel" id="quadrant-panel" style="display:none;">
+            <h2>🧭 Layer 1.5 · 板塊輪動四象限 <small style="font-weight:400;color:#94a3b8">(acceleration = point − 過去 5 日 point 平均)</small></h2>
+            <div class="quadrant-grid">
+                <div class="quad quad-weakening" data-key="weakening">
+                    <div class="quad-head">
+                        <span class="quad-dot"></span>
+                        <div class="quad-title">減弱中</div>
+                        <span class="quad-tag">高分 + 加速度負</span>
+                    </div>
+                    <div class="quad-desc">高位但動能見頂</div>
+                    <div class="quad-list" id="quad-weakening"></div>
+                </div>
+                <div class="quad quad-leading" data-key="leading">
+                    <div class="quad-head">
+                        <span class="quad-dot"></span>
+                        <div class="quad-title">領先</div>
+                        <span class="quad-tag">高分 + 加速度正</span>
+                    </div>
+                    <div class="quad-desc">資金持續流入、動能未退</div>
+                    <div class="quad-list" id="quad-leading"></div>
+                </div>
+                <div class="quad quad-lagging" data-key="lagging">
+                    <div class="quad-head">
+                        <span class="quad-dot"></span>
+                        <div class="quad-title">落後</div>
+                        <span class="quad-tag">低分 + 加速度負</span>
+                    </div>
+                    <div class="quad-desc">資金持續流出</div>
+                    <div class="quad-list" id="quad-lagging"></div>
+                </div>
+                <div class="quad quad-improving" data-key="improving">
+                    <div class="quad-head">
+                        <span class="quad-dot"></span>
+                        <div class="quad-title">改善中</div>
+                        <span class="quad-tag">低分 + 加速度正</span>
+                    </div>
+                    <div class="quad-desc">落後股翻轉候選</div>
+                    <div class="quad-list" id="quad-improving"></div>
+                </div>
+            </div>
+            <div id="quad-biggest-mover" class="quad-mover"></div>
+        </section>
+
         <section class="panel table-panel">
             <h2>📊 11 Sector ETF · 量價評分排行 <small style="font-weight:400;color:#94a3b8">(as of <span id="table-asof">—</span>)</small></h2>
             <div class="table-wrap">
