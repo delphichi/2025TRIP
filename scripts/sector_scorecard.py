@@ -108,6 +108,91 @@ def _json_safe(obj):
 OUTDIR = "data/sector_rotation"
 MANIFEST_PATH = os.path.join(OUTDIR, "scorecard_latest.json")
 
+# 加速度 & 象限（Layer 1.5 · 借鑒付費研報四象限）
+# 讀最近 N 天歷史 scorecard 算 point 移動平均 · acceleration = today - avg
+ACCEL_LOOKBACK_DAYS = 5
+QUADRANT_MAP = {
+    ("high", "up"):   {"key": "leading",   "zh": "領先",  "desc": "資金持續流入、動能未退"},
+    ("high", "down"): {"key": "weakening", "zh": "減弱",  "desc": "高位但動能見頂"},
+    ("low",  "up"):   {"key": "improving", "zh": "改善",  "desc": "落後股翻轉候選"},
+    ("low",  "down"): {"key": "lagging",   "zh": "落後",  "desc": "資金持續流出"},
+}
+
+
+def add_acceleration_and_quadrant(df, as_of):
+    """讀過去 N 天的 scorecard CSV · 計算 point 5d 平均 → acceleration → quadrant"""
+    import glob
+    files = sorted(glob.glob(os.path.join(OUTDIR, "*_scorecard.csv")))
+    # 排除今天的（若已存在）
+    stamp_today = as_of.replace("-", "")
+    files = [f for f in files if stamp_today not in os.path.basename(f)]
+    # 取最近 N 個
+    recent = files[-ACCEL_LOOKBACK_DAYS:]
+
+    if not recent:
+        # 沒歷史 · 全部 NaN
+        df["point_5d_avg"] = None
+        df["acceleration"] = None
+        df["quadrant"] = None
+        df["quadrant_zh"] = None
+        df["quadrant_desc"] = None
+        return df, None
+
+    # 讀歷史 · 按 sector 聚合 point 平均
+    hist_frames = []
+    for fp in recent:
+        try:
+            h = pd.read_csv(fp, usecols=["sector", "point"])
+            hist_frames.append(h)
+        except Exception:
+            continue
+    if not hist_frames:
+        df["point_5d_avg"] = None
+        df["acceleration"] = None
+        df["quadrant"] = None
+        df["quadrant_zh"] = None
+        df["quadrant_desc"] = None
+        return df, None
+
+    hist = pd.concat(hist_frames, ignore_index=True)
+    avg_by_sec = hist.groupby("sector")["point"].mean().to_dict()
+
+    df = df.copy()
+    df["point_5d_avg"] = df["sector"].map(avg_by_sec).round(2)
+    df["acceleration"] = (df["point"] - df["point_5d_avg"]).round(2)
+
+    # 象限分類：point 用中位數切高低 · acceleration 用 0 切正負
+    point_median = float(df["point"].median())
+    def classify(row):
+        pt = row["point"]
+        acc = row["acceleration"]
+        if pd.isna(acc):
+            return {"key": None, "zh": None, "desc": None}
+        h_l = "high" if pt >= point_median else "low"
+        u_d = "up" if acc > 0 else "down"
+        return QUADRANT_MAP[(h_l, u_d)]
+    quad = df.apply(classify, axis=1)
+    df["quadrant"] = quad.apply(lambda x: x["key"])
+    df["quadrant_zh"] = quad.apply(lambda x: x["zh"])
+    df["quadrant_desc"] = quad.apply(lambda x: x["desc"])
+
+    # 找出今日最大位移（|acceleration| 最大 · 且有 quadrant 變化的 sector）
+    biggest = None
+    valid = df[df["acceleration"].notna()].copy()
+    if len(valid):
+        idx = valid["acceleration"].abs().idxmax()
+        row = valid.loc[idx]
+        biggest = {
+            "sector": row["sector"],
+            "sector_name": row["sector_name"],
+            "point": float(row["point"]),
+            "point_5d_avg": float(row["point_5d_avg"]),
+            "acceleration": float(row["acceleration"]),
+            "quadrant": row["quadrant"],
+            "quadrant_zh": row["quadrant_zh"],
+        }
+    return df, biggest
+
 # SPDR sector ETF 11 檔
 SECTORS = [
     ("XLK", "資訊科技",      "Information Technology"),
@@ -467,7 +552,7 @@ def add_ranks_and_composite(df):
 # ============================================================
 # 4. 輸出
 # ============================================================
-def save_outputs(df, market_ctx=None):
+def save_outputs(df, market_ctx=None, quadrant_biggest_mover=None):
     os.makedirs(OUTDIR, exist_ok=True)
     # 檔名用 as_of_date（不是 today）· T-1 基準
     as_of = df["as_of_date"].iloc[0] if len(df) else date.today().strftime("%Y-%m-%d")
@@ -492,6 +577,8 @@ def save_outputs(df, market_ctx=None):
         "sector_count": int(len(df)),
         "csv": os.path.basename(csv_path),
         "market_context": market_ctx,
+        "quadrant_biggest_mover": quadrant_biggest_mover,
+        "quadrant_note": f"acceleration = 今日 point - 過去 {ACCEL_LOOKBACK_DAYS} 天 point 平均 · 象限用 point 中位數 + acceleration 正負分四格",
         "formulas": {
             "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
             "cms_a": "0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）",
@@ -544,6 +631,12 @@ def main():
     df = add_ranks_and_composite(df)
 
     as_of = df["as_of_date"].iloc[0]
+    # 加 acceleration + quadrant（Layer 1.5）
+    df, biggest_mover = add_acceleration_and_quadrant(df, as_of)
+    if biggest_mover:
+        log(f"  📍 最大位移: {biggest_mover['sector']} {biggest_mover['sector_name']} · "
+            f"point {biggest_mover['point']:.1f} · acc {biggest_mover['acceleration']:+.1f} · "
+            f"象限 {biggest_mover['quadrant_zh']}")
     log("=" * 78)
     log(f"11 Sector ETF Scorecard · as of {as_of}")
     log("=" * 78)
@@ -557,7 +650,7 @@ def main():
             f"CMS_A={r['cms_a']:5.2f}  di={r['di']:.2f}  {alert}"
         )
 
-    save_outputs(df, market_ctx=market_ctx)
+    save_outputs(df, market_ctx=market_ctx, quadrant_biggest_mover=biggest_mover)
 
 
 if __name__ == "__main__":
