@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-26T13:36:54.239004+00:00",
+  "generated_at": "2026-08-26T13:46:00.449370+00:00",
   "as_of_date": "2026-08-25",
   "as_of_date_note": "基準日 = 抓到的最後一根 close 的日期（T-1）· 非腳本執行當日",
   "sector_count": 11,
@@ -55,6 +55,7 @@
   "quadrant_note": "acceleration = 今日 point - 過去 5 天 point 平均 · 象限用 point 中位數 + acceleration 正負分四格",
   "percentile_note": "pct_Nd = 今日 point 在過去 N 天 sector 分數中的百分位 (0-100 · 越大表越極端強)",
   "breadth_note": "breadth_pct = 該 sector 個股中 4W 累報 > 0 的比例（讀同日 stage 2 all.csv）",
+  "health_note": "health_key: overheated(🔥) / sweet_spot(✨) / early_reversal(🌱) / coiling(💤) / cold(🧊) / neutral(➡️) · 用 pct_365d + acceleration + breadth 分層",
   "formulas": {
     "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
     "cms_a": "0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）",
@@ -119,6 +120,10 @@
       "quadrant": "weakening",
       "quadrant_zh": "減弱",
       "quadrant_desc": "高位但動能見頂",
+      "health_key": "coiling",
+      "health_emoji": "💤",
+      "health_zh": "蓄勢",
+      "health_desc": "動能靜止 · 中段整理 · 等方向",
       "tnx_flag": "boost"
     },
     {
@@ -174,6 +179,10 @@
       "quadrant": "weakening",
       "quadrant_zh": "減弱",
       "quadrant_desc": "高位但動能見頂",
+      "health_key": "coiling",
+      "health_emoji": "💤",
+      "health_zh": "蓄勢",
+      "health_desc": "動能靜止 · 中段整理 · 等方向",
       "tnx_flag": "penalty"
     },
     {
@@ -229,6 +238,10 @@
       "quadrant": "leading",
       "quadrant_zh": "領先",
       "quadrant_desc": "資金持續流入、動能未退",
+      "health_key": "sweet_spot",
+      "health_emoji": "✨",
+      "health_zh": "甜蜜點",
+      "health_desc": "強而未累 · 仍在加速 · 順勢區間",
       "tnx_flag": "boost"
     },
     {
@@ -284,6 +297,10 @@
       "quadrant": "improving",
       "quadrant_zh": "改善",
       "quadrant_desc": "落後股翻轉候選",
+      "health_key": "coiling",
+      "health_emoji": "💤",
+      "health_zh": "蓄勢",
+      "health_desc": "動能靜止 · 中段整理 · 等方向",
       "tnx_flag": null
     },
     {
@@ -339,6 +356,10 @@
       "quadrant": "leading",
       "quadrant_zh": "領先",
       "quadrant_desc": "資金持續流入、動能未退",
+      "health_key": "sweet_spot",
+      "health_emoji": "✨",
+      "health_zh": "甜蜜點",
+      "health_desc": "強而未累 · 仍在加速 · 順勢區間",
       "tnx_flag": "boost"
     },
     {
@@ -394,6 +415,10 @@
       "quadrant": "leading",
       "quadrant_zh": "領先",
       "quadrant_desc": "資金持續流入、動能未退",
+      "health_key": "sweet_spot",
+      "health_emoji": "✨",
+      "health_zh": "甜蜜點",
+      "health_desc": "強而未累 · 仍在加速 · 順勢區間",
       "tnx_flag": null
     },
     {
@@ -449,6 +474,10 @@
       "quadrant": "improving",
       "quadrant_zh": "改善",
       "quadrant_desc": "落後股翻轉候選",
+      "health_key": "sweet_spot",
+      "health_emoji": "✨",
+      "health_zh": "甜蜜點",
+      "health_desc": "強而未累 · 仍在加速 · 順勢區間",
       "tnx_flag": null
     },
     {
@@ -504,6 +533,10 @@
       "quadrant": "lagging",
       "quadrant_zh": "落後",
       "quadrant_desc": "資金持續流出",
+      "health_key": "cold",
+      "health_emoji": "🧊",
+      "health_zh": "冷凍",
+      "health_desc": "365d 低位 + 仍在下降 · 資金持續流出",
       "tnx_flag": null
     },
     {
@@ -559,6 +592,10 @@
       "quadrant": "weakening",
       "quadrant_zh": "減弱",
       "quadrant_desc": "高位但動能見頂",
+      "health_key": "neutral",
+      "health_emoji": "➡️",
+      "health_zh": "中性",
+      "health_desc": "無明顯訊號",
       "tnx_flag": "penalty"
     },
     {
@@ -614,6 +651,10 @@
       "quadrant": "improving",
       "quadrant_zh": "改善",
       "quadrant_desc": "落後股翻轉候選",
+      "health_key": "coiling",
+      "health_emoji": "💤",
+      "health_zh": "蓄勢",
+      "health_desc": "動能靜止 · 中段整理 · 等方向",
       "tnx_flag": null
     },
     {
@@ -669,6 +710,10 @@
       "quadrant": "lagging",
       "quadrant_zh": "落後",
       "quadrant_desc": "資金持續流出",
+      "health_key": "cold",
+      "health_emoji": "🧊",
+      "health_zh": "冷凍",
+      "health_desc": "365d 低位 + 仍在下降 · 資金持續流出",
       "tnx_flag": "penalty"
     }
   ]
