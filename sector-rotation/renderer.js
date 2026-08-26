@@ -223,15 +223,17 @@ function renderQuadrantPanel() {
                 const sign = (r.acceleration ?? 0) > 0 ? "+" : "";
                 const isBig = STATE.scorecard?.quadrant_biggest_mover?.sector === r.sector;
                 const cls = isBig ? "quad-chip quad-chip-big" : "quad-chip";
-                // 提示：3 個百分位 + breadth
+                // 提示：3 個百分位 + breadth + 健康度
                 const p30 = r.pct_30d !== null && r.pct_30d !== undefined ? `30d p${r.pct_30d}` : "—";
                 const p90 = r.pct_90d !== null && r.pct_90d !== undefined ? `90d p${r.pct_90d}` : "—";
                 const p365 = r.pct_365d !== null && r.pct_365d !== undefined ? `365d p${r.pct_365d}` : "—";
                 const br = r.breadth_pct !== null && r.breadth_pct !== undefined
                     ? `breadth ${r.breadth_pct}% (${r.breadth_up}/${r.breadth_total})`
                     : "breadth n/a";
-                const title = `${r.sector_name} · point ${pt} · acc ${sign}${acc}\n${p30} · ${p90} · ${p365}\n${br}`;
-                return `<span class="${cls}" title="${title}">${r.sector_name}<span class="chip-acc">${sign}${acc}</span></span>`;
+                const health = r.health_zh ? `${r.health_emoji} ${r.health_zh}：${r.health_desc || ""}` : "";
+                const title = `${r.sector_name} · point ${pt} · acc ${sign}${acc}\n${p30} · ${p90} · ${p365}\n${br}${health ? "\n" + health : ""}`;
+                const healthBadge = r.health_emoji ? `<span class="chip-health" title="${r.health_zh}">${r.health_emoji}</span>` : "";
+                return `<span class="${cls}" title="${title}">${healthBadge}${r.sector_name}<span class="chip-acc">${sign}${acc}</span></span>`;
             }).join("")
             : `<span class="quad-empty">—</span>`;
     });
@@ -288,6 +290,9 @@ function renderHistoryBreadthTable() {
         const acc = (r.acceleration ?? 0);
         const accStr = (acc >= 0 ? "+" : "") + acc.toFixed(2);
         const accCls = acc > 0 ? "acc-up" : (acc < 0 ? "acc-down" : "acc-flat");
+        const healthBadge = r.health_key
+            ? `<span class="health-badge health-${r.health_key}" title="${r.health_desc || ""}">${r.health_emoji} ${r.health_zh}</span>`
+            : `<span class="health-badge health-neutral">—</span>`;
         return `<tr>
             <td><b>${r.sector_name}</b> <span class="dim">${r.sector}</span></td>
             <td class="n">${pt}</td>
@@ -296,6 +301,7 @@ function renderHistoryBreadthTable() {
             <td class="n">${pctBadge(r.pct_90d)}</td>
             <td class="n">${pctBadge(r.pct_365d)}</td>
             <td class="n">${breadthBadge(r.breadth_pct, r.breadth_up, r.breadth_total)}</td>
+            <td>${healthBadge}</td>
         </tr>`;
     }).join("");
 

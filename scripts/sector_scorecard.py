@@ -236,6 +236,46 @@ def add_sector_breadth(df, as_of):
     return df
 
 
+def add_sector_health_tag(df):
+    """依 pct_365d + acceleration + breadth 分 5+1 級健康度標籤
+    · 借鑒付費研報「過熱 / 甜蜜點 / 蓄勢 / 反轉初期」的訊號分層概念
+    · 但下沉到板塊層（他們是個股層）· 用 percentile + acc 代替 RSI + MA"""
+    HEALTH_TAGS = {
+        "overheated":     {"emoji": "🔥", "zh": "過熱",   "desc": "365d 極值 + 動能已見頂 · 慎防修正"},
+        "sweet_spot":     {"emoji": "✨", "zh": "甜蜜點", "desc": "強而未累 · 仍在加速 · 順勢區間"},
+        "early_reversal": {"emoji": "🌱", "zh": "反轉初期", "desc": "低位 + 加速轉正 · 潛在翻轉候選"},
+        "coiling":        {"emoji": "💤", "zh": "蓄勢",   "desc": "動能靜止 · 中段整理 · 等方向"},
+        "cold":           {"emoji": "🧊", "zh": "冷凍",   "desc": "365d 低位 + 仍在下降 · 資金持續流出"},
+        "neutral":        {"emoji": "➡️", "zh": "中性",   "desc": "無明顯訊號"},
+    }
+
+    def classify(row):
+        p = row.get("pct_365d")
+        acc = row.get("acceleration")
+        if p is None or pd.isna(p) or acc is None or pd.isna(acc):
+            return "neutral"
+        # 優先順序（第一個匹配的贏）
+        if p >= 85 and acc <= 0:
+            return "overheated"
+        if p <= 20 and acc <= 0:
+            return "cold"
+        if p >= 60 and acc >= 1.5:
+            return "sweet_spot"
+        if p <= 40 and acc >= 1.5:
+            return "early_reversal"
+        if abs(acc) <= 1 and 30 <= p <= 75:
+            return "coiling"
+        return "neutral"
+
+    df = df.copy()
+    keys = df.apply(classify, axis=1)
+    df["health_key"] = keys
+    df["health_emoji"] = keys.map(lambda k: HEALTH_TAGS[k]["emoji"])
+    df["health_zh"] = keys.map(lambda k: HEALTH_TAGS[k]["zh"])
+    df["health_desc"] = keys.map(lambda k: HEALTH_TAGS[k]["desc"])
+    return df
+
+
 def add_acceleration_and_quadrant(df, as_of):
     """讀過去 N 天的 scorecard CSV · 計算 point 5d 平均 → acceleration → quadrant"""
     import glob
@@ -698,6 +738,7 @@ def save_outputs(df, market_ctx=None, quadrant_biggest_mover=None):
         "quadrant_note": f"acceleration = 今日 point - 過去 {ACCEL_LOOKBACK_DAYS} 天 point 平均 · 象限用 point 中位數 + acceleration 正負分四格",
         "percentile_note": "pct_Nd = 今日 point 在過去 N 天 sector 分數中的百分位 (0-100 · 越大表越極端強)",
         "breadth_note": "breadth_pct = 該 sector 個股中 4W 累報 > 0 的比例（讀同日 stage 2 all.csv）",
+        "health_note": "health_key: overheated(🔥) / sweet_spot(✨) / early_reversal(🌱) / coiling(💤) / cold(🧊) / neutral(➡️) · 用 pct_365d + acceleration + breadth 分層",
         "formulas": {
             "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
             "cms_a": "0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）",
@@ -756,6 +797,8 @@ def main():
     df = add_sector_breadth(df, as_of)
     # 加 acceleration + quadrant（Layer 1.5）
     df, biggest_mover = add_acceleration_and_quadrant(df, as_of)
+    # 加健康度標籤（D · 過熱/甜蜜點/蓄勢/反轉初期/冷凍）
+    df = add_sector_health_tag(df)
     if biggest_mover:
         log(f"  📍 最大位移: {biggest_mover['sector']} {biggest_mover['sector_name']} · "
             f"point {biggest_mover['point']:.1f} · acc {biggest_mover['acceleration']:+.1f} · "
