@@ -276,6 +276,25 @@ body.rot-body {
 .pct-badge.pct-cool { background: rgba(56, 189, 248, 0.15); color: #93c5fd; }
 .pct-badge.pct-cold { background: rgba(148, 163, 184, 0.20); color: #cbd5e1; }
 .pct-dash { color: var(--text-mute); font-size: 11px; }
+
+/* 板塊健康度標籤（D 借鑒付費研報訊號分層） */
+.health-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600; cursor: help;
+    border: 1px solid transparent; letter-spacing: .3px;
+}
+.health-badge.health-overheated     { background: rgba(239, 68, 68, 0.20); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
+.health-badge.health-sweet_spot     { background: rgba(16, 185, 129, 0.22); color: #86efac; border-color: rgba(16, 185, 129, 0.5); font-weight: 700; }
+.health-badge.health-early_reversal { background: rgba(56, 189, 248, 0.20); color: #93c5fd; border-color: rgba(56, 189, 248, 0.4); }
+.health-badge.health-coiling        { background: rgba(245, 158, 11, 0.14); color: #fcd34d; border-color: rgba(245, 158, 11, 0.3); }
+.health-badge.health-cold           { background: rgba(148, 163, 184, 0.22); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.4); }
+.health-badge.health-neutral        { background: var(--bg-panel); color: var(--text-dim); }
+
+/* 四象限 chip 內的健康度小 emoji */
+.chip-health {
+    display: inline-block; font-size: 12px; margin-right: 3px;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
 .allocation-bars {
     padding: 12px 14px;
     background: var(--bg-panel-2);
