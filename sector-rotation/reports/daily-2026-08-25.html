@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>板塊研究日報 · 2026-08-25</title>
+<style>
+  :root {
+    --navy:#1b2a4a; --navy-d:#0f1930; --gold:#c9a24b; --gold-l:#e8d9ae;
+    --bg:#f4f5f7; --card:#ffffff; --line:#e2e5ea;
+    --text:#2a2f3a; --muted:#6b7280;
+    --green:#1e8449; --red:#c0392b; --amber:#d97706; --blue:#2563eb;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:24px; background:var(--bg);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--text); line-height:1.55;
+  }
+  .sheet { max-width:1180px; margin:0 auto; }
+  .up { color:var(--green); font-weight:700; }
+  .down { color:var(--red); font-weight:700; }
+  .flat { color:var(--muted); font-weight:600; }
+  .dim { color:var(--muted); font-size:12px; }
+
+  .header {
+    background:var(--card); border-radius:10px; padding:22px 26px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:14px;
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+  }
+  .logo {
+    width:56px; height:56px; border-radius:50%;
+    background:linear-gradient(135deg,var(--navy),var(--navy-d));
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold-l); font-weight:800; font-size:22px; border:2px solid var(--gold);
+  }
+  .htitle { flex:1; min-width:280px; }
+  .htitle .tag {
+    display:inline-block; background:var(--navy); color:var(--gold-l);
+    font-size:11px; padding:2px 10px; border-radius:12px; margin-bottom:6px; letter-spacing:1px;
+  }
+  .htitle h1 { margin:0 0 6px 0; font-size:22px; color:var(--navy); }
+  .htitle p { margin:0; font-size:13px; color:var(--muted); }
+
+  .tldr {
+    background:linear-gradient(90deg,#0f1930,#1b2a4a); color:#fef3c7;
+    padding:16px 22px; border-radius:10px; margin-bottom:14px;
+    font-size:14px; line-height:1.7; border-left:4px solid var(--gold);
+  }
+  .tldr b { color:#fff; }
+
+  .snap {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:10px; margin-bottom:14px;
+  }
+  .snap-cell {
+    background:var(--card); padding:12px 14px; border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .snap-cell .l { font-size:10.5px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }
+  .snap-cell .v { font-size:20px; font-weight:800; color:var(--navy); margin-top:2px; }
+  .snap-cell .s { font-size:11px; color:var(--muted); margin-top:2px; }
+
+  .card {
+    background:var(--card); border-radius:10px; overflow:hidden; margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  .card-h {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .card-h .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  .card-b { padding:14px 18px; }
+
+  .quads {
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  }
+  @media(max-width:700px) { .quads { grid-template-columns:1fr; } }
+  .quad { padding:14px; border-radius:8px; min-height:110px; }
+  .quad-leading   { background:#dcfce7; border-left:4px solid var(--green); }
+  .quad-weakening { background:#fef3c7; border-left:4px solid var(--amber); }
+  .quad-improving { background:#dbeafe; border-left:4px solid var(--blue); }
+  .quad-lagging   { background:#fee2e2; border-left:4px solid var(--red); }
+  .q-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .q-emoji { font-size:18px; }
+  .q-head b { font-size:14px; }
+  .q-tag { font-size:11px; color:var(--muted); margin-left:auto; }
+  .q-body { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:4px 10px; border-radius:14px; font-size:12px;
+    background:rgba(255,255,255,.7); color:var(--text);
+  }
+  .chip.big { background:#fef3c7; border:1px solid var(--gold); font-weight:700; }
+  .chip-acc { font-size:10.5px; color:var(--muted); margin-left:4px; font-variant-numeric:tabular-nums; }
+
+  .health-line { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .hchip { padding:5px 12px; border-radius:14px; font-size:12.5px; }
+  .hchip b { font-size:14px; }
+  .hchip-overheated     { background:#fee2e2; color:#991b1b; }
+  .hchip-sweet_spot     { background:#dcfce7; color:#166534; font-weight:600; }
+  .hchip-early_reversal { background:#dbeafe; color:#1e40af; }
+  .hchip-coiling        { background:#fef3c7; color:#92400e; }
+  .hchip-cold           { background:#e2e8f0; color:#475569; }
+  .hchip-neutral        { background:#f3f4f6; color:#6b7280; }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th {
+    text-align:left; padding:8px 10px; background:#f9fafb; color:var(--muted);
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.5px;
+    border-bottom:2px solid var(--line); font-weight:600;
+  }
+  td { padding:7px 10px; border-bottom:1px solid var(--line); }
+  td.n { text-align:right; font-variant-numeric:tabular-nums; }
+  tr:last-child td { border-bottom:none; }
+  td.tag { text-align:center; font-size:15px; }
+  .empty { text-align:center; padding:16px; color:var(--muted); font-style:italic; }
+  .alert { background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:10px; font-size:11px; }
+  .badge {
+    display:inline-block; padding:2px 10px; border-radius:12px; font-size:11.5px; font-weight:600;
+  }
+  .b-sweet_spot     { background:#dcfce7; color:#166534; }
+  .b-coiling        { background:#fef3c7; color:#92400e; }
+  .b-cold           { background:#e2e8f0; color:#475569; }
+  .b-overheated     { background:#fee2e2; color:#991b1b; }
+  .b-early_reversal { background:#dbeafe; color:#1e40af; }
+  .b-neutral        { background:#f3f4f6; color:#6b7280; }
+
+  .mover {
+    background:linear-gradient(90deg,#fef3c7,#fde68a); padding:12px 18px; border-radius:8px;
+    border-left:4px solid var(--gold); margin-top:12px; font-size:13.5px;
+  }
+  .mover b { color:#92400e; }
+
+  .foot {
+    background:var(--card); border-radius:10px; padding:16px 20px;
+    margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);
+    text-align:center; font-size:12px; color:var(--muted);
+  }
+  .foot a { color:var(--navy); text-decoration:none; border-bottom:1px dotted var(--navy); }
+  .conf {
+    display:flex; justify-content:center; gap:18px; flex-wrap:wrap;
+    margin:8px 0 10px; font-size:12.5px;
+  }
+  .conf b { color:var(--navy); }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">📈</div>
+    <div class="htitle">
+      <span class="tag">DAILY SECTOR RESEARCH</span>
+      <h1>板塊研究日報 · 2026-08-25</h1>
+      <p>Layer 1.5 象限 + strong_buy + explosive · 11 樣本回測支持</p>
+    </div>
+  </div>
+
+  <div class="tldr">
+    <b>TL;DR：</b>領先：金融、醫療保健、材料· 落後：工業、公用事業· 最大位移 醫療保健 (+4.0) · 訊號共 17 支（💎 strong_buy 12 + 🚀 explosive 5）
+  </div>
+
+  <div class="snap">
+    <div class="snap-cell"><div class="l">SPY / VOO</div><div class="v">$704.02</div><div class="s">vs 60d: +1.52%</div></div>
+    <div class="snap-cell"><div class="l">VIX</div><div class="v">15.4</div><div class="s">✅ 正常</div></div>
+    <div class="snap-cell"><div class="l">10Y TNX</div><div class="v">4.64%</div><div class="s">🟡+🟢</div></div>
+    <div class="snap-cell"><div class="l">💎 strong_buy</div><div class="v" style="color:var(--gold);">12</div><div class="s">歷史 1y avg +45.9%</div></div>
+    <div class="snap-cell"><div class="l">🚀 explosive</div><div class="v" style="color:#7c3aed;">5</div><div class="s">歷史 1y avg +45.6%</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 Layer 1.5 · 板塊輪動四象限</div>
+    <div class="card-b">
+      <div class="quads">
+        
+        <div class="quad quad-leading">
+          <div class="q-head"><span class="q-emoji">🟢</span><b>領先</b><span class="q-tag">資金持續流入、動能未退</span></div>
+          <div class="q-body"><span class="chip big">✨ 醫療保健<span class="chip-acc">+4.0</span></span><span class="chip">✨ 金融<span class="chip-acc">+3.1</span></span><span class="chip">✨ 材料<span class="chip-acc">+2.5</span></span></div>
+        </div>
+        
+        <div class="quad quad-weakening">
+          <div class="q-head"><span class="q-emoji">🟠</span><b>減弱</b><span class="q-tag">高位但動能見頂</span></div>
+          <div class="q-body"><span class="chip">➡️ 房地產<span class="chip-acc">-0.9</span></span><span class="chip">💤 資訊科技<span class="chip-acc">-0.9</span></span><span class="chip">💤 能源<span class="chip-acc">-0.4</span></span></div>
+        </div>
+        
+        <div class="quad quad-improving">
+          <div class="q-head"><span class="q-emoji">🔵</span><b>改善</b><span class="q-tag">落後翻轉候選</span></div>
+          <div class="q-body"><span class="chip">✨ 通訊服務<span class="chip-acc">+2.0</span></span><span class="chip">💤 非必需消費<span class="chip-acc">+0.3</span></span><span class="chip">💤 必需消費<span class="chip-acc">+0.1</span></span></div>
+        </div>
+        
+        <div class="quad quad-lagging">
+          <div class="q-head"><span class="q-emoji">🔴</span><b>落後</b><span class="q-tag">資金持續流出</span></div>
+          <div class="q-body"><span class="chip">🧊 公用事業<span class="chip-acc">-3.9</span></span><span class="chip">🧊 工業<span class="chip-acc">-3.5</span></span></div>
+        </div>
+      </div>
+      <div class="mover">📍 <b>最大位移</b>：醫療保健 XLV · point 11.6 vs 5 日均 7.6 · 加速度 <b>+4.0</b> · 進入「領先」象限</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🩺 板塊健康度分佈 <span class="n">6 級標籤</span></div>
+    <div class="card-b">
+      <div class="health-line"><span class="hchip hchip-sweet_spot" title="金融、醫療保健、材料、通訊服務">✨ 甜蜜點 · <b>4</b></span> <span class="hchip hchip-coiling" title="能源、資訊科技、非必需消費、必需消費">💤 蓄勢 · <b>4</b></span> <span class="hchip hchip-cold" title="工業、公用事業">🧊 冷凍 · <b>2</b></span> <span class="hchip hchip-neutral" title="房地產">➡️ 中性 · <b>1</b></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💎 strong_buy 訊號 <span class="n">12 · stage 2 as of 2026-08-17</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>MRNA</b> <span class="dim">Moderna</span></td>
+          <td>Health Care</td>
+          <td class="n">190.0</td>
+          <td class="n">100</td>
+          <td class="n">+168.4%</td>
+          <td class="n">+191.0%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>MRVL</b> <span class="dim">Marvell Technology</span></td>
+          <td>Information Technology</td>
+          <td class="n">109.9</td>
+          <td class="n">100</td>
+          <td class="n">+22.0%</td>
+          <td class="n">+198.5%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>MPC</b> <span class="dim">Marathon Petroleum</span></td>
+          <td>Energy</td>
+          <td class="n">57.0</td>
+          <td class="n">100</td>
+          <td class="n">+17.0%</td>
+          <td class="n">+84.5%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>FDS</b> <span class="dim">FactSet</span></td>
+          <td>Financials</td>
+          <td class="n">39.6</td>
+          <td class="n">100</td>
+          <td class="n">+17.9%</td>
+          <td class="n">+55.3%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>TGT</b> <span class="dim">Target Corporation</span></td>
+          <td>Consumer Staples</td>
+          <td class="n">35.8</td>
+          <td class="n">100</td>
+          <td class="n">+21.9%</td>
+          <td class="n">+44.2%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>FCX</b> <span class="dim">Freeport-McMoRan</span></td>
+          <td>Materials</td>
+          <td class="n">21.5</td>
+          <td class="n">97</td>
+          <td class="n">+22.5%</td>
+          <td class="n">+19.7%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>NEM</b> <span class="dim">Newmont</span></td>
+          <td>Materials</td>
+          <td class="n">20.0</td>
+          <td class="n">100</td>
+          <td class="n">+41.2%</td>
+          <td class="n">+8.2%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>FOXA</b> <span class="dim">Fox Corporation (Class A)</span></td>
+          <td>Communication Services</td>
+          <td class="n">18.2</td>
+          <td class="n">100</td>
+          <td class="n">+23.9%</td>
+          <td class="n">+20.8%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>FOX</b> <span class="dim">Fox Corporation (Class B)</span></td>
+          <td>Communication Services</td>
+          <td class="n">16.3</td>
+          <td class="n">100</td>
+          <td class="n">+23.6%</td>
+          <td class="n">+17.5%</td>
+          <td> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>NDSN</b> <span class="dim">Nordson Corporation</span></td>
+          <td>Industrials</td>
+          <td class="n">14.4</td>
+          <td class="n">100</td>
+          <td class="n">+12.3%</td>
+          <td class="n">+15.2%</td>
+          <td><span class="alert">剛爆發</span> </td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>CBRE</b> <span class="dim">CBRE Group</span></td>
+          <td>Real Estate</td>
+          <td class="n">8.0</td>
+          <td class="n">100</td>
+          <td class="n">+9.1%</td>
+          <td class="n">+3.5%</td>
+          <td><span class="alert">剛爆發</span> <span class="dim">L1+L2 48%</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>PCG</b> <span class="dim">PG&amp;E Corporation</span></td>
+          <td>Utilities</td>
+          <td class="n">-0.4</td>
+          <td class="n">100</td>
+          <td class="n">-1.4%</td>
+          <td class="n">-3.6%</td>
+          <td> </td>
+        </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🚀 strong_buy_explosive 訊號 <span class="n">5</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>L1+L2</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="tag">🚀</td>
+          <td><b>EL</b> <span class="dim">Estée Lauder Companies (The)</span></td>
+          <td>Consumer Staples</td>
+          <td class="n">5.6</td>
+          <td class="n">100</td>
+          <td class="n">+27.0%</td>
+          <td class="n">-10.1%</td>
+          <td><span class="alert">剛爆發</span> <span class="dim">L1+L2 62%</span></td>
+        </tr>
+        <tr>
+          <td class="tag">🚀</td>
+          <td><b>ZBRA</b> <span class="dim">Zebra Technologies</span></td>
+          <td>Information Technology</td>
+          <td class="n">43.6</td>
+          <td class="n">100</td>
+          <td class="n">+41.8%</td>
+          <td class="n">+44.3%</td>
+          <td><span class="alert">剛爆發</span> <span class="dim">L1+L2 57%</span></td>
+        </tr>
+        <tr>
+          <td class="tag">🚀</td>
+          <td><b>CBRE</b> <span class="dim">CBRE Group</span></td>
+          <td>Real Estate</td>
+          <td class="n">8.0</td>
+          <td class="n">100</td>
+          <td class="n">+9.1%</td>
+          <td class="n">+3.5%</td>
+          <td><span class="alert">剛爆發</span> <span class="dim">L1+L2 48%</span></td>
+        </tr>
+        <tr>
+          <td class="tag">🚀</td>
+          <td><b>AMT</b> <span class="dim">American Tower</span></td>
+          <td>Real Estate</td>
+          <td class="n">-1.6</td>
+          <td class="n">100</td>
+          <td class="n">+5.5%</td>
+          <td class="n">-4.3%</td>
+          <td><span class="alert">剛爆發</span> <span class="dim">L1+L2 38%</span></td>
+        </tr>
+        <tr>
+          <td class="tag">🚀</td>
+          <td><b>PLTR</b> <span class="dim">Palantir Technologies</span></td>
+          <td>Information Technology</td>
+          <td class="n">36.0</td>
+          <td class="n">100</td>
+          <td class="n">+46.4%</td>
+          <td class="n">+33.0%</td>
+          <td><span class="alert">剛爆發</span> <span class="dim">L1+L2 37%</span></td>
+        </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📊 11 Sector 深度儀表板 · 依 90d 百分位排序</div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th><th class="n">30d</th><th class="n">90d</th><th class="n">365d</th><th class="n">寬度</th><th>健康度</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td><b>醫療保健</b> <span class="dim">XLV</span></td>
+          <td class="n">11.58</td>
+          <td class="n up">+4.00</td>
+          <td class="n">100.0</td>
+          <td class="n">100.0</td>
+          <td class="n">85.7</td>
+          <td class="n">84.7%</td>
+          <td><span class="badge b-sweet_spot">✨ 甜蜜點</span></td>
+        </tr>
+        <tr>
+          <td><b>金融</b> <span class="dim">XLF</span></td>
+          <td class="n">11.14</td>
+          <td class="n up">+3.07</td>
+          <td class="n">80.0</td>
+          <td class="n">83.3</td>
+          <td class="n">85.7</td>
+          <td class="n">63.2%</td>
+          <td><span class="badge b-sweet_spot">✨ 甜蜜點</span></td>
+        </tr>
+        <tr>
+          <td><b>材料</b> <span class="dim">XLB</span></td>
+          <td class="n">3.42</td>
+          <td class="n up">+2.46</td>
+          <td class="n">100.0</td>
+          <td class="n">83.3</td>
+          <td class="n">71.4</td>
+          <td class="n">56.0%</td>
+          <td><span class="badge b-sweet_spot">✨ 甜蜜點</span></td>
+        </tr>
+        <tr>
+          <td><b>通訊服務</b> <span class="dim">XLC</span></td>
+          <td class="n">-1.12</td>
+          <td class="n up">+1.97</td>
+          <td class="n">80.0</td>
+          <td class="n">83.3</td>
+          <td class="n">71.4</td>
+          <td class="n">79.2%</td>
+          <td><span class="badge b-sweet_spot">✨ 甜蜜點</span></td>
+        </tr>
+        <tr>
+          <td><b>能源</b> <span class="dim">XLE</span></td>
+          <td class="n">10.07</td>
+          <td class="n down">-0.38</td>
+          <td class="n">60.0</td>
+          <td class="n">66.7</td>
+          <td class="n">71.4</td>
+          <td class="n">85.7%</td>
+          <td><span class="badge b-coiling">💤 蓄勢</span></td>
+        </tr>
+        <tr>
+          <td><b>非必需消費</b> <span class="dim">XLY</span></td>
+          <td class="n">0.51</td>
+          <td class="n up">+0.35</td>
+          <td class="n">60.0</td>
+          <td class="n">66.7</td>
+          <td class="n">57.1</td>
+          <td class="n">72.3%</td>
+          <td><span class="badge b-coiling">💤 蓄勢</span></td>
+        </tr>
+        <tr>
+          <td><b>必需消費</b> <span class="dim">XLP</span></td>
+          <td class="n">0.37</td>
+          <td class="n up">+0.09</td>
+          <td class="n">75.0</td>
+          <td class="n">60.0</td>
+          <td class="n">66.7</td>
+          <td class="n">64.7%</td>
+          <td><span class="badge b-coiling">💤 蓄勢</span></td>
+        </tr>
+        <tr>
+          <td><b>資訊科技</b> <span class="dim">XLK</span></td>
+          <td class="n">15.37</td>
+          <td class="n down">-0.86</td>
+          <td class="n">40.0</td>
+          <td class="n">33.3</td>
+          <td class="n">42.9</td>
+          <td class="n">67.1%</td>
+          <td><span class="badge b-coiling">💤 蓄勢</span></td>
+        </tr>
+        <tr>
+          <td><b>房地產</b> <span class="dim">XLRE</span></td>
+          <td class="n">3.70</td>
+          <td class="n down">-0.92</td>
+          <td class="n">20.0</td>
+          <td class="n">16.7</td>
+          <td class="n">28.6</td>
+          <td class="n">26.7%</td>
+          <td><span class="badge b-neutral">➡️ 中性</span></td>
+        </tr>
+        <tr>
+          <td><b>工業</b> <span class="dim">XLI</span></td>
+          <td class="n">1.25</td>
+          <td class="n down">-3.45</td>
+          <td class="n">0.0</td>
+          <td class="n">0.0</td>
+          <td class="n">0.0</td>
+          <td class="n">43.2%</td>
+          <td><span class="badge b-cold">🧊 冷凍</span></td>
+        </tr>
+        <tr>
+          <td><b>公用事業</b> <span class="dim">XLU</span></td>
+          <td class="n">-5.08</td>
+          <td class="n down">-3.86</td>
+          <td class="n">0.0</td>
+          <td class="n">0.0</td>
+          <td class="n">0.0</td>
+          <td class="n">6.5%</td>
+          <td><span class="badge b-cold">🧊 冷凍</span></td>
+        </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="conf">
+      💎 <b>strong_buy</b> · 11-sample 1y avg <b>+45.9%</b> / 命中 <b>90.2%</b> (n=61)
+      &nbsp;·&nbsp;
+      🚀 <b>explosive</b> · 1y avg <b>+45.6%</b> / 命中 <b>75.0%</b> (n=40)
+    </div>
+    產生時間 2026-08-26 14:28 UTC · <a href="../index.html">回主頁</a> · <a href="8-sample-analysis.html">看回測方法論</a> · <a href="backtest-summary.html">看 pipeline 回測</a>
+    <br><br>
+    <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,512 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+generate_daily_report.py · 每日板塊研究報告產生器
+======================================================
+讀 scorecard_latest.json + latest.json + backtests_pattern.json · 產出 HTML 報告
+
+輸出：
+  sector-rotation/reports/daily-YYYY-MM-DD.html   當日快照
+  sector-rotation/reports/daily-latest.html       最新版（覆寫）
+
+用法：
+  python scripts/generate_daily_report.py
+"""
+import os, sys, json
+from datetime import datetime, timezone
+from html import escape
+
+DATA_DIR = "data/sector_rotation"
+REPORTS_DIR = "sector-rotation/reports"
+
+SCORECARD = os.path.join(DATA_DIR, "scorecard_latest.json")
+STAGE2    = os.path.join(DATA_DIR, "latest.json")
+PATTERN   = os.path.join(DATA_DIR, "backtests_pattern.json")
+
+QUADRANT_ORDER = ["leading", "weakening", "improving", "lagging"]
+QUADRANT_META = {
+    "leading":   ("🟢", "領先",  "資金持續流入、動能未退"),
+    "weakening": ("🟠", "減弱",  "高位但動能見頂"),
+    "improving": ("🔵", "改善",  "落後翻轉候選"),
+    "lagging":   ("🔴", "落後",  "資金持續流出"),
+}
+HEALTH_ORDER = ["overheated", "sweet_spot", "early_reversal", "coiling", "cold", "neutral"]
+HEALTH_META = {
+    "overheated":     ("🔥", "過熱"),
+    "sweet_spot":     ("✨", "甜蜜點"),
+    "early_reversal": ("🌱", "反轉初期"),
+    "coiling":        ("💤", "蓄勢"),
+    "cold":           ("🧊", "冷凍"),
+    "neutral":        ("➡️", "中性"),
+}
+
+
+def load_json(p):
+    if not os.path.exists(p):
+        return None
+    with open(p, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def bucket_by(rows, key):
+    out = {}
+    for r in rows:
+        v = r.get(key)
+        if v is None: continue
+        out.setdefault(v, []).append(r)
+    return out
+
+
+def strong_buy_stocks(stage2):
+    """從 stage 2 composite tab 抽 strong_buy · 去 dedup by symbol"""
+    if not stage2 or "top3" not in stage2:
+        return []
+    seen = {}
+    for tab in ["composite", "4w", "13w", "26w", "cms_a"]:
+        for r in stage2["top3"].get(tab, []):
+            s = r.get("symbol")
+            if s in seen: continue
+            if (r.get("composite_rank_in_sector") == 1
+                    and (r.get("vp_score_stock") or 0) >= 95
+                    and r.get("stock_gap_alert") != "吃老本"):
+                seen[s] = r
+    # 排：sector 內 point 高的先
+    return sorted(seen.values(), key=lambda x: -(x.get("point") or 0))
+
+
+def explosive_stocks(stage2):
+    """explosive rule · 從 all tabs 去 dedup"""
+    if not stage2 or "top3" not in stage2:
+        return []
+    seen = {}
+    for tab in ["composite", "4w", "13w", "26w", "cms_a"]:
+        for r in stage2["top3"].get(tab, []):
+            s = r.get("symbol")
+            if s in seen: continue
+            surp_sum = (r.get("surprise_l1") or 0) + (r.get("surprise_l2") or 0)
+            if ((r.get("vp_score_stock") or 0) >= 95
+                    and r.get("stock_gap_alert") == "剛爆發"
+                    and surp_sum >= 30
+                    and (r.get("composite_rank_in_sector") or 999) <= 10
+                    and (r.get("cum_ret_26w") or 0) <= 50):
+                r["_surp_sum"] = round(surp_sum, 1)
+                seen[s] = r
+    return sorted(seen.values(), key=lambda x: -x.get("_surp_sum", 0))
+
+
+def make_tldr(scorecard, sb_stocks, exp_stocks, biggest):
+    """自動產生一句話 TL;DR"""
+    leading = [r for r in scorecard["rows"] if r.get("quadrant") == "leading"]
+    lagging = [r for r in scorecard["rows"] if r.get("quadrant") == "lagging"]
+    sweet = [r for r in scorecard["rows"] if r.get("health_key") == "sweet_spot"]
+    cold  = [r for r in scorecard["rows"] if r.get("health_key") == "cold"]
+
+    parts = []
+    if leading:
+        top_names = "、".join([r["sector_name"] for r in leading[:3]])
+        parts.append(f"領先：{top_names}")
+    if lagging:
+        bot_names = "、".join([r["sector_name"] for r in lagging[:3]])
+        parts.append(f"落後：{bot_names}")
+    if biggest:
+        sign = "+" if biggest["acceleration"] > 0 else ""
+        parts.append(f"最大位移 {biggest['sector_name']} ({sign}{biggest['acceleration']:.1f})")
+
+    signal_line = ""
+    if sb_stocks or exp_stocks:
+        n = len(sb_stocks) + len(exp_stocks)
+        signal_line = f"訊號共 {n} 支（💎 strong_buy {len(sb_stocks)} + 🚀 explosive {len(exp_stocks)}）"
+    return "· ".join(parts) + (" · " + signal_line if signal_line else "")
+
+
+def render(scorecard, stage2, pattern):
+    as_of = scorecard["as_of_date"]
+    market_ctx = scorecard.get("market_context") or {}
+    biggest = scorecard.get("quadrant_biggest_mover")
+    rows = scorecard["rows"]
+
+    # 分四象限
+    quad_buckets = bucket_by(rows, "quadrant")
+    for k in quad_buckets:
+        quad_buckets[k].sort(key=lambda r: -abs(r.get("acceleration") or 0))
+    # 健康度分佈
+    health_buckets = bucket_by(rows, "health_key")
+
+    # 排序 rows by pct_90d desc
+    rows_by_pct = sorted(rows, key=lambda r: -(r.get("pct_90d") or -1))
+
+    sb_stocks = strong_buy_stocks(stage2)
+    exp_stocks = explosive_stocks(stage2)
+    tldr = make_tldr(scorecard, sb_stocks, exp_stocks, biggest)
+
+    # 11-sample 統計（backtests_pattern）
+    p1y = (pattern or {}).get("1y") or {}
+    sb_stats = p1y.get("strong_buy") or {}
+    exp_stats = p1y.get("strong_buy_explosive") or {}
+
+    # ---------- helpers for HTML ----------
+    def num(v, d=2, pct=False, sign=False):
+        if v is None: return "—"
+        try:
+            v = float(v)
+        except Exception:
+            return str(v)
+        s = f"{v:+.{d}f}" if sign else f"{v:.{d}f}"
+        return s + ("%" if pct else "")
+
+    def sector_chip(r, big_sector=None):
+        name = escape(r.get("sector_name", ""))
+        acc = r.get("acceleration") or 0
+        sign = "+" if acc > 0 else ""
+        emoji = r.get("health_emoji") or ""
+        is_big = r.get("sector") == big_sector
+        cls = "chip big" if is_big else "chip"
+        return f'<span class="{cls}">{emoji} {name}<span class="chip-acc">{sign}{acc:.1f}</span></span>'
+
+    def quad_block(key):
+        emoji, zh, desc = QUADRANT_META[key]
+        items = quad_buckets.get(key, [])
+        big_sec = biggest["sector"] if biggest else None
+        chips = "".join(sector_chip(r, big_sec) for r in items) if items else '<span class="dim">—</span>'
+        return f'''
+        <div class="quad quad-{key}">
+          <div class="q-head"><span class="q-emoji">{emoji}</span><b>{zh}</b><span class="q-tag">{escape(desc)}</span></div>
+          <div class="q-body">{chips}</div>
+        </div>'''
+
+    def health_line():
+        # 計 count per tag
+        counts = {k: len(health_buckets.get(k, [])) for k in HEALTH_ORDER}
+        chips = []
+        for k in HEALTH_ORDER:
+            emoji, zh = HEALTH_META[k]
+            c = counts.get(k, 0)
+            if c == 0: continue
+            names = "、".join(r["sector_name"] for r in health_buckets[k])
+            chips.append(f'<span class="hchip hchip-{k}" title="{escape(names)}">{emoji} {zh} · <b>{c}</b></span>')
+        return " ".join(chips)
+
+    def sb_row(r, tag="💎"):
+        sector = escape(r.get("sector", ""))
+        symbol = escape(r.get("symbol", ""))
+        name = escape((r.get("name") or "")[:30])
+        pt = num(r.get("point"), 1)
+        vp = num(r.get("vp_score_stock"), 0)
+        c4 = num(r.get("cum_ret_4w"), 1, pct=True, sign=True)
+        c26 = num(r.get("cum_ret_26w"), 1, pct=True, sign=True)
+        surp = f"L1+L2 {r.get('_surp_sum', 0):.0f}%" if "_surp_sum" in r else ""
+        alert = r.get("stock_gap_alert") or ""
+        alert_html = f'<span class="alert">{escape(alert)}</span>' if alert else ""
+        extra = f'<span class="dim">{surp}</span>' if surp else ""
+        return f'''
+        <tr>
+          <td class="tag">{tag}</td>
+          <td><b>{symbol}</b> <span class="dim">{name}</span></td>
+          <td>{sector}</td>
+          <td class="n">{pt}</td>
+          <td class="n">{vp}</td>
+          <td class="n">{c4}</td>
+          <td class="n">{c26}</td>
+          <td>{alert_html} {extra}</td>
+        </tr>'''
+
+    sb_rows_html = "".join(sb_row(r, "💎") for r in sb_stocks) \
+        or '<tr><td colspan="8" class="empty">今日無 strong_buy 訊號 · 資料日期可能較舊或無合格個股</td></tr>'
+    exp_rows_html = "".join(sb_row(r, "🚀") for r in exp_stocks) \
+        or '<tr><td colspan="8" class="empty">今日無 explosive 訊號</td></tr>'
+
+    # 板塊詳細表
+    def sec_row(r):
+        emoji = r.get("health_emoji") or ""
+        zh = r.get("health_zh") or "—"
+        acc = r.get("acceleration")
+        acc_cls = "up" if (acc or 0) > 0 else ("down" if (acc or 0) < 0 else "flat")
+        return f'''
+        <tr>
+          <td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>
+          <td class="n">{num(r.get("point"), 2)}</td>
+          <td class="n {acc_cls}">{num(acc, 2, sign=True)}</td>
+          <td class="n">{r.get("pct_30d") if r.get("pct_30d") is not None else "—"}</td>
+          <td class="n">{r.get("pct_90d") if r.get("pct_90d") is not None else "—"}</td>
+          <td class="n">{r.get("pct_365d") if r.get("pct_365d") is not None else "—"}</td>
+          <td class="n">{num(r.get("breadth_pct"), 1, pct=True)}</td>
+          <td><span class="badge b-{r.get("health_key","neutral")}">{emoji} {zh}</span></td>
+        </tr>'''
+    sec_rows_html = "".join(sec_row(r) for r in rows_by_pct)
+
+    # market snapshot
+    voo = market_ctx.get("voo") or {}
+    vix = market_ctx.get("vix") or {}
+    tnx = market_ctx.get("tnx") or {}
+    quadrant_key = market_ctx.get("quadrant_key") or "—"
+
+    # generated timestamp
+    gen_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    stage2_asof = (stage2 or {}).get("as_of_date") or "n/a"
+
+    # ---------- HTML ----------
+    html = f'''<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>板塊研究日報 · {as_of}</title>
+<style>
+  :root {{
+    --navy:#1b2a4a; --navy-d:#0f1930; --gold:#c9a24b; --gold-l:#e8d9ae;
+    --bg:#f4f5f7; --card:#ffffff; --line:#e2e5ea;
+    --text:#2a2f3a; --muted:#6b7280;
+    --green:#1e8449; --red:#c0392b; --amber:#d97706; --blue:#2563eb;
+  }}
+  * {{ box-sizing:border-box; }}
+  body {{
+    margin:0; padding:24px; background:var(--bg);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--text); line-height:1.55;
+  }}
+  .sheet {{ max-width:1180px; margin:0 auto; }}
+  .up {{ color:var(--green); font-weight:700; }}
+  .down {{ color:var(--red); font-weight:700; }}
+  .flat {{ color:var(--muted); font-weight:600; }}
+  .dim {{ color:var(--muted); font-size:12px; }}
+
+  .header {{
+    background:var(--card); border-radius:10px; padding:22px 26px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:14px;
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+  }}
+  .logo {{
+    width:56px; height:56px; border-radius:50%;
+    background:linear-gradient(135deg,var(--navy),var(--navy-d));
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold-l); font-weight:800; font-size:22px; border:2px solid var(--gold);
+  }}
+  .htitle {{ flex:1; min-width:280px; }}
+  .htitle .tag {{
+    display:inline-block; background:var(--navy); color:var(--gold-l);
+    font-size:11px; padding:2px 10px; border-radius:12px; margin-bottom:6px; letter-spacing:1px;
+  }}
+  .htitle h1 {{ margin:0 0 6px 0; font-size:22px; color:var(--navy); }}
+  .htitle p {{ margin:0; font-size:13px; color:var(--muted); }}
+
+  .tldr {{
+    background:linear-gradient(90deg,#0f1930,#1b2a4a); color:#fef3c7;
+    padding:16px 22px; border-radius:10px; margin-bottom:14px;
+    font-size:14px; line-height:1.7; border-left:4px solid var(--gold);
+  }}
+  .tldr b {{ color:#fff; }}
+
+  .snap {{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:10px; margin-bottom:14px;
+  }}
+  .snap-cell {{
+    background:var(--card); padding:12px 14px; border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }}
+  .snap-cell .l {{ font-size:10.5px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }}
+  .snap-cell .v {{ font-size:20px; font-weight:800; color:var(--navy); margin-top:2px; }}
+  .snap-cell .s {{ font-size:11px; color:var(--muted); margin-top:2px; }}
+
+  .card {{
+    background:var(--card); border-radius:10px; overflow:hidden; margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }}
+  .card-h {{
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; display:flex; justify-content:space-between; align-items:center;
+  }}
+  .card-h .n {{ background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }}
+  .card-b {{ padding:14px 18px; }}
+
+  .quads {{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  }}
+  @media(max-width:700px) {{ .quads {{ grid-template-columns:1fr; }} }}
+  .quad {{ padding:14px; border-radius:8px; min-height:110px; }}
+  .quad-leading   {{ background:#dcfce7; border-left:4px solid var(--green); }}
+  .quad-weakening {{ background:#fef3c7; border-left:4px solid var(--amber); }}
+  .quad-improving {{ background:#dbeafe; border-left:4px solid var(--blue); }}
+  .quad-lagging   {{ background:#fee2e2; border-left:4px solid var(--red); }}
+  .q-head {{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }}
+  .q-emoji {{ font-size:18px; }}
+  .q-head b {{ font-size:14px; }}
+  .q-tag {{ font-size:11px; color:var(--muted); margin-left:auto; }}
+  .q-body {{ display:flex; flex-wrap:wrap; gap:6px; }}
+  .chip {{
+    display:inline-flex; align-items:center; gap:4px;
+    padding:4px 10px; border-radius:14px; font-size:12px;
+    background:rgba(255,255,255,.7); color:var(--text);
+  }}
+  .chip.big {{ background:#fef3c7; border:1px solid var(--gold); font-weight:700; }}
+  .chip-acc {{ font-size:10.5px; color:var(--muted); margin-left:4px; font-variant-numeric:tabular-nums; }}
+
+  .health-line {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }}
+  .hchip {{ padding:5px 12px; border-radius:14px; font-size:12.5px; }}
+  .hchip b {{ font-size:14px; }}
+  .hchip-overheated     {{ background:#fee2e2; color:#991b1b; }}
+  .hchip-sweet_spot     {{ background:#dcfce7; color:#166534; font-weight:600; }}
+  .hchip-early_reversal {{ background:#dbeafe; color:#1e40af; }}
+  .hchip-coiling        {{ background:#fef3c7; color:#92400e; }}
+  .hchip-cold           {{ background:#e2e8f0; color:#475569; }}
+  .hchip-neutral        {{ background:#f3f4f6; color:#6b7280; }}
+
+  table {{ width:100%; border-collapse:collapse; font-size:13px; }}
+  th {{
+    text-align:left; padding:8px 10px; background:#f9fafb; color:var(--muted);
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.5px;
+    border-bottom:2px solid var(--line); font-weight:600;
+  }}
+  td {{ padding:7px 10px; border-bottom:1px solid var(--line); }}
+  td.n {{ text-align:right; font-variant-numeric:tabular-nums; }}
+  tr:last-child td {{ border-bottom:none; }}
+  td.tag {{ text-align:center; font-size:15px; }}
+  .empty {{ text-align:center; padding:16px; color:var(--muted); font-style:italic; }}
+  .alert {{ background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:10px; font-size:11px; }}
+  .badge {{
+    display:inline-block; padding:2px 10px; border-radius:12px; font-size:11.5px; font-weight:600;
+  }}
+  .b-sweet_spot     {{ background:#dcfce7; color:#166534; }}
+  .b-coiling        {{ background:#fef3c7; color:#92400e; }}
+  .b-cold           {{ background:#e2e8f0; color:#475569; }}
+  .b-overheated     {{ background:#fee2e2; color:#991b1b; }}
+  .b-early_reversal {{ background:#dbeafe; color:#1e40af; }}
+  .b-neutral        {{ background:#f3f4f6; color:#6b7280; }}
+
+  .mover {{
+    background:linear-gradient(90deg,#fef3c7,#fde68a); padding:12px 18px; border-radius:8px;
+    border-left:4px solid var(--gold); margin-top:12px; font-size:13.5px;
+  }}
+  .mover b {{ color:#92400e; }}
+
+  .foot {{
+    background:var(--card); border-radius:10px; padding:16px 20px;
+    margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);
+    text-align:center; font-size:12px; color:var(--muted);
+  }}
+  .foot a {{ color:var(--navy); text-decoration:none; border-bottom:1px dotted var(--navy); }}
+  .conf {{
+    display:flex; justify-content:center; gap:18px; flex-wrap:wrap;
+    margin:8px 0 10px; font-size:12.5px;
+  }}
+  .conf b {{ color:var(--navy); }}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">📈</div>
+    <div class="htitle">
+      <span class="tag">DAILY SECTOR RESEARCH</span>
+      <h1>板塊研究日報 · {as_of}</h1>
+      <p>Layer 1.5 象限 + strong_buy + explosive · 11 樣本回測支持</p>
+    </div>
+  </div>
+
+  <div class="tldr">
+    <b>TL;DR：</b>{escape(tldr)}
+  </div>
+
+  <div class="snap">
+    <div class="snap-cell"><div class="l">SPY / VOO</div><div class="v">${num(voo.get("price"), 2)}</div><div class="s">vs 60d: {num(voo.get("vs_60d_pct"), 2, pct=True, sign=True)}</div></div>
+    <div class="snap-cell"><div class="l">VIX</div><div class="v">{num(vix.get("value"), 1)}</div><div class="s">{'✅ 正常' if (vix.get("value") or 0) < 20 else '⚠ 警戒'}</div></div>
+    <div class="snap-cell"><div class="l">10Y TNX</div><div class="v">{num(tnx.get("value"), 2, pct=True)}</div><div class="s">{escape(quadrant_key)}</div></div>
+    <div class="snap-cell"><div class="l">💎 strong_buy</div><div class="v" style="color:var(--gold);">{len(sb_stocks)}</div><div class="s">歷史 1y avg {num(sb_stats.get("avg"), 1, pct=True, sign=True)}</div></div>
+    <div class="snap-cell"><div class="l">🚀 explosive</div><div class="v" style="color:#7c3aed;">{len(exp_stocks)}</div><div class="s">歷史 1y avg {num(exp_stats.get("avg"), 1, pct=True, sign=True)}</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 Layer 1.5 · 板塊輪動四象限</div>
+    <div class="card-b">
+      <div class="quads">
+        {quad_block("leading")}
+        {quad_block("weakening")}
+        {quad_block("improving")}
+        {quad_block("lagging")}
+      </div>
+      {f'<div class="mover">📍 <b>最大位移</b>：{escape(biggest["sector_name"])} {biggest["sector"]} · point {biggest["point"]:.1f} vs 5 日均 {biggest["point_5d_avg"]:.1f} · 加速度 <b>{("+" if biggest["acceleration"]>0 else "")}{biggest["acceleration"]:.1f}</b> · 進入「{biggest["quadrant_zh"]}」象限</div>' if biggest else ""}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🩺 板塊健康度分佈 <span class="n">6 級標籤</span></div>
+    <div class="card-b">
+      <div class="health-line">{health_line()}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💎 strong_buy 訊號 <span class="n">{len(sb_stocks)} · stage 2 as of {escape(stage2_asof)}</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th></tr>
+        </thead>
+        <tbody>{sb_rows_html}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🚀 strong_buy_explosive 訊號 <span class="n">{len(exp_stocks)}</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>L1+L2</th></tr>
+        </thead>
+        <tbody>{exp_rows_html}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📊 11 Sector 深度儀表板 · 依 90d 百分位排序</div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th><th class="n">30d</th><th class="n">90d</th><th class="n">365d</th><th class="n">寬度</th><th>健康度</th></tr>
+        </thead>
+        <tbody>{sec_rows_html}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="conf">
+      💎 <b>strong_buy</b> · 11-sample 1y avg <b>{num(sb_stats.get("avg"), 1, pct=True, sign=True)}</b> / 命中 <b>{num(sb_stats.get("hit_rate_pct"), 1, pct=True)}</b> (n={sb_stats.get("n","—")})
+      &nbsp;·&nbsp;
+      🚀 <b>explosive</b> · 1y avg <b>{num(exp_stats.get("avg"), 1, pct=True, sign=True)}</b> / 命中 <b>{num(exp_stats.get("hit_rate_pct"), 1, pct=True)}</b> (n={exp_stats.get("n","—")})
+    </div>
+    產生時間 {gen_ts} · <a href="../index.html">回主頁</a> · <a href="8-sample-analysis.html">看回測方法論</a> · <a href="backtest-summary.html">看 pipeline 回測</a>
+    <br><br>
+    <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
+  </div>
+
+</div>
+</body>
+</html>'''
+
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    dated_path = os.path.join(REPORTS_DIR, f"daily-{as_of}.html")
+    latest_path = os.path.join(REPORTS_DIR, "daily-latest.html")
+    with open(dated_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    with open(latest_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    return dated_path, latest_path
+
+
+def main():
+    scorecard = load_json(SCORECARD)
+    if not scorecard:
+        sys.exit(f"❌ 沒 {SCORECARD} · 先跑 sector_scorecard.py")
+    stage2 = load_json(STAGE2)
+    pattern = load_json(PATTERN)
+    dated, latest = render(scorecard, stage2, pattern)
+    print(f"✅ 產生 {dated}")
+    print(f"✅ 覆寫 {latest}")
+
+
+if __name__ == "__main__":
+    main()

@@ -111,6 +111,12 @@ jobs:
           if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
           python scripts/strategy_b_scanner.py $ARGS 2>&1 | tee /tmp/strategy_b.log
 
+      - name: Generate daily research report
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/generate_daily_report.py 2>&1 | tee /tmp/daily_report.log
+
       - name: Summary
         if: always()
         run: |
@@ -137,6 +143,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/sector_rotation/ 2>/dev/null || true
+          git add sector-rotation/reports/ 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No new data to commit"
             exit 0
