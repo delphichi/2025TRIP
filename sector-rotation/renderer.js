@@ -223,7 +223,15 @@ function renderQuadrantPanel() {
                 const sign = (r.acceleration ?? 0) > 0 ? "+" : "";
                 const isBig = STATE.scorecard?.quadrant_biggest_mover?.sector === r.sector;
                 const cls = isBig ? "quad-chip quad-chip-big" : "quad-chip";
-                return `<span class="${cls}" title="${r.sector_name} · point ${pt} · acc ${sign}${acc}">${r.sector_name}<span class="chip-acc">${sign}${acc}</span></span>`;
+                // 提示：3 個百分位 + breadth
+                const p30 = r.pct_30d !== null && r.pct_30d !== undefined ? `30d p${r.pct_30d}` : "—";
+                const p90 = r.pct_90d !== null && r.pct_90d !== undefined ? `90d p${r.pct_90d}` : "—";
+                const p365 = r.pct_365d !== null && r.pct_365d !== undefined ? `365d p${r.pct_365d}` : "—";
+                const br = r.breadth_pct !== null && r.breadth_pct !== undefined
+                    ? `breadth ${r.breadth_pct}% (${r.breadth_up}/${r.breadth_total})`
+                    : "breadth n/a";
+                const title = `${r.sector_name} · point ${pt} · acc ${sign}${acc}\n${p30} · ${p90} · ${p365}\n${br}`;
+                return `<span class="${cls}" title="${title}">${r.sector_name}<span class="chip-acc">${sign}${acc}</span></span>`;
             }).join("")
             : `<span class="quad-empty">—</span>`;
     });
@@ -236,6 +244,74 @@ function renderQuadrantPanel() {
         const dir = big.acceleration > 0 ? "湧入" : "撤出";
         moverEl.innerHTML = `📍 <b>本日最大位移</b>：${big.sector_name} ${big.sector} · point ${big.point.toFixed(1)} · 加速度 <b>${sign}${big.acceleration.toFixed(1)}</b>（vs 5 日均 ${big.point_5d_avg.toFixed(1)}）· 資金 ${dir} · 象限 <b>「${big.quadrant_zh}」</b>`;
     }
+}
+
+// ---------- render: history percentile + breadth mini table ----------
+function pctBadge(v) {
+    if (v === null || v === undefined) return `<span class="pct-dash">—</span>`;
+    // 熱區配色：≥80 綠 · 50-80 灰 · ≤20 紅
+    let cls = "pct-mid";
+    let icon = "➡️";
+    if (v >= 80) { cls = "pct-hot"; icon = "🔥"; }
+    else if (v <= 20) { cls = "pct-cold"; icon = "🧊"; }
+    else if (v >= 65) { cls = "pct-warm"; icon = "📈"; }
+    else if (v <= 35) { cls = "pct-cool"; icon = "📉"; }
+    return `<span class="pct-badge ${cls}">${icon} ${v.toFixed(0)}</span>`;
+}
+function breadthBadge(pct, up, total) {
+    if (pct === null || pct === undefined) return `<span class="pct-dash">n/a</span>`;
+    let cls = "pct-mid";
+    if (pct >= 70) cls = "pct-hot";
+    else if (pct <= 30) cls = "pct-cold";
+    else if (pct >= 55) cls = "pct-warm";
+    else if (pct <= 45) cls = "pct-cool";
+    return `<span class="pct-badge ${cls}" title="${up}/${total} 個股 4W>0">${pct.toFixed(0)}%</span>`;
+}
+
+function renderHistoryBreadthTable() {
+    const rows = STATE.scorecard?.rows || [];
+    const wrap = document.getElementById("hist-breadth-wrap");
+    if (!wrap) return;
+    const hasPct = rows.length && "pct_30d" in rows[0];
+    if (!hasPct) return;
+    wrap.style.display = "";
+
+    const tbody = document.getElementById("hist-breadth-tbody");
+    // 按 pct_90d 降序（強→弱）· 沒值放最後
+    const sorted = rows.slice().sort((a, b) => {
+        const av = a.pct_90d ?? -1;
+        const bv = b.pct_90d ?? -1;
+        return bv - av;
+    });
+    tbody.innerHTML = sorted.map(r => {
+        const pt = (r.point ?? 0).toFixed(2);
+        const acc = (r.acceleration ?? 0);
+        const accStr = (acc >= 0 ? "+" : "") + acc.toFixed(2);
+        const accCls = acc > 0 ? "acc-up" : (acc < 0 ? "acc-down" : "acc-flat");
+        return `<tr>
+            <td><b>${r.sector_name}</b> <span class="dim">${r.sector}</span></td>
+            <td class="n">${pt}</td>
+            <td class="n ${accCls}">${accStr}</td>
+            <td class="n">${pctBadge(r.pct_30d)}</td>
+            <td class="n">${pctBadge(r.pct_90d)}</td>
+            <td class="n">${pctBadge(r.pct_365d)}</td>
+            <td class="n">${breadthBadge(r.breadth_pct, r.breadth_up, r.breadth_total)}</td>
+        </tr>`;
+    }).join("");
+
+    // footer note: breadth 資料來源日期
+    const foot = document.getElementById("hist-breadth-foot");
+    const brDate = rows.find(r => r.breadth_source_date)?.breadth_source_date;
+    const nSamples = rows[0]?.n_365d || 0;
+    let footText = "";
+    if (brDate && brDate !== STATE.scorecard.as_of_date) {
+        footText += `⚠ breadth 資料來自 <b>${brDate}</b>（stage 2 週跑 · 用最近 all.csv 回退）· `;
+    }
+    footText += `百分位樣本：30d n=${rows[0]?.n_30d || 0} · 90d n=${rows[0]?.n_90d || 0} · 365d n=${nSamples}`;
+    if (nSamples < 100) {
+        footText += ` · <span style="color:#f59e0b;">樣本尚未累積到 365 天 · 百分位僅供參考</span>`;
+    }
+    foot.innerHTML = footText;
 }
 
 // ---------- render: score table ----------
@@ -631,6 +707,7 @@ async function init() {
     renderMarketPanel();
     renderStatus();
     renderQuadrantPanel();
+    renderHistoryBreadthTable();
     renderScoreTable();
 
     await loadStage2Optional();

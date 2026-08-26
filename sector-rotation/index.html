@@ -163,6 +163,28 @@
                 </div>
             </div>
             <div id="quad-biggest-mover" class="quad-mover"></div>
+            <div class="hist-breadth-wrap" id="hist-breadth-wrap" style="display:none;">
+                <div class="hist-breadth-hdr">
+                    📈 歷史百分位 + 板塊寬度 <small style="color:#94a3b8;">（百分位 = 今日 point 在過去 N 天中的排名 · breadth = 該 sector 個股 4W>0 比例）</small>
+                </div>
+                <div class="table-wrap">
+                    <table class="hist-breadth-table">
+                        <thead>
+                            <tr>
+                                <th>Sector</th>
+                                <th class="n">今日 point</th>
+                                <th class="n">加速度</th>
+                                <th class="n">30d 百分位</th>
+                                <th class="n">90d 百分位</th>
+                                <th class="n">365d 百分位</th>
+                                <th class="n">寬度 breadth</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hist-breadth-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="hist-breadth-foot" id="hist-breadth-foot"></div>
+            </div>
         </section>
 
         <section class="panel table-panel">
