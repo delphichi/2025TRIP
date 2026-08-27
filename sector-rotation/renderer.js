@@ -577,6 +577,49 @@ function renderStage2() {
     renderStage2Tab("4w");
 }
 
+// Dow Theory 趨勢 → emoji + 顏色 (符合 trend_state 欄位)
+const TREND_EMOJI = { "多頭": "📈", "空頭": "📉", "收斂": "🔺", "擴散": "🔻" };
+const TREND_CLASS = { "多頭": "trend-long", "空頭": "trend-short",
+                      "收斂": "trend-squeeze", "擴散": "trend-broaden" };
+
+function trendMiniChip(r) {
+    // 放在 Symbol 旁的極小 chip · 只顯 emoji · hover 看細節
+    const st = r.trend_state;
+    if (!st || st === "資料不足") return "";
+    const emo = TREND_EMOJI[st] || "";
+    const sig = r.trend_signal ? ` · ${r.trend_signal}` : "";
+    const title = `Dow: ${st} · ${r.trend_pattern || ""}${sig}`;
+    return ` <span class="trend-mini ${TREND_CLASS[st] || ""}" title="${title}">${emo}</span>`;
+}
+
+function trendCell(r) {
+    // Dow 獨立欄 · 顯 emoji + 中文 state + signal badge
+    const st = r.trend_state;
+    if (!st || st === "資料不足") {
+        return `<td class="trend-cell"><span style="color:var(--text-dim)">—</span></td>`;
+    }
+    const emo = TREND_EMOJI[st] || "";
+    const cls = TREND_CLASS[st] || "";
+    const pat = r.trend_pattern || "";
+    let sigBadge = "";
+    if (r.trend_signal) {
+        // 拆多個訊號 · 每個給獨立 badge
+        const sigs = r.trend_signal.split(" / ");
+        sigBadge = sigs.map(s => {
+            let cls2 = "sig-neutral";
+            if (s.includes("多頭確認")) cls2 = "sig-long-confirm";
+            else if (s.includes("空頭確認")) cls2 = "sig-short-confirm";
+            else if (s.includes("多轉空")) cls2 = "sig-warn-short";
+            else if (s.includes("空轉多")) cls2 = "sig-warn-long";
+            return `<span class="sig-badge ${cls2}">${s}</span>`;
+        }).join(" ");
+    }
+    return `<td class="trend-cell">
+        <span class="trend-badge ${cls}" title="${pat}">${emo} ${st}</span>
+        ${sigBadge ? "<br>" + sigBadge : ""}
+    </td>`;
+}
+
 function renderStage2Tab(tabKey) {
     STATE.stage2Tab = tabKey;
     $$("#stage2-tabs .tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabKey));
@@ -585,7 +628,7 @@ function renderStage2Tab(tabKey) {
     const rows = STATE.stage2?.top3?.[tabKey] || [];
     const tbody = $("#heat-tbody");
     tbody.innerHTML = "";
-    const COLSPAN = 22;
+    const COLSPAN = 23;
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${COLSPAN}" class="empty-row">沒資料</td></tr>`;
         return;
@@ -659,7 +702,7 @@ function renderStage2Tab(tabKey) {
         if (isStrongBuy) tr.classList.add("strong-buy");
         if (isExplosive) tr.classList.add("strong-buy-boom");
         tr.innerHTML = `
-            <td class="sym"><b>${r.symbol}</b>${sbBadge}</td>
+            <td class="sym"><b>${r.symbol}</b>${sbBadge}${trendMiniChip(r)}</td>
             <td class="sector">${r.sector || ""}</td>
             <td class="num heat" style="background:${heatBgRet(r.cum_ret_4w)}; color:${heatText(r.cum_ret_4w)}">${fmtPct(r.cum_ret_4w)}</td>
             <td class="num heat" style="background:${heatBgRet(r.cum_ret_13w)}; color:${heatText(r.cum_ret_13w)}">${fmtPct(r.cum_ret_13w)}</td>
@@ -677,6 +720,7 @@ function renderStage2Tab(tabKey) {
             <td class="num" style="color:${vpColor}"><b>${fmtNum(r.vp_ratio_stock, 2)}</b></td>
             <td class="vcp-cell">${vcpBadge}</td>
             <td class="alert-cell">${stockAlertBadge}</td>
+            ${trendCell(r)}
             ${fwdCell(r, "1m")}
             ${fwdCell(r, "3m")}
             ${fwdCell(r, "6m")}

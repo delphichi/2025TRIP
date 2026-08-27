@@ -216,14 +216,23 @@ def fetch_weekly_returns(tickers):
     log(f"  → close matrix: {all_close.shape[0]} trading days × {all_close.shape[1]} tickers")
 
     # as_of_date = 最後一根 daily close 的實際日期
-    as_of_date = all_close.index[-1].strftime("%Y-%m-%d")
+    last_bar_ts = all_close.index[-1]
+    as_of_date = last_bar_ts.strftime("%Y-%m-%d")
     log(f"  → as_of_date (指定日 · 最後一根 daily close) = {as_of_date}")
 
     rows = []
     for sym in all_close.columns:
-        series = all_close[sym].dropna()
+        col = all_close[sym]
+        # 個股最新一根若為 NaN · 表示這檔沒抓到 as_of_date 那天資料 · 跳過
+        # 避免 t_price 用到更早的 close 卻標成 as_of_date
+        if pd.isna(col.iloc[-1]):
+            continue
+        series = col.dropna()
         # 需至少 131 個 close 才能算 26W (iloc[-131] 存在)
         if len(series) < 131:
+            continue
+        # 保護：實際最後有效日期必須等於 as_of_date
+        if series.index[-1] != last_bar_ts:
             continue
         cur = series.iloc[-1]
         try:
@@ -255,28 +264,51 @@ def fetch_weekly_returns(tickers):
 # ============================================================
 # 2b. VCP 濾網（daily OHLCV · 只對 pre-filter subset 抓）
 # ============================================================
-def fetch_daily_ohlcv_for_vcp(tickers):
+def fetch_daily_ohlcv_for_vcp(tickers, expected_as_of=None):
     """
     抓 1 年 daily OHLCV · 只給 stage 2 的 pre-filter subset 用
     · 3mo 太短算不出 52 週高（策略 A step 6 關卡二需要「距高點」）
     · 1y 抓完約 252 個交易日 · 剛好夠算 52w high + 50MA + 10 日振幅
-    回傳 dict[symbol → DataFrame(Open/High/Low/Close/Volume)]
+
+    v4 改用 auto_adjust=False · 一次拿到 raw OHLCV + Adj Close：
+      · Adj Close     : 股息還原後 close · 舊 auto_adjust=True 的 Close 等價值
+      · High/Low/Open : 未還原（Yahoo/TradingView chart 看到的原始價位）
+      · Volume        : 原始量（兩種 auto_adjust 都一樣）
+    · 保留 raw High 給 compute_vcp_row 算 high_52w_raw（Yahoo 上顯示的原始 52W 高）
+
+    expected_as_of · 若給就把 daily 統一切齊到那天（可為 str "YYYY-MM-DD" 或 date）
+    · 避免與 fetch_weekly_returns 的 t_price 日期不一致（volume off-by-one 根因）
+    · 不給就沿用舊行為 · 依 AS_OF_DATE / today UTC 切
+    回傳 dict[symbol → DataFrame(Open/High/Low/Close/Adj Close/Volume)]
     """
     import yfinance as yf
     log(f"Downloading daily OHLCV for {len(tickers)} pre-filtered tickers (for VCP + 52w high)...")
+    # 統一 cutoff · 優先 expected_as_of · 其次 AS_OF_DATE · 最後 today UTC
+    if expected_as_of is not None:
+        cutoff = (expected_as_of if hasattr(expected_as_of, 'year')
+                  else datetime.strptime(str(expected_as_of), "%Y-%m-%d").date())
+        cutoff_mode = "expected_as_of"
+    elif AS_OF_DATE is not None:
+        cutoff = AS_OF_DATE
+        cutoff_mode = "AS_OF_DATE"
+    else:
+        cutoff = datetime.now(timezone.utc).date()
+        cutoff_mode = "today_utc_excl"
+    log(f"  · daily cutoff = {cutoff} · mode = {cutoff_mode}")
+
     out = {}
     for i in range(0, len(tickers), YF_BATCH):
         chunk = tickers[i : i + YF_BATCH]
         data = yf.download(
             chunk, interval="1d",
-            auto_adjust=True, progress=False, threads=True, group_by="ticker",
+            auto_adjust=False, progress=False, threads=True, group_by="ticker",
             **_yf_window(12),
         )
         def _cut(sub):
             idx_dates = pd.to_datetime(sub.index).date
-            if AS_OF_DATE is not None:
-                return sub.loc[idx_dates <= AS_OF_DATE]
-            return sub.loc[idx_dates < datetime.now(timezone.utc).date()]
+            if cutoff_mode == "today_utc_excl":
+                return sub.loc[idx_dates < cutoff]  # 現況模式排除 today partial bar
+            return sub.loc[idx_dates <= cutoff]
         if isinstance(data.columns, pd.MultiIndex):
             for t in chunk:
                 if t in data.columns.get_level_values(0):
@@ -286,6 +318,99 @@ def fetch_daily_ohlcv_for_vcp(tickers):
             out[chunk[0]] = _cut(data.dropna(how="all"))
     log(f"  → daily fetched for {len(out)} tickers")
     return out
+
+
+# ============================================================
+# Dow Theory 頭頭低 / 底底高 · swing detection (v4 新增)
+# ============================================================
+def _find_swings(highs, lows, n=5):
+    """
+    N-bar fractal 找 swing high/low
+    · 一根 bar 是 swing high · 若它的 high 是前後各 n 根裡最高
+    · swing low 同理
+    · 相鄰同型（連續兩個 H 或連續兩個 L）保留更極端者
+    回傳 list[{idx, price, kind: 'H'|'L'}]
+    """
+    swings = []
+    for i in range(n, len(highs) - n):
+        is_high, is_low = True, True
+        for k in range(i - n, i + n + 1):
+            if k == i:
+                continue
+            if highs[k] > highs[i]:
+                is_high = False
+            if lows[k] < lows[i]:
+                is_low = False
+        if is_high:
+            swings.append({"idx": i, "price": float(highs[i]), "kind": "H"})
+        if is_low:
+            swings.append({"idx": i, "price": float(lows[i]), "kind": "L"})
+    cleaned = []
+    for s in swings:
+        if cleaned and cleaned[-1]["kind"] == s["kind"]:
+            last = cleaned[-1]
+            if (s["kind"] == "H" and s["price"] > last["price"]) or \
+               (s["kind"] == "L" and s["price"] < last["price"]):
+                cleaned[-1] = s
+        else:
+            cleaned.append(s)
+    return cleaned
+
+
+def _detect_trend(highs, lows, closes, n=5):
+    """
+    Dow Theory 頭頭低/底底高 · 回傳 dict{state, pattern, signal}
+
+    state:
+      多頭  · 頭頭高 + 底底高
+      空頭  · 頭頭低 + 底底低
+      收斂  · 頭頭低 + 底底高（三角蓄勢）
+      擴散  · 頭頭高 + 底底低（喇叭 · 避）
+      資料不足 · swing 不夠 2 個
+
+    pattern: e.g. "頭頭低·底底低"
+    signal (comma-joined):
+      多轉空預警 · H0<H1 且 H2<H1（H1 是轉折頂）
+      空轉多預警 · L0>L1 且 L2>L1（L1 是轉折底）
+      空頭確認   · last_close < 最新 swing low（收盤破前底）
+      多頭確認   · last_close > 最新 swing high（收盤破前高）
+
+    註：Dow Theory 只認收盤價確認 · 不看盤中假突破
+    """
+    if len(highs) < n * 2 + 5:
+        return {"state": "資料不足", "pattern": "", "signal": ""}
+    swings = _find_swings(highs, lows, n)
+    H = [s for s in swings if s["kind"] == "H"][-3:]
+    L = [s for s in swings if s["kind"] == "L"][-3:]
+    if len(H) < 2 or len(L) < 2:
+        return {"state": "資料不足", "pattern": "", "signal": ""}
+    last_close = float(closes[-1])
+    h1, h2 = H[-2]["price"], H[-1]["price"]
+    l1, l2 = L[-2]["price"], L[-1]["price"]
+    hp = "頭頭高" if h2 > h1 else "頭頭低"
+    lp = "底底高" if l2 > l1 else "底底低"
+    if hp == "頭頭高" and lp == "底底高":
+        state = "多頭"
+    elif hp == "頭頭低" and lp == "底底低":
+        state = "空頭"
+    elif hp == "頭頭低" and lp == "底底高":
+        state = "收斂"
+    else:
+        state = "擴散"
+    signals = []
+    if len(H) >= 3 and H[0]["price"] < h1 and h2 < h1:
+        signals.append("多轉空預警")
+    if len(L) >= 3 and L[0]["price"] > l1 and l2 > l1:
+        signals.append("空轉多預警")
+    if last_close < l2:
+        signals.append("空頭確認")
+    if last_close > h2:
+        signals.append("多頭確認")
+    return {
+        "state": state,
+        "pattern": f"{hp}·{lp}",
+        "signal": " / ".join(signals),
+    }
 
 
 def _compute_vp_score_stock(ret_20d_pct, ret_5d_pct, vp, ud):
@@ -303,7 +428,7 @@ def _compute_vp_score_stock(ret_20d_pct, ret_5d_pct, vp, ud):
     return max(0.0, min(100.0, raw))
 
 
-def compute_vcp_row(sym, sub):
+def compute_vcp_row(sym, sub, expected_as_of=None):
     """
     對單一 ticker 從 daily OHLCV 算全套 daily-based 指標：
 
@@ -313,7 +438,9 @@ def compute_vcp_row(sym, sub):
       amp_10d_pct     : 近 10 日振幅
       vp_ratio_stock  : 個股 VP = 20 日上漲日均量 / 下跌日均量（AD/AC）
       vcp             : above_50ma AND amp_10d_pct<3 AND vp_ratio_stock>1.0
-      high_52w / pct_from_high : 52 週高 + 距高點
+      high_52w        : 52 週高（股息還原後 · Adj-scaled · 與 close 同基準）
+      high_52w_raw    : 52 週高（原始未還原 · Yahoo/TradingView 上顯示的價位）
+      pct_from_high   : 距高點 (adj 版) · t_price 也是 adj close 所以同基準
 
       【量價評分（同 sector scorecard 公式，個股版）】
       vol_10d_avg / vol_today / vol_3w_avg / vol_ratio_stock_20d
@@ -321,12 +448,44 @@ def compute_vcp_row(sym, sub):
       up_days_20 / down_days_20 / up_avg_vol / down_avg_vol
       ud_ratio        : 上漲天數 / 下跌天數
       vp_score_stock  : 0-100 絕對評分（same formula as sector）
+
+    expected_as_of · 若給就驗證 sub 的最後一根 bar 必須是那天
+      · 不對就 return None（跳過 · 避免 volume 用到早一天的錯誤資料）
+      · 這是 stage 2 資料一致性守門員
     """
     if sub is None or len(sub) < 50:
         return None
-    close = sub["Close"].dropna()
-    high = sub["High"].dropna()
-    low = sub["Low"].dropna()
+
+    # 日期一致性驗證 · 擋 fetch_weekly_returns 的 t_price 日期 vs
+    # fetch_daily_ohlcv_for_vcp 的 vol_today 日期錯位
+    if expected_as_of is not None and len(sub):
+        actual_last = pd.to_datetime(sub.index[-1]).strftime("%Y-%m-%d")
+        expected_str = (expected_as_of if isinstance(expected_as_of, str)
+                        else expected_as_of.strftime("%Y-%m-%d"))
+        if actual_last != expected_str:
+            log(f"  ⚠ {sym}: daily last bar {actual_last} != expected {expected_str} · skip")
+            return None
+
+    # auto_adjust=False 拿到 Adj Close + raw High/Low/Close · 分兩系列處理
+    if "Adj Close" in sub.columns:
+        # 每根 bar 的股息還原比例 (recent bars → 1.0 · past bars ≤ 1.0)
+        factor = (sub["Adj Close"] / sub["Close"]).replace(
+            [float("inf"), -float("inf")], 1.0
+        ).fillna(1.0)
+        close = sub["Adj Close"].dropna()
+        high = (sub["High"] * factor).dropna()  # 股息還原後 High（與 close 同基準）
+        low = (sub["Low"] * factor).dropna()
+        raw_high = sub["High"].dropna()  # 未還原 · 供 high_52w_raw + Dow Theory
+        raw_low = sub["Low"].dropna()    # 未還原 · 供 Dow Theory swing detection
+        raw_close = sub["Close"].dropna()  # 未還原 · 供 Dow Theory 收盤確認
+    else:
+        # 向下相容 auto_adjust=True 的 sub（若外部改回）
+        close = sub["Close"].dropna()
+        high = sub["High"].dropna()
+        low = sub["Low"].dropna()
+        raw_high = sub["High"].dropna()
+        raw_low = sub["Low"].dropna()
+        raw_close = sub["Close"].dropna()
     vol = sub["Volume"].dropna()
     if len(close) < 50:
         return None
@@ -357,7 +516,10 @@ def compute_vcp_row(sym, sub):
     vcp = bool(above_50ma) and amp_10d_pct < 3.0 and (vp_ratio is not None and vp_ratio > 1.0)
 
     # 52 週高（策略 A step 6 關卡二）
+    # high_52w      : 股息還原後高（與 t_price/adj close 同基準 · 給 pct_from_high 用）
+    # high_52w_raw  : Yahoo/TradingView 上顯示的原始高（供人眼比對）
     high_52w = float(high.max())
+    high_52w_raw = float(raw_high.max()) if len(raw_high) else None
     pct_from_high = (t_price / high_52w - 1) * 100 if high_52w > 0 else 0.0
 
     # 5/20 日 daily 累積報酬（跟 sector scorecard 對齊 · 個股層一樣公式）
@@ -374,6 +536,10 @@ def compute_vcp_row(sym, sub):
     # 量價絕對評分（同 sector 公式）
     vp_score_stock = _compute_vp_score_stock(ret_20d, ret_5d, vp_ratio, ud_ratio)
 
+    # Dow Theory 頭頭低/底底高 · 用 raw High/Low/Close（對應 chart 上看到的擺動點）
+    # N=5 適合日線中波段（~2 週擺盪）
+    trend = _detect_trend(raw_high.tolist(), raw_low.tolist(), raw_close.tolist(), n=5)
+
     return {
         "symbol": sym,
         # VCP 群
@@ -383,6 +549,7 @@ def compute_vcp_row(sym, sub):
         "vp_ratio_stock": round(vp_ratio, 3) if vp_ratio is not None else None,
         "vcp": vcp,
         "high_52w": round(high_52w, 2),
+        "high_52w_raw": round(high_52w_raw, 2) if high_52w_raw is not None else None,
         "pct_from_high": round(pct_from_high, 2),
         # 量價評分群（新）
         "ret_5d": round(ret_5d, 2) if ret_5d is not None else None,
@@ -397,20 +564,32 @@ def compute_vcp_row(sym, sub):
         "vol_3w_avg": vol_3w_avg,
         "vol_ratio_stock_20d": vol_ratio_stock,
         "vp_score_stock": round(vp_score_stock, 2) if vp_score_stock is not None else None,
+        # Dow Theory 趨勢群（新）
+        "trend_state": trend["state"],
+        "trend_pattern": trend["pattern"],
+        "trend_signal": trend["signal"],
     }
 
 
-def compute_vcp_metrics_batch(tickers):
-    """對 pre-filter subset 批次算 VCP · 回傳 DataFrame"""
-    daily_data = fetch_daily_ohlcv_for_vcp(tickers)
+def compute_vcp_metrics_batch(tickers, expected_as_of=None):
+    """
+    對 pre-filter subset 批次算 VCP · 回傳 DataFrame
+    expected_as_of · 統一 stage 2b daily 資料的最後日期 · 一路傳到 fetch + row 驗證
+    """
+    daily_data = fetch_daily_ohlcv_for_vcp(tickers, expected_as_of=expected_as_of)
     rows = []
+    skipped_date_mismatch = 0
     for sym in tickers:
-        r = compute_vcp_row(sym, daily_data.get(sym))
+        r = compute_vcp_row(sym, daily_data.get(sym), expected_as_of=expected_as_of)
         if r:
             rows.append(r)
+        elif daily_data.get(sym) is not None and len(daily_data[sym]) >= 50:
+            skipped_date_mismatch += 1
     df = pd.DataFrame(rows)
     if len(df):
         log(f"  → VCP metrics: {len(df)} 個 · above_50ma={df['above_50ma'].sum()} · vcp=TRUE={df['vcp'].sum()}")
+    if skipped_date_mismatch:
+        log(f"  ⚠ {skipped_date_mismatch} 個 ticker 因 daily 最後日期 != {expected_as_of} 被跳過（資料一致性守門員）")
     return df
 
 
@@ -691,9 +870,14 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite
             "cms_a": "0.5×4W_rank_in_sector + 0.3×13W_rank_in_sector + 0.2×26W_rank_in_sector（越小越強，重短線）",
             "di": "((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲",
             "vcp": "AND(t_price>50MA, 近10日振幅<3%, VP=AD/AC>1.0) · 站上50MA + 波動收斂 + 上漲有量",
+            "high_52w": "52 週最高 High（股息還原後 · 與 close/t_price 同基準 · pct_from_high 用這個）",
+            "high_52w_raw": "52 週最高 High（原始未還原 · Yahoo/TradingView chart 上直接看到的價位）",
             "vp_score_stock": "MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35 + UD×100×0.15 + 50))（同 sector 公式，個股版）",
             "composite_in_sector": "point_rank×0.4 + vp_score_rank×0.4 + vol_rank×0.2（in sector · 越小越強）",
             "stock_gap_alert": "|point_rank_in_sector - vp_score_rank_in_sector| > 5 → 吃老本 / 剛爆發（板塊內錯位）",
+            "trend_state": "Dow Theory · 多頭(HH+HL) / 空頭(LH+LL) / 收斂(LH+HL 三角蓄勢) / 擴散(HH+LL 喇叭)",
+            "trend_pattern": "頭底型態 · 例：頭頭低·底底低（連續 lower high + lower low）· N=5 bar fractal swing detection",
+            "trend_signal": "反轉/確認訊號 · 多轉空預警 / 空轉多預警 / 空頭確認(收破前底) / 多頭確認(收破前高)",
         },
         "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
         "surprise_source": "yfinance (earnings_dates)",
@@ -725,6 +909,10 @@ def main():
     ret_df = fetch_weekly_returns(universe["symbol"].tolist())
     price_df = universe.merge(ret_df, on="symbol", how="inner")
 
+    # 從 fetch_weekly_returns 拿權威 as_of_date · 稍後傳給 stage 2b 保證日期一致
+    authoritative_as_of = ret_df["as_of_date"].iloc[0] if len(ret_df) else None
+    log(f"權威 as_of_date = {authoritative_as_of} · 將傳給 stage 2b daily fetch")
+
     # (2b) 板塊內排名 + CMS_A
     price_df = add_sector_internal_ranks(price_df)
 
@@ -737,16 +925,18 @@ def main():
     full_df = price_df.merge(surp_df, on="symbol", how="left")
 
     # (4b) 個股 daily 指標一次算齊：VCP + 高點 + vp_score + vol_ratio + ret_5d/20d
-    vcp_df = compute_vcp_metrics_batch(pre_syms)
+    # 傳 authoritative_as_of · 讓 daily 統一切齊到 weekly 的最後日期 · 擋 volume off-by-one
+    vcp_df = compute_vcp_metrics_batch(pre_syms, expected_as_of=authoritative_as_of)
     if len(vcp_df):
         full_df = full_df.merge(vcp_df, on="symbol", how="left")
     else:
         for c in ("above_50ma", "ma50", "amp_10d_pct", "vp_ratio_stock", "vcp",
-                  "high_52w", "pct_from_high",
+                  "high_52w", "high_52w_raw", "pct_from_high",
                   "ret_5d", "ret_20d", "up_days_20", "down_days_20",
                   "up_avg_vol", "down_avg_vol", "ud_ratio",
                   "vol_today", "vol_10d_avg", "vol_3w_avg", "vol_ratio_stock_20d",
-                  "vp_score_stock"):
+                  "vp_score_stock",
+                  "trend_state", "trend_pattern", "trend_signal"):
             full_df[c] = None
 
     # (4c) 板塊內個股綜合分（sector-scorecard 同套公式：Point + vp_score + vol_ratio）
