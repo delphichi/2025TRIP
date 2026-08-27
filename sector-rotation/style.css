@@ -817,6 +817,69 @@ details summary h2 {
     color: var(--accent);
 }
 
+/* ---------- Dow Theory 趨勢 chip / badge / signal ---------- */
+.trend-mini {
+    display: inline-block;
+    font-size: 11px;
+    margin-left: 4px;
+    cursor: help;
+    vertical-align: middle;
+}
+.trend-mini.trend-long    { filter: hue-rotate(0deg); }
+.trend-mini.trend-short   { filter: hue-rotate(0deg); }
+.trend-mini.trend-squeeze { filter: hue-rotate(0deg); }
+.trend-mini.trend-broaden { filter: hue-rotate(0deg); }
+
+.trend-cell {
+    text-align: center;
+    padding: 4px 6px;
+    min-width: 92px;
+    line-height: 1.4;
+}
+.trend-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.trend-badge.trend-long {
+    background: rgba(46, 204, 113, 0.15);
+    color: var(--good);
+    border: 1px solid rgba(46, 204, 113, 0.35);
+}
+.trend-badge.trend-short {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(231, 76, 60, 0.35);
+}
+.trend-badge.trend-squeeze {
+    background: rgba(241, 196, 15, 0.15);
+    color: var(--warn);
+    border: 1px solid rgba(241, 196, 15, 0.35);
+}
+.trend-badge.trend-broaden {
+    background: rgba(155, 89, 182, 0.15);
+    color: #b39ddb;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+}
+
+.sig-badge {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    margin-top: 2px;
+    margin-right: 2px;
+    white-space: nowrap;
+}
+.sig-badge.sig-long-confirm  { background: rgba(46,204,113,0.25);  color: var(--good); }
+.sig-badge.sig-short-confirm { background: rgba(231,76,60,0.25);   color: var(--danger); }
+.sig-badge.sig-warn-short    { background: rgba(230,126,34,0.25);  color: #ff9f43; }
+.sig-badge.sig-warn-long     { background: rgba(52,152,219,0.25);  color: #74b9ff; }
+.sig-badge.sig-neutral       { background: rgba(150,150,150,0.20); color: var(--text-dim); }
+
 /* ---------- footer ---------- */
 .rot-footer {
     text-align: center;
