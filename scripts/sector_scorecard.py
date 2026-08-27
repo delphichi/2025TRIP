@@ -730,7 +730,7 @@ def save_outputs(df, market_ctx=None, quadrant_biggest_mover=None):
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "as_of_date": as_of,
-        "as_of_date_note": "基準日 = 抓到的最後一根 close 的日期（T-1）· 非腳本執行當日",
+        "as_of_date_note": "基準日 = 該日最後一根 daily close 的實際日期（T-1）· 例：2026-08-25 = Aug 25 收盤價 · 非腳本執行當日",
         "sector_count": int(len(df)),
         "csv": os.path.basename(csv_path),
         "market_context": market_ctx,

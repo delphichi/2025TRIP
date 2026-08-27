@@ -57,6 +57,37 @@ def _cutoff_date():
     return AS_OF_DATE if AS_OF_DATE is not None else datetime.now(timezone.utc).date()
 
 
+def _actual_last_close_date(cutoff):
+    """
+    抓 SPY 最近 10 天 daily bars · 找 <= cutoff 的最後一根 close 的實際日期
+    · 用來取代週線 Monday label · 讓 as_of_date 是真正的資料日
+    · fallback: 若抓不到 · 用 cutoff - 1 或最近工作日
+    """
+    try:
+        import yfinance as yf
+        end = cutoff + timedelta(days=1) if hasattr(cutoff, 'year') else datetime.now().date() + timedelta(days=1)
+        start = cutoff - timedelta(days=14) if hasattr(cutoff, 'year') else datetime.now().date() - timedelta(days=14)
+        spy = yf.download(
+            "SPY", start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            interval="1d", auto_adjust=True, progress=False,
+        )
+        if spy is not None and not spy.empty:
+            idx_dates = pd.to_datetime(spy.index).date
+            valid = [d for d in idx_dates if d <= cutoff]
+            if valid:
+                return max(valid).strftime("%Y-%m-%d")
+    except Exception as e:
+        log(f"  ⚠ _actual_last_close_date fetch fail: {e}")
+    # fallback：往前推工作日
+    d = cutoff
+    if AS_OF_DATE is None:
+        d = d - timedelta(days=1)  # 現況模式排除今天
+    while d.weekday() >= 5:  # 週六=5 / 週日=6
+        d = d - timedelta(days=1)
+    return d.strftime("%Y-%m-%d")
+
+
 def _bar_ok(bar_date):
     """判斷這根 bar 該不該保留 · AS_OF 模式含 as_of · 現況模式排除 today"""
     if AS_OF_DATE is not None:
@@ -178,9 +209,13 @@ def fetch_weekly_returns(tickers):
 
     log(f"  → close matrix: {all_close.shape[0]} weeks × {all_close.shape[1]} tickers")
 
-    # T-1 基準：使用抓到的最後一根 close 的日期
-    as_of_date = all_close.index[-1].strftime("%Y-%m-%d")
-    log(f"  → as_of_date (T-1) = {as_of_date}")
+    # T-1 基準：週線 Monday label 轉真正的資料日期（該週最後一根 daily close 的日期）
+    # 修正紀錄 v2:
+    #   舊：as_of_date = all_close.index[-1].strftime("%Y-%m-%d") ← Monday label 誤導
+    #   新：抓 SPY 5 天 daily · 找 <= cutoff 的最後一根 daily close 當真正的資料日
+    as_of_date = _actual_last_close_date(cutoff)
+    log(f"  → as_of_date (真實 close 日) = {as_of_date}")
+    log(f"  → 對照週線 Monday label = {all_close.index[-1].strftime('%Y-%m-%d')}")
 
     rows = []
     for sym in all_close.columns:
@@ -628,7 +663,7 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "as_of_date": as_of,
-        "as_of_date_note": "基準日 = 抓到的最後一根週線 close 的日期（T-1）",
+        "as_of_date_note": "基準日 = 該週最後一根 daily close 的實際日期（週線 Monday label + 校正）· 例：2026-08-21 表示週 Aug 17-21 的 Fri close",
         "counts": {
             "universe": int(len(df_all)),
             "after_earnings_filter": int(df_all["earnings_passed"].sum()) if "earnings_passed" in df_all else None,
