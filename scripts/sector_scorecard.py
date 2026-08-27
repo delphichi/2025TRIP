@@ -404,24 +404,19 @@ def fetch_data():
         sys.exit("需要 yfinance：pip install yfinance")
 
     tickers = [s[0] for s in SECTORS]
+    # v3: 只抓 daily · 4W/13W/26W 改用 20/65/130 交易日定義
+    #     需 130 交易日 + buffer · 抓 10 個月 (≈ 210 個交易日) 足夠
     log(f"Fetching daily data for {len(tickers)} sector ETFs...")
     daily = yf.download(
         tickers, interval="1d",
         auto_adjust=True, progress=False, threads=True, group_by="ticker",
-        **_yf_window(9),
-    )
-    log(f"Fetching weekly data for {len(tickers)} sector ETFs...")
-    weekly = yf.download(
-        tickers, interval="1wk",
-        auto_adjust=True, progress=False, threads=True, group_by="ticker",
-        **_yf_window(9),
+        **_yf_window(10),
     )
     # T-1 保護：擋掉「今天」的 partial bar
     # 盤中跑（US 09:30-16:00 ET）yfinance 會回傳當日的日內 partial 資料
-    # 我們要 T-1 完整收盤 · 所以 filter 掉 date >= today (UTC / ET 都比較保守)
-    # 若 AS_OF_DATE 有設 · 也擋掉 > as_of 的 bar
     daily = _drop_today_bar(daily, "daily")
-    weekly = _drop_today_bar(weekly, "weekly")
+    # weekly 保留 empty DataFrame 以保 signature 相容（下游還在呼叫但不再使用）
+    weekly = pd.DataFrame()
     return daily, weekly
 
 
@@ -555,23 +550,22 @@ def fetch_market_context():
 # ============================================================
 def compute_metrics(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
     dly = extract_ohlcv(daily_bulk, ticker)
-    wky = extract_ohlcv(weekly_bulk, ticker)
-    if dly is None or wky is None or len(dly) < 25 or len(wky) < 27:
+    # weekly_bulk 保留 signature 相容 · 但已不用（v3 改 daily 20/65/130）
+    if dly is None or len(dly) < 131:
         log(f"  ⚠ {ticker} 資料不足 · skip")
         return None
 
     close_d = dly["Close"].dropna()
     vol_d = dly["Volume"].dropna()
-    close_w = wky["Close"].dropna()
 
-    # T-1 基準：使用「最後一根 close」的日期，非 today
+    # T-1 基準：使用「最後一根 daily close」的日期 · 非 today
     as_of = close_d.index[-1].strftime("%Y-%m-%d")
     t_price = float(close_d.iloc[-1])
 
-    # 4/13/26 週前收盤（週線倒數第 5/14/27 根）
-    p4w = float(close_w.iloc[-5])
-    p13w = float(close_w.iloc[-14])
-    p26w = float(close_w.iloc[-27])
+    # 4W/13W/26W = 20/65/130 交易日前收盤（v3 · 對齊 GAS / IBD 業界標準）
+    p4w = float(close_d.iloc[-20])
+    p13w = float(close_d.iloc[-65])
+    p26w = float(close_d.iloc[-130])
     ret_4w = (t_price / p4w - 1) * 100
     ret_13w = (t_price / p13w - 1) * 100
     ret_26w = (t_price / p26w - 1) * 100
@@ -740,7 +734,7 @@ def save_outputs(df, market_ctx=None, quadrant_biggest_mover=None):
         "breadth_note": "breadth_pct = 該 sector 個股中 4W 累報 > 0 的比例（讀同日 stage 2 all.csv）",
         "health_note": "health_key: overheated(🔥) / sweet_spot(✨) / early_reversal(🌱) / coiling(💤) / cold(🧊) / neutral(➡️) · 用 pct_365d + acceleration + breadth 分層",
         "formulas": {
-            "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）",
+            "point": "4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）· v3: 4W/13W/26W = 20/65/130 交易日回報",
             "cms_a": "0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）",
             "di": "((4W>0)+(13W>0)+(26W>0))/3；1.0 = 三週期全漲",
             "vp_score": "MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35 + UD×100×0.15 + 50))",
