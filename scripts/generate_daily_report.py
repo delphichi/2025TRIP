@@ -186,6 +186,33 @@ def render(scorecard, stage2, pattern):
             chips.append(f'<span class="hchip hchip-{k}" title="{escape(names)}">{emoji} {zh} · <b>{c}</b></span>')
         return " ".join(chips)
 
+    # Dow Theory 呈現 · 4 個狀態 + 訊號 + 訊號衝突警示
+    DOW_META = {
+        "多頭": ("📈", "dow-long"),
+        "空頭": ("📉", "dow-short"),
+        "收斂": ("🔺", "dow-squeeze"),
+        "擴散": ("🔻", "dow-broaden"),
+    }
+    def dow_cell(r, tag):
+        st = r.get("trend_state") or ""
+        pat = r.get("trend_pattern") or ""
+        sig = r.get("trend_signal") or ""
+        if not st or st == "資料不足":
+            return '<td><span class="dow-none">—</span></td>'
+        emo, cls = DOW_META.get(st, ("", "dow-none"))
+        title = pat + (" · " + sig if sig else "")
+        # 訊號衝突警示：
+        #   💎/🚀 但 Dow 說 🔻 擴散喇叭（頂區徵兆）→ ⚠ 頂區
+        #   💎/🚀 但 Dow 說 📉 空頭 → ⚠ 訊號衝突
+        conflict = ""
+        if tag in ("💎", "🚀"):
+            if st == "擴散":
+                conflict = '<span class="dow-conflict" title="動能訊號 + Dow 擴散喇叭 = 頂區警訊">⚠ 頂區</span>'
+            elif st == "空頭":
+                conflict = '<span class="dow-conflict" title="動能訊號 + Dow 空頭 = 訊號衝突">⚠ 衝突</span>'
+        sig_html = f'<span class="dow-sig">{escape(sig)}</span>' if sig else ""
+        return f'<td><span class="dow {cls}" title="{escape(title)}">{emo} {escape(st)}</span>{sig_html}{conflict}</td>'
+
     def sb_row(r, tag="💎"):
         sector = escape(r.get("sector", ""))
         symbol = escape(r.get("symbol", ""))
@@ -208,12 +235,13 @@ def render(scorecard, stage2, pattern):
           <td class="n">{c4}</td>
           <td class="n">{c26}</td>
           <td>{alert_html} {extra}</td>
+          {dow_cell(r, tag)}
         </tr>'''
 
     sb_rows_html = "".join(sb_row(r, "💎") for r in sb_stocks) \
-        or '<tr><td colspan="8" class="empty">今日無 strong_buy 訊號 · 資料日期可能較舊或無合格個股</td></tr>'
+        or '<tr><td colspan="9" class="empty">今日無 strong_buy 訊號 · 資料日期可能較舊或無合格個股</td></tr>'
     exp_rows_html = "".join(sb_row(r, "🚀") for r in exp_stocks) \
-        or '<tr><td colspan="8" class="empty">今日無 explosive 訊號</td></tr>'
+        or '<tr><td colspan="9" class="empty">今日無 explosive 訊號</td></tr>'
 
     # 板塊詳細表
     def sec_row(r):
@@ -373,6 +401,24 @@ def render(scorecard, stage2, pattern):
   .b-early_reversal {{ background:#dbeafe; color:#1e40af; }}
   .b-neutral        {{ background:#f3f4f6; color:#6b7280; }}
 
+  /* Dow Theory 頭頭低/底底高 · 4 個狀態顏色 + 訊號衝突警示 */
+  .dow {{
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }}
+  .dow-long    {{ background:#dcfce7; color:#166534; }}
+  .dow-short   {{ background:#fee2e2; color:#991b1b; }}
+  .dow-squeeze {{ background:#fef3c7; color:#92400e; }}
+  .dow-broaden {{ background:#ede9fe; color:#6d28d9; }}
+  .dow-none    {{ color:#94a3b8; font-size:10px; }}
+  .dow-sig    {{ font-size:10px; color:var(--muted); margin-left:4px; }}
+  .dow-conflict {{
+    display:inline-block; margin-left:4px; padding:1px 6px; border-radius:8px;
+    background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;
+    animation:pulse 1.5s infinite;
+  }}
+  @keyframes pulse {{ 0%,100%{{opacity:1}} 50%{{opacity:0.6}} }}
+
   .mover {{
     background:linear-gradient(90deg,#fef3c7,#fde68a); padding:12px 18px; border-radius:8px;
     border-left:4px solid var(--gold); margin-top:12px; font-size:13.5px;
@@ -441,7 +487,7 @@ def render(scorecard, stage2, pattern):
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
-          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th></tr>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th><th title="Dow Theory 頭頭低/底底高 · ⚠ 頂區=擴散喇叭 · ⚠ 衝突=Dow 說空頭">Dow</th></tr>
         </thead>
         <tbody>{sb_rows_html}</tbody>
       </table>
@@ -453,7 +499,7 @@ def render(scorecard, stage2, pattern):
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
-          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>L1+L2</th></tr>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>L1+L2</th><th title="Dow Theory 頭頭低/底底高 · ⚠ 頂區=擴散喇叭 · ⚠ 衝突=Dow 說空頭">Dow</th></tr>
         </thead>
         <tbody>{exp_rows_html}</tbody>
       </table>
