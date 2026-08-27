@@ -57,6 +57,37 @@ def _cutoff_date():
     return AS_OF_DATE if AS_OF_DATE is not None else datetime.now(timezone.utc).date()
 
 
+def _actual_last_close_date(cutoff):
+    """
+    抓 SPY 最近 10 天 daily bars · 找 <= cutoff 的最後一根 close 的實際日期
+    · 用來取代週線 Monday label · 讓 as_of_date 是真正的資料日
+    · fallback: 若抓不到 · 用 cutoff - 1 或最近工作日
+    """
+    try:
+        import yfinance as yf
+        end = cutoff + timedelta(days=1) if hasattr(cutoff, 'year') else datetime.now().date() + timedelta(days=1)
+        start = cutoff - timedelta(days=14) if hasattr(cutoff, 'year') else datetime.now().date() - timedelta(days=14)
+        spy = yf.download(
+            "SPY", start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            interval="1d", auto_adjust=True, progress=False,
+        )
+        if spy is not None and not spy.empty:
+            idx_dates = pd.to_datetime(spy.index).date
+            valid = [d for d in idx_dates if d <= cutoff]
+            if valid:
+                return max(valid).strftime("%Y-%m-%d")
+    except Exception as e:
+        log(f"  ⚠ _actual_last_close_date fetch fail: {e}")
+    # fallback：往前推工作日
+    d = cutoff
+    if AS_OF_DATE is None:
+        d = d - timedelta(days=1)  # 現況模式排除今天
+    while d.weekday() >= 5:  # 週六=5 / 週日=6
+        d = d - timedelta(days=1)
+    return d.strftime("%Y-%m-%d")
+
+
 def _bar_ok(bar_date):
     """判斷這根 bar 該不該保留 · AS_OF 模式含 as_of · 現況模式排除 today"""
     if AS_OF_DATE is not None:
@@ -129,27 +160,33 @@ def fetch_sp500_constituents():
 # ============================================================
 def fetch_weekly_returns(tickers):
     """
-    yfinance 批次抓 30 週的週線收盤，回傳 DataFrame[symbol, cum_ret_4w, cum_ret_13w, cum_ret_26w]
+    yfinance 批次抓 daily 收盤 · 回傳 DataFrame[symbol, cum_ret_4w, cum_ret_13w, cum_ret_26w]
+
+    定義（v3 · 對齊 GAS / IBD / CFA 業界標準）：
+      指定日 = AS_OF_DATE (若有) 否則 = T-1（不含今天 partial bar）
+      4W%    = (指定日 close / 20 交易日前 close - 1) × 100
+      13W%   = (指定日 close / 65 交易日前 close - 1) × 100
+      26W%   = (指定日 close / 130 交易日前 close - 1) × 100
     """
     try:
         import yfinance as yf
     except ImportError:
         sys.exit("需要 yfinance：pip install yfinance")
 
-    log(f"Downloading weekly prices for {len(tickers)} tickers via yfinance...")
+    log(f"Downloading daily prices for {len(tickers)} tickers via yfinance...")
     all_close = None
     for i in range(0, len(tickers), YF_BATCH):
         chunk = tickers[i : i + YF_BATCH]
         log(f"  batch {i // YF_BATCH + 1}/{(len(tickers) + YF_BATCH - 1) // YF_BATCH} ({len(chunk)} tickers)")
-        # 抓 28 週足夠算 26W；多抓 3 週 buffer 應付缺資料
+        # 需 130 交易日 buffer · 用 10 個月 (≈ 210 交易日) 足夠
         data = yf.download(
             chunk,
-            interval="1wk",
+            interval="1d",
             auto_adjust=True,
             progress=False,
             threads=True,
             group_by="ticker",
-            **_yf_window(8),
+            **_yf_window(10),
         )
         # yfinance 回傳格式因 chunk size 而異
         if isinstance(data.columns, pd.MultiIndex):
@@ -163,7 +200,7 @@ def fetch_weekly_returns(tickers):
 
     all_close = all_close.dropna(how="all").sort_index()
 
-    # T-1 保護：擋掉「今天/未來」的 partial weekly bar
+    # T-1 保護：擋掉「今天」的 partial daily bar
     # AS_OF 模式：保留 <= as_of · 現況模式：保留 < today
     cutoff = _cutoff_date()
     idx = pd.to_datetime(all_close.index)
@@ -173,25 +210,27 @@ def fetch_weekly_returns(tickers):
         keep = idx.date < cutoff
     dropped = int((~keep).sum())
     if dropped:
-        log(f"  · 擋掉 {dropped} 根 > {cutoff} 的 partial weekly bar")
+        log(f"  · 擋掉 {dropped} 根 > {cutoff} 的 partial daily bar")
     all_close = all_close.loc[keep]
 
-    log(f"  → close matrix: {all_close.shape[0]} weeks × {all_close.shape[1]} tickers")
+    log(f"  → close matrix: {all_close.shape[0]} trading days × {all_close.shape[1]} tickers")
 
-    # T-1 基準：使用抓到的最後一根 close 的日期
+    # as_of_date = 最後一根 daily close 的實際日期
     as_of_date = all_close.index[-1].strftime("%Y-%m-%d")
-    log(f"  → as_of_date (T-1) = {as_of_date}")
+    log(f"  → as_of_date (指定日 · 最後一根 daily close) = {as_of_date}")
 
     rows = []
     for sym in all_close.columns:
         series = all_close[sym].dropna()
-        if len(series) < 27:
+        # 需至少 131 個 close 才能算 26W (iloc[-131] 存在)
+        if len(series) < 131:
             continue
         cur = series.iloc[-1]
         try:
-            r4 = (cur / series.iloc[-5] - 1) * 100
-            r13 = (cur / series.iloc[-14] - 1) * 100
-            r26 = (cur / series.iloc[-27] - 1) * 100
+            # 20 / 65 / 130 交易日前收盤（對齊 GAS / IBD 業界標準）
+            r4 = (cur / series.iloc[-20] - 1) * 100
+            r13 = (cur / series.iloc[-65] - 1) * 100
+            r26 = (cur / series.iloc[-130] - 1) * 100
         except IndexError:
             continue
         # Point = 4W%×0.25 + 13W%×0.25 + 26W%×0.50（越大越強，重中長期）
@@ -209,7 +248,7 @@ def fetch_weekly_returns(tickers):
             "di": round(di, 3),
         })
     out = pd.DataFrame(rows)
-    log(f"  → {len(out)} tickers with 27+ weeks of data")
+    log(f"  → {len(out)} tickers with 131+ trading days of data")
     return out
 
 
@@ -628,7 +667,7 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "as_of_date": as_of,
-        "as_of_date_note": "基準日 = 抓到的最後一根週線 close 的日期（T-1）",
+        "as_of_date_note": "基準日 = 該週最後一根 daily close 的實際日期（週線 Monday label + 校正）· 例：2026-08-21 表示週 Aug 17-21 的 Fri close",
         "counts": {
             "universe": int(len(df_all)),
             "after_earnings_filter": int(df_all["earnings_passed"].sum()) if "earnings_passed" in df_all else None,
