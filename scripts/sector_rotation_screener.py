@@ -320,6 +320,99 @@ def fetch_daily_ohlcv_for_vcp(tickers, expected_as_of=None):
     return out
 
 
+# ============================================================
+# Dow Theory 頭頭低 / 底底高 · swing detection (v4 新增)
+# ============================================================
+def _find_swings(highs, lows, n=5):
+    """
+    N-bar fractal 找 swing high/low
+    · 一根 bar 是 swing high · 若它的 high 是前後各 n 根裡最高
+    · swing low 同理
+    · 相鄰同型（連續兩個 H 或連續兩個 L）保留更極端者
+    回傳 list[{idx, price, kind: 'H'|'L'}]
+    """
+    swings = []
+    for i in range(n, len(highs) - n):
+        is_high, is_low = True, True
+        for k in range(i - n, i + n + 1):
+            if k == i:
+                continue
+            if highs[k] > highs[i]:
+                is_high = False
+            if lows[k] < lows[i]:
+                is_low = False
+        if is_high:
+            swings.append({"idx": i, "price": float(highs[i]), "kind": "H"})
+        if is_low:
+            swings.append({"idx": i, "price": float(lows[i]), "kind": "L"})
+    cleaned = []
+    for s in swings:
+        if cleaned and cleaned[-1]["kind"] == s["kind"]:
+            last = cleaned[-1]
+            if (s["kind"] == "H" and s["price"] > last["price"]) or \
+               (s["kind"] == "L" and s["price"] < last["price"]):
+                cleaned[-1] = s
+        else:
+            cleaned.append(s)
+    return cleaned
+
+
+def _detect_trend(highs, lows, closes, n=5):
+    """
+    Dow Theory 頭頭低/底底高 · 回傳 dict{state, pattern, signal}
+
+    state:
+      多頭  · 頭頭高 + 底底高
+      空頭  · 頭頭低 + 底底低
+      收斂  · 頭頭低 + 底底高（三角蓄勢）
+      擴散  · 頭頭高 + 底底低（喇叭 · 避）
+      資料不足 · swing 不夠 2 個
+
+    pattern: e.g. "頭頭低·底底低"
+    signal (comma-joined):
+      多轉空預警 · H0<H1 且 H2<H1（H1 是轉折頂）
+      空轉多預警 · L0>L1 且 L2>L1（L1 是轉折底）
+      空頭確認   · last_close < 最新 swing low（收盤破前底）
+      多頭確認   · last_close > 最新 swing high（收盤破前高）
+
+    註：Dow Theory 只認收盤價確認 · 不看盤中假突破
+    """
+    if len(highs) < n * 2 + 5:
+        return {"state": "資料不足", "pattern": "", "signal": ""}
+    swings = _find_swings(highs, lows, n)
+    H = [s for s in swings if s["kind"] == "H"][-3:]
+    L = [s for s in swings if s["kind"] == "L"][-3:]
+    if len(H) < 2 or len(L) < 2:
+        return {"state": "資料不足", "pattern": "", "signal": ""}
+    last_close = float(closes[-1])
+    h1, h2 = H[-2]["price"], H[-1]["price"]
+    l1, l2 = L[-2]["price"], L[-1]["price"]
+    hp = "頭頭高" if h2 > h1 else "頭頭低"
+    lp = "底底高" if l2 > l1 else "底底低"
+    if hp == "頭頭高" and lp == "底底高":
+        state = "多頭"
+    elif hp == "頭頭低" and lp == "底底低":
+        state = "空頭"
+    elif hp == "頭頭低" and lp == "底底高":
+        state = "收斂"
+    else:
+        state = "擴散"
+    signals = []
+    if len(H) >= 3 and H[0]["price"] < h1 and h2 < h1:
+        signals.append("多轉空預警")
+    if len(L) >= 3 and L[0]["price"] > l1 and l2 > l1:
+        signals.append("空轉多預警")
+    if last_close < l2:
+        signals.append("空頭確認")
+    if last_close > h2:
+        signals.append("多頭確認")
+    return {
+        "state": state,
+        "pattern": f"{hp}·{lp}",
+        "signal": " / ".join(signals),
+    }
+
+
 def _compute_vp_score_stock(ret_20d_pct, ret_5d_pct, vp, ud):
     """
     量價絕對評分 0-100（跟 sector_scorecard.py compute_vp_score 完全一致）
@@ -382,13 +475,17 @@ def compute_vcp_row(sym, sub, expected_as_of=None):
         close = sub["Adj Close"].dropna()
         high = (sub["High"] * factor).dropna()  # 股息還原後 High（與 close 同基準）
         low = (sub["Low"] * factor).dropna()
-        raw_high = sub["High"].dropna()  # 未還原 · 供 high_52w_raw
+        raw_high = sub["High"].dropna()  # 未還原 · 供 high_52w_raw + Dow Theory
+        raw_low = sub["Low"].dropna()    # 未還原 · 供 Dow Theory swing detection
+        raw_close = sub["Close"].dropna()  # 未還原 · 供 Dow Theory 收盤確認
     else:
         # 向下相容 auto_adjust=True 的 sub（若外部改回）
         close = sub["Close"].dropna()
         high = sub["High"].dropna()
         low = sub["Low"].dropna()
         raw_high = sub["High"].dropna()
+        raw_low = sub["Low"].dropna()
+        raw_close = sub["Close"].dropna()
     vol = sub["Volume"].dropna()
     if len(close) < 50:
         return None
@@ -439,6 +536,10 @@ def compute_vcp_row(sym, sub, expected_as_of=None):
     # 量價絕對評分（同 sector 公式）
     vp_score_stock = _compute_vp_score_stock(ret_20d, ret_5d, vp_ratio, ud_ratio)
 
+    # Dow Theory 頭頭低/底底高 · 用 raw High/Low/Close（對應 chart 上看到的擺動點）
+    # N=5 適合日線中波段（~2 週擺盪）
+    trend = _detect_trend(raw_high.tolist(), raw_low.tolist(), raw_close.tolist(), n=5)
+
     return {
         "symbol": sym,
         # VCP 群
@@ -463,6 +564,10 @@ def compute_vcp_row(sym, sub, expected_as_of=None):
         "vol_3w_avg": vol_3w_avg,
         "vol_ratio_stock_20d": vol_ratio_stock,
         "vp_score_stock": round(vp_score_stock, 2) if vp_score_stock is not None else None,
+        # Dow Theory 趨勢群（新）
+        "trend_state": trend["state"],
+        "trend_pattern": trend["pattern"],
+        "trend_signal": trend["signal"],
     }
 
 
@@ -770,6 +875,9 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite
             "vp_score_stock": "MIN(100, MAX(0, 20d×200×0.30 + 5d×200×0.20 + VP×50×0.35 + UD×100×0.15 + 50))（同 sector 公式，個股版）",
             "composite_in_sector": "point_rank×0.4 + vp_score_rank×0.4 + vol_rank×0.2（in sector · 越小越強）",
             "stock_gap_alert": "|point_rank_in_sector - vp_score_rank_in_sector| > 5 → 吃老本 / 剛爆發（板塊內錯位）",
+            "trend_state": "Dow Theory · 多頭(HH+HL) / 空頭(LH+LL) / 收斂(LH+HL 三角蓄勢) / 擴散(HH+LL 喇叭)",
+            "trend_pattern": "頭底型態 · 例：頭頭低·底底低（連續 lower high + lower low）· N=5 bar fractal swing detection",
+            "trend_signal": "反轉/確認訊號 · 多轉空預警 / 空轉多預警 / 空頭確認(收破前底) / 多頭確認(收破前高)",
         },
         "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
         "surprise_source": "yfinance (earnings_dates)",
@@ -827,7 +935,8 @@ def main():
                   "ret_5d", "ret_20d", "up_days_20", "down_days_20",
                   "up_avg_vol", "down_avg_vol", "ud_ratio",
                   "vol_today", "vol_10d_avg", "vol_3w_avg", "vol_ratio_stock_20d",
-                  "vp_score_stock"):
+                  "vp_score_stock",
+                  "trend_state", "trend_pattern", "trend_signal"):
             full_df[c] = None
 
     # (4c) 板塊內個股綜合分（sector-scorecard 同套公式：Point + vp_score + vol_ratio）
