@@ -145,7 +145,7 @@ function fetchAllStockData() {
         ]
       });
 
-      Utilities.sleep(500);  // 略降 · 因為多抓一次 quoteSummary
+      Utilities.sleep(250);  // v2.2.1 · 從 500 降到 250 · 給 fetchAllStock 加速
 
     } catch(e) {
       Logger.log(`Error ${symbol}: ${e.message}`);
@@ -198,17 +198,26 @@ function fetchAllStockData() {
   }
 
   // ════════════════════════════════════════
-  // 第三輪：算排名 · 寫入所有欄位
+  // 第三輪：算排名 · 批次寫入所有欄位（v2.2.1 · 從 73 次 setValues 改成 1 次）
   // ════════════════════════════════════════
   const allBB = allRows.map(r => r.bb);
   const allBD = allRows.map(r => r.bd);
   const allMF = allRows.map(r => r.mfScore);
 
+  // 先收集所有 row 的資料 · 再一次寫入
+  const outputMatrix = [];
+  let firstOutputRow = null;
+  const errorRows = [];  // 收集 error rows · 之後單獨寫
+
   for (let i = 0; i < allRows.length; i++) {
     const r = allRows[i];
+    if (firstOutputRow === null) firstOutputRow = r.row;
 
     if (r.error) {
-      dataSheet.getRange(r.row, OUTPUT_COL).setValue(r.error);
+      errorRows.push({ row: r.row, msg: r.error });
+      // 佔位一列 · 保持 outputMatrix 連續
+      outputMatrix.push(new Array(57).fill(""));
+      outputMatrix[outputMatrix.length - 1][0] = r.error;
       continue;
     }
 
@@ -217,25 +226,29 @@ function fetchAllStockData() {
     const mfRnk = allMF.filter(v => v > r.mfScore && v > -9999).length + 1;
 
     const baLabel = formatBA(r.bd);
-    const bbNum   = r.bb;
     const bcLabel = formatBC(r.bd, bdRnk);
     const bdLabel = formatBDLabel(r.bb, bbRnk);
-    const mfLabel = formatMFLabel(r.mfScore, mfRnk);   // 【v2.2】
+    const mfLabel = formatMFLabel(r.mfScore, mfRnk);
 
     const f = r.funda || {};
-    dataSheet.getRange(r.row, OUTPUT_COL, 1, 57).setValues([[
-      ...r.data,             // J ~ AZ（43 欄）
-      baLabel, bbNum, bcLabel, bdLabel,   // BA~BD
-      r.trend.state, r.trend.pattern, r.trend.signal,  // BE~BG
-      // 【v2.2 新增 7 欄】BH~BN
+    outputMatrix.push([
+      ...r.data,
+      baLabel, r.bb, bcLabel, bdLabel,
+      r.trend.state, r.trend.pattern, r.trend.signal,
       f.fcf,
       f.pb,
-      f.roe !== null ? f.roe * 100 : null,          // ROE 存 % 值
+      f.roe !== null ? f.roe * 100 : null,
       f.epsGrowth !== null ? f.epsGrowth * 100 : null,
       f.revGrowth !== null ? f.revGrowth * 100 : null,
       r.mfScore,
       mfLabel
-    ]]);
+    ]);
+  }
+
+  // 一次寫入所有 rows（大幅省 API call 時間）
+  if (outputMatrix.length && firstOutputRow !== null) {
+    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 57)
+      .setValues(outputMatrix);
   }
 
   SpreadsheetApp.getUi().alert(
@@ -259,8 +272,9 @@ function fetchYahooFundamentals(symbol) {
     muteHttpExceptions: true
   };
 
+  // v2.2.1 · 重試降到 2 次（原 3）· 節省時間上限風險
   let json = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = UrlFetchApp.fetch(url, opt);
       const code = res.getResponseCode();
@@ -269,13 +283,13 @@ function fetchYahooFundamentals(symbol) {
         break;
       }
       if (code === 401 || code === 429 || code >= 500) {
-        Utilities.sleep(700 * (attempt + 1));
+        Utilities.sleep(500);
         continue;
       }
       break;
     } catch (e) {
-      if (attempt === 2) return { fcf:null, pb:null, roe:null, epsGrowth:null, revGrowth:null };
-      Utilities.sleep(700 * (attempt + 1));
+      if (attempt === 1) return { fcf:null, pb:null, roe:null, epsGrowth:null, revGrowth:null };
+      Utilities.sleep(500);
     }
   }
   if (!json?.quoteSummary?.result?.[0]) {
