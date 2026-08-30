@@ -205,14 +205,31 @@ def _explosive_verdict(c4, c13, c26, rsi, dist_high, trend_state, trend_signal, 
       point      - 動能綜合分（4W×0.25+13W×0.25+26W×0.5）
     回傳: "🚀 暴漲中" / "🎯 潛在暴漲" / "🔥 追高風險" / ""
     """
+    # v6 fix · pandas NaN 進來時 `x or default` 不會擋掉 · 必須先 numeric coerce
+    import math
+    def _num(v, default):
+        if v is None:
+            return default
+        try:
+            fv = float(v)
+            if math.isnan(fv) or math.isinf(fv):
+                return default
+            return fv
+        except (TypeError, ValueError):
+            return default
+
+    c4 = _num(c4, None)
+    c26 = _num(c26, None)
     if c4 is None or c26 is None:
         return ""
-    rsi = rsi if rsi is not None else 50
-    dist_high = dist_high if dist_high is not None else -100
-    trend_state = trend_state or ""
-    trend_signal = trend_signal or ""
-    pv = pv or ""
-    point = point if point is not None else 0
+    rsi = _num(rsi, 50)
+    dist_high = _num(dist_high, -100)
+    point = _num(point, 0)
+    # 字串類參數 · 非 str（含 NaN float）一律當空字串
+    trend_state = trend_state if isinstance(trend_state, str) else ""
+    trend_signal = trend_signal if isinstance(trend_signal, str) else ""
+    pv = pv if isinstance(pv, str) else ""
+    vcp = (vcp is True)
 
     # === 🔥 追高風險（優先判） ===
     if c4 > 40:
