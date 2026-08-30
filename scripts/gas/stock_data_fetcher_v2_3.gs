@@ -526,9 +526,10 @@ function explosiveVerdict(c4, c13, c26, rsi, distHigh, trendState, trendSig, pv,
   const validPos = distHigh > -20;
   const rsiOK = rsi > 40 && rsi < 72;
   const bbOK = bb > 10;
-  const notShortDow = trendState.indexOf("空頭") < 0;
+  // v2.4.1 · 對齊 Python · 「擴散喇叭」也要擋（volatility expansion 常見頂部訊號）
+  const dowNotBadForSetup = (trendState.indexOf("空頭") < 0 && trendState.indexOf("擴散") < 0);
 
-  if (setupReady && notLiftedYet && notExtended && validPos && rsiOK && bbOK && notShortDow) {
+  if (setupReady && notLiftedYet && notExtended && validPos && rsiOK && bbOK && dowNotBadForSetup) {
     return "🎯 潛在暴漲";
   }
 
