@@ -592,6 +592,17 @@ function trendMiniChip(r) {
     return ` <span class="trend-mini ${TREND_CLASS[st] || ""}" title="${title}">${emo}</span>`;
 }
 
+// 暴漲判定 chip · 4 分類
+function expCell(r) {
+    const v = (r.explosive_verdict || "").trim();
+    if (!v) return `<td><span style="color:var(--text-dim)">—</span></td>`;
+    let cls = "exp-none";
+    if (v.includes("暴漲中")) cls = "exp-boom";
+    else if (v.includes("潛在暴漲")) cls = "exp-cand";
+    else if (v.includes("追高")) cls = "exp-risk";
+    return `<td><span class="exp-badge ${cls}">${v}</span></td>`;
+}
+
 // 量價象限判定 chip · 依 verdict 給色
 function pvCell(r) {
     const v = r.pv_verdict;
@@ -646,7 +657,7 @@ function renderStage2Tab(tabKey) {
     const rows = STATE.stage2?.top3?.[tabKey] || [];
     const tbody = $("#heat-tbody");
     tbody.innerHTML = "";
-    const COLSPAN = 24;
+    const COLSPAN = 25;
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${COLSPAN}" class="empty-row">沒資料</td></tr>`;
         return;
@@ -740,6 +751,7 @@ function renderStage2Tab(tabKey) {
             <td class="alert-cell">${stockAlertBadge}</td>
             ${trendCell(r)}
             ${pvCell(r)}
+            ${expCell(r)}
             ${fwdCell(r, "1m")}
             ${fwdCell(r, "3m")}
             ${fwdCell(r, "6m")}
