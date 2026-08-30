@@ -213,6 +213,22 @@ def render(scorecard, stage2, pattern):
         sig_html = f'<span class="dow-sig">{escape(sig)}</span>' if sig else ""
         return f'<td><span class="dow {cls}" title="{escape(title)}">{emo} {escape(st)}</span>{sig_html}{conflict}</td>'
 
+    # 量價象限 verdict cell
+    def pv_cell(r):
+        v = r.get("pv_verdict") or ""
+        if not v or v == "資料不足":
+            return '<td><span style="color:var(--text-dim)">—</span></td>'
+        cls = "pv-neutral"
+        if "完美多頭" in v or "健康多頭" in v or "底部" in v: cls = "pv-strong"
+        elif "頂部背離" in v or "中期出貨" in v: cls = "pv-warn"
+        elif "主力出貨" in v or "熊市" in v or "弱勢" in v: cls = "pv-weak"
+        elif "反彈初期" in v: cls = "pv-early"
+        s4 = r.get("pv_state_4w") or "—"
+        s13 = r.get("pv_state_13w") or "—"
+        s26 = r.get("pv_state_26w") or "—"
+        title = f"4W:{s4} · 13W:{s13} · 26W:{s26}"
+        return f'<td><span class="pv {cls}" title="{escape(title)}">{escape(v)}</span></td>'
+
     def sb_row(r, tag="💎"):
         sector = escape(r.get("sector", ""))
         symbol = escape(r.get("symbol", ""))
@@ -236,12 +252,13 @@ def render(scorecard, stage2, pattern):
           <td class="n">{c26}</td>
           <td>{alert_html} {extra}</td>
           {dow_cell(r, tag)}
+          {pv_cell(r)}
         </tr>'''
 
     sb_rows_html = "".join(sb_row(r, "💎") for r in sb_stocks) \
-        or '<tr><td colspan="9" class="empty">今日無 strong_buy 訊號 · 資料日期可能較舊或無合格個股</td></tr>'
+        or '<tr><td colspan="10" class="empty">今日無 strong_buy 訊號 · 資料日期可能較舊或無合格個股</td></tr>'
     exp_rows_html = "".join(sb_row(r, "🚀") for r in exp_stocks) \
-        or '<tr><td colspan="9" class="empty">今日無 explosive 訊號</td></tr>'
+        or '<tr><td colspan="10" class="empty">今日無 explosive 訊號</td></tr>'
 
     # 板塊詳細表
     def sec_row(r):
@@ -419,6 +436,17 @@ def render(scorecard, stage2, pattern):
   }}
   @keyframes pulse {{ 0%,100%{{opacity:1}} 50%{{opacity:0.6}} }}
 
+  /* 量價象限判定 · 4W/13W/26W 三期價量狀態綜合 */
+  .pv {{
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }}
+  .pv-strong  {{ background:#dcfce7; color:#166534; border:1px solid #86efac; }}
+  .pv-warn    {{ background:#fef3c7; color:#92400e; border:1px solid #fde68a; }}
+  .pv-weak    {{ background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }}
+  .pv-early   {{ background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }}
+  .pv-neutral {{ background:#f3f4f6; color:#6b7280; }}
+
   .mover {{
     background:linear-gradient(90deg,#fef3c7,#fde68a); padding:12px 18px; border-radius:8px;
     border-left:4px solid var(--gold); margin-top:12px; font-size:13.5px;
@@ -487,7 +515,7 @@ def render(scorecard, stage2, pattern):
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
-          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th><th title="Dow Theory 頭頭低/底底高 · ⚠ 頂區=擴散喇叭 · ⚠ 衝突=Dow 說空頭">Dow</th></tr>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th><th title="Dow Theory 頭頭低/底底高 · ⚠ 頂區=擴散喇叭 · ⚠ 衝突=Dow 說空頭">Dow</th><th title="4W/13W/26W 三期價漲跌 × 量漲跌 綜合判定">量價</th></tr>
         </thead>
         <tbody>{sb_rows_html}</tbody>
       </table>

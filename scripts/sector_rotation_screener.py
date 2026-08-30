@@ -158,6 +158,54 @@ def fetch_sp500_constituents():
 # ============================================================
 # 2. 週線價格 → 累積報酬
 # ============================================================
+# ============================================================
+# v5 · 量價象限分析（4 state × 3 timeframe → 綜合判定）
+# ============================================================
+def _pv_state(price_ret, vol_change):
+    """
+    回傳 "P+V+" / "P+V-" / "P-V+" / "P-V-" · 缺一就 None
+    · P+V+ 主力進場 · P+V- 頂部背離 · P-V+ 主力出貨/恐慌 · P-V- 縮量整理
+    """
+    if price_ret is None or vol_change is None:
+        return None
+    p = "P+" if price_ret > 0 else "P-"
+    v = "V+" if vol_change > 0 else "V-"
+    return f"{p}{v}"
+
+
+def _pv_verdict(pv4, pv13, pv26):
+    """
+    三期 pv_state 綜合判定
+    最強訊號 · 三期全 P+V+ → 完美多頭 · 追
+    最弱訊號 · 4W 破前但 26W 仍多 → 頂部背離 · 減
+    """
+    if pv4 is None or pv13 is None or pv26 is None:
+        return "資料不足"
+    # 完美 / 極端
+    if pv4 == "P+V+" and pv13 == "P+V+" and pv26 == "P+V+":
+        return "⭐⭐⭐ 完美多頭"
+    if pv4 == "P-V-" and pv13 == "P-V-" and pv26 == "P-V-":
+        return "🧊 熊市縮量"
+    if pv4 == "P-V+" and pv13 == "P-V+" and pv26 == "P-V+":
+        return "📉 主力出貨"
+    # 頂部背離 · 中期出貨（比較危險 · 先判）
+    if pv4 == "P+V-" and pv26 == "P+V+":
+        return "⚠️ 頂部背離"
+    if pv4 == "P-V+" and pv26 == "P+V+":
+        return "⚠️ 中期出貨"
+    # 底部翻多
+    if pv4 == "P+V+" and pv13 == "P-V-" and pv26 == "P-V-":
+        return "🌱 底部剛翻多"
+    if pv4 == "P+V+" and pv26 == "P-V-":
+        return "✨ 反彈初期"
+    # 一般健康
+    if pv4 == "P+V+" and pv13 == "P+V+":
+        return "🚀 健康多頭"
+    if pv4 == "P-V-" and pv13 == "P-V-":
+        return "😴 弱勢縮量"
+    return "➡️ 中性"
+
+
 def fetch_weekly_returns(tickers):
     """
     yfinance 批次抓 daily 收盤 · 回傳 DataFrame[symbol, cum_ret_4w, cum_ret_13w, cum_ret_26w]
@@ -173,12 +221,14 @@ def fetch_weekly_returns(tickers):
     except ImportError:
         sys.exit("需要 yfinance：pip install yfinance")
 
-    log(f"Downloading daily prices for {len(tickers)} tickers via yfinance...")
+    log(f"Downloading daily prices + volume for {len(tickers)} tickers via yfinance...")
     all_close = None
+    all_vol = None    # v5 新增 · 供 4W/13W/26W 量能變化計算
     for i in range(0, len(tickers), YF_BATCH):
         chunk = tickers[i : i + YF_BATCH]
         log(f"  batch {i // YF_BATCH + 1}/{(len(tickers) + YF_BATCH - 1) // YF_BATCH} ({len(chunk)} tickers)")
-        # 需 130 交易日 buffer · 用 10 個月 (≈ 210 交易日) 足夠
+        # v5 · 需 260 交易日 buffer 才能算 26W 量能變化（前 130 vs 後 130）
+        # 用 14 個月 (≈ 294 交易日) 剛好夠
         data = yf.download(
             chunk,
             interval="1d",
@@ -186,19 +236,24 @@ def fetch_weekly_returns(tickers):
             progress=False,
             threads=True,
             group_by="ticker",
-            **_yf_window(10),
+            **_yf_window(14),
         )
         # yfinance 回傳格式因 chunk size 而異
         if isinstance(data.columns, pd.MultiIndex):
-            close = pd.DataFrame({t: data[t]["Close"] for t in chunk if t in data.columns.get_level_values(0)})
+            avail = [t for t in chunk if t in data.columns.get_level_values(0)]
+            close = pd.DataFrame({t: data[t]["Close"] for t in avail})
+            vol = pd.DataFrame({t: data[t]["Volume"] for t in avail})
         else:
             close = data[["Close"]].rename(columns={"Close": chunk[0]})
+            vol = data[["Volume"]].rename(columns={"Volume": chunk[0]})
         all_close = close if all_close is None else all_close.join(close, how="outer")
+        all_vol = vol if all_vol is None else all_vol.join(vol, how="outer")
 
     if all_close is None or all_close.empty:
         raise RuntimeError("yfinance 沒抓到任何資料")
 
     all_close = all_close.dropna(how="all").sort_index()
+    all_vol = all_vol.reindex(all_close.index) if all_vol is not None else None
 
     # T-1 保護：擋掉「今天」的 partial daily bar
     # AS_OF 模式：保留 <= as_of · 現況模式：保留 < today
@@ -212,6 +267,8 @@ def fetch_weekly_returns(tickers):
     if dropped:
         log(f"  · 擋掉 {dropped} 根 > {cutoff} 的 partial daily bar")
     all_close = all_close.loc[keep]
+    if all_vol is not None:
+        all_vol = all_vol.loc[keep]
 
     log(f"  → close matrix: {all_close.shape[0]} trading days × {all_close.shape[1]} tickers")
 
@@ -246,6 +303,45 @@ def fetch_weekly_returns(tickers):
         point = r4 * 0.25 + r13 * 0.25 + r26 * 0.50
         # di = 三週期正報酬指標
         di = ((1 if r4 > 0 else 0) + (1 if r13 > 0 else 0) + (1 if r26 > 0 else 0)) / 3.0
+
+        # ==== v5 · 量能變化 + 量價象限 ====
+        # 用同一 index 對齊的 volume series · 缺一則 None
+        avg_v_4w = avg_v_13w = avg_v_26w = None
+        vol_ch_4w = vol_ch_13w = vol_ch_26w = None
+        pv4 = pv13 = pv26 = None
+        pv_verdict = "資料不足"
+        if all_vol is not None and sym in all_vol.columns:
+            vcol = all_vol[sym]
+            v_aligned = vcol.reindex(series.index)  # 對齊到有效 close 那些天
+            v_valid = v_aligned.dropna()
+            n = len(v_valid)
+            try:
+                if n >= 20:
+                    avg_v_4w = float(v_valid.iloc[-20:].mean())
+                if n >= 65:
+                    avg_v_13w = float(v_valid.iloc[-65:].mean())
+                if n >= 130:
+                    avg_v_26w = float(v_valid.iloc[-130:].mean())
+                # 量變 · 當期均量 / 前一同期均量 - 1
+                if n >= 40:
+                    prev_20 = float(v_valid.iloc[-40:-20].mean())
+                    if prev_20 > 0:
+                        vol_ch_4w = (avg_v_4w / prev_20 - 1) * 100
+                if n >= 130:
+                    prev_65 = float(v_valid.iloc[-130:-65].mean())
+                    if prev_65 > 0:
+                        vol_ch_13w = (avg_v_13w / prev_65 - 1) * 100
+                if n >= 260:
+                    prev_130 = float(v_valid.iloc[-260:-130].mean())
+                    if prev_130 > 0:
+                        vol_ch_26w = (avg_v_26w / prev_130 - 1) * 100
+            except (IndexError, ZeroDivisionError):
+                pass
+            pv4 = _pv_state(r4, vol_ch_4w)
+            pv13 = _pv_state(r13, vol_ch_13w)
+            pv26 = _pv_state(r26, vol_ch_26w)
+            pv_verdict = _pv_verdict(pv4, pv13, pv26)
+
         rows.append({
             "symbol": sym,
             "as_of_date": as_of_date,
@@ -255,6 +351,17 @@ def fetch_weekly_returns(tickers):
             "cum_ret_26w": round(r26, 2),
             "point": round(point, 2),
             "di": round(di, 3),
+            # v5 · 量能 + 量價象限
+            "avg_vol_4w": int(avg_v_4w) if avg_v_4w is not None else None,
+            "avg_vol_13w": int(avg_v_13w) if avg_v_13w is not None else None,
+            "avg_vol_26w": int(avg_v_26w) if avg_v_26w is not None else None,
+            "vol_change_4w": round(vol_ch_4w, 2) if vol_ch_4w is not None else None,
+            "vol_change_13w": round(vol_ch_13w, 2) if vol_ch_13w is not None else None,
+            "vol_change_26w": round(vol_ch_26w, 2) if vol_ch_26w is not None else None,
+            "pv_state_4w": pv4,
+            "pv_state_13w": pv13,
+            "pv_state_26w": pv26,
+            "pv_verdict": pv_verdict,
         })
     out = pd.DataFrame(rows)
     log(f"  → {len(out)} tickers with 131+ trading days of data")
@@ -878,6 +985,14 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite
             "trend_state": "Dow Theory · 多頭(HH+HL) / 空頭(LH+LL) / 收斂(LH+HL 三角蓄勢) / 擴散(HH+LL 喇叭)",
             "trend_pattern": "頭底型態 · 例：頭頭低·底底低（連續 lower high + lower low）· N=5 bar fractal swing detection",
             "trend_signal": "反轉/確認訊號 · 多轉空預警 / 空轉多預警 / 空頭確認(收破前底) / 多頭確認(收破前高)",
+            "avg_vol_4w": "近 20 交易日均量（跟 cum_ret_4w 同基準）",
+            "avg_vol_13w": "近 65 交易日均量",
+            "avg_vol_26w": "近 130 交易日均量",
+            "vol_change_4w": "(近 20d 均量 / 前 20d 均量 - 1)×100 · 跨期量能趨勢",
+            "vol_change_13w": "(近 65d 均量 / 前 65d 均量 - 1)×100",
+            "vol_change_26w": "(近 130d 均量 / 前 130d 均量 - 1)×100 · 需 260 交易日資料",
+            "pv_state_4w/13w/26w": "量價象限 · P+V+ 主力進場/P+V- 頂部背離/P-V+ 主力出貨/P-V- 縮量整理",
+            "pv_verdict": "三期綜合判定 · ⭐⭐⭐ 完美多頭 / ⚠️ 頂部背離 / 📉 主力出貨 / 🌱 底部翻多 / 🚀 健康多頭 / 🧊 熊市縮量 / 其他",
         },
         "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
         "surprise_source": "yfinance (earnings_dates)",
