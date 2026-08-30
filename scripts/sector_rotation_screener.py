@@ -266,7 +266,8 @@ def _explosive_verdict(c4, c13, c26, rsi, dist_high, trend_state, trend_signal, 
             and dist_high > -20
             and 40 < rsi < 72
             and point > -5
-            and "空頭" not in trend_state):
+            and "空頭" not in trend_state
+            and "擴散" not in trend_state):
         return "🎯 潛在暴漲"
 
     return ""
