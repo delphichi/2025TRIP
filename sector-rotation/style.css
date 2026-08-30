@@ -880,6 +880,21 @@ details summary h2 {
 .sig-badge.sig-warn-long     { background: rgba(52,152,219,0.25);  color: #74b9ff; }
 .sig-badge.sig-neutral       { background: rgba(150,150,150,0.20); color: var(--text-dim); }
 
+/* ---------- 量價象限判定 (P+V+/P+V-/P-V+/P-V- combined verdict) ---------- */
+.pv-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.pv-badge.pv-strong  { background: rgba(46,204,113,0.18); color: var(--good); border: 1px solid rgba(46,204,113,0.4); }
+.pv-badge.pv-warn    { background: rgba(241,196,15,0.20); color: var(--warn); border: 1px solid rgba(241,196,15,0.4); }
+.pv-badge.pv-weak    { background: rgba(231,76,60,0.18); color: var(--danger); border: 1px solid rgba(231,76,60,0.4); }
+.pv-badge.pv-early   { background: rgba(52,152,219,0.18); color: #74b9ff; border: 1px solid rgba(52,152,219,0.4); }
+.pv-badge.pv-neutral { background: rgba(150,150,150,0.15); color: var(--text-dim); }
+
 /* ---------- footer ---------- */
 .rot-footer {
     text-align: center;

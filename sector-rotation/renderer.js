@@ -592,6 +592,24 @@ function trendMiniChip(r) {
     return ` <span class="trend-mini ${TREND_CLASS[st] || ""}" title="${title}">${emo}</span>`;
 }
 
+// 量價象限判定 chip · 依 verdict 給色
+function pvCell(r) {
+    const v = r.pv_verdict;
+    if (!v || v === "資料不足") return `<td><span style="color:var(--text-dim)">—</span></td>`;
+    // 分類顏色
+    let cls = "pv-neutral";
+    if (v.includes("完美多頭") || v.includes("健康多頭") || v.includes("底部")) cls = "pv-strong";
+    else if (v.includes("頂部背離") || v.includes("中期出貨")) cls = "pv-warn";
+    else if (v.includes("主力出貨") || v.includes("熊市") || v.includes("弱勢")) cls = "pv-weak";
+    else if (v.includes("反彈初期")) cls = "pv-early";
+    // tooltip: 三期 pv_state
+    const s4 = r.pv_state_4w || "—";
+    const s13 = r.pv_state_13w || "—";
+    const s26 = r.pv_state_26w || "—";
+    const title = `4W:${s4} · 13W:${s13} · 26W:${s26}`;
+    return `<td><span class="pv-badge ${cls}" title="${title}">${v}</span></td>`;
+}
+
 function trendCell(r) {
     // Dow 獨立欄 · 顯 emoji + 中文 state + signal badge
     const st = r.trend_state;
@@ -628,7 +646,7 @@ function renderStage2Tab(tabKey) {
     const rows = STATE.stage2?.top3?.[tabKey] || [];
     const tbody = $("#heat-tbody");
     tbody.innerHTML = "";
-    const COLSPAN = 23;
+    const COLSPAN = 24;
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${COLSPAN}" class="empty-row">沒資料</td></tr>`;
         return;
@@ -721,6 +739,7 @@ function renderStage2Tab(tabKey) {
             <td class="vcp-cell">${vcpBadge}</td>
             <td class="alert-cell">${stockAlertBadge}</td>
             ${trendCell(r)}
+            ${pvCell(r)}
             ${fwdCell(r, "1m")}
             ${fwdCell(r, "3m")}
             ${fwdCell(r, "6m")}
