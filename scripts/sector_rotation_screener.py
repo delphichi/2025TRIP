@@ -173,6 +173,111 @@ def _pv_state(price_ret, vol_change):
     return f"{p}{v}"
 
 
+# ============================================================
+# v6 · Wilder RSI 14 · 加給個股層 (compute_vcp_row 會呼叫)
+# ============================================================
+def _rsi14(closes_series):
+    """Wilder-smoothed RSI · 對齊 TradingView / GAS · 回傳最後一根值"""
+    if closes_series is None or len(closes_series) < 15:
+        return None
+    delta = closes_series.diff()
+    gain = delta.where(delta > 0, 0).fillna(0)
+    loss = -delta.where(delta < 0, 0).fillna(0)
+    avg_gain = gain.ewm(alpha=1 / 14, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / 14, adjust=False).mean()
+    last_loss = float(avg_loss.iloc[-1])
+    last_gain = float(avg_gain.iloc[-1])
+    if last_loss == 0:
+        return 100.0
+    rs = last_gain / last_loss
+    return round(100 - 100 / (1 + rs), 2)
+
+
+# ============================================================
+# v6 · 暴漲判定（4 分類）· 綜合 momentum + Dow + pv + VCP 4 訊號
+# 移植自 GAS v2.4 · 演算法 100% 對齊
+# ============================================================
+def _explosive_verdict(c4, c13, c26, rsi, dist_high, trend_state, trend_signal, pv, vcp, point):
+    """
+    參數（都已 × 100 為百分比）:
+      c4/c13/c26 - cum_ret_*w（如 16.6 表示 +16.6%）
+      dist_high  - pct_from_high（如 -10.4 表示距高點 -10.4%）
+      point      - 動能綜合分（4W×0.25+13W×0.25+26W×0.5）
+    回傳: "🚀 暴漲中" / "🎯 潛在暴漲" / "🔥 追高風險" / ""
+    """
+    if c4 is None or c26 is None:
+        return ""
+    rsi = rsi if rsi is not None else 50
+    dist_high = dist_high if dist_high is not None else -100
+    trend_state = trend_state or ""
+    trend_signal = trend_signal or ""
+    pv = pv or ""
+    point = point if point is not None else 0
+
+    # === 🔥 追高風險（優先判） ===
+    if c4 > 40:
+        return "🔥 追高風險"
+    if c26 > 100:
+        return "🔥 追高風險"
+    if rsi > 80 and c26 > 30:
+        return "🔥 追高風險"
+
+    # === 排除弱勢/背離 ===
+    if point < -20:
+        return ""
+    for excl in ("熊市", "主力出貨", "量能衰竭", "量能背離",
+                 "頂部背離", "中期出貨", "主升段結束", "弱勢縮量"):
+        if excl in pv:
+            return ""
+
+    # === 🚀 暴漲中 · 動能明確 + 訊號健康 ===
+    pv_strong = pv in ("⭐⭐⭐ 完美多頭", "🚀 健康多頭")
+    dow_not_bad = "擴散" not in trend_state and "空頭" not in trend_state
+
+    if (pv_strong and dow_not_bad and c4 > 10
+            and 50 < rsi < 80 and dist_high > -30):
+        return "🚀 暴漲中"
+
+    # === 🎯 潛在暴漲 · setup 完成但未拉升 ===
+    setup_ready = (
+        pv in ("🌱 底部剛翻多", "✨ 反彈初期", "🚀 健康多頭")
+        or (vcp is True and (pv == "➡️ 中性" or pv_strong))
+        or ("收斂" in trend_state and "空轉多" in trend_signal)
+    )
+    if (setup_ready
+            and -3 < c4 < 15 and -15 < c26 < 50
+            and dist_high > -20
+            and 40 < rsi < 72
+            and point > -5
+            and "空頭" not in trend_state):
+        return "🎯 潛在暴漲"
+
+    return ""
+
+
+def add_explosive_verdict(df):
+    """對 full_df 每列算 explosive_verdict · 需 vcp/trend/pv/rsi14 已 merge 進來"""
+    if not len(df):
+        return df
+    df = df.copy()
+    df["explosive_verdict"] = df.apply(
+        lambda r: _explosive_verdict(
+            r.get("cum_ret_4w"),
+            r.get("cum_ret_13w"),
+            r.get("cum_ret_26w"),
+            r.get("rsi14"),
+            r.get("pct_from_high"),
+            r.get("trend_state"),
+            r.get("trend_signal"),
+            r.get("pv_verdict"),
+            r.get("vcp"),
+            r.get("point"),
+        ),
+        axis=1,
+    )
+    return df
+
+
 def _pv_verdict(pv4, pv13, pv26):
     """
     三期 pv_state 綜合判定 · 越具體 rule 排越前
@@ -650,6 +755,9 @@ def compute_vcp_row(sym, sub, expected_as_of=None):
     # 量價絕對評分（同 sector 公式）
     vp_score_stock = _compute_vp_score_stock(ret_20d, ret_5d, vp_ratio, ud_ratio)
 
+    # Wilder RSI 14（v6 新增 · 給 explosive_verdict 用）
+    rsi14 = _rsi14(close)
+
     # Dow Theory 頭頭低/底底高 · 用 raw High/Low/Close（對應 chart 上看到的擺動點）
     # N=5 適合日線中波段（~2 週擺盪）
     trend = _detect_trend(raw_high.tolist(), raw_low.tolist(), raw_close.tolist(), n=5)
@@ -678,6 +786,8 @@ def compute_vcp_row(sym, sub, expected_as_of=None):
         "vol_3w_avg": vol_3w_avg,
         "vol_ratio_stock_20d": vol_ratio_stock,
         "vp_score_stock": round(vp_score_stock, 2) if vp_score_stock is not None else None,
+        # Wilder RSI 14（v6 新增）
+        "rsi14": rsi14,
         # Dow Theory 趨勢群（新）
         "trend_state": trend["state"],
         "trend_pattern": trend["pattern"],
@@ -1000,6 +1110,8 @@ def save_outputs(df_all, top3_4w, top3_13w, top3_cms_a, top3_26w, top3_composite
             "vol_change_26w": "(近 130d 均量 / 前 130d 均量 - 1)×100 · 需 260 交易日資料",
             "pv_state_4w/13w/26w": "量價象限 · P+V+ 主力進場/P+V- 頂部背離/P-V+ 主力出貨/P-V- 縮量整理",
             "pv_verdict": "三期綜合判定 · ⭐⭐⭐ 完美多頭 / ⚠️ 頂部背離 / 📉 主力出貨 / 🌱 底部翻多 / 🚀 健康多頭 / 🧊 熊市縮量 / 其他",
+            "rsi14": "Wilder-smoothed RSI 14 · 對齊 TradingView/GAS",
+            "explosive_verdict": "暴漲判定 · 🚀 暴漲中 / 🎯 潛在暴漲 / 🔥 追高風險 / (空) · 綜合 momentum+Dow+pv+VCP 4 訊號",
         },
         "sectors": sorted(df_all["sector"].dropna().unique().tolist()),
         "surprise_source": "yfinance (earnings_dates)",
@@ -1057,12 +1169,16 @@ def main():
                   "ret_5d", "ret_20d", "up_days_20", "down_days_20",
                   "up_avg_vol", "down_avg_vol", "ud_ratio",
                   "vol_today", "vol_10d_avg", "vol_3w_avg", "vol_ratio_stock_20d",
-                  "vp_score_stock",
-                  "trend_state", "trend_pattern", "trend_signal"):
+                  "vp_score_stock", "rsi14",
+                  "trend_state", "trend_pattern", "trend_signal",
+                  "explosive_verdict"):
             full_df[c] = None
 
     # (4c) 板塊內個股綜合分（sector-scorecard 同套公式：Point + vp_score + vol_ratio）
     full_df = add_sector_stock_composite_ranks(full_df)
+
+    # (4d) 【v6 新增】暴漲判定 · 綜合 momentum + Dow + pv + VCP 4 訊號
+    full_df = add_explosive_verdict(full_df)
 
     # (5) 盈餘動能篩選（只對預篩過的 subset）
     subset = full_df[full_df["symbol"].isin(pre_syms)].copy()

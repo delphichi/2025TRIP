@@ -12,7 +12,7 @@ generate_daily_report.py · 每日板塊研究報告產生器
 用法：
   python scripts/generate_daily_report.py
 """
-import os, sys, json
+import os, sys, json, csv
 from datetime import datetime, timezone
 from html import escape
 
@@ -46,6 +46,37 @@ def load_json(p):
         return None
     with open(p, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_all_csv_verdicts(as_of):
+    """
+    讀 YYYYMMDD_all.csv · 抽 explosive_verdict != "" 的股票
+    回傳 dict {verdict: [rows]} · 已排序 · verdict 為 🚀/🎯/🔥 三類
+    """
+    if not as_of:
+        return {}
+    stamp = as_of.replace("-", "")
+    path = os.path.join(DATA_DIR, f"{stamp}_all.csv")
+    if not os.path.exists(path):
+        return {}
+    buckets = {"🚀 暴漲中": [], "🎯 潛在暴漲": [], "🔥 追高風險": []}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                v = (r.get("explosive_verdict") or "").strip()
+                if v in buckets:
+                    buckets[v].append(r)
+    except Exception:
+        return {}
+    # 排序：暴漲中 by point desc · 潛在 by point desc · 追高 by 26W desc
+    def _f(x, k):
+        try: return float(x.get(k) or 0)
+        except: return 0
+    buckets["🚀 暴漲中"].sort(key=lambda r: -_f(r, "point"))
+    buckets["🎯 潛在暴漲"].sort(key=lambda r: -_f(r, "point"))
+    buckets["🔥 追高風險"].sort(key=lambda r: -_f(r, "cum_ret_26w"))
+    return buckets
 
 
 def bucket_by(rows, key):
@@ -121,6 +152,8 @@ def make_tldr(scorecard, sb_stocks, exp_stocks, biggest):
 
 def render(scorecard, stage2, pattern):
     as_of = scorecard["as_of_date"]
+    # 【v6】讀 all.csv 拿全 universe explosive_verdict
+    exp_buckets = load_all_csv_verdicts(as_of)
     market_ctx = scorecard.get("market_context") or {}
     biggest = scorecard.get("quadrant_biggest_mover")
     rows = scorecard["rows"]
@@ -213,6 +246,17 @@ def render(scorecard, stage2, pattern):
         sig_html = f'<span class="dow-sig">{escape(sig)}</span>' if sig else ""
         return f'<td><span class="dow {cls}" title="{escape(title)}">{emo} {escape(st)}</span>{sig_html}{conflict}</td>'
 
+    # 暴漲判定 cell（顯 emoji badge）
+    def exp_cell(r):
+        v = (r.get("explosive_verdict") or "").strip()
+        if not v:
+            return '<td><span style="color:var(--text-dim)">—</span></td>'
+        cls = "exp-none"
+        if "暴漲中" in v: cls = "exp-boom"
+        elif "潛在暴漲" in v: cls = "exp-cand"
+        elif "追高" in v: cls = "exp-risk"
+        return f'<td><span class="exp {cls}">{escape(v)}</span></td>'
+
     # 量價象限 verdict cell
     def pv_cell(r):
         v = r.get("pv_verdict") or ""
@@ -253,12 +297,13 @@ def render(scorecard, stage2, pattern):
           <td>{alert_html} {extra}</td>
           {dow_cell(r, tag)}
           {pv_cell(r)}
+          {exp_cell(r)}
         </tr>'''
 
     sb_rows_html = "".join(sb_row(r, "💎") for r in sb_stocks) \
-        or '<tr><td colspan="10" class="empty">今日無 strong_buy 訊號 · 資料日期可能較舊或無合格個股</td></tr>'
+        or '<tr><td colspan="11" class="empty">今日無 strong_buy 訊號 · 資料日期可能較舊或無合格個股</td></tr>'
     exp_rows_html = "".join(sb_row(r, "🚀") for r in exp_stocks) \
-        or '<tr><td colspan="10" class="empty">今日無 explosive 訊號</td></tr>'
+        or '<tr><td colspan="11" class="empty">今日無 explosive 訊號</td></tr>'
 
     # 板塊詳細表
     def sec_row(r):
@@ -278,6 +323,39 @@ def render(scorecard, stage2, pattern):
           <td><span class="badge b-{r.get("health_key","neutral")}">{emoji} {zh}</span></td>
         </tr>'''
     sec_rows_html = "".join(sec_row(r) for r in rows_by_pct)
+
+    # 【v6】暴漲候選池 3 column · 讀 all.csv
+    def _exp_list_html(rows, cls, title, limit=15):
+        cnt = len(rows) if rows else 0
+        if not rows:
+            body = '<p class="empty">無</p>'
+        else:
+            lis = []
+            for r in rows[:limit]:
+                sym = escape(r.get("symbol") or "")
+                sec = escape((r.get("sector") or "")[:6])
+                pt = r.get("point") or ""
+                try: pt_s = f"{float(pt):+.1f}" if pt != "" else ""
+                except: pt_s = ""
+                c26 = r.get("cum_ret_26w") or ""
+                try: c26_s = f"{float(c26):+.0f}%" if c26 != "" else ""
+                except: c26_s = ""
+                lis.append(f'<li><span><b>{sym}</b> <span class="sec">{sec}</span></span><span class="dim">{pt_s} · 26W {c26_s}</span></li>')
+            body = '<ul>' + ''.join(lis) + '</ul>'
+            if cnt > limit:
+                body += f'<div class="dim" style="font-size:10.5px;margin-top:4px;">... 另 {cnt - limit} 支</div>'
+        return f'<div class="expcol {cls}"><h4>{title}<span class="cnt">({cnt})</span></h4>{body}</div>'
+
+    exp_boom = exp_buckets.get("🚀 暴漲中", [])
+    exp_cand = exp_buckets.get("🎯 潛在暴漲", [])
+    exp_risk = exp_buckets.get("🔥 追高風險", [])
+    explosive_card_html = f'''
+    <div class="expcols">
+      {_exp_list_html(exp_boom, "boom", "🚀 暴漲中")}
+      {_exp_list_html(exp_cand, "cand", "🎯 潛在暴漲")}
+      {_exp_list_html(exp_risk, "risk", "🔥 追高風險")}
+    </div>
+    '''
 
     # market snapshot
     voo = market_ctx.get("voo") or {}
@@ -447,6 +525,36 @@ def render(scorecard, stage2, pattern):
   .pv-early   {{ background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }}
   .pv-neutral {{ background:#f3f4f6; color:#6b7280; }}
 
+  /* 暴漲判定 · 4 分類 */
+  .exp {{
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700;
+    white-space:nowrap;
+  }}
+  .exp-boom {{ background:#fef3c7; color:#92400e; border:1px solid #fbbf24; }}
+  .exp-cand {{ background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }}
+  .exp-risk {{ background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }}
+  .exp-none {{ color:#94a3b8; }}
+
+  /* 暴漲候選池 · 3 個 column */
+  .expcols {{
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
+  }}
+  @media(max-width:800px) {{ .expcols {{ grid-template-columns:1fr; }} }}
+  .expcol {{
+    background:#f9fafb; border-radius:8px; padding:10px 12px;
+    border-left:3px solid var(--muted);
+  }}
+  .expcol.boom {{ border-left-color:#f59e0b; background:#fffbeb; }}
+  .expcol.cand {{ border-left-color:#3b82f6; background:#eff6ff; }}
+  .expcol.risk {{ border-left-color:#ef4444; background:#fef2f2; }}
+  .expcol h4 {{ margin:0 0 6px 0; font-size:13px; color:var(--navy); }}
+  .expcol .cnt {{ font-size:11px; color:var(--muted); margin-left:6px; }}
+  .expcol ul {{ margin:0; padding-left:0; list-style:none; font-size:12px; }}
+  .expcol li {{ padding:2px 0; display:flex; justify-content:space-between; }}
+  .expcol li b {{ font-weight:600; }}
+  .expcol .sec {{ color:var(--muted); font-size:10.5px; }}
+  .expcol .empty {{ color:var(--muted); font-style:italic; font-size:11px; }}
+
   .mover {{
     background:linear-gradient(90deg,#fef3c7,#fde68a); padding:12px 18px; border-radius:8px;
     border-left:4px solid var(--gold); margin-top:12px; font-size:13.5px;
@@ -511,11 +619,18 @@ def render(scorecard, stage2, pattern):
   </div>
 
   <div class="card">
+    <div class="card-h">💥 暴漲候選池 <span class="n">from all.csv · S&P 500 全掃</span></div>
+    <div class="card-b">
+      {explosive_card_html}
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-h">💎 strong_buy 訊號 <span class="n">{len(sb_stocks)} · stage 2 as of {escape(stage2_asof)}</span></div>
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
-          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th><th title="Dow Theory 頭頭低/底底高 · ⚠ 頂區=擴散喇叭 · ⚠ 衝突=Dow 說空頭">Dow</th><th title="4W/13W/26W 三期價漲跌 × 量漲跌 綜合判定">量價</th></tr>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th><th title="Dow Theory 頭頭低/底底高 · ⚠ 頂區=擴散喇叭 · ⚠ 衝突=Dow 說空頭">Dow</th><th title="4W/13W/26W 三期價漲跌 × 量漲跌 綜合判定">量價</th><th title="綜合 momentum+Dow+pv+VCP 4 訊號 · 🚀 暴漲中/🎯 潛在/🔥 追高">暴漲</th></tr>
         </thead>
         <tbody>{sb_rows_html}</tbody>
       </table>
