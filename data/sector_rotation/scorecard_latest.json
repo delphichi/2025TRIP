@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-30T18:24:06.616790+00:00",
+  "generated_at": "2026-08-30T22:43:58.935624+00:00",
   "as_of_date": "2026-08-28",
   "as_of_date_note": "基準日 = 該日最後一根 daily close 的實際日期（T-1）· 例：2026-08-25 = Aug 25 收盤價 · 非腳本執行當日",
   "sector_count": 11,
@@ -642,8 +642,8 @@
       "n_90d": 8,
       "pct_365d": 0.0,
       "n_365d": 9,
-      "breadth_pct": 55.9,
-      "breadth_up": 19,
+      "breadth_pct": 58.8,
+      "breadth_up": 20,
       "breadth_total": 34,
       "breadth_source_date": "2026-08-28",
       "point_5d_avg": 0.24,
