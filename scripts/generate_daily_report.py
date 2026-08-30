@@ -220,8 +220,8 @@ def render(scorecard, stage2, pattern):
             return '<td><span style="color:var(--text-dim)">—</span></td>'
         cls = "pv-neutral"
         if "完美多頭" in v or "健康多頭" in v or "底部" in v: cls = "pv-strong"
-        elif "頂部背離" in v or "中期出貨" in v: cls = "pv-warn"
-        elif "主力出貨" in v or "熊市" in v or "弱勢" in v: cls = "pv-weak"
+        elif "頂部背離" in v or "中期出貨" in v or "量能背離" in v: cls = "pv-warn"
+        elif "量能衰竭" in v or "主升段結束" in v or "主力出貨" in v or "熊市" in v or "弱勢" in v: cls = "pv-weak"
         elif "反彈初期" in v: cls = "pv-early"
         s4 = r.get("pv_state_4w") or "—"
         s13 = r.get("pv_state_13w") or "—"

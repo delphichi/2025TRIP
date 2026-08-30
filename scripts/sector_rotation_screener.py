@@ -175,30 +175,37 @@ def _pv_state(price_ret, vol_change):
 
 def _pv_verdict(pv4, pv13, pv26):
     """
-    三期 pv_state 綜合判定
+    三期 pv_state 綜合判定 · 越具體 rule 排越前
     最強訊號 · 三期全 P+V+ → 完美多頭 · 追
-    最弱訊號 · 4W 破前但 26W 仍多 → 頂部背離 · 減
+    最弱訊號 · 三期全 P+V- → 量能衰竭（分配階段）· 避
     """
     if pv4 is None or pv13 is None or pv26 is None:
         return "資料不足"
-    # 完美 / 極端
+    # === 三期一致 · 極端訊號 ===
     if pv4 == "P+V+" and pv13 == "P+V+" and pv26 == "P+V+":
         return "⭐⭐⭐ 完美多頭"
+    if pv4 == "P+V-" and pv13 == "P+V-" and pv26 == "P+V-":
+        return "⚠️ 量能衰竭"    # 新增 · 三期都 P+V-（Wyckoff 分配·頂部訊號）
     if pv4 == "P-V-" and pv13 == "P-V-" and pv26 == "P-V-":
         return "🧊 熊市縮量"
     if pv4 == "P-V+" and pv13 == "P-V+" and pv26 == "P-V+":
         return "📉 主力出貨"
-    # 頂部背離 · 中期出貨（比較危險 · 先判）
+    # === 主升段結束 · 短中期已弱但長期仍量縮價漲 ===
+    if pv4 == "P-V-" and pv13 == "P-V-" and pv26 == "P+V-":
+        return "⚠️ 主升段結束"    # 新增
+    # === 頂部背離 / 中期出貨 · 短長期矛盾 ===
     if pv4 == "P+V-" and pv26 == "P+V+":
-        return "⚠️ 頂部背離"
+        return "⚠️ 頂部背離"       # 短期量縮但長期仍量增
     if pv4 == "P-V+" and pv26 == "P+V+":
         return "⚠️ 中期出貨"
-    # 底部翻多
+    if pv4 == "P+V-" and pv26 == "P+V-":
+        return "⚠️ 量能背離"       # 新增 · 短長期都 P+V-（比頂部背離嚴重）
+    # === 底部翻多 / 反彈初期 ===
     if pv4 == "P+V+" and pv13 == "P-V-" and pv26 == "P-V-":
         return "🌱 底部剛翻多"
     if pv4 == "P+V+" and pv26 == "P-V-":
         return "✨ 反彈初期"
-    # 一般健康
+    # === 一般健康 / 弱勢 ===
     if pv4 == "P+V+" and pv13 == "P+V+":
         return "🚀 健康多頭"
     if pv4 == "P-V-" and pv13 == "P-V-":
