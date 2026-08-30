@@ -1,16 +1,18 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.3.1 (2026-08-30)
+// 股票數據抓取器 · v2.4 (2026-08-30)
 // ════════════════════════════════════════════════════════════════════════
-// v2.3.1 拿掉：六因子基本面（原 BH-BN 7 欄）
-//   原因：Yahoo quoteSummary API 從 2023 需要 crumb+cookie · GAS 無法穩定取得
-//   → 全部返回 null · 反而在表上顯一大排空欄位誤導判斷
-//   → 六因子基本面請看 sector-rotation 前端（CI 用 Python yfinance 穩定產出）
+// v2.4 新增：BP 暴漲判定（4 分類）
+//   🚀 暴漲中     · 動能明確啟動 + Dow 多頭/收斂 + pv 完美/健康 + 量能配合
+//   🎯 潛在暴漲   · setup 完成但還未拉升（VCP or 底部翻多 + 位置在 pivot 區）
+//   🔥 追高風險   · 已飆漲太高（4W>40% or 26W>100% or RSI>80+）
+//   (空)          · 中性 · 頂部背離 · 量能衰竭等訊號會被明確排除
 //
-// v2.3 沿用：4W/13W/26W 量能變化 + 三期量價象限 (BO-BV → 現 BH-BO · 8 欄)
+// v2.3.1 沿用：拿掉六因子（Yahoo quoteSummary 需 crumb · GAS 拿不到）
+// v2.3 沿用：4W/13W/26W 量能變化 + 三期量價象限 (BH-BO · 8 欄)
 // v2.1 沿用：Dow Theory 頭頭低/底底高 (BE/BF/BG)
 // v2.0 沿用：Bug 1/2/3 修正 · 設計 A/B/C 修正
 //
-// 欄位總數：47 base + 3 trend + 8 pv = 58 欄
+// 欄位總數：47 base + 3 trend + 8 pv + 1 verdict = 59 欄
 // ════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════
@@ -50,7 +52,9 @@ function fetchAllStockData() {
     // 量能變化 + 三期量價象限 + 綜合判定（欄位往前挪 · BH-BO）
     "BH 4W均量","BI 13W均量","BJ 26W均量",
     "BK 4W量變%","BL 13W量變%","BM 26W量變%",
-    "BN 三期量價狀態","BO 量價綜合判定"
+    "BN 三期量價狀態","BO 量價綜合判定",
+    // 【v2.4 新增】BP 暴漲判定
+    "BP 暴漲判定"
   ];
 
   dataSheet.getRange(1, OUTPUT_COL, 1, headers.length)
@@ -122,7 +126,9 @@ function fetchAllStockData() {
         row, symbol, error: null,
         bb: bbScore, bd: bdScore,
         trend: d.trend,
-        d: d,           // 【v2.3】pv fields access
+        vcp: vcp,           // 【v2.4 for explosive verdict】
+        distHigh: distHigh, // 【v2.4 for explosive verdict】
+        d: d,               // 【v2.3】pv fields access
         data: [
           d.price, d.price4w, d.price13w, d.price26w,
           d.change4w, d.change13w, d.change26w,
@@ -165,7 +171,7 @@ function fetchAllStockData() {
     if (firstOutputRow === null) firstOutputRow = r.row;
 
     if (r.error) {
-      outputMatrix.push(new Array(58).fill(""));
+      outputMatrix.push(new Array(59).fill(""));
       outputMatrix[outputMatrix.length - 1][0] = r.error;
       continue;
     }
@@ -178,6 +184,13 @@ function fetchAllStockData() {
     const bdLabel = formatBDLabel(r.bb, bbRnk);
 
     const dd = r.d || {};  // pv 資料存在 d
+    // 【v2.4 新增】暴漲判定 · 綜合所有訊號
+    const explosive = explosiveVerdict(
+      dd.change4w, dd.change13w, dd.change26w, dd.rsi14, r.distHigh,
+      r.trend.state, r.trend.signal, dd.pvVerdict, r.vcp,
+      r.bb
+    );
+
     outputMatrix.push([
       ...r.data,                                     // J~AZ (43 欄)
       baLabel, r.bb, bcLabel, bdLabel,               // BA-BD (4 欄)
@@ -190,17 +203,19 @@ function fetchAllStockData() {
       dd.volChange13w != null ? Math.round(dd.volChange13w * 1000) / 10 : "",
       dd.volChange26w != null ? Math.round(dd.volChange26w * 1000) / 10 : "",
       dd.pvStateAll || "",
-      dd.pvVerdict || ""
+      dd.pvVerdict || "",
+      // BP · 暴漲判定
+      explosive
     ]);
   }
 
   if (outputMatrix.length && firstOutputRow !== null) {
-    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 58)
+    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 59)
       .setValues(outputMatrix);
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.3.1)\n基準日：" +
+    "✅ 更新完成！(v2.4)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n共處理：" + allRows.length + " 支股票"
   );
@@ -461,6 +476,65 @@ function pvVerdict(pv4, pv13, pv26) {
   return "➡️ 中性";
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// 【v2.4 新增】暴漲判定 · 綜合 momentum + Dow + pv + VCP 4 訊號
+// 4 分類：🚀 暴漲中 / 🎯 潛在暴漲 / 🔥 追高風險 / (空)
+// ════════════════════════════════════════════════════════════════════════
+function explosiveVerdict(c4, c13, c26, rsi, distHigh, trendState, trendSig, pv, vcp, bb) {
+  // 標準化參數
+  c4 = (c4 || 0) * 100;
+  c26 = (c26 || 0) * 100;
+  rsi = rsi || 50;
+  distHigh = (distHigh || -1) * 100;
+  trendState = trendState || "";
+  trendSig = trendSig || "";
+  pv = pv || "";
+  bb = bb || 0;
+
+  // ─── 🔥 追高風險（優先判） ───
+  if (c4 > 40) return "🔥 追高風險";       // 4W 已飆超過 40%
+  if (c26 > 100) return "🔥 追高風險";      // 半年翻倍以上
+  if (rsi > 80 && c26 > 30) return "🔥 追高風險";  // RSI 極高 + 中期已強
+
+  // ─── 明顯排除（弱勢/頂部背離等） ───
+  if (bb < 0) return "";
+  if (pv.indexOf("熊市") >= 0 || pv.indexOf("主力出貨") >= 0
+      || pv.indexOf("量能衰竭") >= 0 || pv.indexOf("量能背離") >= 0
+      || pv.indexOf("頂部背離") >= 0 || pv.indexOf("中期出貨") >= 0
+      || pv.indexOf("主升段結束") >= 0 || pv.indexOf("弱勢縮量") >= 0) {
+    return "";
+  }
+
+  // ─── 🚀 暴漲中 · 動能明確 + 訊號健康 ───
+  const pvStrong = (pv === "⭐⭐⭐ 完美多頭" || pv === "🚀 健康多頭");
+  const dowNotBad = (trendState.indexOf("擴散") < 0 && trendState.indexOf("空頭") < 0);
+
+  if (pvStrong && dowNotBad && c4 > 10 && rsi > 50 && rsi < 80 && distHigh > -30) {
+    return "🚀 暴漲中";
+  }
+
+  // ─── 🎯 潛在暴漲 · setup 完成但未拉升 ───
+  const setupReady = (
+    pv === "🌱 底部剛翻多"
+    || pv === "✨ 反彈初期"
+    || pv === "🚀 健康多頭"
+    || (vcp === true && (pv === "➡️ 中性" || pvStrong))
+    || (trendState.indexOf("收斂") >= 0 && trendSig.indexOf("✨空轉多") >= 0)
+  );
+  const notLiftedYet = c4 > -3 && c4 < 15;
+  const notExtended = c26 > -15 && c26 < 50;
+  const validPos = distHigh > -20;
+  const rsiOK = rsi > 40 && rsi < 72;
+  const bbOK = bb > 10;
+  const notShortDow = trendState.indexOf("空頭") < 0;
+
+  if (setupReady && notLiftedYet && notExtended && validPos && rsiOK && bbOK && notShortDow) {
+    return "🎯 潛在暴漲";
+  }
+
+  return "";
+}
+
 function detectTrend(highs, lows, closes, n) {
   if (!highs || highs.length < n * 2 + 5) return { state: '資料不足', pattern: '', signal: '' };
   const swings = findSwings(highs, lows, n);
@@ -640,7 +714,14 @@ function fetchSingleRow() {
     const bcLabel = "（需全部更新才有排名）" + formatBA(bdScore);
     const bdLabel = "（需全部更新才有排名）";
 
-    dataSheet.getRange(row, 10, 1, 58).setValues([[
+    // 【v2.4】暴漲判定
+    const explosive = explosiveVerdict(
+      d.change4w, d.change13w, d.change26w, d.rsi14, distHigh,
+      d.trend.state, d.trend.signal, d.pvVerdict, vcp,
+      bbScore
+    );
+
+    dataSheet.getRange(row, 10, 1, 59).setValues([[
       d.price, d.price4w, d.price13w, d.price26w,
       d.change4w, d.change13w, d.change26w,
       d.high52w, d.low52w, d.ma50, d.ma200,
@@ -663,10 +744,12 @@ function fetchSingleRow() {
       d.volChange13w != null ? Math.round(d.volChange13w * 1000) / 10 : "",
       d.volChange26w != null ? Math.round(d.volChange26w * 1000) / 10 : "",
       d.pvStateAll || "",
-      d.pvVerdict || ""
+      d.pvVerdict || "",
+      // 【v2.4】BP 暴漲判定
+      explosive
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.3.1)\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.4)\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
@@ -678,7 +761,7 @@ function fetchSingleRow() {
 // ════════════════════════════════════════
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu("📊 股票數據 v2.3.1")
+    .createMenu("📊 股票數據 v2.4")
     .addItem("🔄 更新全部股票", "fetchAllStockData")
     .addItem("🔄 更新本列股票", "fetchSingleRow")
     .addToUi();
