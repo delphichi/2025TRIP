@@ -1,25 +1,20 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.3 (2026-08-28)
+// 股票數據抓取器 · v2.3.1 (2026-08-30)
 // ════════════════════════════════════════════════════════════════════════
-// v2.2 新增：六因子多因子評分（仿 009824 群益美國科技巨頭 ETF 選股邏輯）
-//   BH 自由現金流 FCF · Yahoo quoteSummary/financialData
-//   BI 股價淨值比 P/B · quoteSummary/defaultKeyStatistics
-//   BJ 股東權益報酬率 ROE% · financialData/returnOnEquity
-//   BK EPS 年增率% · financialData/earningsGrowth（yoy）
-//   BL 營收年增率% · financialData/revenueGrowth（yoy）
-//   BM 六因子綜合分（z-score 加權·跨全表標準化）
-//   BN 六因子排名 + 標籤（⭐⭐⭐/⭐⭐/○/△/❌）
+// v2.3.1 拿掉：六因子基本面（原 BH-BN 7 欄）
+//   原因：Yahoo quoteSummary API 從 2023 需要 crumb+cookie · GAS 無法穩定取得
+//   → 全部返回 null · 反而在表上顯一大排空欄位誤導判斷
+//   → 六因子基本面請看 sector-rotation 前端（CI 用 Python yfinance 穩定產出）
 //
-// 加權設計：
-//   FCF 15% + P/B 10% (反向) + ROE 20% + EPS成長 20% + 營收成長 20% + 動能 15%
-//   動能因子 = 我們的 BB 分（避免完全依賴基本面）
-//
+// v2.3 沿用：4W/13W/26W 量能變化 + 三期量價象限 (BO-BV → 現 BH-BO · 8 欄)
 // v2.1 沿用：Dow Theory 頭頭低/底底高 (BE/BF/BG)
 // v2.0 沿用：Bug 1/2/3 修正 · 設計 A/B/C 修正
+//
+// 欄位總數：47 base + 3 trend + 8 pv = 58 欄
 // ════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════
-// 主程式（三輪迴圈版 · v2.2）
+// 主程式（兩輪迴圈版 · v2.3.1）
 // ════════════════════════════════════════
 function fetchAllStockData() {
   const ss        = SpreadsheetApp.getActiveSpreadsheet();
@@ -51,14 +46,11 @@ function fetchAllStockData() {
     "BA短期技術面視角","BB中長期動能視角(數字)",
     "BC短期突破分預期排名","BD中長期動能視角預期排名",
     "BE趨勢狀態(Dow)","BF頭底型態","BG反轉訊號",
-    // 【v2.2 新增】6 因子基本面 + 綜合分數 + 排名
-    "BH自由現金流(FCF)","BI股價淨值比(P/B)","BJ股東權益報酬率(ROE%)",
-    "BK EPS年增率%","BL 營收年增率%",
-    "BM 六因子綜合分數","BN 六因子排名",
-    // 【v2.3 新增】量能變化 + 三期量價象限 + 綜合判定
-    "BO 4W均量","BP 13W均量","BQ 26W均量",
-    "BR 4W量變%","BS 13W量變%","BT 26W量變%",
-    "BU 三期量價狀態","BV 量價綜合判定"
+    // 【v2.3 · 移原 v2.2 六因子 · Yahoo quoteSummary 需 crumb · GAS 拿不到】
+    // 量能變化 + 三期量價象限 + 綜合判定（欄位往前挪 · BH-BO）
+    "BH 4W均量","BI 13W均量","BJ 26W均量",
+    "BK 4W量變%","BL 13W量變%","BM 26W量變%",
+    "BN 三期量價狀態","BO 量價綜合判定"
   ];
 
   dataSheet.getRange(1, OUTPUT_COL, 1, headers.length)
@@ -89,14 +81,12 @@ function fetchAllStockData() {
 
     try {
       const d = fetchYahooHistory(symbol, targetDate);
-      const funda = fetchYahooFundamentals(symbol);  // 【v2.2】
 
       if (!d) {
         allRows.push({
           row, symbol, error: "NO DATA",
           bb: -9999, bd: -9999,
-          trend: { state: '', pattern: '', signal: '' },
-          funda: { fcf: null, pb: null, roe: null, epsGrowth: null, revGrowth: null }
+          trend: { state: '', pattern: '', signal: '' }
         });
         continue;
       }
@@ -132,7 +122,6 @@ function fetchAllStockData() {
         row, symbol, error: null,
         bb: bbScore, bd: bdScore,
         trend: d.trend,
-        funda: funda,   // 【v2.2】
         d: d,           // 【v2.3】pv fields access
         data: [
           d.price, d.price4w, d.price13w, d.price26w,
@@ -150,108 +139,54 @@ function fetchAllStockData() {
         ]
       });
 
-      Utilities.sleep(250);  // v2.2.1 · 從 500 降到 250 · 給 fetchAllStock 加速
+      Utilities.sleep(250);
 
     } catch(e) {
       Logger.log(`Error ${symbol}: ${e.message}`);
       allRows.push({
         row, symbol, error: e.message,
         bb: -9999, bd: -9999,
-        trend: { state: '', pattern: '', signal: '' },
-        funda: { fcf: null, pb: null, roe: null, epsGrowth: null, revGrowth: null }
+        trend: { state: '', pattern: '', signal: '' }
       });
     }
   }
 
   // ════════════════════════════════════════
-  // 第二輪：跨全表算 z-score · 得 mf_score
-  // ════════════════════════════════════════
-  const validRows = allRows.filter(r => !r.error && r.funda);
-
-  // 每個因子的 mean / std · 只用有值的
-  function zStats(getter) {
-    const vals = validRows.map(getter).filter(v => v !== null && !isNaN(v) && isFinite(v));
-    if (vals.length < 3) return { mean: 0, std: 1 };
-    const mean = vals.reduce((a,b) => a+b, 0) / vals.length;
-    const variance = vals.reduce((a,b) => a + (b-mean)*(b-mean), 0) / vals.length;
-    const std = Math.sqrt(variance) || 1;
-    return { mean, std };
-  }
-  function z(v, stats) {
-    if (v === null || isNaN(v) || !isFinite(v)) return 0;
-    return (v - stats.mean) / stats.std;
-  }
-
-  const fcfStats  = zStats(r => r.funda.fcf);
-  const pbStats   = zStats(r => r.funda.pb);
-  const roeStats  = zStats(r => r.funda.roe);
-  const epsStats  = zStats(r => r.funda.epsGrowth);
-  const revStats  = zStats(r => r.funda.revGrowth);
-  const bbStats   = zStats(r => r.bb);
-
-  // 六因子加權（P/B 反向：越低越好 · 給負權重）
-  for (const r of allRows) {
-    if (r.error) { r.mfScore = -9999; continue; }
-    const f = r.funda || {};
-    const s = 0.15 * z(f.fcf,       fcfStats)
-            + 0.10 * -z(f.pb,       pbStats)     // 反向
-            + 0.20 * z(f.roe,       roeStats)
-            + 0.20 * z(f.epsGrowth, epsStats)
-            + 0.20 * z(f.revGrowth, revStats)
-            + 0.15 * z(r.bb,        bbStats);
-    r.mfScore = Math.round(s * 100) / 100;
-  }
-
-  // ════════════════════════════════════════
-  // 第三輪：算排名 · 批次寫入所有欄位（v2.2.1 · 從 73 次 setValues 改成 1 次）
+  // 第二輪：算排名 · 批次寫入所有欄位（一次 setValues · 大幅省時）
   // ════════════════════════════════════════
   const allBB = allRows.map(r => r.bb);
   const allBD = allRows.map(r => r.bd);
-  const allMF = allRows.map(r => r.mfScore);
 
-  // 先收集所有 row 的資料 · 再一次寫入
   const outputMatrix = [];
   let firstOutputRow = null;
-  const errorRows = [];  // 收集 error rows · 之後單獨寫
 
   for (let i = 0; i < allRows.length; i++) {
     const r = allRows[i];
     if (firstOutputRow === null) firstOutputRow = r.row;
 
     if (r.error) {
-      errorRows.push({ row: r.row, msg: r.error });
-      outputMatrix.push(new Array(65).fill(""));
+      outputMatrix.push(new Array(58).fill(""));
       outputMatrix[outputMatrix.length - 1][0] = r.error;
       continue;
     }
 
     const bbRnk = allBB.filter(v => v > r.bb && v > -9999).length + 1;
     const bdRnk = allBD.filter(v => v > r.bd && v > -9999).length + 1;
-    const mfRnk = allMF.filter(v => v > r.mfScore && v > -9999).length + 1;
 
     const baLabel = formatBA(r.bd);
     const bcLabel = formatBC(r.bd, bdRnk);
     const bdLabel = formatBDLabel(r.bb, bbRnk);
-    const mfLabel = formatMFLabel(r.mfScore, mfRnk);
 
-    const f = r.funda || {};
-    const dd = r.d || {};  // 【v2.3】pv 資料存在 d
+    const dd = r.d || {};  // pv 資料存在 d
     outputMatrix.push([
-      ...r.data,
-      baLabel, r.bb, bcLabel, bdLabel,
-      r.trend.state, r.trend.pattern, r.trend.signal,
-      f.fcf,
-      f.pb,
-      f.roe !== null ? f.roe * 100 : null,
-      f.epsGrowth !== null ? f.epsGrowth * 100 : null,
-      f.revGrowth !== null ? f.revGrowth * 100 : null,
-      r.mfScore,
-      mfLabel,
-      // 【v2.3 新增 8 欄】BO-BV · 量能變化 + 量價象限
+      ...r.data,                                     // J~AZ (43 欄)
+      baLabel, r.bb, bcLabel, bdLabel,               // BA-BD (4 欄)
+      r.trend.state, r.trend.pattern, r.trend.signal, // BE-BG (3 欄)
+      // BH-BO · 量能變化 + 量價象限 (8 欄)
       dd.avgVol4w != null ? Math.round(dd.avgVol4w) : "",
       dd.avgVol13w != null ? Math.round(dd.avgVol13w) : "",
       dd.avgVol26w != null ? Math.round(dd.avgVol26w) : "",
-      dd.volChange4w != null ? Math.round(dd.volChange4w * 1000) / 10 : "",   // 顯 %
+      dd.volChange4w != null ? Math.round(dd.volChange4w * 1000) / 10 : "",
       dd.volChange13w != null ? Math.round(dd.volChange13w * 1000) / 10 : "",
       dd.volChange26w != null ? Math.round(dd.volChange26w * 1000) / 10 : "",
       dd.pvStateAll || "",
@@ -259,73 +194,24 @@ function fetchAllStockData() {
     ]);
   }
 
-  // 一次寫入所有 rows（大幅省 API call 時間）
   if (outputMatrix.length && firstOutputRow !== null) {
-    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 65)
+    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 58)
       .setValues(outputMatrix);
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.3)\n基準日：" +
+    "✅ 更新完成！(v2.3.1)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n共處理：" + allRows.length + " 支股票"
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// 【v2.2 新增】Yahoo Finance quoteSummary API 抓基本面
+// [v2.3.1 移除] fetchYahooFundamentals()
+//   原因：Yahoo quoteSummary API 從 2023 需要 crumb+cookie · GAS 無法穩定取得
+//   → 全部返回 null · 反而在表上顯一大排空欄位誤導判斷
+//   → 六因子基本面請看 sector-rotation 前端（CI 用 Python yfinance 穩定產出）
 // ════════════════════════════════════════════════════════════════════════
-function fetchYahooFundamentals(symbol) {
-  // financialData 有 fcf / roe / revenueGrowth / earningsGrowth
-  // defaultKeyStatistics 有 priceToBook / forwardPE / marketCap
-  const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}`
-            + `?modules=financialData,defaultKeyStatistics`;
-  const opt = {
-    method: "GET",
-    headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
-    muteHttpExceptions: true
-  };
-
-  // v2.2.1 · 重試降到 2 次（原 3）· 節省時間上限風險
-  let json = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = UrlFetchApp.fetch(url, opt);
-      const code = res.getResponseCode();
-      if (code === 200) {
-        json = JSON.parse(res.getContentText());
-        break;
-      }
-      if (code === 401 || code === 429 || code >= 500) {
-        Utilities.sleep(500);
-        continue;
-      }
-      break;
-    } catch (e) {
-      if (attempt === 1) return { fcf:null, pb:null, roe:null, epsGrowth:null, revGrowth:null };
-      Utilities.sleep(500);
-    }
-  }
-  if (!json?.quoteSummary?.result?.[0]) {
-    return { fcf:null, pb:null, roe:null, epsGrowth:null, revGrowth:null };
-  }
-
-  const r = json.quoteSummary.result[0];
-  const fd = r.financialData || {};
-  const ks = r.defaultKeyStatistics || {};
-
-  const getRaw = (obj, key) => (obj[key] && typeof obj[key].raw === "number") ? obj[key].raw : null;
-
-  return {
-    fcf:        getRaw(fd, "freeCashflow"),       // 絕對值 · USD
-    pb:         getRaw(ks, "priceToBook"),        // ratio
-    roe:        getRaw(fd, "returnOnEquity"),     // 0.15 = 15%
-    epsGrowth:  getRaw(fd, "earningsGrowth"),     // yoy · 0.1 = 10%
-    revGrowth:  getRaw(fd, "revenueGrowth"),      // yoy
-    forwardPE:  getRaw(ks, "forwardPE"),
-    marketCap:  getRaw(ks, "marketCap"),
-  };
-}
 
 // ════════════════════════════════════════════════════════════════════════
 // Yahoo Finance 歷史數據（同 v2.1）
@@ -706,21 +592,8 @@ function formatBDLabel(bbScore, rnk) {
   return "#" + rnk + " ❌ 排除 (" + bbScore + ")";
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// 【v2.2 新增】六因子綜合分數標籤
-// ════════════════════════════════════════════════════════════════════════
-function formatMFLabel(mfScore, rnk) {
-  if (mfScore === null || mfScore === undefined || mfScore === -9999) return "—";
-  const s = mfScore.toFixed(2);
-  if (mfScore >= 1.5)  return "#" + rnk + " ⭐⭐⭐ 六因子精選 (" + s + ")";
-  if (mfScore >= 0.5)  return "#" + rnk + " ⭐⭐ 六因子候選 (" + s + ")";
-  if (mfScore >= -0.5) return "#" + rnk + " ○ 六因子中性 (" + s + ")";
-  if (mfScore >= -1.5) return "#" + rnk + " △ 六因子偏弱 (" + s + ")";
-  return "#" + rnk + " ❌ 六因子排除 (" + s + ")";
-}
-
 // ════════════════════════════════════════
-// 單列更新（v2.2 · 只有單列時無跨列 z-score · mfScore 標「需全部更新」）
+// 單列更新（v2.3.1 · 無基本面 · 排名標「需全部更新」）
 // ════════════════════════════════════════
 function fetchSingleRow() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -738,7 +611,6 @@ function fetchSingleRow() {
     const spy = fetchYahooHistory("SPY", targetDate);
     const spyChange4w = spy ? spy.change4w : null;
     const d = fetchYahooHistory(symbol.toString().trim(), targetDate);
-    const funda = fetchYahooFundamentals(symbol.toString().trim());  // 【v2.2】
 
     if (!d) { SpreadsheetApp.getUi().alert(`${symbol} 無數據`); return; }
 
@@ -768,7 +640,7 @@ function fetchSingleRow() {
     const bcLabel = "（需全部更新才有排名）" + formatBA(bdScore);
     const bdLabel = "（需全部更新才有排名）";
 
-    dataSheet.getRange(row, 10, 1, 65).setValues([[
+    dataSheet.getRange(row, 10, 1, 58).setValues([[
       d.price, d.price4w, d.price13w, d.price26w,
       d.change4w, d.change13w, d.change26w,
       d.high52w, d.low52w, d.ma50, d.ma200,
@@ -783,14 +655,7 @@ function fetchSingleRow() {
       auSig, avSig, awSig, axSig, aySig, azSig,
       baLabel, bbNum, bcLabel, bdLabel,
       d.trend.state, d.trend.pattern, d.trend.signal,
-      funda.fcf,
-      funda.pb,
-      funda.roe !== null ? funda.roe * 100 : null,
-      funda.epsGrowth !== null ? funda.epsGrowth * 100 : null,
-      funda.revGrowth !== null ? funda.revGrowth * 100 : null,
-      "（需全部更新才有 z-score）",
-      "（需全部更新才有排名）",
-      // 【v2.3】· 8 欄量價象限（不依賴跨表 · 單列也能算）
+      // BH-BO · 8 欄量價象限（單列也能算 · 不依賴跨表）
       d.avgVol4w != null ? Math.round(d.avgVol4w) : "",
       d.avgVol13w != null ? Math.round(d.avgVol13w) : "",
       d.avgVol26w != null ? Math.round(d.avgVol26w) : "",
@@ -801,7 +666,7 @@ function fetchSingleRow() {
       d.pvVerdict || ""
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.2)\n排名 + 六因子綜合分數需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.3.1)\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
@@ -813,7 +678,7 @@ function fetchSingleRow() {
 // ════════════════════════════════════════
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu("📊 股票數據 v2.3")
+    .createMenu("📊 股票數據 v2.3.1")
     .addItem("🔄 更新全部股票", "fetchAllStockData")
     .addItem("🔄 更新本列股票", "fetchSingleRow")
     .addToUi();
