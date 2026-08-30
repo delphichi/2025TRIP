@@ -555,13 +555,21 @@ function pvState(priceRet, volChange) {
 }
 function pvVerdict(pv4, pv13, pv26) {
   if (!pv4 || !pv13 || !pv26) return "資料不足";
+  // 三期一致 · 極端訊號
   if (pv4 === "P+V+" && pv13 === "P+V+" && pv26 === "P+V+") return "⭐⭐⭐ 完美多頭";
+  if (pv4 === "P+V-" && pv13 === "P+V-" && pv26 === "P+V-") return "⚠️ 量能衰竭";      // 新增
   if (pv4 === "P-V-" && pv13 === "P-V-" && pv26 === "P-V-") return "🧊 熊市縮量";
   if (pv4 === "P-V+" && pv13 === "P-V+" && pv26 === "P-V+") return "📉 主力出貨";
+  // 主升段結束
+  if (pv4 === "P-V-" && pv13 === "P-V-" && pv26 === "P+V-") return "⚠️ 主升段結束";   // 新增
+  // 頂部背離 / 中期出貨 / 量能背離
   if (pv4 === "P+V-" && pv26 === "P+V+") return "⚠️ 頂部背離";
   if (pv4 === "P-V+" && pv26 === "P+V+") return "⚠️ 中期出貨";
+  if (pv4 === "P+V-" && pv26 === "P+V-") return "⚠️ 量能背離";                        // 新增
+  // 底部翻多 / 反彈初期
   if (pv4 === "P+V+" && pv13 === "P-V-" && pv26 === "P-V-") return "🌱 底部剛翻多";
   if (pv4 === "P+V+" && pv26 === "P-V-") return "✨ 反彈初期";
+  // 一般健康 / 弱勢
   if (pv4 === "P+V+" && pv13 === "P+V+") return "🚀 健康多頭";
   if (pv4 === "P-V-" && pv13 === "P-V-") return "😴 弱勢縮量";
   return "➡️ 中性";

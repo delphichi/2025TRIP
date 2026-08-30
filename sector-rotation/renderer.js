@@ -599,8 +599,8 @@ function pvCell(r) {
     // 分類顏色
     let cls = "pv-neutral";
     if (v.includes("完美多頭") || v.includes("健康多頭") || v.includes("底部")) cls = "pv-strong";
-    else if (v.includes("頂部背離") || v.includes("中期出貨")) cls = "pv-warn";
-    else if (v.includes("主力出貨") || v.includes("熊市") || v.includes("弱勢")) cls = "pv-weak";
+    else if (v.includes("頂部背離") || v.includes("中期出貨") || v.includes("量能背離")) cls = "pv-warn";
+    else if (v.includes("量能衰竭") || v.includes("主升段結束") || v.includes("主力出貨") || v.includes("熊市") || v.includes("弱勢")) cls = "pv-weak";
     else if (v.includes("反彈初期")) cls = "pv-early";
     // tooltip: 三期 pv_state
     const s4 = r.pv_state_4w || "—";
