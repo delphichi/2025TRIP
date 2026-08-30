@@ -1,6 +1,11 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.4 (2026-08-30)
+// 股票數據抓取器 · v2.4.1 (2026-08-30)
 // ════════════════════════════════════════════════════════════════════════
+// v2.4.1 修正：🎯 潛在暴漲 Dow 守門補「擴散」·  對齊 Python
+//   問題：OKE (Dow=🔻 擴散喇叭) 被誤判 🎯 潛在暴漲
+//   修法：explosiveVerdict 內 notShortDow → dowNotBadForSetup
+//         同時擋「空頭」和「擴散」· 與 🚀 暴漲中的 dowNotBad 一致
+//
 // v2.4 新增：BP 暴漲判定（4 分類）
 //   🚀 暴漲中     · 動能明確啟動 + Dow 多頭/收斂 + pv 完美/健康 + 量能配合
 //   🎯 潛在暴漲   · setup 完成但還未拉升（VCP or 底部翻多 + 位置在 pivot 區）
@@ -215,7 +220,7 @@ function fetchAllStockData() {
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.4)\n基準日：" +
+    "✅ 更新完成！(v2.4.1)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n共處理：" + allRows.length + " 支股票"
   );
@@ -750,7 +755,7 @@ function fetchSingleRow() {
       explosive
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.4)\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.4.1)\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
