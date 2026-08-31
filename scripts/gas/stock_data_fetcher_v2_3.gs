@@ -1,6 +1,13 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.6.2 (2026-08-31)
+// 股票數據抓取器 · v2.6.3 (2026-08-31)
 // ════════════════════════════════════════════════════════════════════════
+// v2.6.3 新增：SPY 環境資料透明化（BX-CA · 4 欄）
+//   BX SPY 現價（回測日 close）
+//   BY SPY 60d 前價（12 交易週前 · 供參考）
+//   BZ SPY 50MA（含 ↑/↓ 斜率標示）
+//   CA SPY 200MA（含 ↑/↓ 斜率標示）
+//   目的：讓使用者一眼看到 BW 判定所依據的原始數據 · 全部用回測日數據
+//
 // v2.6.2 修正：BW 大盤環境改用 MA 斜率（更精準 · 修正 2023-01-29 誤判 🟢 問題）
 //   舊規則：SPY > 60d 前價 AND 50MA > 200MA
 //   舊問題：熊底短彈就通過 + MA 剛交叉即算 · 2023-01-29/02-25 都誤判 🟢
@@ -58,7 +65,7 @@
 // v2.1 沿用：Dow Theory 頭頭低/底底高 (BE/BF/BG)
 // v2.0 沿用：Bug 1/2/3 修正 · 設計 A/B/C 修正
 //
-// 欄位總數：43 base + 4 score + 3 trend + 8 pv + 1 verdict + 6 fwd + 1 regime = 66 欄
+// 欄位總數：43 base + 4 score + 3 trend + 8 pv + 1 verdict + 6 fwd + 1 regime + 4 spy = 70 欄
 // ════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════
@@ -106,7 +113,10 @@ function fetchAllStockData() {
     "BS 13W後股價","BT 13W後投報率",
     "BU 26W後股價","BV 26W後投報率",
     // 【v2.6 新增】大盤環境過濾器（每列同值 · 一目瞭然當前市場狀態）
-    "BW 大盤環境"
+    "BW 大盤環境",
+    // 【v2.6.3 新增】SPY 環境資料透明化（回測日數據）
+    "BX SPY 現價","BY SPY 60d前價",
+    "BZ SPY 50MA","CA SPY 200MA"
   ];
 
   dataSheet.getRange(1, OUTPUT_COL, 1, headers.length)
@@ -119,12 +129,30 @@ function fetchAllStockData() {
   // SPY 基準
   let spyChange4w = null;
   let marketRegime = "❓ 未知";  // v2.6 · 大盤環境
+  // v2.6.3 · SPY 環境資料透明化欄位（每列同值）
+  let spyPriceStr = "";
+  let spyPrice60dStr = "";
+  let spyMa50Str = "";
+  let spyMa200Str = "";
   try {
     const spy = fetchYahooHistory("SPY", targetDate);
     if (spy) {
       spyChange4w = spy.change4w;
       marketRegime = calcMarketRegime(spy);  // v2.6
       Logger.log("大盤環境：" + marketRegime);
+      // v2.6.3 · 準備 4 個透明化欄位
+      spyPriceStr = spy.price != null ? Math.round(spy.price * 100) / 100 : "";
+      spyPrice60dStr = spy.price60d != null ? Math.round(spy.price60d * 100) / 100 : "";
+      if (spy.ma50 != null) {
+        const arrow = (spy.ma50prev != null && spy.ma50 > spy.ma50prev) ? " ↑"
+                    : (spy.ma50prev != null && spy.ma50 < spy.ma50prev) ? " ↓" : "";
+        spyMa50Str = (Math.round(spy.ma50 * 100) / 100) + arrow;
+      }
+      if (spy.ma200 != null) {
+        const arrow = (spy.ma200prev != null && spy.ma200 > spy.ma200prev) ? " ↑"
+                    : (spy.ma200prev != null && spy.ma200 < spy.ma200prev) ? " ↓" : "";
+        spyMa200Str = (Math.round(spy.ma200 * 100) / 100) + arrow;
+      }
     }
   } catch(e) {
     Logger.log("SPY error: " + e.message);
@@ -228,7 +256,7 @@ function fetchAllStockData() {
     if (firstOutputRow === null) firstOutputRow = r.row;
 
     if (r.error) {
-      outputMatrix.push(new Array(66).fill(""));
+      outputMatrix.push(new Array(70).fill(""));
       outputMatrix[outputMatrix.length - 1][0] = r.error;
       continue;
     }
@@ -272,17 +300,19 @@ function fetchAllStockData() {
       dd.priceFwd26w != null ? Math.round(dd.priceFwd26w * 100) / 100 : "",
       dd.retFwd26w != null ? Math.round(dd.retFwd26w * 1000) / 10 : "",
       // 【v2.6】BW · 大盤環境（每列同值 · 一目瞭然）
-      marketRegime
+      marketRegime,
+      // 【v2.6.3】BX-CA · SPY 環境透明化資料（每列同值）
+      spyPriceStr, spyPrice60dStr, spyMa50Str, spyMa200Str
     ]);
   }
 
   if (outputMatrix.length && firstOutputRow !== null) {
-    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 66)
+    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 70)
       .setValues(outputMatrix);
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.6.2)\n基準日：" +
+    "✅ 更新完成！(v2.6.3)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n大盤環境：" + marketRegime +
     "\n共處理：" + allRows.length + " 支股票"
@@ -829,6 +859,22 @@ function fetchSingleRow() {
     const spy = fetchYahooHistory("SPY", targetDate);
     const spyChange4w = spy ? spy.change4w : null;
     const marketRegime = calcMarketRegime(spy);  // v2.6
+    // v2.6.3 · SPY 環境透明化欄位
+    let spyPriceStr = "", spyPrice60dStr = "", spyMa50Str = "", spyMa200Str = "";
+    if (spy) {
+      spyPriceStr = spy.price != null ? Math.round(spy.price * 100) / 100 : "";
+      spyPrice60dStr = spy.price60d != null ? Math.round(spy.price60d * 100) / 100 : "";
+      if (spy.ma50 != null) {
+        const arrow = (spy.ma50prev != null && spy.ma50 > spy.ma50prev) ? " ↑"
+                    : (spy.ma50prev != null && spy.ma50 < spy.ma50prev) ? " ↓" : "";
+        spyMa50Str = (Math.round(spy.ma50 * 100) / 100) + arrow;
+      }
+      if (spy.ma200 != null) {
+        const arrow = (spy.ma200prev != null && spy.ma200 > spy.ma200prev) ? " ↑"
+                    : (spy.ma200prev != null && spy.ma200 < spy.ma200prev) ? " ↓" : "";
+        spyMa200Str = (Math.round(spy.ma200 * 100) / 100) + arrow;
+      }
+    }
     const d = fetchYahooHistory(symbol.toString().trim(), targetDate);
 
     if (!d) { SpreadsheetApp.getUi().alert(`${symbol} 無數據`); return; }
@@ -866,7 +912,7 @@ function fetchSingleRow() {
       bbScore, marketRegime
     );
 
-    dataSheet.getRange(row, 10, 1, 66).setValues([[
+    dataSheet.getRange(row, 10, 1, 70).setValues([[
       d.price, d.price4w, d.price13w, d.price26w,
       d.change4w, d.change13w, d.change26w,
       d.high52w, d.low52w, d.ma50, d.ma200,
@@ -900,10 +946,12 @@ function fetchSingleRow() {
       d.priceFwd26w != null ? Math.round(d.priceFwd26w * 100) / 100 : "",
       d.retFwd26w != null ? Math.round(d.retFwd26w * 1000) / 10 : "",
       // 【v2.6】BW · 大盤環境
-      marketRegime
+      marketRegime,
+      // 【v2.6.3】BX-CA · SPY 環境透明化資料
+      spyPriceStr, spyPrice60dStr, spyMa50Str, spyMa200Str
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.2)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.3)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
