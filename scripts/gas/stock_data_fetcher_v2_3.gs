@@ -1,6 +1,20 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.5 (2026-08-31)
+// 股票數據抓取器 · v2.6 (2026-08-31)
 // ════════════════════════════════════════════════════════════════════════
+// v2.6 新增：大盤環境過濾器 (Market Regime Filter · BW 1 欄)
+//   規則 · 用 SPY（等同 VOO · 追蹤同指數）做判斷：
+//     🟢 多頭 · SPY > 60 交易日前價 AND SPY 50MA > 200MA
+//     🟡 中性 · 只符合一個條件
+//     🔴 空頭 · 兩個都 false
+//
+//   對 BP 暴漲判定的影響：
+//     🟢 多頭 → BP 正常運作
+//     🟡 中性 → BP 正常運作（保守觀察）
+//     🔴 空頭 → 🎯 潛在暴漲 / 🚀 暴漲中 完全停用 · 只保 🔥 追高警訊
+//
+//   動機：7 批歷史回測顯示 · BP 在熊起始/熊底反彈期 alpha 為負
+//         強制在空頭區停用 setup-based flag · 保守應對
+//
 // v2.5 新增：Forward 回測欄位（BQ-BV · 6 欄）
 //   BQ 4W後股價 · BR 4W後投報率(%)
 //   BS 13W後股價 · BT 13W後投報率(%)
@@ -26,7 +40,7 @@
 // v2.1 沿用：Dow Theory 頭頭低/底底高 (BE/BF/BG)
 // v2.0 沿用：Bug 1/2/3 修正 · 設計 A/B/C 修正
 //
-// 欄位總數：43 base + 4 score + 3 trend + 8 pv + 1 verdict + 6 fwd = 65 欄
+// 欄位總數：43 base + 4 score + 3 trend + 8 pv + 1 verdict + 6 fwd + 1 regime = 66 欄
 // ════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════
@@ -72,7 +86,9 @@ function fetchAllStockData() {
     // 【v2.5 新增】Forward 回測欄位（baseDate 設過去日期才有值 · 用來驗證 BP 判定準確度）
     "BQ 4W後股價","BR 4W後投報率",
     "BS 13W後股價","BT 13W後投報率",
-    "BU 26W後股價","BV 26W後投報率"
+    "BU 26W後股價","BV 26W後投報率",
+    // 【v2.6 新增】大盤環境過濾器（每列同值 · 一目瞭然當前市場狀態）
+    "BW 大盤環境"
   ];
 
   dataSheet.getRange(1, OUTPUT_COL, 1, headers.length)
@@ -84,9 +100,14 @@ function fetchAllStockData() {
 
   // SPY 基準
   let spyChange4w = null;
+  let marketRegime = "❓ 未知";  // v2.6 · 大盤環境
   try {
     const spy = fetchYahooHistory("SPY", targetDate);
-    if (spy) spyChange4w = spy.change4w;
+    if (spy) {
+      spyChange4w = spy.change4w;
+      marketRegime = calcMarketRegime(spy);  // v2.6
+      Logger.log("大盤環境：" + marketRegime);
+    }
   } catch(e) {
     Logger.log("SPY error: " + e.message);
   }
@@ -189,7 +210,7 @@ function fetchAllStockData() {
     if (firstOutputRow === null) firstOutputRow = r.row;
 
     if (r.error) {
-      outputMatrix.push(new Array(65).fill(""));
+      outputMatrix.push(new Array(66).fill(""));
       outputMatrix[outputMatrix.length - 1][0] = r.error;
       continue;
     }
@@ -203,10 +224,11 @@ function fetchAllStockData() {
 
     const dd = r.d || {};  // pv 資料存在 d
     // 【v2.4 新增】暴漲判定 · 綜合所有訊號
+    // v2.6 · 加大盤環境過濾（空頭時停用 setup-based flag）
     const explosive = explosiveVerdict(
       dd.change4w, dd.change13w, dd.change26w, dd.rsi14, r.distHigh,
       r.trend.state, r.trend.signal, dd.pvVerdict, r.vcp,
-      r.bb
+      r.bb, marketRegime
     );
 
     outputMatrix.push([
@@ -230,18 +252,21 @@ function fetchAllStockData() {
       dd.priceFwd13w != null ? Math.round(dd.priceFwd13w * 100) / 100 : "",
       dd.retFwd13w != null ? Math.round(dd.retFwd13w * 1000) / 10 : "",
       dd.priceFwd26w != null ? Math.round(dd.priceFwd26w * 100) / 100 : "",
-      dd.retFwd26w != null ? Math.round(dd.retFwd26w * 1000) / 10 : ""
+      dd.retFwd26w != null ? Math.round(dd.retFwd26w * 1000) / 10 : "",
+      // 【v2.6】BW · 大盤環境（每列同值 · 一目瞭然）
+      marketRegime
     ]);
   }
 
   if (outputMatrix.length && firstOutputRow !== null) {
-    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 65)
+    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 66)
       .setValues(outputMatrix);
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.5)\n基準日：" +
+    "✅ 更新完成！(v2.6)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
+    "\n大盤環境：" + marketRegime +
     "\n共處理：" + allRows.length + " 支股票"
   );
 }
@@ -320,6 +345,8 @@ function fetchYahooHistory(symbol, targetDate) {
   const price4w = n >= 20 ? sliceCloses[n-20] : null;
   const price13w = n >= 65 ? sliceCloses[n-65] : null;
   const price26w = n >= 130 ? sliceCloses[n-130] : null;
+  // v2.6 · 60 交易日前價（用於 SPY 大盤環境過濾器 · ~= 12 個交易週）
+  const price60d = n >= 60 ? sliceCloses[n-60] : null;
 
   const change4w = price4w ? (price - price4w) / price4w : null;
   const change13w = price13w ? (price - price13w) / price13w : null;
@@ -408,6 +435,8 @@ function fetchYahooHistory(symbol, targetDate) {
     // 【v2.5】forward returns · 未來股價 + 投報率
     priceFwd4w, priceFwd13w, priceFwd26w,
     retFwd4w, retFwd13w, retFwd26w,
+    // 【v2.6】60d 前價（給 SPY 用來算大盤環境）
+    price60d,
   };
 }
 
@@ -523,10 +552,30 @@ function pvVerdict(pv4, pv13, pv26) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// 【v2.6 新增】大盤環境過濾器 · 用 SPY (等同 VOO · 追蹤同指數) 判斷
+// 🟢 多頭：SPY > 60d 前價 AND 50MA > 200MA
+// 🟡 中性：只符合一個條件
+// 🔴 空頭：兩個都 false
+// ❓ 未知：資料不足
+// ════════════════════════════════════════════════════════════════════════
+function calcMarketRegime(spy) {
+  if (!spy || spy.price == null || spy.price60d == null
+      || spy.ma50 == null || spy.ma200 == null) {
+    return "❓ 未知";
+  }
+  const priceUp = spy.price > spy.price60d;
+  const goldenCross = spy.ma50 > spy.ma200;
+  if (priceUp && goldenCross) return "🟢 多頭";
+  if (priceUp || goldenCross) return "🟡 中性";
+  return "🔴 空頭";
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // 【v2.4 新增】暴漲判定 · 綜合 momentum + Dow + pv + VCP 4 訊號
 // 4 分類：🚀 暴漲中 / 🎯 潛在暴漲 / 🔥 追高風險 / (空)
+// v2.6 新增 · marketRegime 空頭時停用 🎯/🚀 · 只保留 🔥
 // ════════════════════════════════════════════════════════════════════════
-function explosiveVerdict(c4, c13, c26, rsi, distHigh, trendState, trendSig, pv, vcp, bb) {
+function explosiveVerdict(c4, c13, c26, rsi, distHigh, trendState, trendSig, pv, vcp, bb, marketRegime) {
   // 標準化參數
   c4 = (c4 || 0) * 100;
   c26 = (c26 || 0) * 100;
@@ -541,6 +590,13 @@ function explosiveVerdict(c4, c13, c26, rsi, distHigh, trendState, trendSig, pv,
   if (c4 > 40) return "🔥 追高風險";       // 4W 已飆超過 40%
   if (c26 > 100) return "🔥 追高風險";      // 半年翻倍以上
   if (rsi > 80 && c26 > 30) return "🔥 追高風險";  // RSI 極高 + 中期已強
+
+  // ─── v2.6 大盤空頭時 · 🎯/🚀 setup-based flag 全停用 ───
+  // 7 批歷史回測顯示：熊市中 setup ready 訊號多為 false positive
+  // 只保留追高警訊（已在上方判斷）· setup-based flag 一律不下
+  if (marketRegime && marketRegime.indexOf("空頭") >= 0) {
+    return "";
+  }
 
   // ─── 明顯排除（弱勢/頂部背離等） ───
   if (bb < 0) return "";
@@ -731,6 +787,7 @@ function fetchSingleRow() {
   try {
     const spy = fetchYahooHistory("SPY", targetDate);
     const spyChange4w = spy ? spy.change4w : null;
+    const marketRegime = calcMarketRegime(spy);  // v2.6
     const d = fetchYahooHistory(symbol.toString().trim(), targetDate);
 
     if (!d) { SpreadsheetApp.getUi().alert(`${symbol} 無數據`); return; }
@@ -761,14 +818,14 @@ function fetchSingleRow() {
     const bcLabel = "（需全部更新才有排名）" + formatBA(bdScore);
     const bdLabel = "（需全部更新才有排名）";
 
-    // 【v2.4】暴漲判定
+    // 【v2.4】暴漲判定 · v2.6 加 marketRegime 參數
     const explosive = explosiveVerdict(
       d.change4w, d.change13w, d.change26w, d.rsi14, distHigh,
       d.trend.state, d.trend.signal, d.pvVerdict, vcp,
-      bbScore
+      bbScore, marketRegime
     );
 
-    dataSheet.getRange(row, 10, 1, 65).setValues([[
+    dataSheet.getRange(row, 10, 1, 66).setValues([[
       d.price, d.price4w, d.price13w, d.price26w,
       d.change4w, d.change13w, d.change26w,
       d.high52w, d.low52w, d.ma50, d.ma200,
@@ -800,10 +857,12 @@ function fetchSingleRow() {
       d.priceFwd13w != null ? Math.round(d.priceFwd13w * 100) / 100 : "",
       d.retFwd13w != null ? Math.round(d.retFwd13w * 1000) / 10 : "",
       d.priceFwd26w != null ? Math.round(d.priceFwd26w * 100) / 100 : "",
-      d.retFwd26w != null ? Math.round(d.retFwd26w * 1000) / 10 : ""
+      d.retFwd26w != null ? Math.round(d.retFwd26w * 1000) / 10 : "",
+      // 【v2.6】BW · 大盤環境
+      marketRegime
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.5)\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
