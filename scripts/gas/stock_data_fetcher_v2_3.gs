@@ -1,6 +1,11 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.6.4 (2026-08-31)
+// 股票數據抓取器 · v2.6.5 (2026-08-31)
 // ════════════════════════════════════════════════════════════════════════
+// v2.6.5 修正：BW 🟡 中性 / 🟠 警戒 加顯示 3 條件狀態
+//   格式：「🟡 中性 · 價↑ 50↑ 200↓」
+//   目的：使用者可一眼看出是哪些條件 up / down · 更快理解訊號
+//   🟢 多頭 / 🔴 空頭 保持簡潔（狀態明確 · 無需細節）
+//
 // v2.6.4 修正：BW 大盤環境改用 3 條件 4 等級
 //   舊問題：只用 50MA/200MA 斜率 · death cross 是滯後指標
 //         等 200MA 向下才知道熊市 · 通常已跌 20-30%
@@ -324,7 +329,7 @@ function fetchAllStockData() {
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.6.4)\n基準日：" +
+    "✅ 更新完成！(v2.6.5)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n大盤環境：" + marketRegime +
     "\n共處理：" + allRows.length + " 支股票"
@@ -639,10 +644,14 @@ function calcMarketRegime(spy) {
   const ma50Up = spy.ma50 > spy.ma50prev;
   const ma200Up = spy.ma200 > spy.ma200prev;
   const upCount = (priceUp ? 1 : 0) + (ma50Up ? 1 : 0) + (ma200Up ? 1 : 0);
+  // v2.6.5 · 🟡/🟠 加顯示 3 條件狀態 · 一眼看出是哪些 up/down
+  const status = "價" + (priceUp ? "↑" : "↓")
+               + " 50" + (ma50Up ? "↑" : "↓")
+               + " 200" + (ma200Up ? "↑" : "↓");
   if (upCount === 3) return "🟢 多頭";
-  if (upCount === 2) return "🟡 中性";
-  if (upCount === 1) return "🟠 警戒";
-  return "🔴 空頭";
+  if (upCount === 0) return "🔴 空頭";
+  if (upCount === 2) return "🟡 中性 · " + status;
+  return "🟠 警戒 · " + status;
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -974,7 +983,7 @@ function fetchSingleRow() {
       spyPriceStr, spyPrice60dStr, spyMa50Str, spyMa200Str
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.4)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.5)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
