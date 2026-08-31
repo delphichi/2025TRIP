@@ -1,6 +1,12 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.6.1 (2026-08-31)
+// 股票數據抓取器 · v2.6.2 (2026-08-31)
 // ════════════════════════════════════════════════════════════════════════
+// v2.6.2 修正：BW 大盤環境改用 MA 斜率（更精準 · 修正 2023-01-29 誤判 🟢 問題）
+//   舊規則：SPY > 60d 前價 AND 50MA > 200MA
+//   舊問題：熊底短彈就通過 + MA 剛交叉即算 · 2023-01-29/02-25 都誤判 🟢
+//   新規則：SPY 50MA 向上 AND 200MA 向上（MA 斜率需持續趨勢）
+//   新結果：2023-01-29 (200MA 還在跌) → 🟡 中性 · 觸發 🌱 熊底反彈 flag
+//
 // v2.6.1 新增：🌱 熊底反彈候選 (BP 第 5 分類)
 //   規則（非 🟢 多頭市場才觸發）：
 //     distHigh: -30% ~ -10% (深回檔但不災難)
@@ -276,7 +282,7 @@ function fetchAllStockData() {
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.6.1)\n基準日：" +
+    "✅ 更新完成！(v2.6.2)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n大盤環境：" + marketRegime +
     "\n共處理：" + allRows.length + " 支股票"
@@ -564,21 +570,25 @@ function pvVerdict(pv4, pv13, pv26) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// 【v2.6 新增】大盤環境過濾器 · 用 SPY (等同 VOO · 追蹤同指數) 判斷
-// 🟢 多頭：SPY > 60d 前價 AND 50MA > 200MA
-// 🟡 中性：只符合一個條件
-// 🔴 空頭：兩個都 false
+// 【v2.6 新增 · v2.6.2 改用 MA 斜率】大盤環境過濾器 · 用 SPY (等同 VOO · 追蹤同指數) 判斷
+// 🟢 多頭：SPY 50MA 向上 AND 200MA 向上（長短期都持續走高 · 真正牛市）
+// 🟡 中性：只一個向上（趨勢轉換中）
+// 🔴 空頭：兩個都向下（真正熊市）
 // ❓ 未知：資料不足
+//
+// v2.6.2 為什麼改：原規則「SPY > 60d 前價 + 50MA > 200MA」在熊底反彈時
+//   會誤判為 🟢（短彈通過 + MA 剛交叉）· 例如 2023-01-29 · 2023-02-25 都被誤標
+//   改用 MA 斜率 · 需要持續趨勢確認 · 更能反映真實環境
 // ════════════════════════════════════════════════════════════════════════
 function calcMarketRegime(spy) {
-  if (!spy || spy.price == null || spy.price60d == null
-      || spy.ma50 == null || spy.ma200 == null) {
+  if (!spy || spy.ma50 == null || spy.ma200 == null
+      || spy.ma50prev == null || spy.ma200prev == null) {
     return "❓ 未知";
   }
-  const priceUp = spy.price > spy.price60d;
-  const goldenCross = spy.ma50 > spy.ma200;
-  if (priceUp && goldenCross) return "🟢 多頭";
-  if (priceUp || goldenCross) return "🟡 中性";
+  const ma50Up = spy.ma50 > spy.ma50prev;
+  const ma200Up = spy.ma200 > spy.ma200prev;
+  if (ma50Up && ma200Up) return "🟢 多頭";
+  if (ma50Up || ma200Up) return "🟡 中性";
   return "🔴 空頭";
 }
 
@@ -893,7 +903,7 @@ function fetchSingleRow() {
       marketRegime
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.1)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.2)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
