@@ -1,6 +1,18 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.6 (2026-08-31)
+// 股票數據抓取器 · v2.6.1 (2026-08-31)
 // ════════════════════════════════════════════════════════════════════════
+// v2.6.1 新增：🌱 熊底反彈候選 (BP 第 5 分類)
+//   規則（非 🟢 多頭市場才觸發）：
+//     distHigh: -30% ~ -10% (深回檔但不災難)
+//     c26 > -20% (不是自由落體)
+//     c4 > -8% (短期止穩)
+//     bb > 10 (有品質基礎)
+//     RSI 35-55 (復甦中 · 不過賣不過買)
+//     pv 非弱勢 (不含熊市/主力出貨/量能衰竭/背離/中期出貨/主升段結束/弱勢縮量)
+//
+//   基於 2023-02-25 樣本 XLK/XLC/XLY 驗證：都符合這 6 條 · 26W 分別 +29.6/+27.8/+19.3
+//   目的：補 v2.6a 空頭 gate 太嚴 · 錯過熊底反彈 sector 的問題
+//
 // v2.6 新增：大盤環境過濾器 (Market Regime Filter · BW 1 欄)
 //   規則 · 用 SPY（等同 VOO · 追蹤同指數）做判斷：
 //     🟢 多頭 · SPY > 60 交易日前價 AND SPY 50MA > 200MA
@@ -264,7 +276,7 @@ function fetchAllStockData() {
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.6)\n基準日：" +
+    "✅ 更新完成！(v2.6.1)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n大盤環境：" + marketRegime +
     "\n共處理：" + allRows.length + " 支股票"
@@ -591,6 +603,25 @@ function explosiveVerdict(c4, c13, c26, rsi, distHigh, trendState, trendSig, pv,
   if (c26 > 100) return "🔥 追高風險";      // 半年翻倍以上
   if (rsi > 80 && c26 > 30) return "🔥 追高風險";  // RSI 極高 + 中期已強
 
+  // ─── v2.6.1 · 🌱 熊底反彈候選（僅非多頭市場觸發）───
+  // 基於 2023-02-25 XLK/XLC/XLY 樣本驗證 · 深度回檔後翻多起始
+  // 這條規則優先於 v2.6a 空頭 gate · 專抓熊底反彈機會
+  if (marketRegime && marketRegime.indexOf("多頭") < 0) {
+    const deepPullback = distHigh > -30 && distHigh < -10;
+    const notFreefall = c26 > -20;
+    const shortStabilizing = c4 > -8;
+    const qualityBase = bb > 10;
+    const rsiRecovering = rsi > 35 && rsi < 55;
+    const pvNotWeak = pv.indexOf("熊市") < 0 && pv.indexOf("主力出貨") < 0
+      && pv.indexOf("量能衰竭") < 0 && pv.indexOf("量能背離") < 0
+      && pv.indexOf("頂部背離") < 0 && pv.indexOf("中期出貨") < 0
+      && pv.indexOf("主升段結束") < 0 && pv.indexOf("弱勢縮量") < 0;
+
+    if (deepPullback && notFreefall && shortStabilizing && qualityBase && rsiRecovering && pvNotWeak) {
+      return "🌱 熊底反彈";
+    }
+  }
+
   // ─── v2.6 大盤空頭時 · 🎯/🚀 setup-based flag 全停用 ───
   // 7 批歷史回測顯示：熊市中 setup ready 訊號多為 false positive
   // 只保留追高警訊（已在上方判斷）· setup-based flag 一律不下
@@ -862,7 +893,7 @@ function fetchSingleRow() {
       marketRegime
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.1)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
