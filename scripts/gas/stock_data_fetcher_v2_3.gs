@@ -1,6 +1,15 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.4.1 (2026-08-30)
+// 股票數據抓取器 · v2.5 (2026-08-31)
 // ════════════════════════════════════════════════════════════════════════
+// v2.5 新增：Forward 回測欄位（BQ-BV · 6 欄）
+//   BQ 4W後股價 · BR 4W後投報率(%)
+//   BS 13W後股價 · BT 13W後投報率(%)
+//   BU 26W後股價 · BV 26W後投報率(%)
+//   用途：把 A13 基準日設過去日期 · 就能看那時的暴漲判定「事後」多少報酬
+//   規則：baseDate = today → 未來未發生 → 6 欄全空
+//         baseDate = 6 個月前 → BQ/BR/BS/BT/BU/BV 全有值 · 可驗證 BP 準確度
+//         baseDate = 2 個月前 → 只有 BQ/BR 有值 · BS-BV 空
+//
 // v2.4.1 修正：🎯 潛在暴漲 Dow 守門補「擴散」·  對齊 Python
 //   問題：OKE (Dow=🔻 擴散喇叭) 被誤判 🎯 潛在暴漲
 //   修法：explosiveVerdict 內 notShortDow → dowNotBadForSetup
@@ -17,7 +26,7 @@
 // v2.1 沿用：Dow Theory 頭頭低/底底高 (BE/BF/BG)
 // v2.0 沿用：Bug 1/2/3 修正 · 設計 A/B/C 修正
 //
-// 欄位總數：47 base + 3 trend + 8 pv + 1 verdict = 59 欄
+// 欄位總數：43 base + 4 score + 3 trend + 8 pv + 1 verdict + 6 fwd = 65 欄
 // ════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════
@@ -59,7 +68,11 @@ function fetchAllStockData() {
     "BK 4W量變%","BL 13W量變%","BM 26W量變%",
     "BN 三期量價狀態","BO 量價綜合判定",
     // 【v2.4 新增】BP 暴漲判定
-    "BP 暴漲判定"
+    "BP 暴漲判定",
+    // 【v2.5 新增】Forward 回測欄位（baseDate 設過去日期才有值 · 用來驗證 BP 判定準確度）
+    "BQ 4W後股價","BR 4W後投報率",
+    "BS 13W後股價","BT 13W後投報率",
+    "BU 26W後股價","BV 26W後投報率"
   ];
 
   dataSheet.getRange(1, OUTPUT_COL, 1, headers.length)
@@ -176,7 +189,7 @@ function fetchAllStockData() {
     if (firstOutputRow === null) firstOutputRow = r.row;
 
     if (r.error) {
-      outputMatrix.push(new Array(59).fill(""));
+      outputMatrix.push(new Array(65).fill(""));
       outputMatrix[outputMatrix.length - 1][0] = r.error;
       continue;
     }
@@ -210,17 +223,24 @@ function fetchAllStockData() {
       dd.pvStateAll || "",
       dd.pvVerdict || "",
       // BP · 暴漲判定
-      explosive
+      explosive,
+      // 【v2.5】BQ-BV · Forward 回測欄位（基準日設過去才有值）
+      dd.priceFwd4w != null ? Math.round(dd.priceFwd4w * 100) / 100 : "",
+      dd.retFwd4w != null ? Math.round(dd.retFwd4w * 1000) / 10 : "",
+      dd.priceFwd13w != null ? Math.round(dd.priceFwd13w * 100) / 100 : "",
+      dd.retFwd13w != null ? Math.round(dd.retFwd13w * 1000) / 10 : "",
+      dd.priceFwd26w != null ? Math.round(dd.priceFwd26w * 100) / 100 : "",
+      dd.retFwd26w != null ? Math.round(dd.retFwd26w * 1000) / 10 : ""
     ]);
   }
 
   if (outputMatrix.length && firstOutputRow !== null) {
-    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 59)
+    dataSheet.getRange(firstOutputRow, OUTPUT_COL, outputMatrix.length, 65)
       .setValues(outputMatrix);
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.4.1)\n基準日：" +
+    "✅ 更新完成！(v2.5)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n共處理：" + allRows.length + " 支股票"
   );
@@ -355,6 +375,24 @@ function fetchYahooHistory(symbol, targetDate) {
   const pvVer = pvVerdict(pvS4, pvS13, pvS26);
   const pvStateAll = (pvS4 && pvS13 && pvS26) ? `4W:${pvS4}/13W:${pvS13}/26W:${pvS26}` : "";
 
+  // ══════════════════════════════════════════════════════════════════
+  // 【v2.5 新增】Forward returns · 從 targetIdx 往前 (未來) 走 · 找到 +20/+65/+130 交易日的價
+  // 只在 baseDate 為過去日期時才有值 · 用來回測「暴漲判定」是否準確
+  // 今天執行且 baseDate=today · fwd 全 null · 欄位空白
+  // ══════════════════════════════════════════════════════════════════
+  let priceFwd4w = null, priceFwd13w = null, priceFwd26w = null;
+  let fwdCount = 0;
+  for (let i = targetIdx + 1; i < closes.length; i++) {
+    if (closes[i] === null) continue;
+    fwdCount++;
+    if (fwdCount === 20) priceFwd4w = closes[i];
+    else if (fwdCount === 65) priceFwd13w = closes[i];
+    else if (fwdCount === 130) { priceFwd26w = closes[i]; break; }
+  }
+  const retFwd4w = (priceFwd4w !== null && price) ? (priceFwd4w - price) / price : null;
+  const retFwd13w = (priceFwd13w !== null && price) ? (priceFwd13w - price) / price : null;
+  const retFwd26w = (priceFwd26w !== null && price) ? (priceFwd26w - price) / price : null;
+
   return {
     price, price4w, price13w, price26w,
     change4w, change13w, change26w, change5d,
@@ -367,6 +405,9 @@ function fetchYahooHistory(symbol, targetDate) {
     avgVol4w, avgVol13w, avgVol26w,
     volChange4w, volChange13w, volChange26w,
     pvStateAll, pvVerdict: pvVer,
+    // 【v2.5】forward returns · 未來股價 + 投報率
+    priceFwd4w, priceFwd13w, priceFwd26w,
+    retFwd4w, retFwd13w, retFwd26w,
   };
 }
 
@@ -727,7 +768,7 @@ function fetchSingleRow() {
       bbScore
     );
 
-    dataSheet.getRange(row, 10, 1, 59).setValues([[
+    dataSheet.getRange(row, 10, 1, 65).setValues([[
       d.price, d.price4w, d.price13w, d.price26w,
       d.change4w, d.change13w, d.change26w,
       d.high52w, d.low52w, d.ma50, d.ma200,
@@ -752,10 +793,17 @@ function fetchSingleRow() {
       d.pvStateAll || "",
       d.pvVerdict || "",
       // 【v2.4】BP 暴漲判定
-      explosive
+      explosive,
+      // 【v2.5】BQ-BV · Forward 回測欄位
+      d.priceFwd4w != null ? Math.round(d.priceFwd4w * 100) / 100 : "",
+      d.retFwd4w != null ? Math.round(d.retFwd4w * 1000) / 10 : "",
+      d.priceFwd13w != null ? Math.round(d.priceFwd13w * 100) / 100 : "",
+      d.retFwd13w != null ? Math.round(d.retFwd13w * 1000) / 10 : "",
+      d.priceFwd26w != null ? Math.round(d.priceFwd26w * 100) / 100 : "",
+      d.retFwd26w != null ? Math.round(d.retFwd26w * 1000) / 10 : ""
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.4.1)\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.5)\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
