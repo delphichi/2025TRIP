@@ -1,6 +1,18 @@
 // ════════════════════════════════════════════════════════════════════════
-// 股票數據抓取器 · v2.6.3 (2026-08-31)
+// 股票數據抓取器 · v2.6.4 (2026-08-31)
 // ════════════════════════════════════════════════════════════════════════
+// v2.6.4 修正：BW 大盤環境改用 3 條件 4 等級
+//   舊問題：只用 50MA/200MA 斜率 · death cross 是滯後指標
+//         等 200MA 向下才知道熊市 · 通常已跌 20-30%
+//   新規則：加 SPY > 60d 前價 作為領先指標
+//     🟢 多頭：3 個都 up (SPY>60d, 50MA↑, 200MA↑)
+//     🟡 中性：2 個 up
+//     🟠 警戒：1 個 up ← 早期警訊！
+//     🔴 空頭：0 個 up (all bearish)
+//
+//   對 BP 影響：🟠 警戒 也停用 🎯/🚀 setup-based flag（跟 🔴 空頭 一樣）
+//   保留 🌱 熊底反彈 flag 在 🟡/🟠/🔴 都可觸發（只 🟢 排除）
+//
 // v2.6.3 新增：SPY 環境資料透明化（BX-CA · 4 欄）
 //   BX SPY 現價（回測日 close）
 //   BY SPY 60d 前價（12 交易週前 · 供參考）
@@ -312,7 +324,7 @@ function fetchAllStockData() {
   }
 
   SpreadsheetApp.getUi().alert(
-    "✅ 更新完成！(v2.6.3)\n基準日：" +
+    "✅ 更新完成！(v2.6.4)\n基準日：" +
     Utilities.formatDate(targetDate, "Asia/Taipei", "yyyy-MM-dd") +
     "\n大盤環境：" + marketRegime +
     "\n共處理：" + allRows.length + " 支股票"
@@ -600,25 +612,36 @@ function pvVerdict(pv4, pv13, pv26) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// 【v2.6 新增 · v2.6.2 改用 MA 斜率】大盤環境過濾器 · 用 SPY (等同 VOO · 追蹤同指數) 判斷
-// 🟢 多頭：SPY 50MA 向上 AND 200MA 向上（長短期都持續走高 · 真正牛市）
-// 🟡 中性：只一個向上（趨勢轉換中）
-// 🔴 空頭：兩個都向下（真正熊市）
-// ❓ 未知：資料不足
+// 【v2.6.4】大盤環境過濾器 · 3 條件 4 等級（用 SPY 等同 VOO 判斷）
+// 條件：
+//   ① SPY > 60d 前價（短期動能 · 領先指標）
+//   ② 50MA 向上（中期趨勢）
+//   ③ 200MA 向上（長期趨勢 · 最滯後）
+// 分級：
+//   🟢 多頭：3 個都 up
+//   🟡 中性：2 個 up
+//   🟠 警戒：1 個 up ← 早期警訊（用戶要抓的）
+//   🔴 空頭：0 個 up
+//   ❓ 未知：資料不足
 //
-// v2.6.2 為什麼改：原規則「SPY > 60d 前價 + 50MA > 200MA」在熊底反彈時
-//   會誤判為 🟢（短彈通過 + MA 剛交叉）· 例如 2023-01-29 · 2023-02-25 都被誤標
-//   改用 MA 斜率 · 需要持續趨勢確認 · 更能反映真實環境
+// 為什麼加 SPY > 60d 前價？
+//   death cross（50MA<200MA）是滯後指標 · 通常已跌 20-30% 才發生
+//   等 200MA 向下才反應更是慢半拍
+//   SPY < 60d 前價 是最早的短期動能反轉訊號
 // ════════════════════════════════════════════════════════════════════════
 function calcMarketRegime(spy) {
   if (!spy || spy.ma50 == null || spy.ma200 == null
-      || spy.ma50prev == null || spy.ma200prev == null) {
+      || spy.ma50prev == null || spy.ma200prev == null
+      || spy.price == null || spy.price60d == null) {
     return "❓ 未知";
   }
+  const priceUp = spy.price > spy.price60d;
   const ma50Up = spy.ma50 > spy.ma50prev;
   const ma200Up = spy.ma200 > spy.ma200prev;
-  if (ma50Up && ma200Up) return "🟢 多頭";
-  if (ma50Up || ma200Up) return "🟡 中性";
+  const upCount = (priceUp ? 1 : 0) + (ma50Up ? 1 : 0) + (ma200Up ? 1 : 0);
+  if (upCount === 3) return "🟢 多頭";
+  if (upCount === 2) return "🟡 中性";
+  if (upCount === 1) return "🟠 警戒";
   return "🔴 空頭";
 }
 
@@ -662,10 +685,10 @@ function explosiveVerdict(c4, c13, c26, rsi, distHigh, trendState, trendSig, pv,
     }
   }
 
-  // ─── v2.6 大盤空頭時 · 🎯/🚀 setup-based flag 全停用 ───
-  // 7 批歷史回測顯示：熊市中 setup ready 訊號多為 false positive
-  // 只保留追高警訊（已在上方判斷）· setup-based flag 一律不下
-  if (marketRegime && marketRegime.indexOf("空頭") >= 0) {
+  // ─── v2.6 · v2.6.4 大盤空頭或警戒時 · 🎯/🚀 setup-based flag 全停用 ───
+  // 歷史回測顯示：熊市/警戒期 setup ready 訊號多為 false positive
+  // 只保留追高警訊 + 🌱 熊底反彈 · setup-based flag 一律不下
+  if (marketRegime && (marketRegime.indexOf("空頭") >= 0 || marketRegime.indexOf("警戒") >= 0)) {
     return "";
   }
 
@@ -951,7 +974,7 @@ function fetchSingleRow() {
       spyPriceStr, spyPrice60dStr, spyMa50Str, spyMa200Str
     ]]);
 
-    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.3)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
+    SpreadsheetApp.getUi().alert(`✅ ${symbol} 更新完成！(v2.6.4)\n大盤環境：${marketRegime}\n排名需執行「更新全部股票」才會計算。`);
 
   } catch(e) {
     SpreadsheetApp.getUi().alert(`❌ 錯誤：${e.message}`);
