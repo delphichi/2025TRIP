@@ -528,6 +528,13 @@ def render(scorecard, stage2, pattern):
         cls = "up" if pct >= 55 else ("down" if pct <= 45 else "flat")
         return f'<td class="n {cls}">{pct:.0f}%</td>'
 
+    def _ret_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        cls = "up" if vf > 0 else ("down" if vf < 0 else "flat")
+        return f'<td class="n {cls}">{vf:+.1f}%</td>'
+
     flow_rows = []
     flow_sorted = sorted(rows, key=lambda r: -(r.get("flow_ratio") if r.get("flow_ratio") is not None else -999))
     for r in flow_sorted:
@@ -535,6 +542,9 @@ def render(scorecard, stage2, pattern):
         flow_rows.append(
             f'<tr>'
             f'<td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>'
+            + _ret_cell(r.get("ret_5d"))
+            + _ret_cell(r.get("ret_20d"))
+            + _ret_cell(r.get("ret_13w"))
             + _net_cell(r.get("flow_30d_net_M"))
             + f'<td class="n dim">{f"{gross:,.0f}M" if gross is not None else "—"}</td>'
             + _flow_ratio_cell(r.get("flow_ratio"))
@@ -548,10 +558,13 @@ def render(scorecard, stage2, pattern):
       <table>
         <thead>
           <tr><th>Sector ETF</th>
+              <th class="n" title="近 5 交易日報酬">5d</th>
+              <th class="n" title="近 20 交易日 (~1 月) 報酬">20d</th>
+              <th class="n" title="近 65 交易日 (~3 月) 報酬">65d</th>
               <th class="n" title="Σ(volume × close × sign(Δclose)) · +淨買入 / -淨賣出">淨流入 $M</th>
               <th class="n" title="Σ(volume × close) · 30 日總成交金額">總成交 $M</th>
               <th class="n" title="net / gross · -100% ~ +100% · 跨 sector 可比">流向比</th>
-              <th class="n" title="30 日中上漲天數 %">上漲天佔比</th></tr>
+              <th class="n" title="30 日中 ETF 收盤上漲的天數 %">ETF 上漲天</th></tr>
         </thead>
         <tbody>{"".join(flow_rows)}</tbody>
       </table>
