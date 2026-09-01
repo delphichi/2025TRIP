@@ -500,6 +500,65 @@ def render(scorecard, stage2, pattern):
     </div>
   </div>'''
 
+    # 【新 v2】30 日資金流向獨立卡（配合深度儀表板 30d 流向 column 展開）
+    def _flow_ratio_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        pct = vf * 100
+        if pct >= 15: cls, tag = "up", "🟢"
+        elif pct >= 5: cls, tag = "up", "▲"
+        elif pct <= -15: cls, tag = "down", "🔴"
+        elif pct <= -5: cls, tag = "down", "▼"
+        else: cls, tag = "flat", "▪"
+        return f'<td class="n {cls}">{tag} {pct:+.1f}%</td>'
+
+    def _net_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        cls = "up" if vf > 0 else ("down" if vf < 0 else "flat")
+        return f'<td class="n {cls}">{vf:+,.0f}M</td>'
+
+    def _updays_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        pct = vf * 100
+        cls = "up" if pct >= 55 else ("down" if pct <= 45 else "flat")
+        return f'<td class="n {cls}">{pct:.0f}%</td>'
+
+    flow_rows = []
+    flow_sorted = sorted(rows, key=lambda r: -(r.get("flow_ratio") if r.get("flow_ratio") is not None else -999))
+    for r in flow_sorted:
+        gross = r.get("flow_30d_gross_M")
+        flow_rows.append(
+            f'<tr>'
+            f'<td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>'
+            + _net_cell(r.get("flow_30d_net_M"))
+            + f'<td class="n dim">{f"{gross:,.0f}M" if gross is not None else "—"}</td>'
+            + _flow_ratio_cell(r.get("flow_ratio"))
+            + _updays_cell(r.get("flow_up_ratio"))
+            + '</tr>'
+        )
+    flow_html = f'''
+  <div class="card">
+    <div class="card-h">💰 板塊 30 日資金流向 <span class="n">Σ 成交金額 × 方向 · 30 交易日</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector ETF</th>
+              <th class="n" title="Σ(volume × close × sign(Δclose)) · +淨買入 / -淨賣出">淨流入 $M</th>
+              <th class="n" title="Σ(volume × close) · 30 日總成交金額">總成交 $M</th>
+              <th class="n" title="net / gross · -100% ~ +100% · 跨 sector 可比">流向比</th>
+              <th class="n" title="30 日中上漲天數 %">上漲天佔比</th></tr>
+        </thead>
+        <tbody>{"".join(flow_rows)}</tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;">🟢 ≥+15% 強力吸金 · ▲ ≥+5% 溫和流入 · ▪ 中性 · ▼ ≤-5% 流出 · 🔴 ≤-15% 強力賣壓</div>
+    </div>
+  </div>'''
+
     # 【新 v2】30 日訊號比（Trend Core 板塊市場寬度 靈感）
     def _ratio_cell(v):
         if v is None: return '<td class="n dim">—</td>'
@@ -902,6 +961,8 @@ def render(scorecard, stage2, pattern):
   {l21_html}
 
   {etf_map_html}
+
+  {flow_html}
 
   {breadth30_html}
 
