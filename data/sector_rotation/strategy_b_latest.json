@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T14:10:29.907411+00:00",
+  "generated_at": "2026-09-01T14:35:55.539268+00:00",
   "as_of_date": "2026-08-31",
   "as_of_date_note": "T-1 · 抓到的最後一根 close 的日期（非腳本執行當日）",
   "scanned_count": 503,
@@ -40,16 +40,16 @@
       "sector": "Financials",
       "as_of_date": "2026-08-31",
       "t_price": 321.52,
-      "prev_price": 355.4,
-      "daily_drop_pct": -9.53,
-      "ma50": 352.05,
-      "ma200": 336.51,
+      "prev_price": 349.56,
+      "daily_drop_pct": -8.02,
+      "ma50": 351.28,
+      "ma200": 336.47,
       "ma50_up": true,
       "ma200_up": true,
-      "rsi_14": 30.1,
+      "rsi_14": 26.9,
       "vol_today": 2433000,
-      "vol_20d_avg": 814035,
-      "vol_ratio_vs_20d": 2.99
+      "vol_20d_avg": 846360,
+      "vol_ratio_vs_20d": 2.87
     }
   ],
   "csv": "20260831_strategy_b.csv"

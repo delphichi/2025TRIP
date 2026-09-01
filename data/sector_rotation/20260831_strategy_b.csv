@@ -1,3 +1,3 @@
 symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
 PCG,PG&E Corporation,Utilities,2026-08-31,13.27,16.6,-20.06,17.32,16.75,True,True,24.5,153932100,29762230,5.17
-AON,Aon plc,Financials,2026-08-31,321.52,355.4,-9.53,352.05,336.51,True,True,30.1,2433000,814035,2.99
+AON,Aon plc,Financials,2026-08-31,321.52,349.56,-8.02,351.28,336.47,True,True,26.9,2433000,846360,2.87
