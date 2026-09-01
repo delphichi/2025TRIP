@@ -607,6 +607,56 @@ def render(scorecard, stage2, pattern):
         else:
             return ("⚪", "中性", "個股 + ETF 一致中性 · 觀望")
 
+    # 依 label 分組列出重點解讀（過濾 中性 / 齊步空頭 不列 · 只列有 actionable 訊號的）
+    def _render_divergence_details(dmap):
+        buckets = {}
+        for (sn, sc, emo, lbl, tip, b, e) in dmap:
+            buckets.setdefault(lbl, []).append((sn, sc, emo, tip, b, e))
+        order = ["健康補漲", "多頭衰竭", "齊步多頭", "板塊分化", "齊步空頭", "中性"]
+        style_map = {
+            "健康補漲": ("#dbeafe", "#1e40af", "🔵",
+                       "個股寬度領先 ETF 15% 以上 · 中小型廣泛走多但權值股卡住 → **底部反轉候選**（等權值 catch up）"),
+            "多頭衰竭": ("#fee2e2", "#991b1b", "🟠",
+                       "ETF 上漲天領先個股寬度 15% 以上 · 幾支權值股獨撐 · 中小型走弱 → **頂部背離警訊**"),
+            "齊步多頭": ("#dcfce7", "#166534", "🟢",
+                       "個股 + ETF 一致偏多（都 ≥55%）→ 健康趨勢 · 順勢持有"),
+            "板塊分化": ("#fef3c7", "#92400e", "🟠",
+                       "個股寬度與 ETF 差距大但整體偏弱 → 板塊分化 · 從個股層面找標的"),
+            "齊步空頭": ("#e2e8f0", "#475569", "🔴",
+                       "個股 + ETF 一致偏空（都 &lt;45%）→ 別接刀 · 等基本面訊號翻轉"),
+        }
+        blocks = []
+        for lbl in order:
+            if lbl == "中性": continue
+            items = buckets.get(lbl, [])
+            if not items: continue
+            bg, fg, emo, hdr_tip = style_map.get(lbl, ("#f3f4f6", "#6b7280", "⚪", ""))
+            lis = []
+            for (sn, sc, _e, tip, b, e) in items:
+                b_s = f"{b:.1f}%" if b is not None else "—"
+                e_s = f"{e*100:.0f}%" if e is not None else "—"
+                lis.append(
+                    f'<li style="margin:4px 0;line-height:1.5;">'
+                    f'<b style="color:{fg};">{escape(sn)}</b> <span class="dim">{escape(sc)}</span> · '
+                    f'個股多頭比 <b>{b_s}</b> vs ETF 上漲天 <b>{e_s}</b>'
+                    f'<div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">{escape(tip)}</div>'
+                    f'</li>'
+                )
+            blocks.append(
+                f'<div style="background:{bg};padding:10px 14px;border-radius:8px;'
+                f'border-left:4px solid {fg};margin:8px 0;">'
+                f'<div style="font-size:13px;font-weight:700;color:{fg};margin-bottom:4px;">{emo} {lbl} ({len(items)})</div>'
+                f'<div style="font-size:11.5px;color:{fg};margin-bottom:6px;">{hdr_tip}</div>'
+                f'<ul style="margin:0;padding-left:16px;font-size:12px;">{"".join(lis)}</ul>'
+                f'</div>'
+            )
+        if not blocks:
+            return '<div class="dim" style="padding:8px 14px;font-size:11px;">今日無顯著背離 · 各板塊個股寬度與 ETF 走勢一致</div>'
+        return f'<div style="padding:8px 14px;"><div class="dim" style="font-size:11px;margin-bottom:6px;font-weight:600;">🔍 重點解讀（按情境分組 · 僅列 actionable 訊號）</div>{"".join(blocks)}</div>'
+
+    # 收集 sector -> (emoji, label, tip) 給下方解讀區用
+    divergence_map = []  # [(sector_name, sector, emoji, label, tip, b, e)]
+
     breadth30_rows = []
     br_sorted = sorted(rows, key=lambda r: -(r.get("breadth_30d_ratio") or -1))
     for r in br_sorted:
@@ -616,6 +666,8 @@ def render(scorecard, stage2, pattern):
         etf_up = r.get("flow_up_ratio")
         etf_up_pct = f"{etf_up*100:.0f}%" if etf_up is not None else "—"
         emo, lbl, tip = _divergence_scenario(r.get("breadth_30d_ratio"), etf_up)
+        divergence_map.append((r["sector_name"], r["sector"], emo, lbl, tip,
+                               r.get("breadth_30d_ratio"), etf_up))
         badge_cls = {
             "健康補漲": "b-early_reversal",
             "多頭衰竭": "b-overheated",
@@ -660,6 +712,7 @@ def render(scorecard, stage2, pattern):
         <span style="color:#475569;">🔴 <b>齊步空頭</b></span> 兩者一致偏空 ·
         <span style="color:#92400e;">🟠 <b>板塊分化</b></span> 差距大但整體弱 · 板塊分化
       </div>
+      {_render_divergence_details(divergence_map)}
     </div>
   </div>'''
 
