@@ -125,6 +125,50 @@ def load_all_csv_stock_flow(as_of, top_n=15):
     return inflow, outflow
 
 
+def load_all_csv_stock_flow_by_sector(as_of, per_sector=3):
+    """讀 all.csv · 每個 sector 挑資金流入 Top N (ud_ratio 排序)
+    · 用 sector 英文名 (Energy / Communication Services / ...) 當 key
+    · 過濾 ud_ratio ≥ 1.5 + 上漲天 ≥ 12 + 價格 > 0
+    · 每 sector 最多回傳 per_sector 支
+    """
+    if not as_of:
+        return {}
+    stamp = as_of.replace("-", "")
+    path = os.path.join(DATA_DIR, f"{stamp}_all.csv")
+    if not os.path.exists(path):
+        return {}
+    by_sec = {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                try:
+                    ud_str = str(r.get("ud_ratio") or "").strip()
+                    if ud_str == "": continue
+                    ud = float(ud_str)
+                    up_d = float(r.get("up_days_20") or 0)
+                    dn_d = float(r.get("down_days_20") or 0)
+                    price = float(r.get("t_price") or 0)
+                    if ud < 1.5 or up_d < 12 or price <= 0:
+                        continue
+                    r["_ud_ratio"] = ud
+                    r["_up_days"] = int(up_d)
+                    r["_down_days"] = int(dn_d)
+                    r["_ret_20d"] = float(r.get("ret_20d") or 0)
+                    r["_ret_5d"] = float(r.get("ret_5d") or 0)
+                    r["_t_price"] = price
+                    sec = (r.get("sector") or "").strip()
+                    by_sec.setdefault(sec, []).append(r)
+                except Exception:
+                    continue
+    except Exception:
+        return {}
+    for sec in by_sec:
+        by_sec[sec].sort(key=lambda s: -s["_ud_ratio"])
+        by_sec[sec] = by_sec[sec][:per_sector]
+    return by_sec
+
+
 def bucket_by(rows, key):
     out = {}
     for r in rows:
@@ -695,6 +739,93 @@ def render(scorecard, stage2, pattern):
     </div>
   </div>'''
 
+    # 【新 v2】按 sector 挑資金流入 Top 3 · 過濾多頭比 > 50%
+    # 對照 Trend Core「板塊底部有力的個股組合」· 過濾掉空頭主導的 sector
+    sector_flow_map = load_all_csv_stock_flow_by_sector(as_of, per_sector=3)
+
+    # 先建 sector_name_en -> row 的映射（含 breadth_30d_ratio）
+    sec_lookup = {r.get("sector_name_en"): r for r in rows if r.get("sector_name_en")}
+
+    def _mini_stock_row(s):
+        sym = escape(s.get("symbol", ""))
+        name = escape((s.get("name") or "")[:20])
+        ud = s["_ud_ratio"]
+        upd = s["_up_days"]
+        dnd = s["_down_days"]
+        ret20 = s["_ret_20d"]
+        ret5 = s["_ret_5d"]
+        price = s["_t_price"]
+        cls5 = "up" if ret5 > 0 else ("down" if ret5 < 0 else "flat")
+        cls20 = "up" if ret20 > 0 else ("down" if ret20 < 0 else "flat")
+        return (
+            f'<tr>'
+            f'<td><b>{sym}</b> <span class="dim" style="font-size:11px;">{name}</span></td>'
+            f'<td class="n">{price:.2f}</td>'
+            f'<td class="n {cls5}">{ret5:+.1f}%</td>'
+            f'<td class="n {cls20}">{ret20:+.1f}%</td>'
+            f'<td class="n dim">{upd}/{dnd}</td>'
+            f'<td class="n up">▲ {ud:.2f}</td>'
+            f'</tr>'
+        )
+
+    # 只列多頭比 > 50% 的 sector · 按多頭比 desc 排序
+    qual_sectors = sorted(
+        [r for r in rows if (r.get("breadth_30d_ratio") or 0) > 50],
+        key=lambda r: -(r.get("breadth_30d_ratio") or 0)
+    )
+
+    per_sec_blocks = []
+    for r in qual_sectors:
+        sec_en = r.get("sector_name_en")
+        sec_zh = r.get("sector_name")
+        sec_etf = r.get("sector")
+        breadth = r.get("breadth_30d_ratio") or 0
+        stocks = sector_flow_map.get(sec_en) or []
+        if not stocks:
+            body = '<div class="empty" style="padding:8px;font-size:11.5px;">此 sector 目前無符合 ud≥1.5 + 上漲天≥12 的個股</div>'
+        else:
+            rows_html = "".join(_mini_stock_row(s) for s in stocks)
+            body = f'''
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody>{rows_html}</tbody>
+            </table>'''
+        # 頭部 badge · 多頭比顏色
+        br_color = "#166534" if breadth >= 70 else ("#1e40af" if breadth >= 55 else "#6b7280")
+        per_sec_blocks.append(f'''
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid {br_color};">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">{escape(sec_zh)} <span class="dim" style="font-weight:400;">{escape(sec_etf)}</span></div>
+            <div style="font-size:11px;color:{br_color};font-weight:700;">多頭比 {breadth:.1f}%</div>
+          </div>
+          {body}
+        </div>''')
+
+    if per_sec_blocks:
+        # 3 column responsive grid
+        per_sec_html = f'''
+  <div class="card">
+    <div class="card-h">🎯 每 Sector 資金流入 Top 3 <span class="n">多頭比 &gt; 50% · ud_ratio 排序</span></div>
+    <div class="card-b">
+      <div class="dim" style="font-size:11.5px;margin-bottom:10px;line-height:1.5;">
+        只列出 <b>30 日訊號比多頭比 &gt; 50%</b> 的 sector · 每 sector 挑 3 支資金流入最強個股（ud_ratio 大） ·
+        用「bottom-up」找 healthy sector 內的具體標的 · 迴避 XLU / XLRE 這種空頭主導 sector 的個股
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;">
+        {"".join(per_sec_blocks)}
+      </div>
+    </div>
+  </div>'''
+    else:
+        per_sec_html = ""
+
     # 【新 v2】30 日訊號比（Trend Core 板塊市場寬度 靈感）
     def _ratio_cell(v):
         if v is None: return '<td class="n dim">—</td>'
@@ -1201,6 +1332,8 @@ def render(scorecard, stage2, pattern):
   {flow_html}
 
   {stock_flow_html}
+
+  {per_sec_html}
 
   {breadth30_html}
 
