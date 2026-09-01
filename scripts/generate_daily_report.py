@@ -826,6 +826,169 @@ def render(scorecard, stage2, pattern):
     else:
         per_sec_html = ""
 
+    # 【新 v2】自動化投資 playbook：分類 + 3 種組合
+    # 從「每 sector Top 3」的 pool 中按固定門檻自動分類
+    def _build_playbook(sector_flow_map, qual_sectors):
+        all_stocks = []
+        seen = set()
+        for sec_r in qual_sectors:
+            sec_en = sec_r.get("sector_name_en")
+            sec_zh = sec_r.get("sector_name")
+            sec_etf = sec_r.get("sector")
+            for s in (sector_flow_map.get(sec_en) or []):
+                sym = s.get("symbol")
+                if sym in seen: continue
+                seen.add(sym)
+                s["_sec_zh"] = sec_zh
+                s["_sec_en"] = sec_en
+                s["_sec_etf"] = sec_etf
+                all_stocks.append(s)
+        # 分類（互斥門檻）
+        # 主升段龍頭: 20d ≥ 15% AND ud ≥ 1.7
+        leaders = sorted(
+            [s for s in all_stocks if s["_ret_20d"] >= 15 and s["_ud_ratio"] >= 1.7],
+            key=lambda s: -s["_ret_20d"]
+        )
+        leader_syms = {s["symbol"] for s in leaders}
+        # 剛啟動: 5d ≥ 4% AND ud ≥ 1.7 · 排除已在 leaders
+        breakouts = sorted(
+            [s for s in all_stocks
+             if s["_ret_5d"] >= 4 and s["_ud_ratio"] >= 1.7 and s["symbol"] not in leader_syms],
+            key=lambda s: -s["_ret_5d"]
+        )
+        # 動能疲軟: 5d ≤ -1.5% AND 20d ≥ 5%
+        weakening = sorted(
+            [s for s in all_stocks if s["_ret_5d"] <= -1.5 and s["_ret_20d"] >= 5],
+            key=lambda s: s["_ret_5d"]
+        )
+        # 組合 A · 短線動能追漲: leaders + breakouts 中 5d 正的 Top 6 按 5d desc
+        combo_a = sorted(
+            [s for s in (leaders + breakouts) if s["_ret_5d"] > 0],
+            key=lambda s: -s["_ret_5d"]
+        )[:6]
+        # 組合 B · 中線分散配置: 每 sector 挑 ud 最高一支
+        combo_b_map = {}
+        for s in all_stocks:
+            sec = s["_sec_en"]
+            if sec not in combo_b_map or s["_ud_ratio"] > combo_b_map[sec]["_ud_ratio"]:
+                combo_b_map[sec] = s
+        combo_b = sorted(combo_b_map.values(), key=lambda s: -s["_ud_ratio"])
+        # 組合 C · 底部反轉: 20d < 8% (未大漲) AND ud ≥ 1.5 · Top 6 按 ud desc
+        combo_c = sorted(
+            [s for s in all_stocks if 0 <= s["_ret_20d"] < 8 and s["_ud_ratio"] >= 1.5],
+            key=lambda s: -s["_ud_ratio"]
+        )[:6]
+        return leaders, breakouts, weakening, combo_a, combo_b, combo_c
+
+    leaders, breakouts, weakening, combo_a, combo_b, combo_c = _build_playbook(sector_flow_map, qual_sectors)
+
+    def _pb_row(s, extra_col=""):
+        sym = escape(s.get("symbol", ""))
+        sec_zh = escape(s.get("_sec_zh") or "")
+        sec_etf = escape(s.get("_sec_etf") or "")
+        ud = s["_ud_ratio"]
+        ret5 = s["_ret_5d"]
+        ret20 = s["_ret_20d"]
+        cls5 = "up" if ret5 > 0 else ("down" if ret5 < 0 else "flat")
+        cls20 = "up" if ret20 > 0 else ("down" if ret20 < 0 else "flat")
+        weight_col = f'<td class="n">{extra_col}</td>' if extra_col else ""
+        return (
+            f'<tr>'
+            f'<td><b>{sym}</b></td>'
+            f'<td class="dim" style="font-size:11px;">{sec_zh} {sec_etf}</td>'
+            f'<td class="n {cls5}">{ret5:+.1f}%</td>'
+            f'<td class="n {cls20}">{ret20:+.1f}%</td>'
+            f'<td class="n up">▲ {ud:.2f}</td>'
+            + weight_col
+            + '</tr>'
+        )
+
+    def _pb_table(stocks, weight_pct=None, show_header=True):
+        if not stocks:
+            return '<div class="empty" style="padding:8px;font-size:11.5px;">無符合條件</div>'
+        w_col = f'<th class="n" title="等權重建議倉位">建議 %</th>' if weight_pct is not None else ""
+        rows = []
+        for s in stocks:
+            extra = f"{weight_pct:.0f}%" if weight_pct is not None else ""
+            rows.append(_pb_row(s, extra))
+        return f'''
+        <table style="font-size:11.5px;">
+          <thead>
+            <tr>
+              <th>Symbol</th><th>Sector</th>
+              <th class="n">5d</th><th class="n">20d</th>
+              <th class="n">ud</th>
+              {w_col}
+            </tr>
+          </thead>
+          <tbody>{"".join(rows)}</tbody>
+        </table>'''
+
+    def _pb_card(title, subtitle, bg, fg, stocks, weight_pct=None, description=""):
+        w_note = f'<div class="dim" style="font-size:10.5px;margin-top:4px;">等權重 · 每支 {weight_pct:.0f}%</div>' if weight_pct is not None else ""
+        desc_html = f'<div style="font-size:11.5px;color:{fg};margin-bottom:6px;line-height:1.4;">{description}</div>' if description else ""
+        return f'''
+        <div style="background:{bg};padding:10px 12px;border-radius:8px;border-left:3px solid {fg};">
+          <div style="font-size:13px;font-weight:700;color:{fg};margin-bottom:2px;">{title}
+            <span style="font-weight:400;font-size:11px;">({len(stocks)})</span></div>
+          <div class="dim" style="font-size:10.5px;margin-bottom:6px;">{subtitle}</div>
+          {desc_html}
+          {_pb_table(stocks, weight_pct)}
+          {w_note}
+        </div>'''
+
+    # 3 個分類卡（同一 row）
+    classify_html = f'''
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px;margin-bottom:12px;">
+        {_pb_card("🏆 主升段龍頭", "20d ≥ +15% + ud ≥ 1.7",
+                 "#fffbeb", "#92400e", leaders,
+                 description="動能已確認 · 資金持續 accumulation · 適合順勢持有 · 但已在高位 · 追高有拉回風險")}
+        {_pb_card("🚀 剛啟動 5d 爆量", "5d ≥ +4% + ud ≥ 1.7 · 未在主升段",
+                 "#eff6ff", "#1e40af", breakouts,
+                 description="近 1 週突然放量上漲 · 可能是新一波啟動 · 適合短線追動能 · 但需 confirm 續強")}
+        {_pb_card("⚠️ 動能疲軟需觀察", "5d ≤ -1.5% + 20d ≥ +5%",
+                 "#fef2f2", "#991b1b", weakening,
+                 description="20d 賺了不少但近週開始拉回 · 可能是短線頂 · 減碼 / 停利觀察 · 別追高")}
+      </div>'''
+
+    # 3 個組合卡
+    combo_a_w = 100 / len(combo_a) if combo_a else None
+    combo_b_w = 100 / len(combo_b) if combo_b else None
+    combo_c_w = 100 / len(combo_c) if combo_c else None
+    portfolio_html = f'''
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px;">
+        {_pb_card("💨 組合 A · 短線動能追漲", "leaders + breakouts 中 5d 正 · 按 5d desc Top 6",
+                 "#fef3c7", "#92400e", combo_a, weight_pct=combo_a_w,
+                 description="持有天期 5-10 天 · 追短期爆發個股 · 停利設 +8% / 停損 -4%")}
+        {_pb_card("⚖️ 組合 B · 中線分散配置", "每 sector 挑 ud 最高一支 · 分散 9 板塊",
+                 "#dcfce7", "#166534", combo_b, weight_pct=combo_b_w,
+                 description="持有天期 1-3 個月 · 跨 sector 分散風險 · 對抗單一板塊 rotation")}
+        {_pb_card("🌱 組合 C · 底部反轉", "20d 尚未大漲 (0-8%) + ud ≥ 1.5",
+                 "#dbeafe", "#1e40af", combo_c, weight_pct=combo_c_w,
+                 description="持有天期 3-6 個月 · 低位健康 accumulation · 潛在補漲 · 適合逆勢")}
+      </div>'''
+
+    playbook_html = f'''
+  <div class="card">
+    <div class="card-h">📖 投資 Playbook · 分類 + 3 種組合 <span class="n">Universe: 每 sector Top 3 (9 sector × 3 = 27 支)</span></div>
+    <div class="card-b">
+      <div class="dim" style="font-size:11.5px;margin-bottom:10px;line-height:1.5;">
+        從上方「每 sector Top 3」的 27 支健康個股 pool 中 · 依固定門檻自動分類與組合 ·
+        <b>分類</b>幫你認清每支個股的狀態；<b>組合</b>幫你直接執行不同時間框架的策略。
+        建議倉位為等權重 · 實際下單前需自行檢查基本面 / 財報 / 停損位。
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;">🔬 個股分類（互斥門檻）</div>
+      {classify_html}
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;margin-top:6px;">📦 可執行投資組合（等權重）</div>
+      {portfolio_html}
+      <div class="dim" style="font-size:10.5px;margin-top:10px;line-height:1.5;">
+        <b>方法論</b>：組合 A 從「主升段龍頭 + 剛啟動」中挑 5d 正的 → 追爆發動能 ·
+        組合 B 從 27 支每 sector 挑 ud 最高一支 → 跨 sector 均衡 ·
+        組合 C 從 20d &lt; 8% 但 ud ≥ 1.5 的 → 尚未起漲但已 accumulation 的候選
+      </div>
+    </div>
+  </div>'''
+
     # 【新 v2】30 日訊號比（Trend Core 板塊市場寬度 靈感）
     def _ratio_cell(v):
         if v is None: return '<td class="n dim">—</td>'
@@ -1334,6 +1497,8 @@ def render(scorecard, stage2, pattern):
   {stock_flow_html}
 
   {per_sec_html}
+
+  {playbook_html}
 
   {breadth30_html}
 
