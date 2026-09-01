@@ -131,13 +131,19 @@ def add_historical_percentiles(df, as_of):
         for w in [30, 90, 365]:
             df[f"pct_{w}d"] = None
             df[f"n_{w}d"] = 0
+            df[f"acc_pct_{w}d"] = None
         return df
 
-    # 讀所有歷史 · 集中成一個大 df with sector + point + date
+    # 讀所有歷史 · 集中成一個大 df with sector + point + acceleration + date
     hist_frames = []
     for fp in files:
         try:
-            h = pd.read_csv(fp, usecols=["sector", "point"])
+            # 舊 CSV 沒 acceleration 欄 · 用 try/except 相容
+            try:
+                h = pd.read_csv(fp, usecols=["sector", "point", "acceleration"])
+            except ValueError:
+                h = pd.read_csv(fp, usecols=["sector", "point"])
+                h["acceleration"] = None
             h["file_date"] = os.path.basename(fp).split("_")[0]  # YYYYMMDD
             hist_frames.append(h)
         except Exception:
@@ -146,10 +152,19 @@ def add_historical_percentiles(df, as_of):
         for w in [30, 90, 365]:
             df[f"pct_{w}d"] = None
             df[f"n_{w}d"] = 0
+            df[f"acc_pct_{w}d"] = None
         return df
     hist = pd.concat(hist_frames, ignore_index=True)
     hist["file_date"] = pd.to_datetime(hist["file_date"], format="%Y%m%d")
     today = pd.to_datetime(as_of.replace("-", ""), format="%Y%m%d")
+
+    def _percentile(sec_hist_series, current_value):
+        n = len(sec_hist_series)
+        if n == 0 or pd.isna(current_value):
+            return None, int(n)
+        below = (sec_hist_series < current_value).sum()
+        equal = (sec_hist_series == current_value).sum()
+        return round(100 * (below + 0.5 * equal) / n, 1), int(n)
 
     df = df.copy()
     for w in [30, 90, 365]:
@@ -157,21 +172,21 @@ def add_historical_percentiles(df, as_of):
         window = hist[hist["file_date"] >= cutoff]
         pct_col = f"pct_{w}d"
         n_col = f"n_{w}d"
-        pcts, ns = [], []
+        acc_pct_col = f"acc_pct_{w}d"
+        pcts, ns, acc_pcts = [], [], []
         for _, row in df.iterrows():
             sec = row["sector"]
             pt = row["point"]
-            sec_hist = window[window["sector"] == sec]["point"].dropna()
-            n = len(sec_hist)
-            if n == 0 or pd.isna(pt):
-                pcts.append(None); ns.append(int(n)); continue
-            below = (sec_hist < pt).sum()
-            # 有等於就用中間點更公平
-            equal = (sec_hist == pt).sum()
-            pct = round(100 * (below + 0.5 * equal) / n, 1)
-            pcts.append(pct); ns.append(int(n))
+            acc = row.get("acceleration")
+            sec_hist_pt = window[window["sector"] == sec]["point"].dropna()
+            sec_hist_acc = window[window["sector"] == sec]["acceleration"].dropna()
+            p, n = _percentile(sec_hist_pt, pt)
+            pcts.append(p); ns.append(n)
+            a, _ = _percentile(sec_hist_acc, acc)
+            acc_pcts.append(a)
         df[pct_col] = pcts
         df[n_col] = ns
+        df[acc_pct_col] = acc_pcts
     return df
 
 
@@ -233,6 +248,66 @@ def add_sector_breadth(df, as_of):
         df["breadth_source_date"] = f"{breadth_source_date[:4]}-{breadth_source_date[4:6]}-{breadth_source_date[6:8]}"
     else:
         df["breadth_source_date"] = as_of
+    return df
+
+
+def add_30d_signal_breadth(df, as_of):
+    """
+    30 日訊號比（Trend Core 板塊市場寬度 靈感）
+    讀過去 30 天 *_all.csv · 對每個 sector 統計：
+      up = trend_state 含「多頭」的 (stock, day) rows
+      down = trend_state 含「空頭」的 rows
+      ratio = up / (up + down)
+    對照狀態：
+      >= 70% 強勢上升 🟢
+      >= 55% 上升主導 🔵
+      45~55% 中性 ⚪
+      < 45% 強勢下降 🔴
+    """
+    import glob
+    files = sorted(glob.glob(os.path.join(OUTDIR, "*_all.csv")))
+    stamp_today = as_of.replace("-", "")
+    today_dt = pd.to_datetime(stamp_today, format="%Y%m%d")
+    cutoff = today_dt - pd.Timedelta(days=30)
+    recent = []
+    for fp in files:
+        d_str = os.path.basename(fp).split("_")[0]
+        d_dt = pd.to_datetime(d_str, format="%Y%m%d")
+        if d_dt >= cutoff and d_dt <= today_dt:
+            recent.append(fp)
+
+    if not recent:
+        df["breadth_30d_up"] = None
+        df["breadth_30d_down"] = None
+        df["breadth_30d_ratio"] = None
+        return df
+
+    # 累積每 sector 的 up/down 訊號數
+    from collections import defaultdict
+    counts = defaultdict(lambda: {"up": 0, "down": 0})
+    for fp in recent:
+        try:
+            h = pd.read_csv(fp, usecols=["sector", "trend_state"])
+        except Exception:
+            continue
+        h["ts"] = h["trend_state"].fillna("")
+        for sec, group in h.groupby("sector"):
+            counts[sec]["up"] += int(group["ts"].str.contains("多頭", na=False).sum())
+            counts[sec]["down"] += int(group["ts"].str.contains("空頭", na=False).sum())
+
+    merge_key = "sector_name_en" if "sector_name_en" in df.columns else "sector"
+    ups, downs, ratios = [], [], []
+    for _, row in df.iterrows():
+        sec = row.get(merge_key)
+        u = counts.get(sec, {}).get("up", 0)
+        d = counts.get(sec, {}).get("down", 0)
+        tot = u + d
+        r = round(100 * u / tot, 1) if tot > 0 else None
+        ups.append(int(u)); downs.append(int(d)); ratios.append(r)
+    df = df.copy()
+    df["breadth_30d_up"] = ups
+    df["breadth_30d_down"] = downs
+    df["breadth_30d_ratio"] = ratios
     return df
 
 
@@ -731,6 +806,37 @@ def compute_metrics(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
     # 量價絕對評分 (0~100)
     vp_score = compute_vp_score(ret_20d, ret_5d, vp_ratio, ud_ratio)
 
+    # 【新 v2】ETF 位階地圖欄位（Trend Core Layer 2.2 靈感）
+    #   dist_20ma_pct / dist_50ma_pct: 收盤距 20MA / 50MA %
+    #   rsi14_sector: sector ETF 的 RSI(14)
+    #   position_20d: 收盤在近 20 日最低到最高的位置 (0-100)
+    #   resistance_20d / support_20d: 近 20 日高低點（壓力/支撐）
+    ma20 = float(close_d.iloc[-20:].mean())
+    ma50_sector = float(close_d.iloc[-50:].mean()) if len(close_d) >= 50 else None
+    dist_20ma_pct = (t_price - ma20) / ma20 * 100
+    dist_50ma_pct = ((t_price - ma50_sector) / ma50_sector * 100) if ma50_sector else None
+    # Wilder RSI(14)
+    def _rsi14(closes):
+        if len(closes) < 15:
+            return None
+        d = closes.diff().dropna()
+        gains = d.where(d > 0, 0.0)
+        losses = -d.where(d < 0, 0.0)
+        avg_gain = gains.rolling(14).mean().iloc[13]
+        avg_loss = losses.rolling(14).mean().iloc[13]
+        for i in range(14, len(d)):
+            avg_gain = (avg_gain * 13 + gains.iloc[i]) / 14
+            avg_loss = (avg_loss * 13 + losses.iloc[i]) / 14
+        if avg_loss == 0:
+            return 100.0
+        rs = avg_gain / avg_loss
+        return round(100 - 100 / (1 + rs), 2)
+    rsi14_sector = _rsi14(close_d)
+    resistance_20d = float(close_d.iloc[-20:].max())
+    support_20d = float(close_d.iloc[-20:].min())
+    rng = resistance_20d - support_20d
+    position_20d = ((t_price - support_20d) / rng * 100) if rng > 0 else 50
+
     # 【新】30 日資金流向（Trend Core 靈感 · sector ETF 每日 dollar volume × 方向）
     #   flow_30d_net_M      = Σ(volume × close × sign(Δclose))  單位百萬
     #   flow_30d_gross_M    = Σ(volume × close)                  單位百萬
@@ -778,6 +884,13 @@ def compute_metrics(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
         "flow_30d_gross_M": round(flow_30d_gross / 1e6, 1),
         "flow_ratio": round(flow_ratio, 3),
         "flow_up_ratio": round(flow_up_ratio, 3),
+        # 【新 v2】ETF 位階地圖
+        "dist_20ma_pct": round(dist_20ma_pct, 2),
+        "dist_50ma_pct": round(dist_50ma_pct, 2) if dist_50ma_pct is not None else None,
+        "rsi14_sector": rsi14_sector,
+        "position_20d": round(position_20d, 1),
+        "resistance_20d": round(resistance_20d, 2),
+        "support_20d": round(support_20d, 2),
     }
 
 
@@ -947,6 +1060,8 @@ def main():
     df = add_historical_percentiles(df, as_of)
     # 加板塊 breadth (該日 stage 2 資料的 % up)
     df = add_sector_breadth(df, as_of)
+    # 加 30 日訊號比（Trend Core 板塊市場寬度靈感）
+    df = add_30d_signal_breadth(df, as_of)
     # 加 acceleration + quadrant（Layer 1.5）
     df, biggest_mover = add_acceleration_and_quadrant(df, as_of)
     # 加健康度標籤（D · 過熱/甜蜜點/蓄勢/反轉初期/冷凍）

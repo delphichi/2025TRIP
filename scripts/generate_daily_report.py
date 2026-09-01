@@ -383,6 +383,167 @@ def render(scorecard, stage2, pattern):
     </div>
     '''
 
+    # 【新 v2】Layer 2.1 · 加速度歷史百分位（30d / 90d / 365d）
+    # 對照 Trend Core Layer 2.1「板塊排名 + 加速度百分位」
+    def _pct_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        if vf >= 80: cls, tag = "up", "🔥"
+        elif vf >= 60: cls, tag = "up", "▲"
+        elif vf <= 20: cls, tag = "down", "❄"
+        elif vf <= 40: cls, tag = "down", "▼"
+        else: cls, tag = "flat", ""
+        return f'<td class="n {cls}">{tag} {vf:.0f}</td>'
+
+    l21_rows = []
+    # 排序：以 acc_pct_90d desc，缺值放後面
+    l21_sorted = sorted(rows, key=lambda r: -(r.get("acc_pct_90d") or -1))
+    for r in l21_sorted:
+        emoji = r.get("health_emoji") or ""
+        acc = r.get("acceleration")
+        acc_cls = "up" if (acc or 0) > 0 else ("down" if (acc or 0) < 0 else "flat")
+        l21_rows.append(
+            f'<tr>'
+            f'<td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>'
+            f'<td class="n">{num(r.get("point"), 2)}</td>'
+            f'<td class="n {acc_cls}">{num(acc, 2, sign=True)}</td>'
+            + _pct_cell(r.get("acc_pct_30d"))
+            + _pct_cell(r.get("acc_pct_90d"))
+            + _pct_cell(r.get("acc_pct_365d"))
+            + f'<td>{emoji}</td>'
+            + '</tr>'
+        )
+    l21_html = f'''
+  <div class="card">
+    <div class="card-h">📊 Layer 2.1 · 加速度歷史百分位 <span class="n">30d / 90d / 365d · 依 90d 排序</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th>
+              <th class="n" title="當前加速度在過去 30 日中的相對位置">30d 百分位</th>
+              <th class="n" title="90 日百分位">90d 百分位</th>
+              <th class="n" title="365 日百分位">365d 百分位</th>
+              <th title="健康度標籤">健</th></tr>
+        </thead>
+        <tbody>{"".join(l21_rows)}</tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;">🔥 ≥80 過熱 · ▲ ≥60 偏強 · ▼ ≤40 偏弱 · ❄ ≤20 過冷</div>
+    </div>
+  </div>'''
+
+    # 【新 v2】ETF 位階地圖（Trend Core Layer 2.2 靈感）
+    # 顯示：dist_20ma / dist_50ma / RSI14 / 20d position / 20d 壓力支撐
+    def _rsi_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        if vf >= 70: return f'<td class="n up">🔥 {vf:.0f}</td>'
+        if vf <= 30: return f'<td class="n down">❄ {vf:.0f}</td>'
+        return f'<td class="n">{vf:.0f}</td>'
+
+    def _pos20_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        # bar 視覺化
+        pct = max(0, min(100, vf))
+        color = "#1e8449" if pct >= 60 else ("#c0392b" if pct <= 40 else "#6b7280")
+        bar = (
+            f'<div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;'
+            f'border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;">'
+            f'<div style="width:{pct:.0f}%;height:100%;background:{color};"></div>'
+            f'</div>'
+        )
+        return f'<td class="n">{bar} <span class="dim" style="font-size:11px;">{pct:.0f}</span></td>'
+
+    def _dist_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        cls = "up" if vf > 0 else ("down" if vf < 0 else "flat")
+        arrow = "▲" if vf > 0 else ("▼" if vf < 0 else "▪")
+        return f'<td class="n {cls}">{arrow} {vf:+.1f}%</td>'
+
+    map_rows = []
+    # 排序：以 rsi14 desc（強弱）
+    map_sorted = sorted(rows, key=lambda r: -(r.get("rsi14_sector") or -1))
+    for r in map_sorted:
+        map_rows.append(
+            f'<tr>'
+            f'<td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>'
+            + _dist_cell(r.get("dist_20ma_pct"))
+            + _dist_cell(r.get("dist_50ma_pct"))
+            + _rsi_cell(r.get("rsi14_sector"))
+            + _pos20_cell(r.get("position_20d"))
+            + f'<td class="n dim">{num(r.get("resistance_20d"), 2)}</td>'
+            + f'<td class="n dim">{num(r.get("support_20d"), 2)}</td>'
+            + '</tr>'
+        )
+    etf_map_html = f'''
+  <div class="card">
+    <div class="card-h">🗺️ ETF 位階地圖 <span class="n">距 MA · RSI14 · 20 日區間位置</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector ETF</th>
+              <th class="n" title="收盤距 20MA %">距 20MA</th>
+              <th class="n" title="收盤距 50MA %">距 50MA</th>
+              <th class="n" title="Wilder RSI(14)">RSI14</th>
+              <th class="n" title="收盤在近 20 日 low ~ high 的位置">20d 位階</th>
+              <th class="n" title="近 20 日最高">壓力</th>
+              <th class="n" title="近 20 日最低">支撐</th></tr>
+        </thead>
+        <tbody>{"".join(map_rows)}</tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;">🔥 RSI≥70 過買 · ❄ RSI≤30 過賣 · 20d 位階 &gt;60 靠近壓力 · &lt;40 靠近支撐</div>
+    </div>
+  </div>'''
+
+    # 【新 v2】30 日訊號比（Trend Core 板塊市場寬度 靈感）
+    def _ratio_cell(v):
+        if v is None: return '<td class="n dim">—</td>'
+        try: vf = float(v)
+        except: return f'<td class="n">{v}</td>'
+        if vf >= 70: cls, tag = "up", "🟢"
+        elif vf >= 55: cls, tag = "up", "🔵"
+        elif vf >= 45: cls, tag = "flat", "⚪"
+        else: cls, tag = "down", "🔴"
+        return f'<td class="n {cls}">{tag} {vf:.1f}%</td>'
+
+    breadth30_rows = []
+    br_sorted = sorted(rows, key=lambda r: -(r.get("breadth_30d_ratio") or -1))
+    for r in br_sorted:
+        u = r.get("breadth_30d_up")
+        d = r.get("breadth_30d_down")
+        tot = (u or 0) + (d or 0)
+        breadth30_rows.append(
+            f'<tr>'
+            f'<td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>'
+            f'<td class="n up">{u if u is not None else "—"}</td>'
+            f'<td class="n down">{d if d is not None else "—"}</td>'
+            f'<td class="n dim">{tot}</td>'
+            + _ratio_cell(r.get("breadth_30d_ratio"))
+            + '</tr>'
+        )
+    breadth30_html = f'''
+  <div class="card">
+    <div class="card-h">📶 板塊 30 日訊號比 <span class="n">stage 2 個股 · 多頭 vs 空頭</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector</th>
+              <th class="n" title="過去 30 日 stage 2 個股 trend_state=多頭 累計次數">多頭訊號</th>
+              <th class="n" title="過去 30 日 trend_state=空頭 累計">空頭訊號</th>
+              <th class="n">總計</th>
+              <th class="n" title="up / (up+down) · 板塊過去 30 日訊號寬度">多頭比</th></tr>
+        </thead>
+        <tbody>{"".join(breadth30_rows)}</tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;">🟢 ≥70% 強勢上升 · 🔵 ≥55% 上升主導 · ⚪ 中性 · 🔴 &lt;45% 空頭主導</div>
+    </div>
+  </div>'''
+
     # 【新增】歷史 regime 統計卡片（Trend Core 靈感）
     regime_stats = market_ctx.get("regime_stats") or {}
     current_regime = regime_stats.get("current_regime") or "—"
@@ -737,6 +898,12 @@ def render(scorecard, stage2, pattern):
       </table>
     </div>
   </div>
+
+  {l21_html}
+
+  {etf_map_html}
+
+  {breadth30_html}
 
   {regime_stats_html}
 
