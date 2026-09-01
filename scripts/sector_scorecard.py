@@ -731,6 +731,21 @@ def compute_metrics(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
     # 量價絕對評分 (0~100)
     vp_score = compute_vp_score(ret_20d, ret_5d, vp_ratio, ud_ratio)
 
+    # 【新】30 日資金流向（Trend Core 靈感 · sector ETF 每日 dollar volume × 方向）
+    #   flow_30d_net_M      = Σ(volume × close × sign(Δclose))  單位百萬
+    #   flow_30d_gross_M    = Σ(volume × close)                  單位百萬
+    #   flow_ratio          = net / gross · 範圍 -1~+1 · 跨 sector 可比
+    #   flow_up_ratio       = 30 日上漲天數 / 30
+    last31 = dly.tail(31).copy()
+    last31["dv"] = last31["Close"] * last31["Volume"]
+    _diffs = last31["Close"].diff()
+    _signs = _diffs.apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
+    _signed = last31["dv"] * _signs
+    flow_30d_net = float(_signed.iloc[1:].sum())
+    flow_30d_gross = float(last31["dv"].iloc[1:].sum())
+    flow_ratio = (flow_30d_net / flow_30d_gross) if flow_30d_gross > 0 else 0
+    flow_up_ratio = float((_diffs.iloc[1:] > 0).sum()) / 30.0
+
     return {
         "sector": ticker,
         "sector_name": name_zh,
@@ -758,6 +773,11 @@ def compute_metrics(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
         "vp_ratio": round(vp_ratio, 3) if vp_ratio is not None else None,
         "ud_ratio": round(ud_ratio, 3) if ud_ratio is not None else None,
         "vp_score": round(vp_score, 2) if vp_score is not None else None,
+        # 【新】30 日資金流向（1M = 100 萬美元）
+        "flow_30d_net_M": round(flow_30d_net / 1e6, 1),
+        "flow_30d_gross_M": round(flow_30d_gross / 1e6, 1),
+        "flow_ratio": round(flow_ratio, 3),
+        "flow_up_ratio": round(flow_up_ratio, 3),
     }
 
 
@@ -797,6 +817,8 @@ def add_ranks_and_composite(df):
     df["point_rank"] = df["point"].rank(method="min", ascending=False).astype(int)
     df["vol_rank"] = df["vol_ratio"].rank(method="min", ascending=False).astype(int)
     df["vp_score_rank"] = df["vp_score"].rank(method="min", ascending=False, na_option="bottom").astype(int)
+    # 【新】30 日資金流向 rank · 依 flow_30d_net_M（越大越強）· 跨 sector
+    df["flow_rank"] = df["flow_30d_net_M"].rank(method="min", ascending=False).astype(int)
 
     # CMS_A = 0.5×4W_rank + 0.3×13W_rank + 0.2×26W_rank（越小越強，重短線）
     df["cms_a"] = (

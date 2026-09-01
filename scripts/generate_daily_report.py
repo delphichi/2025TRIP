@@ -323,12 +323,22 @@ def render(scorecard, stage2, pattern):
             cons_str = f'<span style="color:var(--green);font-weight:600;">{cons_days}</span>'
         else:
             cons_str = f'<span>{cons_days}</span>'
+        # 【新】30 日資金流向 · flow_ratio (-1~+1) + net $M
+        flow_ratio = r.get("flow_ratio")
+        flow_net = r.get("flow_30d_net_M")
+        if flow_ratio is None or flow_net is None:
+            flow_str = "—"
+        else:
+            fcls = "up" if flow_ratio > 0.05 else ("down" if flow_ratio < -0.05 else "flat")
+            arrow = "▲" if flow_ratio > 0 else ("▼" if flow_ratio < 0 else "▪")
+            flow_str = f'<span class="{fcls}" title="30d net {flow_net:+.0f}M · gross {r.get("flow_30d_gross_M",0):.0f}M">{arrow} {flow_ratio*100:+.1f}%</span>'
         return f'''
         <tr>
           <td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>
           <td class="n">{num(r.get("point"), 2)}</td>
           <td class="n {acc_cls}">{num(acc, 2, sign=True)}</td>
           <td class="n">{cons_str}</td>
+          <td class="n">{flow_str}</td>
           <td class="n">{r.get("pct_30d") if r.get("pct_30d") is not None else "—"}</td>
           <td class="n">{r.get("pct_90d") if r.get("pct_90d") is not None else "—"}</td>
           <td class="n">{r.get("pct_365d") if r.get("pct_365d") is not None else "—"}</td>
@@ -721,7 +731,7 @@ def render(scorecard, stage2, pattern):
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
-          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th><th class="n" title="Point > 0 連續天數 · 抓動能持續">連續</th><th class="n">30d</th><th class="n">90d</th><th class="n">365d</th><th class="n">寬度</th><th>健康度</th></tr>
+          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th><th class="n" title="Point > 0 連續天數 · 抓動能持續">連續</th><th class="n" title="30 日資金流向 · net/gross · +% = 淨買入 · -% = 淨賣出">30d 流向</th><th class="n">30d</th><th class="n">90d</th><th class="n">365d</th><th class="n">寬度</th><th>健康度</th></tr>
         </thead>
         <tbody>{sec_rows_html}</tbody>
       </table>
