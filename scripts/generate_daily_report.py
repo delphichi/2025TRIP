@@ -79,6 +79,52 @@ def load_all_csv_verdicts(as_of):
     return buckets
 
 
+def load_all_csv_stock_flow(as_of, top_n=15):
+    """讀 all.csv · 用 ud_ratio (up_avg_vol / down_avg_vol) 當個股 20 日資金流向 proxy
+    · ud_ratio > 1: 上漲日均量 > 下跌日均量 = 資金淨流入
+    · ud_ratio < 1: 下跌日均量 > 上漲日均量 = 資金淨流出
+    · 過濾 vol_today > 0 且有 up_days_20 資料
+    · 回傳 (inflow_top, outflow_top)
+    """
+    if not as_of:
+        return [], []
+    stamp = as_of.replace("-", "")
+    path = os.path.join(DATA_DIR, f"{stamp}_all.csv")
+    if not os.path.exists(path):
+        return [], []
+    stocks = []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                try:
+                    ud = float(r.get("ud_ratio") or 0)
+                    ud_str = str(r.get("ud_ratio") or "").strip()
+                    up_d = float(r.get("up_days_20") or 0)
+                    dn_d = float(r.get("down_days_20") or 0)
+                    price = float(r.get("t_price") or 0)
+                    # 需有基本資料
+                    if ud_str == "" or (up_d + dn_d) < 10 or price <= 0:
+                        continue
+                    r["_ud_ratio"] = ud
+                    r["_up_days"] = int(up_d)
+                    r["_down_days"] = int(dn_d)
+                    r["_ret_20d"] = float(r.get("ret_20d") or 0)
+                    r["_t_price"] = price
+                    stocks.append(r)
+                except Exception:
+                    continue
+    except Exception:
+        return [], []
+    # 資金流入 Top: ud_ratio 大 · 上漲天 ≥ 12
+    inflow = sorted([s for s in stocks if s["_up_days"] >= 12 and s["_ud_ratio"] >= 1.5],
+                    key=lambda s: -s["_ud_ratio"])[:top_n]
+    # 資金流出 Top: ud_ratio 小 · 下跌天 ≥ 12
+    outflow = sorted([s for s in stocks if s["_down_days"] >= 12 and s["_ud_ratio"] <= 0.7],
+                     key=lambda s: s["_ud_ratio"])[:top_n]
+    return inflow, outflow
+
+
 def bucket_by(rows, key):
     out = {}
     for r in rows:
@@ -569,6 +615,83 @@ def render(scorecard, stage2, pattern):
         <tbody>{"".join(flow_rows)}</tbody>
       </table>
       <div class="dim" style="padding:8px 14px;font-size:11px;">🟢 ≥+15% 強力吸金 · ▲ ≥+5% 溫和流入 · ▪ 中性 · ▼ ≤-5% 流出 · 🔴 ≤-15% 強力賣壓</div>
+    </div>
+  </div>'''
+
+    # 【新 v2】個股層 20 日資金流向 Top 榜（用 ud_ratio 當 proxy）
+    stock_inflow, stock_outflow = load_all_csv_stock_flow(as_of, top_n=15)
+
+    def _stock_flow_row(s, is_inflow):
+        sym = escape(s.get("symbol", ""))
+        sec = escape((s.get("sector") or "")[:8])
+        name = escape((s.get("name") or "")[:14])
+        ud = s["_ud_ratio"]
+        upd = s["_up_days"]
+        dnd = s["_down_days"]
+        ret20 = s["_ret_20d"]
+        price = s["_t_price"]
+        ret_cls = "up" if ret20 > 0 else ("down" if ret20 < 0 else "flat")
+        if is_inflow:
+            ud_disp = f'<span class="up">▲ {ud:.2f}</span>'
+            days_disp = f'<span class="up">{upd}</span>/<span class="dim">{dnd}</span>'
+        else:
+            ud_disp = f'<span class="down">▼ {ud:.2f}</span>'
+            days_disp = f'<span class="dim">{upd}</span>/<span class="down">{dnd}</span>'
+        return (
+            f'<tr>'
+            f'<td><b>{sym}</b> <span class="dim">{name}</span></td>'
+            f'<td class="dim">{sec}</td>'
+            f'<td class="n">{price:.2f}</td>'
+            f'<td class="n {ret_cls}">{ret20:+.1f}%</td>'
+            f'<td class="n">{days_disp}</td>'
+            f'<td class="n">{ud_disp}</td>'
+            f'</tr>'
+        )
+
+    inflow_rows = "".join(_stock_flow_row(s, True) for s in stock_inflow) \
+        or '<tr><td colspan="6" class="empty">今日無資金明顯流入個股</td></tr>'
+    outflow_rows = "".join(_stock_flow_row(s, False) for s in stock_outflow) \
+        or '<tr><td colspan="6" class="empty">今日無資金明顯流出個股</td></tr>'
+
+    stock_flow_html = f'''
+  <div class="card">
+    <div class="card-h">💵 個股層 20 日資金流向 Top 榜 <span class="n">from all.csv · ud_ratio 排序</span></div>
+    <div class="card-b" style="padding:14px 18px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <h4 style="margin:0 0 8px;color:var(--green);font-size:13px;">
+            🟢 資金流入 Top {len(stock_inflow)}
+            <span class="dim" style="font-weight:400;font-size:11px;">· ud≥1.5 + 上漲天≥12</span>
+          </h4>
+          <table style="font-size:12px;">
+            <thead><tr>
+              <th>Symbol</th><th>Sec</th><th class="n">價</th>
+              <th class="n">20d</th><th class="n" title="上漲天/下跌天">漲/跌天</th>
+              <th class="n" title="上漲日均量/下跌日均量 · &gt;1 = 買方壓過賣方">u/d</th>
+            </tr></thead>
+            <tbody>{inflow_rows}</tbody>
+          </table>
+        </div>
+        <div>
+          <h4 style="margin:0 0 8px;color:var(--red);font-size:13px;">
+            🔴 資金流出 Top {len(stock_outflow)}
+            <span class="dim" style="font-weight:400;font-size:11px;">· ud≤0.7 + 下跌天≥12</span>
+          </h4>
+          <table style="font-size:12px;">
+            <thead><tr>
+              <th>Symbol</th><th>Sec</th><th class="n">價</th>
+              <th class="n">20d</th><th class="n" title="上漲天/下跌天">漲/跌天</th>
+              <th class="n" title="上漲日均量/下跌日均量 · &lt;1 = 賣方壓過買方">u/d</th>
+            </tr></thead>
+            <tbody>{outflow_rows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="dim" style="font-size:11px;margin-top:10px;line-height:1.6;">
+        <b>ud_ratio</b> = 20 日中「上漲日的平均成交量」÷「下跌日的平均成交量」·
+        &gt;1 表示買方成交量壓過賣方 (accumulation) · &lt;1 表示賣方壓過買方 (distribution) ·
+        比 net dollar volume 更能濾掉單日爆量雜訊
+      </div>
     </div>
   </div>'''
 
@@ -1076,6 +1199,8 @@ def render(scorecard, stage2, pattern):
   {etf_map_html}
 
   {flow_html}
+
+  {stock_flow_html}
 
   {breadth30_html}
 
