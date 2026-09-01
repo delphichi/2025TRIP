@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T16:38:55.056379+00:00",
+  "generated_at": "2026-09-01T16:55:55.100543+00:00",
   "as_of_date": "2026-08-31",
   "as_of_date_note": "基準日 = 該日最後一根 daily close 的實際日期（T-1）· 例：2026-08-25 = Aug 25 收盤價 · 非腳本執行當日",
   "sector_count": 11,
@@ -87,10 +87,10 @@
       },
       "current_regime": "🟢 多頭",
       "current_conditions": {
-        "spy_price": 762.05,
+        "spy_price": 762.12,
         "spy_60d_ago": 735.65,
         "price_up_60d": true,
-        "ma50": 754.71,
+        "ma50": 754.72,
         "ma50_up": true,
         "ma200": 708.29,
         "ma200_up": true
