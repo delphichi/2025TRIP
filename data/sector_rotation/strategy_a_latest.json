@@ -1,29 +1,29 @@
 {
-  "generated_at": "2026-08-30T22:50:33.505128+00:00",
-  "as_of_date": "2026-08-28",
+  "generated_at": "2026-09-01T14:10:14.406627+00:00",
+  "as_of_date": "2026-08-31",
   "market_context": {
-    "as_of_date": "2026-08-28",
+    "as_of_date": "2026-08-31",
     "voo": {
-      "price": 707.24,
-      "vs_60d_pct": 2.3,
-      "ma50": 693.0,
-      "vs_50ma_pct": 2.05
+      "price": 704.89,
+      "vs_60d_pct": 1.56,
+      "ma50": 693.38,
+      "vs_50ma_pct": 1.66
     },
     "vix": {
-      "value": 14.43
+      "value": 14.92
     },
     "tnx": {
-      "value": 4.72,
-      "raw": 4.72
+      "value": 4.76,
+      "raw": 4.76
     },
     "trend_label": "🟢",
-    "vs_50ma_label": "🔥",
-    "quadrant_key": "🔥+🟢",
+    "vs_50ma_label": "🟡",
+    "quadrant_key": "🟡+🟢",
     "allocation": {
-      "core": 40,
-      "momentum": 35,
-      "sprint": 15,
-      "cash": 10
+      "core": 30,
+      "momentum": 25,
+      "sprint": 0,
+      "cash": 45
     },
     "vix_override_all_cash": false,
     "tnx_boost": [
@@ -37,47 +37,41 @@
       "XLU"
     ],
     "notes": [
-      "📈 TNX=4.72% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "📈 TNX=4.76% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ]
   },
   "effective_sectors": [
     {
-      "sector": "XLB",
-      "sector_name": "材料",
-      "composite_rank": 2,
-      "point_rank": 5,
-      "cms_a": 4.8,
-      "tnx_flag": null
-    },
-    {
-      "sector": "XLF",
-      "sector_name": "金融",
-      "composite_rank": 3,
-      "point_rank": 3,
-      "cms_a": 4.2,
-      "tnx_flag": "boost"
-    },
-    {
       "sector": "XLE",
       "sector_name": "能源",
-      "composite_rank": 4,
-      "point_rank": 2,
-      "cms_a": 1.8,
+      "composite_rank": 1,
+      "point_rank": 1,
+      "cms_a": 1.5,
       "tnx_flag": "boost"
-    }
-  ],
-  "demoted_sectors": [
+    },
     {
-      "sector": "XLK",
-      "sector_name": "資訊科技",
-      "reason": "TNX 濾網降級"
+      "sector": "XLV",
+      "sector_name": "醫療保健",
+      "composite_rank": 2,
+      "point_rank": 3,
+      "cms_a": 2.1,
+      "tnx_flag": "boost"
+    },
+    {
+      "sector": "XLB",
+      "sector_name": "材料",
+      "composite_rank": 3,
+      "point_rank": 6,
+      "cms_a": 4.1,
+      "tnx_flag": null
     }
   ],
+  "demoted_sectors": [],
   "allocation": {
-    "core": 40,
-    "momentum": 35,
-    "sprint": 15,
-    "cash": 10
+    "core": 30,
+    "momentum": 25,
+    "sprint": 0,
+    "cash": 45
   },
   "positions": {
     "core": [],
@@ -87,123 +81,128 @@
         "name": "Marathon Petroleum",
         "sector": "Energy",
         "sector_etf": "XLE",
-        "point": 61.95,
-        "cms_a": 1.0,
+        "point": 63.53,
+        "cms_a": 2.0,
         "di": 1.0,
-        "cum_ret_4w": 20.46,
-        "cum_ret_13w": 47.15,
-        "cum_ret_26w": 90.1,
+        "cum_ret_4w": 19.75,
+        "cum_ret_13w": 50.48,
+        "cum_ret_26w": 91.95,
         "vcp": false,
-        "vp_ratio_stock": 1.067,
-        "pct_from_high": -0.08,
-        "high_52w": 369.12,
+        "vp_ratio_stock": 1.076,
+        "pct_from_high": -0.86,
+        "high_52w": 376.56,
         "surprise_l1": 27.08,
         "surprise_l2": 120.63,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.07 + 4W +20.5%",
-        "weight_pct": 35.0
+        "reason": "TNX順風 + VP 1.08 + 4W +19.8%",
+        "weight_pct": 12.5
+      },
+      {
+        "symbol": "VEEV",
+        "name": "Veeva Systems",
+        "sector": "Health Care",
+        "sector_etf": "XLV",
+        "point": 55.63,
+        "cms_a": 2.4,
+        "di": 1.0,
+        "cum_ret_4w": 34.85,
+        "cum_ret_13w": 63.87,
+        "cum_ret_26w": 61.9,
+        "vcp": false,
+        "vp_ratio_stock": 1.387,
+        "pct_from_high": -7.99,
+        "high_52w": 310.5,
+        "surprise_l1": 5.77,
+        "surprise_l2": 4.91,
+        "pre_earnings_14d": false,
+        "tier": "momentum",
+        "reason": "TNX順風 + VP 1.39 + 4W +34.9%",
+        "weight_pct": 12.5
       }
     ],
     "sprint": [
-      {
-        "symbol": "PSX",
-        "name": "Phillips 66",
-        "sector": "Energy",
-        "sector_etf": "XLE",
-        "point": 44.48,
-        "cms_a": 2.5,
-        "di": 1.0,
-        "cum_ret_4w": 18.97,
-        "cum_ret_13w": 38.82,
-        "cum_ret_26w": 60.07,
-        "vcp": false,
-        "vp_ratio_stock": 0.963,
-        "pct_from_high": -1.19,
-        "high_52w": 246.95,
-        "surprise_l1": 25.45,
-        "surprise_l2": 225.68,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "CMS_A=2.5 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 3.75
-      },
-      {
-        "symbol": "FCX",
-        "name": "Freeport-McMoRan",
-        "sector": "Materials",
-        "sector_etf": "XLB",
-        "point": 15.69,
-        "cms_a": 3.3,
-        "di": 1.0,
-        "cum_ret_4w": 20.13,
-        "cum_ret_13w": 16.34,
-        "cum_ret_26w": 13.15,
-        "vcp": false,
-        "vp_ratio_stock": 1.176,
-        "pct_from_high": -4.72,
-        "high_52w": 80.24,
-        "surprise_l1": 18.5,
-        "surprise_l2": 21.95,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "CMS_A=3.3 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 3.75
-      },
-      {
-        "symbol": "VLO",
-        "name": "Valero Energy",
-        "sector": "Energy",
-        "sector_etf": "XLE",
-        "point": 53.91,
-        "cms_a": 3.5,
-        "di": 1.0,
-        "cum_ret_4w": 14.57,
-        "cum_ret_13w": 44.46,
-        "cum_ret_26w": 78.3,
-        "vcp": false,
-        "vp_ratio_stock": 0.98,
-        "pct_from_high": -0.18,
-        "high_52w": 353.0,
-        "surprise_l1": 23.84,
-        "surprise_l2": 33.47,
-        "pre_earnings_14d": false,
-        "tier": "sprint",
-        "reason": "CMS_A=3.5 靠前但缺 VCP 或非 TNX 順風",
-        "weight_pct": 3.75
-      },
       {
         "symbol": "MRNA",
         "name": "Moderna",
         "sector": "Health Care",
         "sector_etf": "XLV",
-        "point": 171.65,
+        "point": 172.51,
         "cms_a": 1.0,
         "di": 1.0,
-        "cum_ret_4w": 150.25,
-        "cum_ret_13w": 190.08,
-        "cum_ret_26w": 173.14,
+        "cum_ret_4w": 146.25,
+        "cum_ret_13w": 197.39,
+        "cum_ret_26w": 173.19,
         "vcp": false,
-        "vp_ratio_stock": 1.618,
-        "pct_from_high": -21.89,
+        "vp_ratio_stock": 1.675,
+        "pct_from_high": -20.56,
         "high_52w": 176.66,
         "surprise_l1": 4.33,
         "surprise_l2": 12.37,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "破格 · 全場 Point 最高(171.7)且領先池內第 3 名 50%+",
-        "weight_pct": 3.75
+        "reason": "距高點 -20.6% 深度反彈 · 只能衝刺"
+      },
+      {
+        "symbol": "APA",
+        "name": "APA Corporation",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 38.52,
+        "cms_a": 2.5,
+        "di": 1.0,
+        "cum_ret_4w": 20.53,
+        "cum_ret_13w": 19.28,
+        "cum_ret_26w": 57.13,
+        "vcp": false,
+        "vp_ratio_stock": 0.96,
+        "pct_from_high": -4.22,
+        "high_52w": 45.05,
+        "surprise_l1": 1.01,
+        "surprise_l2": 20.9,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "CMS_A=2.5 靠前但缺 VCP 或非 TNX 順風"
+      },
+      {
+        "symbol": "PSX",
+        "name": "Phillips 66",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 47.52,
+        "cms_a": 2.5,
+        "di": 1.0,
+        "cum_ret_4w": 20.4,
+        "cum_ret_13w": 40.94,
+        "cum_ret_26w": 64.37,
+        "vcp": false,
+        "vp_ratio_stock": 0.98,
+        "pct_from_high": -1.63,
+        "high_52w": 250.66,
+        "surprise_l1": 25.45,
+        "surprise_l2": 225.68,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "CMS_A=2.5 靠前但缺 VCP 或非 TNX 順風"
       }
     ],
     "hold_earnings": []
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 1,
-    "sprint_count": 4,
+    "momentum_count": 2,
+    "sprint_count": 3,
     "hold_count": 0
   },
-  "correlation_warnings": [],
+  "correlation_warnings": [
+    {
+      "kind": "low_corr_ok",
+      "sectors": [
+        "XLV"
+      ],
+      "msg": "✅ XLV 與多數板塊低相關 · 分散配置佳"
+    }
+  ],
   "dark_horses": [],
   "watchlist_promoted": [],
   "notes": [

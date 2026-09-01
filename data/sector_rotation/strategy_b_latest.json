@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-30T22:50:49.741413+00:00",
-  "as_of_date": "2026-08-30",
+  "generated_at": "2026-09-01T14:10:29.907411+00:00",
+  "as_of_date": "2026-08-31",
   "as_of_date_note": "T-1 · 抓到的最後一根 close 的日期（非腳本執行當日）",
   "scanned_count": 503,
-  "hits_count": 0,
+  "hits_count": 2,
   "conditions": {
     "daily_drop_pct": "< -5.0% （當日跌 > 5%）",
     "ma50_up": "50MA 向上（今日 MA > 6 天前 MA）",
@@ -16,6 +16,41 @@
     "不是進場當天立刻買 · 建議等大跌後量縮 · 量縮後放量再進場（策略 B 進場時機）",
     "trigger 訊號 · 不代表 all-in · 位置管理仍需搭配策略 A 的配置上限"
   ],
-  "hits": [],
-  "csv": null
+  "hits": [
+    {
+      "symbol": "PCG",
+      "name": "PG&E Corporation",
+      "sector": "Utilities",
+      "as_of_date": "2026-08-31",
+      "t_price": 13.27,
+      "prev_price": 16.6,
+      "daily_drop_pct": -20.06,
+      "ma50": 17.32,
+      "ma200": 16.75,
+      "ma50_up": true,
+      "ma200_up": true,
+      "rsi_14": 24.5,
+      "vol_today": 153932100,
+      "vol_20d_avg": 29762230,
+      "vol_ratio_vs_20d": 5.17
+    },
+    {
+      "symbol": "AON",
+      "name": "Aon plc",
+      "sector": "Financials",
+      "as_of_date": "2026-08-31",
+      "t_price": 321.52,
+      "prev_price": 355.4,
+      "daily_drop_pct": -9.53,
+      "ma50": 352.05,
+      "ma200": 336.51,
+      "ma50_up": true,
+      "ma200_up": true,
+      "rsi_14": 30.1,
+      "vol_today": 2433000,
+      "vol_20d_avg": 814035,
+      "vol_ratio_vs_20d": 2.99
+    }
+  ],
+  "csv": "20260831_strategy_b.csv"
 }
