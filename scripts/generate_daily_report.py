@@ -583,12 +583,47 @@ def render(scorecard, stage2, pattern):
         else: cls, tag = "down", "🔴"
         return f'<td class="n {cls}">{tag} {vf:.1f}%</td>'
 
+    def _divergence_scenario(breadth_ratio, etf_up_ratio):
+        """比對 個股多頭比 vs ETF 上漲天 · 判 5 種情境
+        Returns (emoji, label, tooltip)
+        """
+        if breadth_ratio is None or etf_up_ratio is None:
+            return ("—", "—", "資料不足")
+        b = float(breadth_ratio)          # 0-100
+        e = float(etf_up_ratio) * 100     # 0-100
+        diff = b - e                       # 正 = 個股領先, 負 = ETF 領先
+        if diff >= 15 and b >= 55:
+            return ("🔵", "健康補漲", f"個股寬度領先 ETF {diff:+.0f}% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選")
+        elif diff <= -15 and e >= 55:
+            return ("🟠", "多頭衰竭", f"ETF 上漲天領先個股寬度 {-diff:+.0f}% · 幾支權值股獨撐 · 中小型走弱 · 頂部背離警訊")
+        elif abs(diff) < 15 and b >= 55 and e >= 55:
+            return ("🟢", "齊步多頭", "個股 + ETF 一致偏多 · 健康趨勢")
+        elif abs(diff) < 15 and b < 45 and e < 45:
+            return ("🔴", "齊步空頭", "個股 + ETF 一致偏空 · 別接刀")
+        elif diff >= 15:
+            return ("🔵", "板塊分化", f"個股寬度領先 {diff:+.0f}% 但整體偏弱 · 板塊分化 · 個股層面找標的")
+        elif diff <= -15:
+            return ("🟠", "板塊分化", f"ETF 領先 {-diff:+.0f}% 但個股寬度弱 · 權值獨撐 · 對 ETF 小心")
+        else:
+            return ("⚪", "中性", "個股 + ETF 一致中性 · 觀望")
+
     breadth30_rows = []
     br_sorted = sorted(rows, key=lambda r: -(r.get("breadth_30d_ratio") or -1))
     for r in br_sorted:
         u = r.get("breadth_30d_up")
         d = r.get("breadth_30d_down")
         tot = (u or 0) + (d or 0)
+        etf_up = r.get("flow_up_ratio")
+        etf_up_pct = f"{etf_up*100:.0f}%" if etf_up is not None else "—"
+        emo, lbl, tip = _divergence_scenario(r.get("breadth_30d_ratio"), etf_up)
+        badge_cls = {
+            "健康補漲": "b-early_reversal",
+            "多頭衰竭": "b-overheated",
+            "齊步多頭": "b-sweet_spot",
+            "齊步空頭": "b-cold",
+            "板塊分化": "b-coiling",
+            "中性": "b-neutral",
+        }.get(lbl, "b-neutral")
         breadth30_rows.append(
             f'<tr>'
             f'<td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>'
@@ -596,6 +631,8 @@ def render(scorecard, stage2, pattern):
             f'<td class="n down">{d if d is not None else "—"}</td>'
             f'<td class="n dim">{tot}</td>'
             + _ratio_cell(r.get("breadth_30d_ratio"))
+            + f'<td class="n dim">{etf_up_pct}</td>'
+            + f'<td><span class="badge {badge_cls}" title="{escape(tip)}">{emo} {lbl}</span></td>'
             + '</tr>'
         )
     breadth30_html = f'''
@@ -608,11 +645,21 @@ def render(scorecard, stage2, pattern):
               <th class="n" title="過去 30 日 stage 2 個股 trend_state=多頭 累計次數">多頭訊號</th>
               <th class="n" title="過去 30 日 trend_state=空頭 累計">空頭訊號</th>
               <th class="n">總計</th>
-              <th class="n" title="up / (up+down) · 板塊過去 30 日訊號寬度">多頭比</th></tr>
+              <th class="n" title="up / (up+down) · 板塊過去 30 日訊號寬度">多頭比</th>
+              <th class="n" title="ETF 收盤上漲天數 % · 從資金流向表拉">ETF 上漲天</th>
+              <th title="比對 個股多頭比 vs ETF 上漲天 · 判 5 種情境">背離判定</th></tr>
         </thead>
         <tbody>{"".join(breadth30_rows)}</tbody>
       </table>
-      <div class="dim" style="padding:8px 14px;font-size:11px;">🟢 ≥70% 強勢上升 · 🔵 ≥55% 上升主導 · ⚪ 中性 · 🔴 &lt;45% 空頭主導</div>
+      <div class="dim" style="padding:8px 14px;font-size:11px;line-height:1.6;">
+        <b>多頭比：</b>🟢 ≥70% 強勢上升 · 🔵 ≥55% 上升主導 · ⚪ 中性 · 🔴 &lt;45% 空頭主導<br>
+        <b>背離判定（個股多頭比 vs ETF 上漲天）：</b>
+        <span style="color:#1e40af;">🔵 <b>健康補漲</b></span> 個股領先≥15% + 偏多 · 等權值 catch up ·
+        <span style="color:#991b1b;">🟠 <b>多頭衰竭</b></span> ETF 領先≥15% + 表面強 · 權值獨撐 頂部背離 ·
+        <span style="color:#166534;">🟢 <b>齊步多頭</b></span> 兩者一致偏多 ·
+        <span style="color:#475569;">🔴 <b>齊步空頭</b></span> 兩者一致偏空 ·
+        <span style="color:#92400e;">🟠 <b>板塊分化</b></span> 差距大但整體弱 · 板塊分化
+      </div>
     </div>
   </div>'''
 
