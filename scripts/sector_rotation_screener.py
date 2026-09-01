@@ -296,6 +296,43 @@ def add_explosive_verdict(df):
     return df
 
 
+def flag_new_signal_3d(df):
+    """
+    3 日內新訊號旗標（Trend Core 靈感）
+    若個股今日有 explosive_verdict flag · 且前 3 天沒同一 flag → is_new_signal_3d=True
+    避免每天顯示同一批 3 個月前就 flag 的股 · 只 highlight「今天剛跳出」的
+    """
+    import glob, os
+    if not len(df):
+        return df
+    df = df.copy()
+    outdir = "data/sector_rotation"
+    files = sorted(glob.glob(os.path.join(outdir, "*_all.csv")))
+    stamp_today = str(df["as_of_date"].iloc[0]).replace("-", "") if "as_of_date" in df.columns else ""
+    files = [f for f in files if stamp_today not in os.path.basename(f)]
+    recent = files[-3:]  # 前 3 天
+    prev_flags = {}  # {symbol: set of past flags}
+    for fp in recent:
+        try:
+            h = pd.read_csv(fp, usecols=["symbol", "explosive_verdict"])
+            for _, r in h.iterrows():
+                v = r.get("explosive_verdict")
+                if isinstance(v, str) and v:
+                    prev_flags.setdefault(r["symbol"], set()).add(v)
+        except Exception:
+            continue
+
+    def _is_new(row):
+        v = row.get("explosive_verdict")
+        if not isinstance(v, str) or not v:
+            return False
+        past = prev_flags.get(row["symbol"], set())
+        # 「新」= 今日有 flag · 前 3 天沒同一 flag
+        return v not in past
+    df["is_new_signal_3d"] = df.apply(_is_new, axis=1)
+    return df
+
+
 def _pv_verdict(pv4, pv13, pv26):
     """
     三期 pv_state 綜合判定 · 越具體 rule 排越前
@@ -1197,6 +1234,8 @@ def main():
 
     # (4d) 【v6 新增】暴漲判定 · 綜合 momentum + Dow + pv + VCP 4 訊號
     full_df = add_explosive_verdict(full_df)
+    # (4e) 【新增】3 日內新訊號旗標（Trend Core 靈感 · 「今日剛跳出」）
+    full_df = flag_new_signal_3d(full_df)
 
     # (5) 盈餘動能篩選（只對預篩過的 subset）
     subset = full_df[full_df["symbol"].isin(pre_syms)].copy()

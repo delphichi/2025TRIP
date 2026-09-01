@@ -311,11 +311,24 @@ def render(scorecard, stage2, pattern):
         zh = r.get("health_zh") or "—"
         acc = r.get("acceleration")
         acc_cls = "up" if (acc or 0) > 0 else ("down" if (acc or 0) < 0 else "flat")
+        # 連續正天數 · 灰底 · > 10 天加 🔥
+        cons_days = r.get("consecutive_pos_days")
+        if cons_days is None:
+            cons_str = "—"
+        elif cons_days == 0:
+            cons_str = '<span class="dim">0</span>'
+        elif cons_days >= 10:
+            cons_str = f'<span style="color:var(--green);font-weight:700;">🔥 {cons_days}</span>'
+        elif cons_days >= 5:
+            cons_str = f'<span style="color:var(--green);font-weight:600;">{cons_days}</span>'
+        else:
+            cons_str = f'<span>{cons_days}</span>'
         return f'''
         <tr>
           <td><b>{escape(r["sector_name"])}</b> <span class="dim">{escape(r["sector"])}</span></td>
           <td class="n">{num(r.get("point"), 2)}</td>
           <td class="n {acc_cls}">{num(acc, 2, sign=True)}</td>
+          <td class="n">{cons_str}</td>
           <td class="n">{r.get("pct_30d") if r.get("pct_30d") is not None else "—"}</td>
           <td class="n">{r.get("pct_90d") if r.get("pct_90d") is not None else "—"}</td>
           <td class="n">{r.get("pct_365d") if r.get("pct_365d") is not None else "—"}</td>
@@ -340,7 +353,10 @@ def render(scorecard, stage2, pattern):
                 c26 = r.get("cum_ret_26w") or ""
                 try: c26_s = f"{float(c26):+.0f}%" if c26 != "" else ""
                 except: c26_s = ""
-                lis.append(f'<li><span><b>{sym}</b> <span class="sec">{sec}</span></span><span class="dim">{pt_s} · 26W {c26_s}</span></li>')
+                # 3 日內新訊號 🆕
+                is_new = str(r.get("is_new_signal_3d") or "").lower() in ("true", "1")
+                new_badge = ' <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span>' if is_new else ''
+                lis.append(f'<li><span><b>{sym}</b>{new_badge} <span class="sec">{sec}</span></span><span class="dim">{pt_s} · 26W {c26_s}</span></li>')
             body = '<ul>' + ''.join(lis) + '</ul>'
             if cnt > limit:
                 body += f'<div class="dim" style="font-size:10.5px;margin-top:4px;">... 另 {cnt - limit} 支</div>'
@@ -356,6 +372,57 @@ def render(scorecard, stage2, pattern):
       {_exp_list_html(exp_risk, "risk", "🔥 追高風險")}
     </div>
     '''
+
+    # 【新增】歷史 regime 統計卡片（Trend Core 靈感）
+    regime_stats = market_ctx.get("regime_stats") or {}
+    current_regime = regime_stats.get("current_regime") or "—"
+    cur_stats = regime_stats.get("current") or {}
+    cur_conds = regime_stats.get("current_conditions") or {}
+    hist_all = regime_stats.get("historical") or {}
+    if cur_stats:
+        # 4 regime 對照小表
+        rows_r = []
+        for regime_name in ["🟢 多頭", "🟡 中性", "🟠 警戒", "🔴 空頭"]:
+            s = hist_all.get(regime_name)
+            if not s: continue
+            is_cur = "background:#fef3c7;font-weight:700;" if regime_name == current_regime else ""
+            rows_r.append(
+                f'<tr style="{is_cur}"><td>{regime_name}</td>'
+                f'<td class="n">{s["n"]}</td>'
+                f'<td class="n {"up" if s["mean"]>0 else "down"}">{s["mean"]:+.2f}%</td>'
+                f'<td class="n">{s["win_rate"]:.1f}%</td>'
+                f'<td class="n dim">{s["p25"]:+.1f} / {s["p50"]:+.1f} / {s["p75"]:+.1f}</td>'
+                f'<td class="n dim">{s["worst"]:+.1f} ~ {s["best"]:+.1f}</td>'
+                f'</tr>'
+            )
+        conds_str = (
+            f'SPY {cur_conds.get("spy_price","?")} vs 60d 前 {cur_conds.get("spy_60d_ago","?")} '
+            f'({"↑" if cur_conds.get("price_up_60d") else "↓"}) · '
+            f'50MA {cur_conds.get("ma50","?")} ({"↑" if cur_conds.get("ma50_up") else "↓"}) · '
+            f'200MA {cur_conds.get("ma200","?")} ({"↑" if cur_conds.get("ma200_up") else "↓"})'
+        )
+        regime_stats_html = f'''
+  <div class="card">
+    <div class="card-h">📈 歷史相同市況統計 <span class="n">SPY 10y · 4 級 regime</span></div>
+    <div class="card-b">
+      <div style="background:#fef3c7;padding:10px 14px;border-radius:8px;margin-bottom:10px;border-left:4px solid var(--gold);">
+        <div style="font-size:13px;"><b>今日：{current_regime}</b> · 歷史出現 <b>{cur_stats["n"]}</b> 次</div>
+        <div style="font-size:14px;margin-top:6px;">
+          SPY 20 日後 · 平均 <span class="{"up" if cur_stats["mean"]>0 else "down"}"><b>{cur_stats["mean"]:+.2f}%</b></span>
+          · 勝率 <b>{cur_stats["win_rate"]:.1f}%</b>
+        </div>
+        <div class="dim" style="margin-top:4px;font-size:11px;">{conds_str}</div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Regime</th><th class="n">n</th><th class="n">平均 20d</th><th class="n">勝率</th><th class="n">P25/P50/P75</th><th class="n">最差~最好</th></tr>
+        </thead>
+        <tbody>{"".join(rows_r)}</tbody>
+      </table>
+    </div>
+  </div>'''
+    else:
+        regime_stats_html = ""
 
     # market snapshot
     voo = market_ctx.get("voo") or {}
@@ -654,12 +721,14 @@ def render(scorecard, stage2, pattern):
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
-          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th><th class="n">30d</th><th class="n">90d</th><th class="n">365d</th><th class="n">寬度</th><th>健康度</th></tr>
+          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th><th class="n" title="Point > 0 連續天數 · 抓動能持續">連續</th><th class="n">30d</th><th class="n">90d</th><th class="n">365d</th><th class="n">寬度</th><th>健康度</th></tr>
         </thead>
         <tbody>{sec_rows_html}</tbody>
       </table>
     </div>
   </div>
+
+  {regime_stats_html}
 
   <div class="foot">
     <div class="conf">

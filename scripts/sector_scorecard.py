@@ -333,6 +333,40 @@ def add_acceleration_and_quadrant(df, as_of):
     df["quadrant_zh"] = quad.apply(lambda x: x["zh"])
     df["quadrant_desc"] = quad.apply(lambda x: x["desc"])
 
+    # === 新增 · 連續正天數（Trend Core 靈感 · 抓「動能持續」）===
+    # 讀更長歷史（60 天）算連續正天數
+    all_files = sorted(glob.glob(os.path.join(OUTDIR, "*_scorecard.csv")))
+    all_files = [f for f in all_files if stamp_today not in os.path.basename(f)]
+    long_recent = all_files[-60:]
+    # {sector: [(date, point), ...] 由舊到新}
+    sec_hist_pts = {s: [] for s in df["sector"]}
+    for fp in long_recent:
+        try:
+            fname = os.path.basename(fp)
+            date_str = fname.split("_")[0]  # YYYYMMDD
+            h = pd.read_csv(fp, usecols=["sector", "point"])
+            for _, r in h.iterrows():
+                if r["sector"] in sec_hist_pts:
+                    sec_hist_pts[r["sector"]].append((date_str, float(r["point"])))
+        except Exception:
+            continue
+
+    def _count_consecutive_pos(sector, today_point):
+        """從今日回推 · 算連續正天數（不含今日 · 若今日正則 +1）"""
+        hist = sec_hist_pts.get(sector, [])
+        hist_sorted = sorted(hist, key=lambda x: x[0])
+        cnt = 1 if today_point > 0 else 0
+        if today_point > 0:
+            for _, pt in reversed(hist_sorted):
+                if pt > 0:
+                    cnt += 1
+                else:
+                    break
+        return cnt
+    df["consecutive_pos_days"] = df.apply(
+        lambda r: _count_consecutive_pos(r["sector"], r["point"]), axis=1
+    )
+
     # 找出今日最大位移（|acceleration| 最大 · 且有 quadrant 變化的 sector）
     biggest = None
     valid = df[df["acceleration"].notna()].copy()
@@ -543,6 +577,100 @@ def fetch_market_context():
         a = ctx["allocation"]
         log(f"  · 配置上限：核心 {a['core']}% / 動能 {a['momentum']}% / 衝刺 {a['sprint']}% / 現金 {a['cash']}%")
     return ctx
+
+
+def compute_regime_stats():
+    """
+    對 SPY 全歷史（10y）· 逐日標 4 級市況 · 計算後 20 交易日 SPY 表現
+    Regime 定義（跟 GAS v2.6.4 對齊）:
+      3 條件：SPY > 60d 前價 · 50MA 向上 · 200MA 向上
+      🟢 多頭 3T · 🟡 中性 2T · 🟠 警戒 1T · 🔴 空頭 0T
+    回傳 dict: {historical: {regime: stats}, current_regime: str, current_conditions: dict}
+    """
+    import yfinance as yf
+    import numpy as np
+    log("Computing regime historical stats (SPY 10y)...")
+    try:
+        spy = yf.download("SPY", period="10y", interval="1d",
+                          auto_adjust=True, progress=False, threads=True)
+    except Exception as e:
+        log(f"  ⚠ SPY history fetch failed: {e}")
+        return None
+    if spy is None or len(spy) < 400:
+        return None
+    if isinstance(spy.columns, pd.MultiIndex):
+        spy.columns = [c[0] if isinstance(c, tuple) else c for c in spy.columns]
+    close = spy["Close"].dropna()
+    if len(close) < 400:
+        return None
+    ma50 = close.rolling(50).mean()
+    ma200 = close.rolling(200).mean()
+    stats = {"🟢 多頭": [], "🟡 中性": [], "🟠 警戒": [], "🔴 空頭": []}
+    n = len(close)
+
+    def _regime(price, price60d, m50, m50prev, m200, m200prev):
+        up = int(price > price60d) + int(m50 > m50prev) + int(m200 > m200prev)
+        if up == 3: return "🟢 多頭", up
+        if up == 2: return "🟡 中性", up
+        if up == 1: return "🟠 警戒", up
+        return "🔴 空頭", up
+
+    for i in range(210, n - 20):
+        price = float(close.iloc[i])
+        price60d = float(close.iloc[i - 60])
+        m50, m50prev = float(ma50.iloc[i]), float(ma50.iloc[i - 1])
+        m200, m200prev = float(ma200.iloc[i]), float(ma200.iloc[i - 1])
+        if any(pd.isna([m50, m50prev, m200, m200prev])):
+            continue
+        regime, _ = _regime(price, price60d, m50, m50prev, m200, m200prev)
+        fwd_20d = (float(close.iloc[i + 20]) - price) / price * 100
+        stats[regime].append(fwd_20d)
+
+    hist = {}
+    for regime, rets in stats.items():
+        if not rets:
+            hist[regime] = None
+            continue
+        arr = np.array(rets)
+        hist[regime] = {
+            "n": len(arr),
+            "mean": round(float(arr.mean()), 2),
+            "win_rate": round(float((arr > 0).mean() * 100), 1),
+            "p25": round(float(np.percentile(arr, 25)), 2),
+            "p50": round(float(np.percentile(arr, 50)), 2),
+            "p75": round(float(np.percentile(arr, 75)), 2),
+            "worst": round(float(arr.min()), 2),
+            "best": round(float(arr.max()), 2),
+        }
+    for r, d in hist.items():
+        if d:
+            log(f"  · {r} · n={d['n']:4d} · 20d 均 {d['mean']:+.2f}% · 勝率 {d['win_rate']:.1f}%")
+
+    # 今日 regime（用最新一根 bar）
+    i_last = n - 1
+    price = float(close.iloc[i_last])
+    price60d = float(close.iloc[i_last - 60])
+    m50 = float(ma50.iloc[i_last])
+    m50prev = float(ma50.iloc[i_last - 1])
+    m200 = float(ma200.iloc[i_last])
+    m200prev = float(ma200.iloc[i_last - 1])
+    current_regime, up = _regime(price, price60d, m50, m50prev, m200, m200prev)
+    log(f"  · 今日 SPY regime: {current_regime} (up_count={up})")
+
+    return {
+        "historical": hist,
+        "current_regime": current_regime,
+        "current_conditions": {
+            "spy_price": round(price, 2),
+            "spy_60d_ago": round(price60d, 2),
+            "price_up_60d": price > price60d,
+            "ma50": round(m50, 2),
+            "ma50_up": m50 > m50prev,
+            "ma200": round(m200, 2),
+            "ma200_up": m200 > m200prev,
+        },
+        "current": hist.get(current_regime),
+    }
 
 
 # ============================================================
@@ -771,6 +899,14 @@ def main():
     except Exception as e:
         log(f"⚠ 市場環境抓取失敗（不影響 sector 評分）: {e}")
         market_ctx = None
+
+    # 歷史 regime 統計（Trend Core 靈感 · 「同市況 N 次」）
+    try:
+        regime_stats = compute_regime_stats()
+        if regime_stats and market_ctx is not None:
+            market_ctx["regime_stats"] = regime_stats
+    except Exception as e:
+        log(f"⚠ regime 歷史統計失敗（不影響 sector 評分）: {e}")
 
     rows = []
     for ticker, name_zh, name_en in SECTORS:
