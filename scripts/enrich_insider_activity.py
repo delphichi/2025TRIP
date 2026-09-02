@@ -61,24 +61,24 @@ def fetch_insider(symbol, cutoff_days=90):
                 break
         if date_col is None:
             return None
-        tr = tr.copy()
+        tr = tr.copy().reset_index(drop=True)
         tr["_dt"] = pd.to_datetime(tr[date_col], errors="coerce")
         cutoff = pd.Timestamp.now() - pd.Timedelta(days=cutoff_days)
-        recent = tr[tr["_dt"] >= cutoff].copy()
+        recent = tr[tr["_dt"] >= cutoff].copy().reset_index(drop=True)
         if len(recent) == 0:
             return None
 
-        # 標準化 Transaction/Value/Insider/Position 欄
-        def col(*names, default=""):
+        # 標準化 Transaction/Value/Insider/Position 欄 · 用 df.index 避 assignment 失敗
+        def col(df, *names, default=""):
             for n in names:
-                if n in recent.columns:
-                    return recent[n]
-            return pd.Series([default] * len(recent))
+                if n in df.columns:
+                    return df[n]
+            return pd.Series([default] * len(df), index=df.index)
 
-        recent["_txn"] = col("Transaction", "transaction").astype(str)
-        recent["_val"] = pd.to_numeric(col("Value", "value"), errors="coerce").fillna(0)
-        recent["_ins"] = col("Insider", "insider").astype(str)
-        recent["_pos"] = col("Position", "position").astype(str)
+        recent["_txn"] = col(recent, "Transaction", "transaction").astype(str)
+        recent["_val"] = pd.to_numeric(col(recent, "Value", "value"), errors="coerce").fillna(0)
+        recent["_ins"] = col(recent, "Insider", "insider").astype(str)
+        recent["_pos"] = col(recent, "Position", "position").astype(str)
 
         # 分類 buy / sell（Yahoo 慣用 "Purchase" "Sale"）
         buys = recent[recent["_txn"].str.contains("Purchase|Buy", case=False, na=False)]
