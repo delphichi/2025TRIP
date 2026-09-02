@@ -48,6 +48,19 @@ def load_json(p):
         return json.load(f)
 
 
+def load_insider_data():
+    """讀 insider_latest.json · 回傳 {symbol: {net_M, buy_cnt, top_officer_cnt, top_buyer, top_title}}"""
+    p = os.path.join(DATA_DIR, "insider_latest.json")
+    if not os.path.exists(p):
+        return {}
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            payload = json.load(f) or {}
+        return payload.get("data", {}) or {}
+    except Exception:
+        return {}
+
+
 def load_all_csv_verdicts(as_of):
     """
     讀 YYYYMMDD_all.csv · 抽 explosive_verdict != "" 的股票
@@ -244,6 +257,35 @@ def render(scorecard, stage2, pattern):
     as_of = scorecard["as_of_date"]
     # 【v6】讀 all.csv 拿全 universe explosive_verdict
     exp_buckets = load_all_csv_verdicts(as_of)
+    insider_data = load_insider_data()
+
+    def _insider_badge(sym, compact=True):
+        """回傳 HTML badge 或空字串 · sym: stock symbol · compact=True 為個股表用縮小"""
+        d = insider_data.get(sym)
+        if not d:
+            return ""
+        net = float(d.get("net_M", 0))
+        top_officer_cnt = int(d.get("top_officer_cnt", 0))
+        top_officer_val = float(d.get("top_officer_buy_M", 0))
+        buyer = escape(d.get("top_buyer") or "")
+        title = escape(d.get("top_title") or "")
+        tip = f"近 90 天內部人淨 {net:+.2f}M · buy {d.get('buy_cnt',0)}/sell {d.get('sell_cnt',0)} · top officers {top_officer_cnt} (${top_officer_val:+.2f}M) · Top buyer: {buyer} {title}"
+        # 分 4 級
+        if net >= 1.0 and top_officer_cnt >= 1:
+            bg, fg, emo = "#dcfce7", "#166534", "🔥"
+        elif net >= 0.3 and top_officer_cnt >= 1:
+            bg, fg, emo = "#dcfce7", "#166534", "👔"
+        elif net >= 0.1:
+            bg, fg, emo = "#dbeafe", "#1e40af", "▲"
+        elif net <= -1.0:
+            bg, fg, emo = "#fee2e2", "#991b1b", "▼"
+        else:
+            return ""  # 太小 · 不 badge
+        sz = "9px" if compact else "10.5px"
+        pad = "1px 5px" if compact else "2px 8px"
+        return (f'<span style="background:{bg};color:{fg};padding:{pad};border-radius:6px;'
+                f'font-size:{sz};font-weight:700;margin-left:4px;" title="{tip}">'
+                f'{emo}{net:+.1f}M</span>')
     market_ctx = scorecard.get("market_context") or {}
     biggest = scorecard.get("quadrant_biggest_mover")
     rows = scorecard["rows"]
@@ -757,9 +799,10 @@ def render(scorecard, stage2, pattern):
         price = s["_t_price"]
         cls5 = "up" if ret5 > 0 else ("down" if ret5 < 0 else "flat")
         cls20 = "up" if ret20 > 0 else ("down" if ret20 < 0 else "flat")
+        badge = _insider_badge(s.get("symbol"), compact=True)
         return (
             f'<tr>'
-            f'<td><b>{sym}</b> <span class="dim" style="font-size:11px;">{name}</span></td>'
+            f'<td><b>{sym}</b>{badge} <span class="dim" style="font-size:11px;">{name}</span></td>'
             f'<td class="n">{price:.2f}</td>'
             f'<td class="n {cls5}">{ret5:+.1f}%</td>'
             f'<td class="n {cls20}">{ret20:+.1f}%</td>'
@@ -892,9 +935,10 @@ def render(scorecard, stage2, pattern):
         cls5 = "up" if ret5 > 0 else ("down" if ret5 < 0 else "flat")
         cls20 = "up" if ret20 > 0 else ("down" if ret20 < 0 else "flat")
         weight_col = f'<td class="n">{extra_col}</td>' if extra_col else ""
+        badge = _insider_badge(s.get("symbol"), compact=True)
         return (
             f'<tr>'
-            f'<td><b>{sym}</b></td>'
+            f'<td><b>{sym}</b>{badge}</td>'
             f'<td class="dim" style="font-size:11px;">{sec_zh} {sec_etf}</td>'
             f'<td class="n {cls5}">{ret5:+.1f}%</td>'
             f'<td class="n {cls20}">{ret20:+.1f}%</td>'
@@ -984,10 +1028,73 @@ def render(scorecard, stage2, pattern):
       <div class="dim" style="font-size:10.5px;margin-top:10px;line-height:1.5;">
         <b>方法論</b>：組合 A 從「主升段龍頭 + 剛啟動」中挑 5d 正的 → 追爆發動能 ·
         組合 B 從 27 支每 sector 挑 ud 最高一支 → 跨 sector 均衡 ·
-        組合 C 從 20d &lt; 8% 但 ud ≥ 1.5 的 → 尚未起漲但已 accumulation 的候選
+        組合 C 從 20d &lt; 8% 但 ud ≥ 1.5 的 → 尚未起漲但已 accumulation 的候選<br>
+        <b>👔 內部人加持 badge</b>（近 90 天 SEC Form 4 · Yahoo Finance）：
+        <span style="background:#dcfce7;color:#166534;padding:1px 5px;border-radius:6px;font-size:10px;">🔥 ≥+1M + officer buy</span> 極強 ·
+        <span style="background:#dcfce7;color:#166534;padding:1px 5px;border-radius:6px;font-size:10px;">👔 ≥+0.3M + officer</span> 強 ·
+        <span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-size:10px;">▲ ≥+0.1M</span> 中 ·
+        <span style="background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-size:10px;">▼ ≤-1M</span> 派發警訊
       </div>
     </div>
   </div>'''
+
+    # 【新 v2】內部人買入 Top summary（獨立卡 · 過濾整個 pool）
+    def _build_insider_top():
+        if not insider_data:
+            return ""
+        items = []
+        for sym, d in insider_data.items():
+            net = float(d.get("net_M", 0))
+            if net < 0.1: continue
+            items.append({"symbol": sym, **d})
+        if not items:
+            return ""
+        # Top 10 by net_M
+        items.sort(key=lambda x: -x["net_M"])
+        rows_html = []
+        for it in items[:15]:
+            sym = escape(it["symbol"])
+            net = it["net_M"]
+            buy = it.get("buy_cnt", 0)
+            sell = it.get("sell_cnt", 0)
+            ofc = it.get("top_officer_cnt", 0)
+            ofc_val = it.get("top_officer_buy_M", 0)
+            buyer = escape((it.get("top_buyer") or "")[:22])
+            title = escape((it.get("top_title") or "")[:22])
+            cls = "up" if net > 0 else "down"
+            ofc_cell = f'<span class="up">{ofc} (${ofc_val:+.2f}M)</span>' if ofc else '<span class="dim">—</span>'
+            rows_html.append(
+                f'<tr>'
+                f'<td><b>{sym}</b></td>'
+                f'<td class="n {cls}"><b>${net:+.2f}M</b></td>'
+                f'<td class="n dim">{buy}/{sell}</td>'
+                f'<td class="n">{ofc_cell}</td>'
+                f'<td class="dim" style="font-size:11px;">{buyer}</td>'
+                f'<td class="dim" style="font-size:11px;">{title}</td>'
+                f'</tr>'
+            )
+        return f'''
+  <div class="card">
+    <div class="card-h">👔 內部人買入 Top 15 <span class="n">近 90 天 SEC Form 4 · pool {len(insider_data)} 支</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Symbol</th>
+              <th class="n" title="淨買 - 賣 · 單位百萬">淨買 $M</th>
+              <th class="n" title="90 天 buy 筆數 / sell 筆數">buy/sell</th>
+              <th class="n" title="決策層買入 (CEO/CFO/President/Chairman/COO/10%)">Top Officer</th>
+              <th>Top Buyer</th><th>Title</th></tr>
+        </thead>
+        <tbody>{"".join(rows_html)}</tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;">
+        <b>資料源</b>：Yahoo Finance insider_transactions (SEC Form 4 aggregated) · 只 enrich pool 內候選（ud≥1.5 + 上漲天≥12） ·
+        <b>決策層</b>買入權重最高 · Purchase code = 開市買入 (最有信息含量) · 過濾了 10b5-1 計劃性交易外的自主買入
+      </div>
+    </div>
+  </div>'''
+
+    insider_top_html = _build_insider_top()
 
     # 【新 v2】30 日訊號比（Trend Core 板塊市場寬度 靈感）
     def _ratio_cell(v):
@@ -1499,6 +1606,8 @@ def render(scorecard, stage2, pattern):
   {per_sec_html}
 
   {playbook_html}
+
+  {insider_top_html}
 
   {breadth30_html}
 
