@@ -1,0 +1,2 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+DELL,Dell Technologies,Information Technology,2026-09-01,425.0,456.01,-6.8,433.96,247.09,True,True,32.7,15948000,5407165,2.95
