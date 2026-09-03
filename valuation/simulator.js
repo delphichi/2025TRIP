@@ -1446,6 +1446,51 @@
             if (Array.isArray(fmpBalanceSheet.roicSeries) && fmpBalanceSheet.roicSeries.length > 0) {
                 fundamentals.roicSeries = fmpBalanceSheet.roicSeries;
             }
+
+            // 金融股專屬指標 panel 的 ROE / 淨利 CV / 股本 YoY —— 之前只有 FinMind（台股）路徑會算 ·
+            // FMP（美股）路徑完全沒填 · JPM 這種美股金融股查出來這 3 格全空白 · 這裡補上
+            //   複用同一份 rawIncomeQuarterly（已經在 fetchFmpFundamentals 存進 fundamentals）+ 這裡的 fmpBalanceSheet.equity
+            const rawQ = fundamentals && fundamentals.rawIncomeQuarterly;
+            if (Array.isArray(rawQ) && rawQ.length > 0) {
+                // ROE：TTM 淨利 ÷ 最新一期權益（跟 TW 版 FinMind 同方法論）
+                const equity = fmpBalanceSheet.equity;
+                if (equity && equity > 0 && rawQ.length >= 4) {
+                    let ttmNi = 0, validQ = 0;
+                    for (let i = 0; i < 4; i++) {
+                        const ni = rawQ[i] && rawQ[i].netIncome;
+                        if (ni !== null && ni !== undefined && isFinite(ni)) { ttmNi += ni; validQ++; }
+                    }
+                    if (validQ === 4) {
+                        fundamentals.roe = (ttmNi / equity) * 100;
+                        fundamentals.roeBreakdown = { ttmNetIncome: ttmNi, equity, equityDate: fmpBalanceSheet.date, method: 'FMP TTM' };
+                    }
+                }
+                // 淨利 CV：FMP 免費 tier 通常只給 5 季 · 沒辦法像 TW 版湊 3 年年度資料 ·
+                //   改用「近 4-8 季單季淨利」的標準差/平均（跟 TW 版年度基礎不同 · 不能直接跨市場比較 · tooltip 有註明）
+                const niVals = rawQ.slice(0, 8).map(r => r && r.netIncome).filter(v => v !== null && v !== undefined && isFinite(v));
+                if (niVals.length >= 4) {
+                    const mean = niVals.reduce((a, b) => a + b, 0) / niVals.length;
+                    if (mean > 0) {
+                        const variance = niVals.reduce((a, b) => a + (b - mean) ** 2, 0) / niVals.length;
+                        fundamentals.netIncomeCV = (Math.sqrt(variance) / mean) * 100;
+                        fundamentals.netIncomeCVBasis = 'quarterly';   // 跟 TW annual 版區分 · render 層顯示不同單位說明
+                        fundamentals.netIncomeCVSamples = niVals.length;
+                    }
+                } else {
+                    fundamentals.netIncomeCVInsufficientReason = `FMP 免費 tier 只 ${rawQ.length} 季資料 · 不足 4 季無法算 CV`;
+                }
+                // 股本 YoY：weightedAverageShsOutDil 最新一季 vs 4 季前（真 YoY，不用 QoQ fallback）
+                const sharesField = r => (r && (r.weightedAverageShsOutDil ?? r.weightedAverageShsOut)) ?? null;
+                const sharesLatest = sharesField(rawQ[0]);
+                const sharesYearAgo = rawQ.length >= 5 ? sharesField(rawQ[4]) : null;
+                if (sharesLatest && sharesYearAgo && sharesYearAgo > 0) {
+                    fundamentals.shareCapYoY = ((sharesLatest / sharesYearAgo) - 1) * 100;
+                } else if (rawQ.length < 5) {
+                    fundamentals.shareCapYoYInsufficientReason = `FMP 免費 tier 只 ${rawQ.length} 季 · 需要滿 5 季才有真 YoY 對照點`;
+                } else {
+                    fundamentals.shareCapYoYInsufficientReason = 'FMP 這支股票沒回傳 weightedAverageShsOutDil 欄位';
+                }
+            }
         }
 
         // Feature · 內部人持股變化 + 配息歷史 + 13F 機構持股 attach 到 fundamentals
@@ -4259,8 +4304,14 @@
                     <div class="bs-metric" title="Price / Book"><div class="bs-metric-label">P/B</div><div class="bs-metric-val">${fmtNum(pbr)}×</div></div>
                     <div class="bs-metric" title="BV per share = 權益 / 股數（股本 / 10）· 若無 fallback price / PBR"><div class="bs-metric-label">BV / share</div><div class="bs-metric-val">${bvps !== null ? '$' + bvps.toFixed(2) : '—'}</div></div>
                     <div class="bs-metric" title="TTM PE"><div class="bs-metric-label">P/E</div><div class="bs-metric-val">${fmtNum(pe)}×</div></div>
-                    <div class="bs-metric" title="近 ${(fund?.netIncomeYears) || 3}Y 年淨利標準差 ÷ 平均 · &lt; 20% 穩 &gt; 40% 波動大"><div class="bs-metric-label">淨利 CV</div><div class="bs-metric-val">${(niCV !== null && niCV !== undefined && isFinite(niCV)) ? niCV.toFixed(0) + '%' : '—'}</div></div>
-                    <div class="bs-metric" title="股本年增 · 抓稀釋速度"><div class="bs-metric-label">股本 YoY</div><div class="bs-metric-val">${(scYoY !== null && scYoY !== undefined && isFinite(scYoY)) ? (scYoY > 0 ? '+' : '') + scYoY.toFixed(1) + '%' : '—'}</div></div>
+                    <div class="bs-metric" title="${fund?.netIncomeCVBasis === 'quarterly' ? `近 ${fund?.netIncomeCVSamples || 4}-8 季單季淨利標準差 ÷ 平均（FMP 免費 tier 湊不出 3 年年度資料的替代算法 · 跟台股年度基礎版不能直接跨市場比較）` : `近 ${(fund?.netIncomeYears) || 3}Y 年淨利標準差 ÷ 平均`} · &lt; 20% 穩 &gt; 40% 波動大">
+                        <div class="bs-metric-label">淨利 CV${fund?.netIncomeCVBasis === 'quarterly' ? '<span style="font-weight:400;font-size:9px;">(季)</span>' : ''}</div>
+                        <div class="bs-metric-val">${(niCV !== null && niCV !== undefined && isFinite(niCV)) ? niCV.toFixed(0) + '%' : (fund?.netIncomeCVInsufficientReason ? `<span style="font-size:10px;font-weight:400;color:#9ca3af;">${fund.netIncomeCVInsufficientReason}</span>` : '—')}</div>
+                    </div>
+                    <div class="bs-metric" title="股本年增 · 抓稀釋速度（weightedAverageShsOutDil 真 YoY）">
+                        <div class="bs-metric-label">股本 YoY</div>
+                        <div class="bs-metric-val">${(scYoY !== null && scYoY !== undefined && isFinite(scYoY)) ? (scYoY > 0 ? '+' : '') + scYoY.toFixed(1) + '%' : (fund?.shareCapYoYInsufficientReason ? `<span style="font-size:10px;font-weight:400;color:#9ca3af;">${fund.shareCapYoYInsufficientReason}</span>` : '—')}</div>
+                    </div>
                 </div>
                 <div class="bs-note" style="margin-top:8px">
                     ROE: ${roeNote} · P/B: ${pbNote} · 淨利穩定: ${cvNote} · 股本稀釋: ${scNote}

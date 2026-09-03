@@ -2838,3 +2838,13 @@ textarea {
     font-family: monospace;
     line-height: 1.5;
 }
+
+.chain-gate.gate-na {
+    border-left-color: #6366f1;
+}
+.gate-na .chain-gate-icon { background: #e0e7ff; color: #4338ca; }
+.chain-na-note {
+    color: #4f46e5;
+    font-weight: 600;
+    font-size: 11.5px;
+}

@@ -22,7 +22,7 @@
     // 版本標記：每次改計分邏輯就更新這個字串 · 畫面上的除錯校驗行會秀出來 ·
     //   若使用者回報的數字跟目前 repo 邏輯對不上 · 先比對這個版本號有沒有變 ·
     //   沒變 = 真的是新 bug；版本號是舊的 = 瀏覽器快取問題，不是程式邏輯問題
-    const CHAIN_VERSION = '2026-09-03.1';
+    const CHAIN_VERSION = '2026-09-03.2';
 
     // ---------- 資料存取 (localStorage) ----------
     function storageKey(ticker) { return 'chain_' + (ticker || 'unknown'); }
@@ -205,7 +205,15 @@
     }
 
     // 關 4 · GM (毛利率)
-    function buildGate4(analysis) {
+    function buildGate4(analysis, isFinancial) {
+        if (isFinancial) {
+            return {
+                status: 'na', title: '關 4 · GM',
+                headline: '– 產業不適用 · 銀行/保險沒有 COGS 概念，毛利率無意義',
+                details: '<div class="chain-hint">銀行/保險業沒有「銷貨成本」的概念 · grossProfitRatio 這種製造業指標套在金融股上不代表任何事 · 改看下方「💼 金融股專屬指標」panel 的 ROE（資本效率）</div>',
+                dataSource: '產業判斷 skip（sector 命中 Financial Services / Banks / Insurance）',
+            };
+        }
         const gm = analysis.fundamentals && analysis.fundamentals.grossMargin;
         if (!Array.isArray(gm) || gm.length === 0) {
             return { status: 'fail', title: '關 4 · GM', headline: '✗ 無毛利率資料', details: '', dataSource: 'FMP /income-statement' };
@@ -230,7 +238,15 @@
     }
 
     // 關 5 · OM (營益率) + 營運槓桿
-    function buildGate5(analysis) {
+    function buildGate5(analysis, isFinancial) {
+        if (isFinancial) {
+            return {
+                status: 'na', title: '關 5 · OM',
+                headline: '– 產業不適用 · 用 ROE 取代',
+                details: '<div class="chain-hint">金融股的「營業利益」跟製造業的營運槓桿概念不對等（銀行的收入結構是利息收入+手續費+交易利得混合）· 改看下方「💼 金融股專屬指標」panel 的 ROE（資本效率的正確量尺）</div>',
+                dataSource: '產業判斷 skip（sector 命中 Financial Services / Banks / Insurance）',
+            };
+        }
         const om = analysis.fundamentals && analysis.fundamentals.operatingMargin;
         const rev = analysis.fundamentals && analysis.fundamentals.revenue;
         if (!Array.isArray(om) || om.length === 0) {
@@ -258,26 +274,36 @@
     }
 
     // 關 6 · 業外：|業外 / OI|
-    function buildGate6(analysis) {
+    // 金融股調整：不自動判 ✗ —— 銀行/保險的投資部位公允價值變動、交易收益本來就會讓
+    //   業外項目占比較大 · 這是業態不是「業外主導失控」· 只顯示數字 + 溫和 pass/warn（never fail）
+    function buildGate6(analysis, isFinancial) {
         // FMP income-statement 有 nonOperatingIncomeExpense 或 pretaxIncome - operatingIncome
         const raw = analysis.rawIncomeQuarterly || [];
         if (!Array.isArray(raw) || raw.length === 0) {
             return { status: 'warn', title: '關 6 · 業外', headline: '⚠ 缺 raw income statement · 無法直接算', details: '<div class="chain-hint">需 FMP /income-statement raw · profile 已抓但明細沒 attach</div>', dataSource: 'FMP raw quarterly' };
         }
         const latest = raw[0];
-        const oi = latest.operatingIncome || 0;
-        const pretax = latest.incomeBeforeTax || latest.pretaxIncome || 0;
+        const isNum = v => v !== null && v !== undefined && isFinite(v);
+        const oi = isNum(latest.operatingIncome) ? latest.operatingIncome : 0;
+        const pretax = isNum(latest.incomeBeforeTax) ? latest.incomeBeforeTax
+                     : (isNum(latest.pretaxIncome) ? latest.pretaxIncome : 0);
         const nonOp = pretax - oi;
-        const ratio = oi ? Math.abs(nonOp / oi) : null;
+        const ratio = oi ? Math.abs(nonOp / oi) : (nonOp === 0 ? 0 : null);
         let status, headline;
-        if (ratio === null) { status = 'warn'; headline = '⚠ 缺 OI · 無法算'; }
-        else if (ratio < 0.10) { status = 'pass'; headline = `✓ 業外 / OI = ${(ratio * 100).toFixed(1)}% · 經常性主導`; }
+        if (ratio === null) {
+            status = 'warn'; headline = '⚠ 缺 OI · 無法算';
+        } else if (isFinancial) {
+            // 金融股：只分 pass/warn · 絕不 fail —— 業外佔比高是常態不是警訊
+            if (ratio < 0.30) { status = 'pass'; headline = `✓ 業外 / OI = ${(ratio * 100).toFixed(1)}% · 在合理範圍`; }
+            else { status = 'warn'; headline = `⚠ 業外 / OI = ${(ratio * 100).toFixed(1)}% · 佔比較大 · 銀行/保險常態（投資部位公允價值變動/交易收益）· 非自動失敗訊號`; }
+        } else if (ratio < 0.10) { status = 'pass'; headline = `✓ 業外 / OI = ${(ratio * 100).toFixed(1)}% · 經常性主導`; }
         else if (ratio < 0.30) { status = 'warn'; headline = `⚠ 業外 / OI = ${(ratio * 100).toFixed(1)}% · 中等干擾`; }
         else { status = 'fail'; headline = `✗ 業外 / OI = ${(ratio * 100).toFixed(1)}% · 質疑經常性`; }
         const details = `
-          <div class="chain-kv"><b>Operating Income</b>: ${oi ? '$' + (oi / 1e9).toFixed(2) + 'B' : '—'}</div>
-          <div class="chain-kv"><b>Pretax Income</b>: ${pretax ? '$' + (pretax / 1e9).toFixed(2) + 'B' : '—'}</div>
-          <div class="chain-kv"><b>業外 (pretax - OI)</b>: ${nonOp ? '$' + (nonOp / 1e9).toFixed(2) + 'B' : '—'}</div>`;
+          <div class="chain-kv"><b>Operating Income</b>: ${isNum(oi) ? '$' + (oi / 1e9).toFixed(2) + 'B' : '—'}</div>
+          <div class="chain-kv"><b>Pretax Income</b>: ${isNum(pretax) ? '$' + (pretax / 1e9).toFixed(2) + 'B' : '—'}</div>
+          <div class="chain-kv"><b>業外 (pretax - OI)</b>: ${isNum(nonOp) ? '$' + (nonOp / 1e9).toFixed(2) + 'B' : '—'}</div>
+          ${isFinancial ? '<div class="chain-hint">金融股：此關不會自動判失敗 · 業外佔比大是投資/交易業務的正常特徵</div>' : ''}`;
         return { status, title: '關 6 · 業外', headline, details, dataSource: 'FMP pretaxIncome - operatingIncome' };
     }
 
@@ -311,7 +337,15 @@
     }
 
     // 關 8 · NI vs OI 一致性
-    function buildGate8(analysis) {
+    function buildGate8(analysis, isFinancial) {
+        if (isFinancial) {
+            return {
+                status: 'na', title: '關 8 · NI',
+                headline: '– 產業不適用 · 金融股損益結構跟製造業不同',
+                details: '<div class="chain-hint">NI/OI gap 對金融股不是品質訊號——投資部位公允價值變動、交易收益、準備金認列都會讓兩者脫鉤，這是業態不是警訊 · 改看下方「💼 金融股專屬指標」panel</div>',
+                dataSource: '產業判斷 skip（sector 命中 Financial Services / Banks / Insurance）',
+            };
+        }
         const raw = analysis.rawIncomeQuarterly || [];
         if (!Array.isArray(raw) || raw.length === 0) {
             return { status: 'warn', title: '關 8 · NI', headline: '⚠ 缺 raw · 無法比對', details: '', dataSource: 'FMP raw quarterly' };
@@ -351,7 +385,15 @@
     }
 
     // 關 9 · FCF / NI
-    function buildGate9(analysis) {
+    function buildGate9(analysis, isFinancial) {
+        if (isFinancial) {
+            return {
+                status: 'na', title: '關 9 · FCF',
+                headline: '– 產業不適用 · 銀行 FCF 受放款/存款/交易部位影響',
+                details: '<div class="chain-hint">銀行的「營運現金流」本質是存款流入流出 + 放款規模變動，是業務規模波動不是「賺錢沒現金支撐」的警訊（跟上方「現金流量 vs 淨利」panel 的判讀一致）· 此關不計分</div>',
+                dataSource: '產業判斷 skip（sector 命中 Financial Services / Banks / Insurance）',
+            };
+        }
         const cf = analysis.cashFlow || {};
         if (!cf.freeCF || !cf.netIncome || cf.freeCF.length < 4 || cf.netIncome.length < 4) {
             return { status: 'warn', title: '關 9 · FCF', headline: '⚠ FCF 或 NI 資料不足 · 需 4 季', details: '', dataSource: 'FMP /cash-flow-statement quarterly' };
@@ -443,11 +485,13 @@
     }
 
     // ---------- Render ----------
+    // 'na' = 產業不適用（例：金融股跳過 GM/OM/FCF-NI）· 跟 'manual'（待你填）意義不同：
+    //   'manual' 是「還沒填但可以填」· 'na' 是「這關對這個產業結構性不適用 · 不會有你能填的答案」
     function statusClass(s) {
-        return { pass: 'gate-pass', warn: 'gate-warn', fail: 'gate-fail', manual: 'gate-manual' }[s] || 'gate-manual';
+        return { pass: 'gate-pass', warn: 'gate-warn', fail: 'gate-fail', manual: 'gate-manual', na: 'gate-na' }[s] || 'gate-manual';
     }
     function statusIcon(s) {
-        return { pass: '✓', warn: '⚠', fail: '✗', manual: '?' }[s] || '?';
+        return { pass: '✓', warn: '⚠', fail: '✗', manual: '?', na: '–' }[s] || '?';
     }
 
     function renderGate(g, idx) {
@@ -476,24 +520,31 @@
             return;
         }
         const userInput = loadUserInput(ticker);
+        // 金融股（sector 命中 Financial Services / Banks / Insurance）：關 4/5/8/9 產業不適用
+        //   直接複用 simulator.js renderResult() 已經算好、掛在 analysis.isFinancial 上的判斷 ·
+        //   不重新寫一份 sector regex（跟 6 軸雷達、現金流 panel、反向 DCF 共用同一個判斷來源）
+        const isFinancial = !!analysis.isFinancial;
         const gates = [
             buildGate0(analysis, userInput),
             buildGate1(analysis, userInput),
             buildGate2(analysis, userInput),
             buildGate3(analysis),
-            buildGate4(analysis),
-            buildGate5(analysis),
-            buildGate6(analysis),
+            buildGate4(analysis, isFinancial),
+            buildGate5(analysis, isFinancial),
+            buildGate6(analysis, isFinancial),
             buildGate7(analysis),
-            buildGate8(analysis),
-            buildGate9(analysis),
+            buildGate8(analysis, isFinancial),
+            buildGate9(analysis, isFinancial),
             buildGate10(analysis, userInput),
         ];
-        // 自動 7 關（關 3-9）· 這 7 關永遠是「已驗證」狀態（API 算出 pass/warn/fail）·
-        //   不會停在 manual · 分母固定 7
-        const autoGates = gates.slice(3, 10);
-        const autoTotal = autoGates.length;   // 固定 7 · 不是 8
+        // 自動關卡（關 3-9）：非金融股固定 7 關全部可自動判定 · 金融股會有 4 關（4/5/8/9）
+        //   標成 'na'（產業不適用）· 分母要跟著扣掉這些 na 關卡 · 不能還是寫死 7
+        const autoGatesRaw = gates.slice(3, 10);
+        const naGates = autoGatesRaw.filter(g => g.status === 'na');
+        const autoGates = autoGatesRaw.filter(g => g.status !== 'na');
+        const autoTotal = autoGates.length;   // JPM 這種金融股會是 3（3/6/7）· AAPL 這種非金融股是 7
         const autoPass = autoGates.filter(g => g.status === 'pass').length;
+        const naCount = naGates.length;
 
         // 手動 3 關（關 0/1/2）：未驗證 ≠ 通過 · 只有使用者實際填寫才離開 'manual'（?）狀態
         const manualGates = gates.slice(0, 3);
@@ -507,12 +558,13 @@
 
         const fullyComplete = manualFilled === 3 && durFilled === 4;
         const pendingCount = (3 - manualFilled) + (4 - durFilled);
-        // 「穿透鏈 10 關」= 自動 7 關 + 手動 3 關（關 0/1/2）· 持續期是額外/獨立評分 · 不計入這 10
+        // 「穿透鏈 10 關」= 自動關卡（非金融股 7 關 · 金融股扣掉 na 後可能只剩 3 關）+ 手動 3 關（關 0/1/2）
+        //   持續期是額外/獨立評分 · 不計入這個合併分數
         const mainPass = autoPass + manualPass;
-        const mainTotal = autoTotal + 3;   // 固定 10
+        const mainTotal = autoTotal + 3;   // 非金融股 = 10 · 金融股會更小（例：JPM 3+3=6）
 
         // 3 段式進度條：綠(通過) / 紅黃(已填但未過) / 灰(待填)
-        // 總槽位 = 7 自動(永遠算已驗證) + 3 手動 + 4 持續期 = 14（含持續期讓使用者看到整體完成度）
+        // 總槽位 = 自動關卡(已扣 na) + 3 手動 + 4 持續期 · na 關卡不佔進度條（產業不適用不算「待完成」）
         const totalSlots = autoTotal + 3 + 4;
         const greenN = mainPass + durPass;
         const amberRedN = (autoTotal - autoPass) + (manualFilled - manualPass) + (durFilled - durPass);
@@ -520,36 +572,40 @@
         const pct = n => totalSlots ? (n / totalSlots * 100).toFixed(1) : 0;
 
         const progressBar = `
-          <div class="chain-progress" title="綠=通過 · 紅黃=已填但未過 · 灰=待填 · 涵蓋全部 14 個子項（10 關 + 持續期 4 checkpoints）">
+          <div class="chain-progress" title="綠=通過 · 紅黃=已填但未過 · 灰=待填 · 產業不適用的關卡不計入進度條">
             <div class="chain-progress-seg chain-progress-green" style="width:${pct(greenN)}%"></div>
             <div class="chain-progress-seg chain-progress-amber" style="width:${pct(amberRedN)}%"></div>
             <div class="chain-progress-seg chain-progress-gray" style="width:${pct(grayN)}%"></div>
           </div>`;
 
         const mergedLine = fullyComplete
-            ? `<span class="chain-merged-ok">✓ 全 10 關已完成：<b>${mainPass}/${mainTotal}</b> 通過（持續期另計 ${durPass}/4）</span>`
+            ? `<span class="chain-merged-ok">✓ 全部已完成：<b>${mainPass}/${mainTotal}</b> 通過（持續期另計 ${durPass}/4${naCount > 0 ? ` · ${naCount} 關產業不適用` : ''}）</span>`
             : `<span class="chain-merged-pending">⏳ 部分完成：還有 <b>${pendingCount}</b> 項待填 · 無法給出完整穿透鏈分數</span>`;
 
-        // 除錯校驗行：把「自動 N1/7 + 手動 N2/3 + 持續期 N3/4 = 總計」的原始算式攤開顯示 ·
+        // 除錯校驗行：把「自動 N1/自動分母 + 手動 N2/3 + 持續期 N3/4 = 總計」的原始算式攤開顯示 ·
         //   任何人都能一眼核對總分不是黑箱數字 · 也能拿版本號判斷瀏覽器是否還在用舊快取的 chain.js
         const rawSum = autoPass + manualPass + durPass;
         console.log(
-            `[PenetrationChain ${CHAIN_VERSION}] ${ticker} · ` +
-            `自動 ${autoPass}/${autoTotal} + 手動 ${manualPass}/3 + 持續期 ${durPass}/4 = 總計 ${rawSum}/14 · ` +
-            `(合併「10 關」分數只計自動+手動 = ${mainPass}/${mainTotal} · 條件：手動已填 3/3 且持續期已填 4/4 才顯示)`
+            `[PenetrationChain ${CHAIN_VERSION}] ${ticker}${isFinancial ? ' (金融股)' : ''} · ` +
+            `自動 ${autoPass}/${autoTotal}${naCount > 0 ? `（另 ${naCount} 關產業不適用）` : ''} + ` +
+            `手動 ${manualPass}/3 + 持續期 ${durPass}/4 = 總計 ${rawSum}/${totalSlots} · ` +
+            `(合併分數只計自動+手動 = ${mainPass}/${mainTotal} · 條件：手動已填 3/3 且持續期已填 4/4 才顯示)`
         );
         const debugLine = `
           <div class="chain-debug">
-            🔧 除錯校驗（build ${CHAIN_VERSION}）：自動 ${autoPass}/${autoTotal} + 手動 ${manualPass}/3 + 持續期 ${durPass}/4
-            = 總計 <b>${rawSum}/14</b>　·　若你看到的畫面數字跟這行對不上，代表瀏覽器還在用舊版 chain.js，
+            🔧 除錯校驗（build ${CHAIN_VERSION}）：自動 ${autoPass}/${autoTotal}${naCount > 0 ? ` (+${naCount} na)` : ''} + 手動 ${manualPass}/3 + 持續期 ${durPass}/4
+            = 總計 <b>${rawSum}/${totalSlots}</b>　·　若你看到的畫面數字跟這行對不上，代表瀏覽器還在用舊版 chain.js，
             請強制重新整理（Ctrl/Cmd+Shift+R）
           </div>`;
 
+        const autoNote = naCount > 0
+            ? `　·　<span class="chain-na-note">${naCount} 關產業不適用</span>`
+            : '';
         const summary = `
           <div class="chain-summary">
             ${progressBar}
             <div class="chain-summary-row">
-              <span>自動關卡：<b>${autoPass}/${autoTotal}</b> 通過</span>
+              <span>自動關卡：<b>${autoPass}/${autoTotal}</b> 通過${autoNote}</span>
               <span>手動關卡：已填 <b>${manualFilled}/3</b>（關 0/1/2）</span>
             </div>
             <div class="chain-summary-row">
