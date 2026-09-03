@@ -163,6 +163,8 @@
             return { status: 'fail', title: '關 3 · 營收', headline: '✗ 無營收資料', details: '', dataSource: 'FMP /income-statement quarterly' };
         }
         const latest = rev[0];
+        // 只用 mode='YoY' 的值 · FMP 免費 tier 常只給 5 季 → 只有最新 1 個真 YoY
+        const yoyEntries = rev.filter(e => e && e.mode === 'YoY' && e.yoy !== null && isFinite(e.yoy));
         const yoy = latest && latest.yoy !== null && isFinite(latest.yoy) ? latest.yoy : null;
         let status, headline;
         if (yoy === null) { status = 'warn'; headline = '⚠ 只有 1 季資料 · 無法算 YoY'; }
@@ -170,13 +172,20 @@
         else if (yoy > 0) { status = 'pass'; headline = `✓ ${(yoy * 100).toFixed(1)}% YoY`; }
         else if (yoy > -0.05) { status = 'warn'; headline = `⚠ ${(yoy * 100).toFixed(1)}% YoY · 平緩衰退`; }
         else { status = 'fail'; headline = `✗ ${(yoy * 100).toFixed(1)}% YoY · 顯著衰退`; }
-        // 4 季連續加速？
-        const yoys = _lookback(rev.map(e => ({ value: e.yoy })), 4);
-        const accelerate = yoys.length >= 3 && yoys[0] >= yoys[1] && yoys[1] >= yoys[2];
+        // 4 季連續加速？· 只用 mode='YoY' 的 · FMP 免費 tier 常只有 1 個
+        const yoyVals = yoyEntries.map(e => e.yoy);
+        let trendText;
+        if (yoyVals.length < 2) {
+            trendText = `樣本不足 (只 ${yoyVals.length} 個真 YoY · FMP 免費 tier 5 季限制)`;
+        } else {
+            const accelerate = yoyVals.length >= 3 && yoyVals[0] >= yoyVals[1] && yoyVals[1] >= yoyVals[2];
+            const decelerate = yoyVals[0] < yoyVals[1];
+            trendText = accelerate ? '加速中 ↑' : (decelerate ? '減速中 ↓' : '持平');
+        }
         const details = `
           <div class="chain-kv"><b>最新季</b>: ${esc(latest.date || '')} · ${latest.value ? '$' + (latest.value / 1e9).toFixed(2) + 'B' : '—'}</div>
-          <div class="chain-kv"><b>YoY (最近 4 季)</b>: ${yoys.map(v => (v * 100).toFixed(1) + '%').join(' · ') || '—'}</div>
-          <div class="chain-kv"><b>趨勢</b>: ${accelerate ? '加速中 ↑' : (yoys.length >= 2 && yoys[0] < yoys[1] ? '減速中 ↓' : '持平')}</div>`;
+          <div class="chain-kv"><b>YoY (真 YoY 樣本)</b>: ${yoyVals.length ? yoyVals.map(v => (v * 100).toFixed(1) + '%').join(' · ') : '—'}</div>
+          <div class="chain-kv"><b>趨勢</b>: ${trendText}</div>`;
         return { status, title: '關 3 · 營收', headline, details, dataSource: 'FMP /income-statement quarterly' };
     }
 
@@ -215,10 +224,10 @@
         const latestOm = om[0].value;
         const values = _lookback(om, 4);
         const trendUp = values.length >= 2 && values[0] > values[values.length - 1];
-        // 營運槓桿：OM YoY 改善 且 Rev 也成長
+        // 營運槓桿：OM YoY 改善 且 Rev 也成長 · 門檻放寬到 0.5pp（浮點誤差 + 真實槓桿都算進來）
         const revYoy = rev && rev[0] && rev[0].yoy;
         const omBps = values.length >= 4 ? (values[0] - values[3]) * 100 : null;
-        const leverage = revYoy > 0 && omBps !== null && omBps > 1;
+        const leverage = revYoy > 0 && omBps !== null && omBps > 0.5;
         let status, headline;
         if (latestOm > 0.25 && leverage) { status = 'pass'; headline = `✓ OM ${fmtPct(latestOm)} · 營運槓桿發威`; }
         else if (latestOm > 0.20) { status = 'pass'; headline = `✓ OM ${fmtPct(latestOm)} · 高獲利`; }
