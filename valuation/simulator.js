@@ -1376,11 +1376,36 @@
         };
         const has402 = failed.some(f => /402|Premium|subscription/i.test(f.error || ''));
         const altClass = DUAL_CLASS_MAP[String(ticker || '').toUpperCase()];
-        const dualClassHint = has402
-            ? (altClass
-                ? `\n💡 <b>402 特殊處理</b>：FMP 免費 tier 對特定 ticker × endpoint 組合會鎖付費。<b>${ticker}</b> 是 dual-class 公司的股票，試另一個 class 通常可繞（同公司但 FMP 授權可能不同）：試 <b>${altClass}</b>。`
-                : `\n💡 <b>402 特殊處理</b>：FMP 免費 tier 對特定 ticker × endpoint 組合會鎖付費。若是 <b>dual-class</b> 公司（GOOG/GOOGL · FOX/FOXA · NWS/NWSA · BRK.A/BRK.B），試另一個 class 通常可繞（同公司但 FMP 授權可能不同）。`)
-            : '';
+
+        // 記錄「本 session 內遇過 402 的 ticker」到 sessionStorage · 用來偵測「兩個 class 都試過還是 402」
+        //   （單一 query() 呼叫看不到跨查詢的歷史 · 靠這個小記事本補上這個上下文）
+        // 用途：News Corp 這種公司整個被 FMP 免費 tier 排除（不是 dual-class 授權差異）·
+        //   使用者照建議試了 NWS→NWSA 還是 402 · 不該再重複建議「試另一個 class」（誤導成好像換了會成功）
+        const FAILED_402_KEY = 'fmp_402_failed_tickers';
+        function read402FailedSet() {
+            try { return new Set(JSON.parse(sessionStorage.getItem(FAILED_402_KEY) || '[]')); }
+            catch (_) { return new Set(); }
+        }
+        function write402FailedSet(set) {
+            try { sessionStorage.setItem(FAILED_402_KEY, JSON.stringify([...set])); } catch (_) { /* 隱私瀏覽 · 靜默 */ }
+        }
+        let dualClassHint = '';
+        if (has402) {
+            const tickerUpper = String(ticker || '').toUpperCase();
+            const failedSet = read402FailedSet();
+            const altAlsoFailed = altClass && failedSet.has(altClass.toUpperCase());
+            failedSet.add(tickerUpper);
+            write402FailedSet(failedSet);
+
+            if (altAlsoFailed) {
+                // 兩個 class 都在本 session 遇過 402 → 這是公司整體被鎖 · 不是換 class 能繞的授權差異
+                dualClassHint = `\n💡 <b>402 特殊處理</b>：<b>${ticker}</b> 和 <b>${altClass}</b>（同公司 dual-class）本次都遇到 402 · 代表這家公司在 FMP 免費 tier 整體被排除付費，不是單一 class 的授權差異，換 class 沒有用。改查 Yahoo Finance / 公司 IR 官網的財報，或用 FinMind（若是能對應到的台股相關標的）。`;
+            } else if (altClass) {
+                dualClassHint = `\n💡 <b>402 特殊處理</b>：FMP 免費 tier 對特定 ticker × endpoint 組合會鎖付費。<b>${ticker}</b> 是 dual-class 公司的股票，試另一個 class 有機會繞（同公司但 FMP 授權可能不同 · 不保證一定成功）：試 <b>${altClass}</b>。`;
+            } else {
+                dualClassHint = `\n💡 <b>402 特殊處理</b>：FMP 免費 tier 對特定 ticker × endpoint 組合會鎖付費。若是 <b>dual-class</b> 公司（GOOG/GOOGL · FOX/FOXA · NWS/NWSA · BRK.A/BRK.B），試另一個 class 有機會繞（同公司但 FMP 授權可能不同）。`;
+            }
+        }
 
         // quote 是主查詢必要 · 失敗就整份 abort
         const quote = quoteR.ok ? quoteR.value : null;
