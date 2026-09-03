@@ -32,7 +32,7 @@ on:
         default: '2'
         required: false
       av_categories:
-        description: 'AlphaVantage 要 dump 的類別（逗號分隔，25 次/日額度，別選太多）：fundamentals/intelligence/timeseries/forex/commodities/econ/technical'
+        description: '⚠️ 只填「類別」名稱不是 AV function 名（不要填 INCOME_STATEMENT 這種）：fundamentals/intelligence/timeseries/forex/commodities/econ/technical，逗號分隔，25次/日額度別選太多'
         default: 'intelligence,timeseries,forex,commodities,econ,technical'
         required: false
 

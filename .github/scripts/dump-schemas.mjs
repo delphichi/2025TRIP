@@ -410,19 +410,37 @@ async function avFetch(ep, ticker) {
     return safeFetch(`${AV_BASE}?${params.toString()}`);
 }
 
+// 已知類別清單 —— av_categories input 只認這 7 個字（不是 AV 的 function 名，像
+//   "TIME_SERIES_DAILY" 或 "Earnings History" 這種輸入不會匹配到任何 endpoint，
+//   之前一次真的跑到這樣：使用者填了具體 dataset 名稱，categories.includes() 全部沒中，
+//   結果是「這次會打 0 次 AV API」但沒有任何警告解釋為什麼——使用者以為在測试, 實際上整段跳過。
+//   現在明確驗證：輸入裡有認不得的字就大聲警告，而不是默默跑出 0 次。
+const AV_VALID_CATEGORIES = ['fundamentals', 'intelligence', 'timeseries', 'forex', 'commodities', 'econ', 'technical'];
+
 async function dumpAlphaVantage(ticker, categories) {
     let out = heading(2, '🇺🇸 AlphaVantage');
     out += `\n- ticker: ${inlineCode(ticker)}\n- key: ${ALPHAVANTAGE_API_KEY ? '✅ 有' : '❌ 未設 ALPHAVANTAGE_API_KEY secret'}\n`;
-    out += `- categories 這次跑: ${inlineCode(categories.join(', '))}（可用值：fundamentals / intelligence / timeseries / forex / commodities / econ / technical）\n`;
+    out += `- categories 這次跑: ${inlineCode(categories.join(', '))}（可用值：${AV_VALID_CATEGORIES.join(' / ')}）\n`;
 
     if (!ALPHAVANTAGE_API_KEY) {
         out += '\n> ⚠️ 沒有 ALPHAVANTAGE_API_KEY，跳過。到 Settings → Secrets 加。免費申請：alphavantage.co/support/#api-key\n';
         return out;
     }
 
+    const unknownCategories = categories.filter(c => !AV_VALID_CATEGORIES.includes(c));
+    if (unknownCategories.length > 0) {
+        out += `\n> 🔴 **\`av_categories\` 裡有認不得的值：${unknownCategories.map(c => inlineCode(c)).join('、')}** —— `;
+        out += `這是「類別」不是 AlphaVantage 的 function 名（不要填 \`INCOME_STATEMENT\`、\`TIME_SERIES_DAILY\` 這種），只能是：${AV_VALID_CATEGORIES.map(inlineCode).join(' / ')}。\n`;
+        out += `> 認不得的值會被忽略（不會報錯中斷），下面若顯示「這次會打 0 次」就是因為篩完之後沒有任何 endpoint 符合。\n`;
+    }
+
     const endpoints = AV_ENDPOINTS.filter(ep => categories.includes(ep.category));
     out += `\n> ⚠️ **免費 tier 硬限制 25 次/日 + burst limiter（併發太快會被擋，即使當日額度還夠）**。\n`;
     out += `> 這次會打 **${endpoints.length} 次** AV API，每次間隔 ${AV_MIN_INTERVAL_MS}ms 節流。若當日已經用掉一些額度，這次可能會有幾個回額度用完的錯誤，屬正常現象。\n`;
+    if (endpoints.length === 0) {
+        out += `> 🔴 **0 個 endpoint 符合、什麼都沒 dump**。請確認 \`av_categories\` 填的是上面列的類別名稱，用逗號分隔，例如 \`intelligence,timeseries\`。\n`;
+        return out;
+    }
     if (endpoints.length > 25) {
         out += `> 🔴 **這次選的 categories 總共 ${endpoints.length} 個 endpoint，已經超過每日 25 次額度上限**，一定會有一部分失敗，建議拆成多次 workflow run（改 \`av_categories\` input 分批跑）。\n`;
     }
