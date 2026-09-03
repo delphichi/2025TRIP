@@ -360,7 +360,7 @@ const AV_ENDPOINTS = [
     { category: 'fundamentals', fn: 'GLOBAL_QUOTE', extra: {}, note: '即時報價 · 已用', used: true },
     { category: 'fundamentals', fn: 'INCOME_STATEMENT', extra: {}, note: '損益表季/年報 · 已用', used: true },
     { category: 'fundamentals', fn: 'BALANCE_SHEET', extra: {}, note: '資產負債表季/年報 · 已用', used: true },
-    { category: 'fundamentals', fn: 'CASH_FLOW', extra: {}, note: '現金流量表季/年報 · 已用', used: true },
+    { category: 'fundamentals', fn: 'CASH_FLOW', extra: {}, note: '現金流量表季/年報 · 已用（含 stockBasedCompensation 直接欄位，SBC 比率算得出來）', used: true },
     { category: 'fundamentals', fn: 'EARNINGS', extra: {}, note: 'EPS 季/年報 · 已用', used: true },
     { category: 'fundamentals', fn: 'DIVIDENDS', extra: {}, note: '配息歷史 · 已用', used: true },
     { category: 'fundamentals', fn: 'SPLITS', extra: {}, note: '分割歷史 · 已用，校正股本 YoY 的分割失真（cumulativeSplitFactor）', used: true },
@@ -396,7 +396,7 @@ const AV_ENDPOINTS = [
 
     // ---- Technical Indicators：60+ 個同樣的呼叫模式，這裡只探 4 個代表性的 ----
     { category: 'technical', fn: 'RSI', extra: { interval: 'daily', time_period: '14', series_type: 'close' }, note: 'RSI(14) · 技術指標家族代表 1/4', used: false },
-    { category: 'technical', fn: 'MACD', extra: { interval: 'daily', series_type: 'close' }, note: 'MACD · 技術指標家族代表 2/4', used: false },
+    { category: 'technical', fn: 'MACD', extra: { interval: 'daily', series_type: 'close' }, note: 'MACD · 技術指標家族代表 2/4 · 實測回過「This is a premium endpoint」（不是額度用完，是這個 function 本身要付費 plan 才能用，免費 key 就算當日額度沒用完也一樣會失敗）', used: false },
     { category: 'technical', fn: 'BBANDS', extra: { interval: 'daily', time_period: '20', series_type: 'close' }, note: '布林通道 · 技術指標家族代表 3/4', used: false },
     { category: 'technical', fn: 'SMA', extra: { interval: 'daily', time_period: '50', series_type: 'close' }, note: 'SMA(50) · 技術指標家族代表 4/4 · 其餘 56+ 個技術指標同樣是 interval+time_period+series_type 模式，要探索直接照樣加一行', used: false },
 ];

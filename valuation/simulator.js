@@ -1727,7 +1727,9 @@
 
     // CASH_FLOW（quarterlyReports）→ FMP raw cash-flow row 同形狀
     // AV 沒有直接 freeCashFlow 欄位 · 用 operatingCashflow − |capitalExpenditures| 自算
-    // AV 沒有股份基礎薪酬（SBC）獨立欄位 · sbc 留 null（sbcRatioTtm 這塊 AV 路徑不會有值）
+    // stockBasedCompensation：AV CASH_FLOW 其實有這個直接欄位（用 dump-api-schemas 對 AAPL
+    //   實測驗證過，annualReports[0].stockBasedCompensation = "12863000000"）——
+    //   跟原本以為「AV 沒有 SBC 欄位」的假設不同，補上後 sbcRatioTtm 這塊 AV 路徑就能算了
     function buildAvCashFlowRows(cashflowJson) {
         const rows = (cashflowJson && Array.isArray(cashflowJson.quarterlyReports)) ? cashflowJson.quarterlyReports : [];
         return rows.map(r => {
@@ -1738,6 +1740,7 @@
                 operatingCashFlow: opCF,
                 freeCashFlow: (opCF !== null && capex !== null) ? opCF - Math.abs(capex) : null,
                 netIncome: avNum(r.netIncome),
+                stockBasedCompensation: avNum(r.stockBasedCompensation),
             };
         }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     }
@@ -1749,6 +1752,7 @@
             operatingCF: r => r.operatingCashFlow,
             freeCF:      r => r.freeCashFlow,
             netIncome:   r => r.netIncome,
+            sbc:         r => r.stockBasedCompensation,
         });
     }
 
