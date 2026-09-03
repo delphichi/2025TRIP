@@ -226,6 +226,24 @@
             <div class="detail-box" id="detail-box"></div>
         </section>
 
+        <section class="panel chain-panel" id="chain-panel" hidden>
+            <h2>🔗 穿透鏈 · 10 關逐關檢查</h2>
+            <p class="hint">
+                <b>邏輯</b>：從產品層到自由現金流一路檢查每個環節有沒有斷點 ·
+                <b>NVDA 那份 deep note 的核心方法</b> · 每關 3 種狀態：
+                <span class="chain-legend-icon gate-pass">✓ 通過</span>
+                <span class="chain-legend-icon gate-warn">⚠ 警告</span>
+                <span class="chain-legend-icon gate-fail">✗ 失敗</span>
+                <span class="chain-legend-icon gate-manual">? 待填</span>
+            </p>
+            <p class="hint hint-mini">
+                <b>可自動化 8 關</b>：關 3-9（FMP APIs）· <b>需部分手動 2 關</b>：關 0/1/2（用戶查 10-K 補）·
+                <b>全手動 1 關 · 4 checkpoints</b>：關 10 持續期（護城河 4 要素）·
+                手填內容存 localStorage · 換股不遺失
+            </p>
+            <div id="chain-body"></div>
+        </section>
+
         <section class="panel macro-panel" id="macro-panel" hidden>
             <h2>🌐 總體環境（層次 4：利率 · 通膨 · 信用 · 匯率 · VIX）</h2>
             <p class="hint">
@@ -393,6 +411,7 @@
 
     </main>
 
+    <script>document.write('<script src="chain.js?v=' + Date.now() + '"><\/script>');</script>
     <script>document.write('<script src="simulator.js?v=' + Date.now() + '"><\/script>');</script>
 </body>
 </html>

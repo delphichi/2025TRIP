@@ -303,6 +303,10 @@
                     result.preTaxTtm = preTaxSum;
                 }
             }
+            // 穿透鏈 · 保留 raw quarterly 前 8 筆給 chain.js buildGate6/7/8 用
+            if (result) {
+                result.rawIncomeQuarterly = rows.slice(0, 8);
+            }
             return result;
         } catch (e) {
             console.warn('FMP fundamentals fetch failed:', e.message);
@@ -1499,8 +1503,11 @@
             latestRatioDate: ratios[0] ? ratios[0].date : null,
             sector: p.sector,
             industry: p.industry,
+            description: p.description || null,   // 穿透鏈 · 關 0 產品
             fundamentals,
             cashFlow,
+            balanceSheet: fmpBalanceSheet,   // 穿透鏈 · 關 1 客戶 (DSO) · 關 2 訂單 (Deferred Revenue)
+            rawIncomeQuarterly: (fundamentals && fundamentals.rawIncomeQuarterly) || null,   // 關 6/7/8
             institutional: null,
             fmpEndpointStatus: optionalStatus,
             priceSeries,
@@ -3379,6 +3386,15 @@
 
         // 決策框架 · 只在成功分析後顯示、可載入舊記錄
         try { initDecisionFramework(analysis); } catch (e) { console.warn('Decision framework init failed:', e.message); }
+
+        // 穿透鏈 · 10 關逐關檢查（chain.js）· 只對股票 · ETF/金融不算但顯示無資料
+        try {
+            if (window.PenetrationChain) {
+                const cp = document.getElementById('chain-panel');
+                if (cp) cp.hidden = false;
+                window.PenetrationChain.render(analysis, 'chain-body');
+            }
+        } catch (e) { console.warn('Penetration chain render failed:', e.message); }
 
         setStatus('success', `✅ 查到 ${ticker} 資料`);
     }
