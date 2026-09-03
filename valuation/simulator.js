@@ -4836,8 +4836,13 @@
         // 給定當前 market cap · 反推「市場相信 FCF 未來 5 年成長率是多少」
         // 用 2-stage：5 年高速 + terminal 3% · WACC 假設 10%（可調）
         let reverseDcfPanel = '';
-        let scenarioPanel = '';   // 方法 5 · 4 情境機率加權合理價 · 跟方法 4 同 scope 共用 shares/dcfPV
-        if (ttmFcf && ttmFcf > 0 && bvps && bvps > 0 && analysis.currentPBR > 0) {
+        let scenarioPanel = '';   // 方法 5 · 4 情境機率加權合理價 · 跟方法 4 同 scope 共用 shares/dcfPV · 建立在方法 4 的 g 之上 · 方法 4 停用時一併留空
+        // 金融股：不論 FCF 正負一律停用 —— 銀行/保險的「FCF」= 營運CF(存款流入流出+放款規模變動) − CapEx ·
+        //   跟反向 DCF 假設的「業務自由現金」不是同一個經濟概念（跟上方現金流 panel「金融股 CF 高波動是業態」同一個判斷）·
+        //   複用穿透鏈關 4/5/8/9 用的同一個 analysis.isFinancial（simulator.js detectFinancial() 算出來的）· 不重寫
+        //   原本的判斷式只看 `ttmFcf > 0`（FCF 正負號當開關）· BAC 那一季 FCF 剛好是正的（$94.74B）就繞過停用 ·
+        //   跑出「市場隱含 g = -20%/年」這種無意義數字 · 情境分析 panel 疊在這個壞掉的 g 上繼續算出一張正常樣式的表
+        if (!analysis.isFinancial && ttmFcf && ttmFcf > 0 && bvps && bvps > 0 && analysis.currentPBR > 0) {
             const shares = analysis.marketCap
                 ? analysis.marketCap / price
                 : (fund.balanceSheetSeries?.[0]?.shareCapital ? fund.balanceSheetSeries[0].shareCapital / 10 : null);
@@ -4990,6 +4995,10 @@
                     </p>
                 `;
             }
+        } else if (analysis.isFinancial) {
+            // 金融股專屬停用文案：明確講「結構性不適用」，不是「這季資料不夠、換季可能就能算」·
+            //   跟 JPM（FCF 剛好負）、BAC（FCF 剛好正）都應該顯示同一句話 · 不能讓 FCF 正負號決定文案
+            reverseDcfPanel = `<h4 style="margin-top:16px">🔮 方法 4 · 反向 DCF · 市場隱含成長率</h4><p class="hint-mini">🏦 金融股的 FCF 混雜存款/放款規模變動，跟反向 DCF 假設的「業務自由現金」不是同一概念 · 此方法不適用金融股 · 改看上方 DDM 股利折現或金融股專屬指標的 ROE / P-B</p>`;
         } else {
             reverseDcfPanel = `<h4 style="margin-top:16px">🔮 方法 4 · 反向 DCF · 市場隱含成長率</h4><p class="hint-mini">📉 TTM FCF 為負或缺 · 無法反向 DCF（虧損公司 / SaaS 早期 / 資本重公司）</p>`;
         }
