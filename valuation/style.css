@@ -2662,6 +2662,29 @@ textarea {
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
+    padding: 3px 0;
+}
+
+.chain-progress {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    background: #e5e7eb;
+}
+.chain-progress-seg { height: 100%; transition: width 0.3s; }
+.chain-progress-green { background: #16a34a; }
+.chain-progress-amber { background: linear-gradient(90deg, #d97706, #dc2626); }
+.chain-progress-gray  { background: #d1d5db; }
+
+.chain-merged-ok {
+    color: #166534;
+    font-weight: 700;
+}
+.chain-merged-pending {
+    color: #b45309;
+    font-weight: 600;
 }
 
 .chain-gate {

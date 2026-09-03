@@ -2,7 +2,7 @@
  * 穿透鏈 · 10 關逐關檢查
  *
  * 靈感：NVIDIA Q2 FY26 那份 deep note 的「穿透鏈」邏輯 —— 從產品層到自由現金流
- * 一路檢查每個環節有沒有斷點。8 關可自動化 · 關 0/1/2 需部分手動 · 關 10 全手動。
+ * 一路檢查每個環節有沒有斷點。7 關可自動化（3-9）· 關 0/1/2 需手動 · 關 10 全手動。
  *
  * 用法：
  *   PenetrationChain.render(analysis, containerId)
@@ -10,6 +10,11 @@
  *     - containerId: 要插入的 DOM id (預設 'chain-body')
  *
  * 手動輸入 (關 0/1/2/10 · 用戶自填部分) 存在 localStorage · key = 'chain_' + ticker
+ *
+ * 核心原則：未驗證 ≠ 通過。關 0/1/2/10 在使用者未實際填寫前，狀態固定是
+ * 'manual'（顯示 ?），絕不會因為輔助的自動抓取資料（DSO / Deferred Revenue /
+ * sector）而被判成 pass/warn/fail —— 那些資料只是「幫你判斷」的參考，不能替代
+ * 使用者本人的確認動作。避免「空值被誤讀成正面訊號」。
  */
 (function () {
     'use strict';
@@ -75,7 +80,7 @@
         const status = oneLiner ? 'pass' : 'manual';
         const headline = oneLiner
             ? '✓ 你已填「這是什麼生意」'
-            : '⚠ 需你手填「1 句話說這是什麼生意」';
+            : '? 待你手填「1 句話說這是什麼生意」';
         const details = `
           <div class="chain-kv"><b>Sector</b>: ${esc(sector) || '—'}</div>
           <div class="chain-kv"><b>Industry</b>: ${esc(industry) || '—'}</div>
@@ -99,61 +104,66 @@
             const revTtm = rev.slice(0, 4).reduce((a, e) => a + (e.value || 0), 0);
             if (revTtm > 0) dso = ar * 365 / revTtm;
         }
-        const topCust = userInput.gate1_top5 !== undefined ? Number(userInput.gate1_top5) : null;
-        // 判準：DSO > 90 集中警訊 · Top 5 > 50% 集中 · < 30% 分散
+        // gate1_top5 「已填」的判斷：用原始字串是否非空 · 不是用 parse 出來的數字
+        //   （用戶填 0 也算「已填」——0% 集中度是明確答案 · 不該被當成未填）
+        const rawTop5 = userInput.gate1_top5;
+        const filled = rawTop5 !== undefined && rawTop5 !== null && String(rawTop5).trim() !== '';
+        const topCust = filled ? Number(rawTop5) : null;
+        // DSO 只是輔助參考資訊 · 不能單靠它把這關判成 pass/warn ——
+        //   customer concentration 是這關真正要驗證的東西 · FMP 免費 tier 沒有
+        //   這筆資料 · 必須使用者親自查 10-K 填寫才算「驗證過」
         let status = 'manual';
-        let headline = '⚠ DSO 已算 · Top 5 客戶集中度需你查 10-K 手填';
-        if (dso !== null && dso > 90) {
-            status = 'warn';
-            headline = `⚠ DSO ${dso.toFixed(0)} 天 · 高於行業慣例 · 可能客戶集中`;
-        } else if (dso !== null && dso <= 60) {
-            status = 'pass';
-            headline = `✓ DSO ${dso.toFixed(0)} 天 · 收款正常`;
-        } else if (dso !== null) {
-            status = 'warn';
-            headline = `⚠ DSO ${dso.toFixed(0)} 天 · 60-90 屬中間帶`;
-        }
-        if (topCust !== null && !isNaN(topCust)) {
+        let headline = '? 待你查 10-K 手填 Top 5 客戶集中度 %';
+        if (filled && !isNaN(topCust)) {
             if (topCust > 50) { status = 'fail'; headline = `✗ Top 5 客戶佔 ${topCust.toFixed(0)}% · 高集中度風險`; }
             else if (topCust > 30) { status = 'warn'; headline = `⚠ Top 5 客戶佔 ${topCust.toFixed(0)}% · 中等集中`; }
             else { status = 'pass'; headline = `✓ Top 5 客戶佔 ${topCust.toFixed(0)}% · 分散`; }
         }
         const details = `
-          <div class="chain-kv"><b>DSO (AR × 365 / Rev TTM)</b>: ${dso !== null ? dso.toFixed(1) + ' 天' : '—'}</div>
+          <div class="chain-kv"><b>DSO (AR × 365 / Rev TTM)</b>: ${dso !== null ? dso.toFixed(1) + ' 天 · 僅供參考，不會影響這關的通過判定' : '—'}</div>
           <div class="chain-hint">FMP 免費 tier 沒 customer concentration ·
             <a href="https://www.sec.gov/edgar/searchedgar/companysearch" target="_blank">查 10-K</a>
-            找 "Concentration of Credit Risk" 章節</div>
-          <label class="chain-input-label">Top 5 客戶佔營收 %（10-K 手填）：
+            找 "Concentration of Credit Risk" 章節 · <b>未填此欄位前這關維持「?」待填狀態</b></div>
+          <label class="chain-input-label">Top 5 客戶佔營收 %（10-K 手填 · 必填才算完成這關）：
             <input type="number" class="chain-input" data-key="gate1_top5" step="1" min="0" max="100"
-                   value="${topCust !== null ? topCust : ''}" placeholder="例：42">
+                   value="${filled ? topCust : ''}" placeholder="例：42">
           </label>`;
-        return { status, title: '關 1 · 客戶', headline, details, dataSource: 'FMP /balance-sheet + 10-K 手填' };
+        return { status, title: '關 1 · 客戶', headline, details, dataSource: 'FMP /balance-sheet（DSO 參考）+ 10-K 手填（必填）' };
     }
 
     // 關 2 · 訂單 (Deferred Revenue trend)
     function buildGate2(analysis, userInput) {
         const bs = analysis.balanceSheet || (analysis.fundamentals && analysis.fundamentals.latestBS) || {};
-        const backlog = userInput.gate2_backlog !== undefined ? Number(userInput.gate2_backlog) : null;
+        const rawBacklog = userInput.gate2_backlog;
+        const filled = rawBacklog !== undefined && rawBacklog !== null && String(rawBacklog).trim() !== '';
+        const backlog = filled ? Number(rawBacklog) : null;
         const dr = bs.contractLiabilities !== undefined ? bs.contractLiabilities
                  : (bs.deferredRevenue !== undefined ? bs.deferredRevenue : null);
+        // Deferred Revenue 是自動抓的輔助資訊 · 不能單靠它判這關通過 ——
+        //   backlog / 訂單存量才是這關要驗證的東西 · 需使用者查 10-K 確認
+        //   （某些消費品/零售公司天生沒有傳統 backlog 概念 · 這種情況請填 0
+        //    並在心裡記住這關對這類公司「結構性不適用」）
         let status = 'manual';
-        let headline = '⚠ Deferred Revenue 已抓 · Backlog 需手填';
-        if (dr !== null && dr > 0) {
-            status = 'pass';
-            headline = `✓ Deferred Revenue $${(dr / 1e9).toFixed(2)}B · 表示已簽約未認列的訂單存量`;
-        }
-        if (backlog !== null && !isNaN(backlog) && backlog > 0) {
-            status = 'pass';
-            headline = `✓ Backlog $${backlog.toFixed(1)}B (10-K 手填) · 訂單能見度確認`;
+        let headline = '? 待你查 10-K 手填 Backlog / 訂單存量（消費品公司若無此概念可填 0）';
+        if (filled && !isNaN(backlog)) {
+            if (backlog > 0) {
+                status = 'pass';
+                headline = `✓ Backlog $${backlog.toFixed(1)}B (10-K 手填) · 訂單能見度確認`;
+            } else {
+                status = 'warn';
+                headline = '⚠ 已確認無傳統 backlog（填 0）· 這關對此類商業模式可能結構性不適用';
+            }
         }
         const details = `
-          <div class="chain-kv"><b>Deferred Revenue (BS)</b>: ${dr !== null ? '$' + (dr / 1e9).toFixed(2) + 'B' : '—'}</div>
-          <div class="chain-hint">若公司揭露 backlog / commitments · 從 10-K 找數字填入</div>
-          <label class="chain-input-label">Backlog / 訂單存量 $B（手填）：
+          <div class="chain-kv"><b>Deferred Revenue (BS · 僅供參考)</b>: ${dr !== null ? '$' + (dr / 1e9).toFixed(2) + 'B · 不會影響這關的通過判定' : '—'}</div>
+          <div class="chain-hint">若公司揭露 backlog / commitments · 從 10-K 找數字填入 ·
+            若是無傳統 backlog 的消費品/零售公司 · 填 0 確認已檢查過 ·
+            <b>未填此欄位前這關維持「?」待填狀態</b></div>
+          <label class="chain-input-label">Backlog / 訂單存量 $B（手填 · 必填才算完成這關 · 無則填 0）：
             <input type="number" class="chain-input" data-key="gate2_backlog" step="0.1" min="0"
-                   value="${backlog !== null ? backlog : ''}" placeholder="例：25.4">
+                   value="${filled ? backlog : ''}" placeholder="例：25.4 · 無則填 0">
           </label>`;
-        return { status, title: '關 2 · 訂單', headline, details, dataSource: 'FMP /balance-sheet + 10-K 手填' };
+        return { status, title: '關 2 · 訂單', headline, details, dataSource: 'FMP /balance-sheet（Deferred Rev 參考）+ 10-K 手填（必填）' };
     }
 
     // 關 3 · 營收：最新季 YoY
@@ -380,12 +390,28 @@
             else if (v === 'fail') failCount++;
         });
         const filled = passCount + warnCount + failCount;
+        // 未驗證 ≠ 通過：4 個 checkpoint 沒全填完前 · 這關維持「?」不判定 pass/warn/fail ——
+        //   即使已填的 2 個都是 ✓ 通過，剩下 2 個沒填也不能算「這關過了」
         let status, headline;
-        if (filled === 0) { status = 'manual'; headline = '⚠ 未填 · 這關全靠你判斷'; }
-        else if (failCount > 0) { status = 'fail'; headline = `✗ ${failCount}/4 失敗 · 護城河有破口`; }
-        else if (warnCount > 1) { status = 'warn'; headline = `⚠ ${warnCount}/4 警告 · 中等護城河`; }
-        else if (passCount === 4) { status = 'pass'; headline = '✓ 4/4 · 教科書級護城河'; }
-        else { status = 'pass'; headline = `✓ ${passCount}/4 通過`; }
+        if (filled === 0) {
+            status = 'manual';
+            headline = '? 尚未填 · 這關全靠你判斷（已填 0/4）';
+        } else if (filled < 4) {
+            status = 'manual';
+            headline = `? 已填 ${filled}/4 · 其中通過 ${passCount} 項 · 尚未填完不計入總分`;
+        } else if (failCount > 0) {
+            status = 'fail';
+            headline = `✗ ${failCount}/4 失敗 · 護城河有破口`;
+        } else if (warnCount > 1) {
+            status = 'warn';
+            headline = `⚠ ${warnCount}/4 警告 · 中等護城河`;
+        } else if (passCount === 4) {
+            status = 'pass';
+            headline = '✓ 4/4 · 教科書級護城河';
+        } else {
+            status = 'pass';
+            headline = `✓ ${passCount}/4 通過`;
+        }
         const rows = items.map(it => {
             const v = userInput[it.key] || '';
             return `
@@ -398,10 +424,17 @@
                 </div>
               </div>`;
         }).join('');
+        const scoreText = filled === 0
+            ? '尚未填寫任何項目'
+            : `已填 <b>${filled}/4</b> · 其中通過 <b>${passCount}/${filled}</b>${filled < 4 ? ' · 未填完不計入合併總分' : ''}`;
         const details = `
           <div class="chain-cp-list">${rows}</div>
-          <div class="chain-cp-score">持續期評分：<b>${passCount}/4</b> · ${filled}/4 已填</div>`;
-        return { status, title: '關 10 · 持續期', headline, details, dataSource: '手動判斷 · 護城河四要素', durationScore: passCount };
+          <div class="chain-cp-score">${scoreText}</div>`;
+        return {
+            status, title: '關 10 · 持續期', headline, details,
+            dataSource: '手動判斷 · 護城河四要素',
+            durationFilled: filled, durationPass: passCount,
+        };
     }
 
     // ---------- Render ----------
@@ -451,21 +484,57 @@
             buildGate9(analysis),
             buildGate10(analysis, userInput),
         ];
-        const autoGates = gates.slice(3, 10);   // 關 3-9 自動
+        // 自動 7 關（關 3-9）· 這 7 關永遠是「已驗證」狀態（API 算出 pass/warn/fail）·
+        //   不會停在 manual · 分母固定 7
+        const autoGates = gates.slice(3, 10);
+        const autoTotal = autoGates.length;   // 固定 7 · 不是 8
         const autoPass = autoGates.filter(g => g.status === 'pass').length;
-        const autoTotal = autoGates.filter(g => g.status !== 'manual').length;
-        const durationScore = gates[10].durationScore || 0;
-        const totalPass = gates.filter(g => g.status === 'pass').length;
+
+        // 手動 3 關（關 0/1/2）：未驗證 ≠ 通過 · 只有使用者實際填寫才離開 'manual'（?）狀態
+        const manualGates = gates.slice(0, 3);
+        const manualFilled = manualGates.filter(g => g.status !== 'manual').length;
+        const manualPass = manualGates.filter(g => g.status === 'pass').length;
+
+        // 關 10 持續期：4 個 checkpoint 各自獨立 · 用 gate 回傳的 durationFilled/durationPass
+        const g10 = gates[10];
+        const durFilled = g10.durationFilled || 0;
+        const durPass = g10.durationPass || 0;
+
+        const fullyComplete = manualFilled === 3 && durFilled === 4;
+        const pendingCount = (3 - manualFilled) + (4 - durFilled);
+        // 「穿透鏈 10 關」= 自動 7 關 + 手動 3 關（關 0/1/2）· 持續期是額外/獨立評分 · 不計入這 10
+        const mainPass = autoPass + manualPass;
+        const mainTotal = autoTotal + 3;   // 固定 10
+
+        // 3 段式進度條：綠(通過) / 紅黃(已填但未過) / 灰(待填)
+        // 總槽位 = 7 自動(永遠算已驗證) + 3 手動 + 4 持續期 = 14（含持續期讓使用者看到整體完成度）
+        const totalSlots = autoTotal + 3 + 4;
+        const greenN = mainPass + durPass;
+        const amberRedN = (autoTotal - autoPass) + (manualFilled - manualPass) + (durFilled - durPass);
+        const grayN = (3 - manualFilled) + (4 - durFilled);
+        const pct = n => totalSlots ? (n / totalSlots * 100).toFixed(1) : 0;
+
+        const progressBar = `
+          <div class="chain-progress" title="綠=通過 · 紅黃=已填但未過 · 灰=待填 · 涵蓋全部 14 個子項（10 關 + 持續期 4 checkpoints）">
+            <div class="chain-progress-seg chain-progress-green" style="width:${pct(greenN)}%"></div>
+            <div class="chain-progress-seg chain-progress-amber" style="width:${pct(amberRedN)}%"></div>
+            <div class="chain-progress-seg chain-progress-gray" style="width:${pct(grayN)}%"></div>
+          </div>`;
+
+        const mergedLine = fullyComplete
+            ? `<span class="chain-merged-ok">✓ 全 10 關已完成：<b>${mainPass}/${mainTotal}</b> 通過（持續期另計 ${durPass}/4）</span>`
+            : `<span class="chain-merged-pending">⏳ 部分完成：還有 <b>${pendingCount}</b> 項待填 · 無法給出完整穿透鏈分數</span>`;
 
         const summary = `
           <div class="chain-summary">
+            ${progressBar}
             <div class="chain-summary-row">
-              <span>自動化 8 關（關 3-9）：<b>${autoPass}/${autoTotal}</b> 通過</span>
-              <span>持續期評分：<b>${durationScore}/4</b>${durationScore === 4 ? ' · 教科書級護城河' : ''}</span>
+              <span>自動關卡：<b>${autoPass}/${autoTotal}</b> 通過</span>
+              <span>手動關卡：已填 <b>${manualFilled}/3</b>（關 0/1/2）</span>
             </div>
             <div class="chain-summary-row">
-              <span>全 10 關（含關 0/1/2 手動）：<b>${totalPass}/10</b> 通過</span>
-              <span class="chain-hint">關 0/1/2 需你手填才會顯示 ✓</span>
+              <span>持續期：已填 <b>${durFilled}/4</b>${durFilled > 0 ? ` · 通過 <b>${durPass}/${durFilled}</b>` : ' · 尚未填'}</span>
+              <span>${mergedLine}</span>
             </div>
           </div>`;
         el.innerHTML = summary + gates.map((g, i) => renderGate(g, i)).join('');
