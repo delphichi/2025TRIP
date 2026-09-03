@@ -8,10 +8,12 @@ const trimEnv = k => (process.env[k] || '').trim();
 const FINMIND_TOKEN = trimEnv('FINMIND_TOKEN');
 const FMP_API_KEY = trimEnv('FMP_API_KEY');
 const FRED_API_KEY = trimEnv('FRED_API_KEY');
+const ALPHAVANTAGE_API_KEY = trimEnv('ALPHAVANTAGE_API_KEY');
 const {
     TW_TICKER = '2330',
     US_TICKER = 'AAPL',
     YEARS = '2',
+    AV_CATEGORIES = 'intelligence,timeseries,forex,commodities,econ,technical',
 } = process.env;
 
 // 診斷：把原始長度 vs trim 後長度印出來，一眼看出有沒有偷夾 whitespace
@@ -339,6 +341,146 @@ async function dumpFRED() {
     return out;
 }
 
+// ---------------- AlphaVantage ----------------
+// 免費 tier 硬限制：25 次/日 + burst limiter（併發太快會被擋，即使當日額度還夠 ·
+//   valuation/simulator.js 的 avFetch() 已經加 avThrottle() 修過這個坑，這裡的 dump script
+//   是另一個獨立呼叫 AV 的地方，一樣要 sleep 節流，不能直接複製貼上就對了）
+// 25 次/日很窄，不可能一次 dump 全部類別（光是技術指標就 60+ 個），所以：
+//   - 分類別（category）· 用 AV_CATEGORIES env（逗號分隔）挑要 dump 哪些
+//   - 每個類別給「已用」+「還沒用、以後可能用」兩種都標記，一眼看出目前程式覆蓋到哪
+//   - 技術指標只放 4 個代表性的（RSI/MACD/BBANDS/SMA）· 其餘 56+ 個是同樣的
+//     interval + time_period + series_type 模式，要探索直接照樣加一行
+const AV_BASE = 'https://www.alphavantage.co/query';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const AV_MIN_INTERVAL_MS = 1300;   // 比 app 端的 1100ms 更保守一點 · CI runner 網路延遲會壓縮實際間隔
+
+const AV_ENDPOINTS = [
+    // ---- fundamentals：已在 app 裡實際呼叫（valuation/simulator.js 的 fetchStockDataFromAlphaVantage 那組）----
+    { category: 'fundamentals', fn: 'OVERVIEW', extra: {}, note: '公司總覽（sector/industry/PE/PBR/ROE...）· 已用', used: true },
+    { category: 'fundamentals', fn: 'GLOBAL_QUOTE', extra: {}, note: '即時報價 · 已用', used: true },
+    { category: 'fundamentals', fn: 'INCOME_STATEMENT', extra: {}, note: '損益表季/年報 · 已用', used: true },
+    { category: 'fundamentals', fn: 'BALANCE_SHEET', extra: {}, note: '資產負債表季/年報 · 已用', used: true },
+    { category: 'fundamentals', fn: 'CASH_FLOW', extra: {}, note: '現金流量表季/年報 · 已用', used: true },
+    { category: 'fundamentals', fn: 'EARNINGS', extra: {}, note: 'EPS 季/年報 · 已用', used: true },
+    { category: 'fundamentals', fn: 'DIVIDENDS', extra: {}, note: '配息歷史 · 已用', used: true },
+    { category: 'fundamentals', fn: 'TIME_SERIES_MONTHLY_ADJUSTED', extra: {}, note: '月線（含調整後收盤）· 已用，歷史 PE/PBR 反推的價格來源', used: true },
+    // ---- fundamentals：還沒用，以後可能用 ----
+    { category: 'fundamentals', fn: 'SPLITS', extra: {}, note: '分割歷史 · 校正歷史 EPS/股數用', used: false },
+    { category: 'fundamentals', fn: 'EARNINGS_CALENDAR', extra: {}, note: '未來財報公布日期（CSV 不是 JSON）· 可加進「即將公布」提醒', used: false },
+    { category: 'fundamentals', fn: 'LISTING_STATUS', extra: {}, note: '全市場上市/下市清單（CSV）· 可做 ticker 有效性檢查', used: false },
+
+    // ---- Alpha Intelligence：目前完全沒用、最值得探索 ----
+    { category: 'intelligence', fn: 'NEWS_SENTIMENT', extra: { tickers: '__TICKER__' }, note: '新聞 + AI 情緒分數 · 可能取代/補強 TW 新聞關鍵字過濾', used: false },
+    { category: 'intelligence', fn: 'INSIDER_TRANSACTIONS', extra: {}, note: '內部人交易 · FMP insider-trading 需付費 tier 時的潛在備援', used: false },
+    { category: 'intelligence', fn: 'TOP_GAINERS_LOSERS', extra: {}, note: '當日漲跌幅+成交量排行榜（全市場，不吃 symbol）', used: false, noSymbol: true },
+    { category: 'intelligence', fn: 'ANALYTICS_FIXED_WINDOW', extra: { SYMBOLS: '__TICKER__', RANGE: '1month', INTERVAL: 'DAILY', CALCULATIONS: 'MEAN,STDDEV' }, note: '進階統計運算（均值/標準差/相關性）· 固定視窗', used: false, noSymbol: true },
+
+    // ---- Core Time Series：除了已用的月線，其他頻率沒探索 ----
+    { category: 'timeseries', fn: 'TIME_SERIES_DAILY', extra: {}, note: '日線（未調整）', used: false },
+    { category: 'timeseries', fn: 'TIME_SERIES_WEEKLY_ADJUSTED', extra: {}, note: '週線（含調整）', used: false },
+    { category: 'timeseries', fn: 'SYMBOL_SEARCH', extra: { keywords: '__TICKER__' }, note: 'ticker 模糊搜尋 · 可能取代手動猜代號', used: false },
+    { category: 'timeseries', fn: 'MARKET_STATUS', extra: {}, note: '全球各市場開盤狀態（不吃 symbol）', used: false, noSymbol: true },
+
+    // ---- Forex / Crypto：本工具目前只靠 FMP 抓 USD/TWD，沒用過 AV 這塊 ----
+    { category: 'forex', fn: 'CURRENCY_EXCHANGE_RATE', extra: { from_currency: 'USD', to_currency: 'TWD' }, note: '即時匯率 · USD/TWD 備援', used: false, noSymbol: true },
+    { category: 'forex', fn: 'FX_DAILY', extra: { from_symbol: 'USD', to_symbol: 'TWD' }, note: '匯率日線', used: false, noSymbol: true },
+    { category: 'forex', fn: 'DIGITAL_CURRENCY_DAILY', extra: { symbol: 'BTC', market: 'USD' }, note: '加密貨幣日線（本工具目前不分析加密貨幣，先探索備用）', used: false, noSymbol: true },
+
+    // ---- Commodities：目前完全沒接 · sector-rotation 報告的景氣循環判讀可能用得到 ----
+    { category: 'commodities', fn: 'WTI', extra: { interval: 'monthly' }, note: 'WTI 原油（跟 FRED DCOILWTICO 重疊，比較兩邊資料完整度）', used: false, noSymbol: true },
+    { category: 'commodities', fn: 'COPPER', extra: { interval: 'monthly' }, note: '銅價（景氣循環領先指標）', used: false, noSymbol: true },
+
+    // ---- Economic Indicators：跟現有 FRED_SERIES 重疊，探索 FRED 沒有 or FRED 額度用完的備援 ----
+    { category: 'econ', fn: 'TREASURY_YIELD', extra: { interval: 'monthly', maturity: '10year' }, note: '10Y 公債殖利率（跟 FRED DGS10 重疊，FRED 額度用完的備援）', used: false, noSymbol: true },
+    { category: 'econ', fn: 'CPI', extra: { interval: 'monthly' }, note: 'CPI（跟 FRED CPIAUCSL 重疊）', used: false, noSymbol: true },
+
+    // ---- Technical Indicators：60+ 個同樣的呼叫模式，這裡只探 4 個代表性的 ----
+    { category: 'technical', fn: 'RSI', extra: { interval: 'daily', time_period: '14', series_type: 'close' }, note: 'RSI(14) · 技術指標家族代表 1/4', used: false },
+    { category: 'technical', fn: 'MACD', extra: { interval: 'daily', series_type: 'close' }, note: 'MACD · 技術指標家族代表 2/4', used: false },
+    { category: 'technical', fn: 'BBANDS', extra: { interval: 'daily', time_period: '20', series_type: 'close' }, note: '布林通道 · 技術指標家族代表 3/4', used: false },
+    { category: 'technical', fn: 'SMA', extra: { interval: 'daily', time_period: '50', series_type: 'close' }, note: 'SMA(50) · 技術指標家族代表 4/4 · 其餘 56+ 個技術指標同樣是 interval+time_period+series_type 模式，要探索直接照樣加一行', used: false },
+];
+
+async function avFetch(ep, ticker) {
+    const params = new URLSearchParams({ function: ep.fn, apikey: ALPHAVANTAGE_API_KEY });
+    if (!ep.noSymbol) params.set('symbol', ticker);
+    for (const [k, v] of Object.entries(ep.extra || {})) {
+        params.set(k, v === '__TICKER__' ? ticker : v);
+    }
+    return safeFetch(`${AV_BASE}?${params.toString()}`);
+}
+
+async function dumpAlphaVantage(ticker, categories) {
+    let out = heading(2, '🇺🇸 AlphaVantage');
+    out += `\n- ticker: ${inlineCode(ticker)}\n- key: ${ALPHAVANTAGE_API_KEY ? '✅ 有' : '❌ 未設 ALPHAVANTAGE_API_KEY secret'}\n`;
+    out += `- categories 這次跑: ${inlineCode(categories.join(', '))}（可用值：fundamentals / intelligence / timeseries / forex / commodities / econ / technical）\n`;
+
+    if (!ALPHAVANTAGE_API_KEY) {
+        out += '\n> ⚠️ 沒有 ALPHAVANTAGE_API_KEY，跳過。到 Settings → Secrets 加。免費申請：alphavantage.co/support/#api-key\n';
+        return out;
+    }
+
+    const endpoints = AV_ENDPOINTS.filter(ep => categories.includes(ep.category));
+    out += `\n> ⚠️ **免費 tier 硬限制 25 次/日 + burst limiter（併發太快會被擋，即使當日額度還夠）**。\n`;
+    out += `> 這次會打 **${endpoints.length} 次** AV API，每次間隔 ${AV_MIN_INTERVAL_MS}ms 節流。若當日已經用掉一些額度，這次可能會有幾個回額度用完的錯誤，屬正常現象。\n`;
+    if (endpoints.length > 25) {
+        out += `> 🔴 **這次選的 categories 總共 ${endpoints.length} 個 endpoint，已經超過每日 25 次額度上限**，一定會有一部分失敗，建議拆成多次 workflow run（改 \`av_categories\` input 分批跑）。\n`;
+    }
+
+    for (let i = 0; i < endpoints.length; i++) {
+        const ep = endpoints[i];
+        if (i > 0) await sleep(AV_MIN_INTERVAL_MS);   // 節流：跟 app 端 avThrottle() 同樣的道理，避免觸發 burst limiter
+
+        out += heading(3, `📦 \`${ep.fn}\`（${ep.category}）${ep.used ? ' ✅ 已用' : ' 🆕 尚未用'}`);
+        out += `_${ep.note}_\n\n`;
+
+        const r = await avFetch(ep, ticker);
+        if (!r.ok) {
+            out += `❌ HTTP ${r.status}: ${truncate(JSON.stringify(r.body), 200)}\n`;
+            continue;
+        }
+        const body = r.body;
+        if (body && typeof body === 'object' && (body['Error Message'] || body['Note'] || body['Information'])) {
+            const errMsg = body['Error Message'] || body['Note'] || body['Information'];
+            const kind = body['Error Message'] ? 'Error Message（參數/ticker 錯）' : body['Note'] ? 'Note（額度限制）' : 'Information（key 或額度問題，含 burst limiter）';
+            out += `❌ AV 錯誤（${kind}）: ${truncate(errMsg, 300)}\n`;
+            continue;
+        }
+        if (typeof body === 'string') {
+            // CSV 回傳（LISTING_STATUS / EARNINGS_CALENDAR / IPO_CALENDAR 用 CSV 不是 JSON）
+            const lines = body.split('\n').filter(l => l.trim());
+            out += `✅ CSV 回傳 · ${lines.length} 行（含 header）\n\n`;
+            out += code(lines.slice(0, 6).join('\n') + (lines.length > 6 ? '\n...' : ''));
+            continue;
+        }
+        if (!body || typeof body !== 'object') {
+            out += `⚠️ 非預期回傳格式: ${truncate(JSON.stringify(body), 200)}\n`;
+            continue;
+        }
+        const topKeys = Object.keys(body);
+        out += `✅ top-level keys（共 ${topKeys.length}）: \`${topKeys.join(', ')}\`\n\n`;
+
+        // 時序型（xxx Time Series / Technical Analysis: xxx）：抓第一個 nested object 的 key 當「單筆欄位」樣本
+        const seriesKey = topKeys.find(k => /Time Series|Technical Analysis|Weekly|Monthly|Daily/i.test(k) && typeof body[k] === 'object');
+        if (seriesKey && body[seriesKey] && typeof body[seriesKey] === 'object') {
+            const dates = Object.keys(body[seriesKey]);
+            const firstDate = dates[0];
+            const sampleRow = body[seriesKey][firstDate];
+            out += `**\`${seriesKey}\`**：${dates.length} 個日期 · 單日欄位 keys: \`${sampleRow ? Object.keys(sampleRow).join(', ') : '(空)'}\`\n\n`;
+        }
+        // 陣列型（NEWS_SENTIMENT.feed / TOP_GAINERS_LOSERS.top_gainers / INSIDER_TRANSACTIONS.data ...）
+        const arrKey = topKeys.find(k => Array.isArray(body[k]));
+        if (arrKey && body[arrKey].length > 0) {
+            out += `**\`${arrKey}\`**：${body[arrKey].length} 筆 · 單筆欄位 keys: \`${Object.keys(body[arrKey][0]).join(', ')}\`\n\n`;
+        }
+
+        out += '<details><summary>📄 sample raw JSON（截斷）</summary>\n\n';
+        out += code(truncate(JSON.stringify(body, null, 2), 3000));
+        out += '\n</details>\n';
+    }
+    return out;
+}
+
 // ---------------- main ----------------
 (async () => {
     let report = `# 📊 FinMind + FMP + FRED schema dump\n\n`;
@@ -348,8 +490,9 @@ async function dumpFRED() {
     report += `- ${keyDiag('FINMIND_TOKEN', (process.env.FINMIND_TOKEN || '').length, FINMIND_TOKEN)}\n`;
     report += `- ${keyDiag('FMP_API_KEY',   (process.env.FMP_API_KEY   || '').length, FMP_API_KEY)}\n`;
     report += `- ${keyDiag('FRED_API_KEY',  (process.env.FRED_API_KEY  || '').length, FRED_API_KEY)}\n`;
+    report += `- ${keyDiag('ALPHAVANTAGE_API_KEY', (process.env.ALPHAVANTAGE_API_KEY || '').length, ALPHAVANTAGE_API_KEY)}\n`;
     report += `\n> ⚠️ **常見坑**：GitHub Actions secret 保留貼上時的前後空白 / 換行，script 已自動 trim。\n> 若上面顯示「有 X 個前後空白已 trim」，代表原本會失敗，現在通過；但 secret 本身建議也重新編輯拿掉空白。\n`;
-    report += `\n> **用途**：驗證 \`valuation/simulator.js\` 用的欄位名跟 3 個 API 實際回傳一致。\n> 也順便驗證 3 個 key 到底能不能通、額度剩多少。\n`;
+    report += `\n> **用途**：驗證 \`valuation/simulator.js\` 用的欄位名跟 4 個 API 實際回傳一致。\n> 也順便驗證 4 個 key 到底能不能通、額度剩多少。\n`;
 
     try { report += await dumpFinMind(); }
     catch (e) { report += `\n## FinMind ERROR\n\n${e.stack}\n`; }
@@ -357,6 +500,10 @@ async function dumpFRED() {
     catch (e) { report += `\n## FMP ERROR\n\n${e.stack}\n`; }
     try { report += await dumpFRED(); }
     catch (e) { report += `\n## FRED ERROR\n\n${e.stack}\n`; }
+    try {
+        const avCategories = AV_CATEGORIES.split(',').map(s => s.trim()).filter(Boolean);
+        report += await dumpAlphaVantage(US_TICKER, avCategories);
+    } catch (e) { report += `\n## AlphaVantage ERROR\n\n${e.stack}\n`; }
 
     process.stdout.write(report);
 })();

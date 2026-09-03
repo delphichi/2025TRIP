@@ -1,15 +1,19 @@
 name: dump-api-schemas
 
-# 目的：一次撈 FinMind + FMP + FRED 所有相關 dataset / endpoint / series 的實際欄位名，
+# 目的：一次撈 FinMind + FMP + FRED + AlphaVantage 所有相關 dataset / endpoint / series 的實際欄位名，
 # 讓 valuation/simulator.js 可以用真的 field name 而不是猜。
-# 順便驗證 3 個 API key 到底能不能通 / 額度剩多少。
+# 順便驗證 4 個 API key 到底能不能通 / 額度剩多少。
 #
-# 前置：Repo → Settings → Secrets and variables → Actions 加三個 secret：
-#   FINMIND_TOKEN  = FinMind API token
-#   FMP_API_KEY    = FMP API key
-#   FRED_API_KEY   = FRED API key（fred.stlouisfed.org/docs/api/api_key.html 免費申請）
+# 前置：Repo → Settings → Secrets and variables → Actions 加四個 secret：
+#   FINMIND_TOKEN         = FinMind API token
+#   FMP_API_KEY           = FMP API key
+#   FRED_API_KEY          = FRED API key（fred.stlouisfed.org/docs/api/api_key.html 免費申請）
+#   ALPHAVANTAGE_API_KEY  = AlphaVantage API key（alphavantage.co/support/#api-key 免費申請）
 #
-# 用法：Actions → dump-api-schemas → Run workflow → 可改 ticker → 跑完下載 artifact
+# ⚠️ AlphaVantage 免費 tier 只有 25 次/日，dump script 已經照類別分批 + 節流，
+#    但還是不要一次選太多 av_categories，額度會被這個 workflow 吃光，app 裡的 AV 備援當天就不能用了。
+#
+# 用法：Actions → dump-api-schemas → Run workflow → 可改 ticker / av_categories → 跑完下載 artifact
 # 或看 job step summary（會直接 render 出來）。
 
 on:
@@ -27,6 +31,10 @@ on:
         description: '往回抓幾年（覆蓋損益 / 現金流的樣本量）'
         default: '2'
         required: false
+      av_categories:
+        description: 'AlphaVantage 要 dump 的類別（逗號分隔，25 次/日額度，別選太多）：fundamentals/intelligence/timeseries/forex/commodities/econ/technical'
+        default: 'intelligence,timeseries,forex,commodities,econ,technical'
+        required: false
 
 jobs:
   dump:
@@ -38,14 +46,16 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Dump FinMind + FMP + FRED schemas
+      - name: Dump FinMind + FMP + FRED + AlphaVantage schemas
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
           TW_TICKER: ${{ inputs.tw_ticker }}
           US_TICKER: ${{ inputs.us_ticker }}
           YEARS: ${{ inputs.years }}
+          AV_CATEGORIES: ${{ inputs.av_categories }}
         run: |
           mkdir -p schema-dump
           node .github/scripts/dump-schemas.mjs 2>&1 | tee schema-dump/full-report.md
