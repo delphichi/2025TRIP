@@ -363,9 +363,8 @@ const AV_ENDPOINTS = [
     { category: 'fundamentals', fn: 'CASH_FLOW', extra: {}, note: '現金流量表季/年報 · 已用', used: true },
     { category: 'fundamentals', fn: 'EARNINGS', extra: {}, note: 'EPS 季/年報 · 已用', used: true },
     { category: 'fundamentals', fn: 'DIVIDENDS', extra: {}, note: '配息歷史 · 已用', used: true },
-    { category: 'fundamentals', fn: 'TIME_SERIES_MONTHLY_ADJUSTED', extra: {}, note: '月線（含調整後收盤）· 已用，歷史 PE/PBR 反推的價格來源', used: true },
+    { category: 'fundamentals', fn: 'SPLITS', extra: {}, note: '分割歷史 · 已用，校正股本 YoY 的分割失真（cumulativeSplitFactor）', used: true },
     // ---- fundamentals：還沒用，以後可能用 ----
-    { category: 'fundamentals', fn: 'SPLITS', extra: {}, note: '分割歷史 · 校正歷史 EPS/股數用', used: false },
     { category: 'fundamentals', fn: 'EARNINGS_CALENDAR', extra: {}, note: '未來財報公布日期（CSV 不是 JSON）· 可加進「即將公布」提醒', used: false },
     { category: 'fundamentals', fn: 'LISTING_STATUS', extra: {}, note: '全市場上市/下市清單（CSV）· 可做 ticker 有效性檢查', used: false },
 
@@ -375,9 +374,10 @@ const AV_ENDPOINTS = [
     { category: 'intelligence', fn: 'TOP_GAINERS_LOSERS', extra: {}, note: '當日漲跌幅+成交量排行榜（全市場，不吃 symbol）', used: false, noSymbol: true },
     { category: 'intelligence', fn: 'ANALYTICS_FIXED_WINDOW', extra: { SYMBOLS: '__TICKER__', RANGE: '1month', INTERVAL: 'DAILY', CALCULATIONS: 'MEAN,STDDEV' }, note: '進階統計運算（均值/標準差/相關性）· 固定視窗', used: false, noSymbol: true },
 
-    // ---- Core Time Series：除了已用的月線，其他頻率沒探索 ----
+    // ---- Core Time Series：已用週線（原本用月線，改用週線是因為月線 1 點/月 → 熱區圖首/末收盤永遠同一筆、報酬算出 0%，等於沒作用）----
+    { category: 'timeseries', fn: 'TIME_SERIES_WEEKLY_ADJUSTED', extra: {}, note: '週線（~20 年歷史，~4-5 點/月）· 已用，熱區圖 + 歷史 PE/PBR 反推的價格來源', used: true },
+    { category: 'timeseries', fn: 'TIME_SERIES_MONTHLY_ADJUSTED', extra: {}, note: '月線 · 原本用這個，已改用週線（1 點/月太粗，熱區圖算不出東西）', used: false },
     { category: 'timeseries', fn: 'TIME_SERIES_DAILY', extra: {}, note: '日線（未調整）', used: false },
-    { category: 'timeseries', fn: 'TIME_SERIES_WEEKLY_ADJUSTED', extra: {}, note: '週線（含調整）', used: false },
     { category: 'timeseries', fn: 'SYMBOL_SEARCH', extra: { keywords: '__TICKER__' }, note: 'ticker 模糊搜尋 · 可能取代手動猜代號', used: false },
     { category: 'timeseries', fn: 'MARKET_STATUS', extra: {}, note: '全球各市場開盤狀態（不吃 symbol）', used: false, noSymbol: true },
 

@@ -1652,7 +1652,10 @@
         return data;
     }
 
-    // 一次抓齊全部要用的 endpoint（8 個），individual 失敗不擋整體 —— 跟 fetchStockData 的 label() 模式一致
+    // 一次抓齊全部要用的 endpoint（9 個），individual 失敗不擋整體 —— 跟 fetchStockData 的 label() 模式一致
+    // weekly（原本是 monthly）：TIME_SERIES_WEEKLY_ADJUSTED 有 ~20 年歷史、~4-5 點/月，
+    //   月線只有 1 點/月，熱區圖抓同月「首/末收盤」時月線的首=末永遠算出 0% 報酬（等於沒作用）
+    // splits：修正股本 YoY 的分割失真（見 cumulativeSplitFactor 的說明）
     async function fetchAvRaw(ticker, apiKey) {
         const label = (name, promise) => promise.then(
             v => ({ name, ok: true, value: v }),
@@ -1665,8 +1668,9 @@
             label('earnings',  avFetch('EARNINGS', ticker, apiKey)),
             label('cashflow',  avFetch('CASH_FLOW', ticker, apiKey)),
             label('balance',   avFetch('BALANCE_SHEET', ticker, apiKey)),
-            label('monthly',   avFetch('TIME_SERIES_MONTHLY_ADJUSTED', ticker, apiKey)),
+            label('weekly',    avFetch('TIME_SERIES_WEEKLY_ADJUSTED', ticker, apiKey)),
             label('dividends', avFetch('DIVIDENDS', ticker, apiKey)),
+            label('splits',    avFetch('SPLITS', ticker, apiKey)),
         ]);
         return Object.fromEntries(results.map(r => [r.name, r]));
     }
@@ -1799,9 +1803,12 @@
             .slice(0, 10);
     }
 
-    // TIME_SERIES_MONTHLY_ADJUSTED → [{date, close}]（舊到新），給熱區圖 + 歷史 PE/PBR 反推的價格來源用
-    function buildAvMonthlySeries(monthlyJson) {
-        const series = monthlyJson && monthlyJson['Monthly Adjusted Time Series'];
+    // TIME_SERIES_WEEKLY_ADJUSTED → [{date, close}]（舊到新），給熱區圖 + 歷史 PE/PBR 反推的價格來源用
+    // 故意用「4. close」（原始收盤）不是「5. adjusted close」——歷史 EPS / BVPS（EARNINGS / BALANCE_SHEET annualReports）
+    //   是「當時申報」的原始值，不會為了後續分割回頭改寫，跟原始收盤價才是同一個股數基準配對；
+    //   改用 adjusted close 反而會跟未經調整的 EPS/BVPS 對不上、算出來的 PE/PBR 才會真的失真。
+    function buildAvWeeklySeries(weeklyJson) {
+        const series = weeklyJson && weeklyJson['Weekly Adjusted Time Series'];
         if (!series) return [];
         return Object.entries(series)
             .map(([date, v]) => ({ date, close: avNum(v['4. close']) }))
@@ -1809,13 +1816,13 @@
             .sort((a, b) => a.date.localeCompare(b.date));
     }
 
-    // 在月線序列裡找離 targetDate 最近的一筆（不限方向）
-    function nearestMonthlyPrice(monthlySeries, targetDate) {
-        if (!monthlySeries || monthlySeries.length === 0 || !targetDate) return null;
+    // 在週線序列裡找離 targetDate 最近的一筆（不限方向）
+    function nearestWeeklyPrice(weeklySeries, targetDate) {
+        if (!weeklySeries || weeklySeries.length === 0 || !targetDate) return null;
         const target = new Date(targetDate).getTime();
         if (!isFinite(target)) return null;
         let best = null, bestDiff = Infinity;
-        for (const p of monthlySeries) {
+        for (const p of weeklySeries) {
             const t = new Date(p.date).getTime();
             if (!isFinite(t)) continue;
             const diff = Math.abs(t - target);
@@ -1824,12 +1831,36 @@
         return best;
     }
 
+    // SPLITS → [{date, factor}]（舊到新）· factor 語意是「新股數 / 舊股數」
+    //   （AV split_factor：2-for-1 分割 = 2、1-for-10 反分割 = 0.1）
+    function buildAvSplitEvents(splitsJson) {
+        const rows = (splitsJson && Array.isArray(splitsJson.data)) ? splitsJson.data : [];
+        return rows
+            .map(r => ({ date: r.effective_date, factor: avNum(r.split_factor) }))
+            .filter(r => r.date && r.factor !== null && isFinite(r.factor) && r.factor > 0)
+            .sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    // 股本 YoY 是拿「兩個不同季度」各自反推出的近似股數（netIncome ÷ eps）相除，
+    //   這兩個值本身沒有分割失真問題（每季都用該季自己的 eps/netIncome，跟當時實際股數一致）——
+    //   但如果這兩季之間發生過分割，直接相除會把「單純分割生出更多股票」誤讀成真的稀釋。
+    // 例：1-for-2 反分割 factor=0.5，舊股數沒調整的話，YoY 會多出 -50pp 的假訊號。
+    // 修法：把「較舊那期」的股數，按分割區間的累積 factor 換算成跟「較新那期」同一個股數基準再相除。
+    function cumulativeSplitFactor(splitEvents, fromDateExclusive, toDateInclusive) {
+        if (!Array.isArray(splitEvents) || splitEvents.length === 0) return 1;
+        let factor = 1;
+        for (const ev of splitEvents) {
+            if (ev.date > fromDateExclusive && ev.date <= toDateInclusive) factor *= ev.factor;
+        }
+        return factor;
+    }
+
     // 重建歷年 PE/PBR：AV 沒有 FMP /ratios 那種現成的歷史比率端點，改用
     //   年度 EPS（EARNINGS.annualEarnings）+ 年度每股淨值（BALANCE_SHEET.annualReports 的
-    //   totalShareholderEquity ÷ commonStockSharesOutstanding）+ 該財年結算日最近的月均價 反推。
+    //   totalShareholderEquity ÷ commonStockSharesOutstanding）+ 該財年結算日最近的週均價 反推。
     // 任一年缺 EPS 或缺 BVPS 都還是可以算出「有值的那一個」比率（PE-only 或 PBR-only），
     //   兩個都缺才整年跳過 —— 呼應「未驗證 ≠ 通過」：缺資料就是缺，不用另一個當假設補上
-    function buildAvRatiosHistory(earningsJson, balanceJson, monthlySeries) {
+    function buildAvRatiosHistory(earningsJson, balanceJson, weeklySeries) {
         const annualEps = (earningsJson && Array.isArray(earningsJson.annualEarnings)) ? earningsJson.annualEarnings : [];
         const annualBs = (balanceJson && Array.isArray(balanceJson.annualReports)) ? balanceJson.annualReports : [];
         if (annualEps.length === 0 && annualBs.length === 0) return [];
@@ -1857,7 +1888,7 @@
             const bvpsEntry = bsByYear.get(year);
             const refDate = (epsEntry && epsEntry.date) || (bvpsEntry && bvpsEntry.date);
             if (!refDate) return;
-            const priceAtDate = nearestMonthlyPrice(monthlySeries, refDate);
+            const priceAtDate = nearestWeeklyPrice(weeklySeries, refDate);
             if (!priceAtDate) return;
             const pe  = (epsEntry  && epsEntry.eps   && epsEntry.eps !== 0)  ? priceAtDate.close / epsEntry.eps  : null;
             const pbr = (bvpsEntry && bvpsEntry.bvps && bvpsEntry.bvps !== 0) ? priceAtDate.close / bvpsEntry.bvps : null;
@@ -1870,7 +1901,7 @@
 
     // ---------- AlphaVantage 主查詢 orchestrator（跟 fetchStockData 回傳同形狀）----------
     async function fetchStockDataFromAlphaVantage(ticker, avKey, years) {
-        setStatus('loading', `📡 改用 AlphaVantage 抓 ${ticker}（免費 tier 25 次/日 · 已加 24hr 快取 · 8 個 endpoint 錯開查避免觸發 burst limiter · 未快取的話約需 8 秒）……`);
+        setStatus('loading', `📡 改用 AlphaVantage 抓 ${ticker}（免費 tier 25 次/日 · 已加 24hr 快取 · 9 個 endpoint 錯開查避免觸發 burst limiter · 未快取的話約需 10 秒）……`);
 
         const raw = await fetchAvRaw(ticker, avKey);
         const overview = raw.overview.ok ? raw.overview.value : null;
@@ -1892,21 +1923,23 @@
         const earningsJson  = raw.earnings.ok  ? raw.earnings.value  : null;
         const cashflowJson  = raw.cashflow.ok  ? raw.cashflow.value  : null;
         const balanceJson   = raw.balance.ok   ? raw.balance.value   : null;
-        const monthlyJson   = raw.monthly.ok   ? raw.monthly.value   : null;
+        const weeklyJson    = raw.weekly.ok    ? raw.weekly.value    : null;
         const dividendsJson = raw.dividends.ok ? raw.dividends.value : null;
+        const splitsJson    = raw.splits.ok    ? raw.splits.value    : null;
 
-        const monthlySeries = buildAvMonthlySeries(monthlyJson);
+        const weeklySeries  = buildAvWeeklySeries(weeklyJson);
         const fundamentals  = buildAvFundamentals(incomeJson, earningsJson);
         const cashFlow      = buildAvCashFlow(cashflowJson);
         const balanceSheet  = buildAvBalanceSheet(balanceJson);
         const dividends     = buildAvDividends(dividendsJson);
+        const splitEvents   = buildAvSplitEvents(splitsJson);
 
-        const ratiosHistory = buildAvRatiosHistory(earningsJson, balanceJson, monthlySeries);
+        const ratiosHistory = buildAvRatiosHistory(earningsJson, balanceJson, weeklySeries);
         if (ratiosHistory.length < 3) {
             throw new Error(
                 `${ticker} AlphaVantage 歷史 PE/PBR 樣本不足（只反推出 ${ratiosHistory.length} 筆）。` +
-                `需要年度 EPS（EARNINGS）+ 股東權益與股數（BALANCE_SHEET annualReports）+ 對應月均價` +
-                `（TIME_SERIES_MONTHLY_ADJUSTED）同時有值才能反推歷史 PE/PBR，任一年缺項就跳過那年。`
+                `需要年度 EPS（EARNINGS）+ 股東權益與股數（BALANCE_SHEET annualReports）+ 對應週均價` +
+                `（TIME_SERIES_WEEKLY_ADJUSTED）同時有值才能反推歷史 PE/PBR，任一年缺項就跳過那年。`
             );
         }
         const sliced = ratiosHistory.slice(-years);   // 反推結果本就舊到新排 · 直接取最近 N 年
@@ -1944,7 +1977,14 @@
                 const sharesLatest = rawQ[0] && rawQ[0].weightedAverageShsOutDil;
                 const sharesYearAgo = rawQ.length >= 5 ? (rawQ[4] && rawQ[4].weightedAverageShsOutDil) : null;
                 if (sharesLatest && sharesYearAgo && sharesYearAgo > 0) {
-                    fundamentals.shareCapYoY = ((sharesLatest / sharesYearAgo) - 1) * 100;
+                    // 把「較舊那期」的股數換算到「較新那期」同一個分割基準，避免分割事件被誤讀成稀釋/買回
+                    const splitFactor = cumulativeSplitFactor(splitEvents, rawQ[4].date, rawQ[0].date);
+                    const sharesYearAgoAdjusted = sharesYearAgo * splitFactor;
+                    fundamentals.shareCapYoY = ((sharesLatest / sharesYearAgoAdjusted) - 1) * 100;
+                    if (splitFactor !== 1) {
+                        fundamentals.shareCapYoySplitAdjusted = true;
+                        fundamentals.shareCapYoySplitFactor = splitFactor;
+                    }
                 } else if (rawQ.length < 5) {
                     fundamentals.shareCapYoYInsufficientReason = `AlphaVantage 只 ${rawQ.length} 季 · 需要滿 5 季才有真 YoY 對照點`;
                 } else {
@@ -1954,7 +1994,7 @@
         }
         if (fundamentals && dividends) fundamentals.dividendHistory = dividends;
 
-        const price = quote ? quote.price : (monthlySeries.length ? monthlySeries[monthlySeries.length - 1].close : null);
+        const price = quote ? quote.price : (weeklySeries.length ? weeklySeries[weeklySeries.length - 1].close : null);
         let currentPE = overviewValid ? avNum(overview.PERatio) : null;
         if (currentPE === null) currentPE = sliced.length ? sliced[sliced.length - 1].pe : null;
         let currentPBR = overviewValid ? avNum(overview.PriceToBookRatio) : null;
@@ -1982,7 +2022,7 @@
             rawIncomeQuarterly: (fundamentals && fundamentals.rawIncomeQuarterly) || null,
             institutional: null,
             fmpEndpointStatus: optionalStatus,
-            priceSeries: monthlySeries,
+            priceSeries: weeklySeries,
             dataSource: 'AlphaVantage',
         };
     }
@@ -4756,8 +4796,8 @@
                         <div class="bs-metric-label">淨利 CV${fund?.netIncomeCVBasis === 'quarterly' ? '<span style="font-weight:400;font-size:9px;">(季)</span>' : ''}</div>
                         <div class="bs-metric-val">${(niCV !== null && niCV !== undefined && isFinite(niCV)) ? niCV.toFixed(0) + '%' : (fund?.netIncomeCVInsufficientReason ? `<span style="font-size:10px;font-weight:400;color:#9ca3af;">${fund.netIncomeCVInsufficientReason}</span>` : '—')}</div>
                     </div>
-                    <div class="bs-metric" title="股本年增 · 抓稀釋速度（weightedAverageShsOutDil 真 YoY）">
-                        <div class="bs-metric-label">股本 YoY</div>
+                    <div class="bs-metric" title="股本年增 · 抓稀釋速度（weightedAverageShsOutDil 真 YoY）${fund?.shareCapYoySplitAdjusted ? ` · 期間內偵測到股票分割（累積比例 ${fmtNum(fund.shareCapYoySplitFactor)}×），已用 AlphaVantage SPLITS 資料校正，避免分割被誤讀成稀釋/買回` : ''}">
+                        <div class="bs-metric-label">股本 YoY${fund?.shareCapYoySplitAdjusted ? '<span style="font-weight:400;font-size:9px;" title="已用分割資料校正">✂️</span>' : ''}</div>
                         <div class="bs-metric-val">${(scYoY !== null && scYoY !== undefined && isFinite(scYoY)) ? (scYoY > 0 ? '+' : '') + scYoY.toFixed(1) + '%' : (fund?.shareCapYoYInsufficientReason ? `<span style="font-size:10px;font-weight:400;color:#9ca3af;">${fund.shareCapYoYInsufficientReason}</span>` : '—')}</div>
                     </div>
                 </div>

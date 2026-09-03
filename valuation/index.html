@@ -98,7 +98,7 @@
                 填 email 秒發 key。<b>免費額度很窄：25 次/日</b>，本工具已對每個 endpoint 加 24 小時快取降低耗用。
                 <br>
                 歷史 PE/PBR 用 AlphaVantage 沒有直接對應的端點，改用<b>年度 EPS（EARNINGS）+ 股東權益／股數（BALANCE_SHEET）
-                +對應月均價（TIME_SERIES_MONTHLY_ADJUSTED）反推</b>，精確度不如 FMP 的 <code>/ratios</code> 原生歷史資料。
+                +對應週均價（TIME_SERIES_WEEKLY_ADJUSTED，已用 SPLITS 校正股票分割）反推</b>，精確度不如 FMP 的 <code>/ratios</code> 原生歷史資料。
                 <b>Key 只存 localStorage</b>。
             </p>
             <p class="hint">
