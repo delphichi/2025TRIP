@@ -1363,10 +1363,23 @@
         const [quoteR, profileR, ratiosR, fundR, cfR, bsR, insiderR, divR, instOwnR, histR] = results;
         const failed = results.filter(r => !r.ok);
 
-        // 生成 402 專用建議：試 GOOG↔GOOGL / TSLA↔TSLA / BRK.A↔BRK.B 這類 dual-class
+        // 生成 402 專用建議：試 GOOG↔GOOGL / FOX↔FOXA / NWS↔NWSA / BRK.A↔BRK.B 這類 dual-class
+        // 之前的寫法把「當前查詢失敗的 ticker」硬套進「= GOOG → 試 GOOGL」的固定例句裡 ·
+        //   查 NWS 就顯示「NWS = GOOG → 試 GOOGL」這種答非所問的建議（NWS 根本不是 GOOG · 正確配對是 NWSA）
+        //   改用實際 dual-class 對照表 · 認得出來就給正確配對 · 認不出來才退回通用範例（不再誤植查詢 ticker）
+        const DUAL_CLASS_MAP = {
+            'GOOG': 'GOOGL', 'GOOGL': 'GOOG',
+            'FOX': 'FOXA', 'FOXA': 'FOX',
+            'NWS': 'NWSA', 'NWSA': 'NWS',
+            'BRK.A': 'BRK.B', 'BRK.B': 'BRK.A',
+            'BRK-A': 'BRK-B', 'BRK-B': 'BRK-A',
+        };
         const has402 = failed.some(f => /402|Premium|subscription/i.test(f.error || ''));
+        const altClass = DUAL_CLASS_MAP[String(ticker || '').toUpperCase()];
         const dualClassHint = has402
-            ? `\n💡 <b>402 特殊處理</b>：FMP 免費 tier 對特定 ticker × endpoint 組合會鎖付費。若是 <b>dual-class</b> 公司（GOOG/GOOGL · FOX/FOXA · BRK.A/BRK.B），試另一個 class 通常可繞（同公司但 FMP 授權可能不同）· 例：${ticker} = GOOG → 試 <b>GOOGL</b>。`
+            ? (altClass
+                ? `\n💡 <b>402 特殊處理</b>：FMP 免費 tier 對特定 ticker × endpoint 組合會鎖付費。<b>${ticker}</b> 是 dual-class 公司的股票，試另一個 class 通常可繞（同公司但 FMP 授權可能不同）：試 <b>${altClass}</b>。`
+                : `\n💡 <b>402 特殊處理</b>：FMP 免費 tier 對特定 ticker × endpoint 組合會鎖付費。若是 <b>dual-class</b> 公司（GOOG/GOOGL · FOX/FOXA · NWS/NWSA · BRK.A/BRK.B），試另一個 class 通常可繞（同公司但 FMP 授權可能不同）。`)
             : '';
 
         // quote 是主查詢必要 · 失敗就整份 abort
