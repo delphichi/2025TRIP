@@ -1614,6 +1614,24 @@
         return isFinite(n) ? n : null;
     }
 
+    // AV 免費 tier 有獨立於「25 次/日」額度之外的 burst limiter（"(1 request per second)"）·
+    //   fetchAvRaw() 一次併發 8 個 avFetch() · 就算當日額度還很夠也會被 burst limiter 擋下來、
+    //   回傳看起來像「查不到」的 Information 錯誤（實際是「太快」不是「沒資料」）
+    // 用時槽（slot）機制把「實際會打網路」的呼叫錯開 ≥1.1 秒：
+    //   slot 的讀取 + 寫入這兩行中間沒有 await，JS 單執行緒下這段是原子的 ·
+    //   即使 8 個 avFetch() 幾乎同時呼叫，各自進到這裡的順序仍會依序拿到不重疊的時槽
+    //   （快取命中的呼叫在更前面就 return 了，完全不會走到這裡、不用排隊）
+    let avNextSlotAt = 0;
+    let AV_MIN_INTERVAL_MS = 1100;
+    function __setAvMinIntervalForTesting(ms) { AV_MIN_INTERVAL_MS = ms; }   // 只給測試用，正式路徑不會呼叫
+    async function avThrottle() {
+        const myNow = Date.now();
+        const slot = Math.max(avNextSlotAt, myNow);
+        avNextSlotAt = slot + AV_MIN_INTERVAL_MS;
+        const wait = slot - myNow;
+        if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+    }
+
     async function avFetch(fnName, ticker, apiKey, extraParams) {
         const cacheKey = `av_cache_${fnName}_${ticker}`;
         try {
@@ -1621,6 +1639,7 @@
             if (cached && cached.ts && (Date.now() - cached.ts) < AV_CACHE_TTL_MS) return cached.data;
         } catch (_) { /* 壞快取，當沒有 */ }
 
+        await avThrottle();
         const params = new URLSearchParams(Object.assign({ function: fnName, symbol: ticker, apikey: apiKey }, extraParams || {}));
         const res = await fetch(`${AV_BASE}?${params.toString()}`);
         if (!res.ok) throw new Error(`AlphaVantage HTTP ${res.status}`);
@@ -1851,7 +1870,7 @@
 
     // ---------- AlphaVantage 主查詢 orchestrator（跟 fetchStockData 回傳同形狀）----------
     async function fetchStockDataFromAlphaVantage(ticker, avKey, years) {
-        setStatus('loading', `📡 改用 AlphaVantage 抓 ${ticker}（免費 tier 25 次/日 · 已加 24hr 快取）……`);
+        setStatus('loading', `📡 改用 AlphaVantage 抓 ${ticker}（免費 tier 25 次/日 · 已加 24hr 快取 · 8 個 endpoint 錯開查避免觸發 burst limiter · 未快取的話約需 8 秒）……`);
 
         const raw = await fetchAvRaw(ticker, avKey);
         const overview = raw.overview.ok ? raw.overview.value : null;
