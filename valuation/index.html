@@ -72,6 +72,9 @@
                 <label id="api-key-label" class="mode-fmp">FMP API Key
                     <input type="text" id="cfg-api-key" placeholder="貼上你的 FMP key（會存 localStorage）">
                 </label>
+                <label id="av-key-label" class="mode-fmp">AlphaVantage API Key（備援 · 選填）
+                    <input type="text" id="cfg-alphavantage-key" placeholder="FMP 402 時自動改用這把 key 查（會存 localStorage）">
+                </label>
                 <label id="finmind-token-label" class="mode-finmind" hidden>FinMind Token
                     <input type="text" id="cfg-finmind-token" placeholder="貼上你的 FinMind token（會存 localStorage）">
                 </label>
@@ -86,6 +89,17 @@
                 <br>
                 本工具用 FMP 新版 <code>/stable/</code> API（2024 改版後的）。
                 <b>Key 只存 localStorage，不會離開你的瀏覽器</b>。
+            </p>
+            <p class="hint mode-fmp" id="av-hint">
+                <b>AlphaVantage 備援</b>：FMP 免費 tier 對特定 ticker × endpoint 組合常回 402（連 GOOG 都會遇到）。
+                填了這把 key 後，只要 FMP 查詢失敗就<b>自動改用 AlphaVantage 重查</b>（quote / 損益表 / 現金流 /
+                資產負債表 / 配息 / 歷史 PE-PBR 都有備援路徑）。免費申請：到
+                <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener">alphavantage.co/support/#api-key</a>
+                填 email 秒發 key。<b>免費額度很窄：25 次/日</b>，本工具已對每個 endpoint 加 24 小時快取降低耗用。
+                <br>
+                歷史 PE/PBR 用 AlphaVantage 沒有直接對應的端點，改用<b>年度 EPS（EARNINGS）+ 股東權益／股數（BALANCE_SHEET）
+                +對應月均價（TIME_SERIES_MONTHLY_ADJUSTED）反推</b>，精確度不如 FMP 的 <code>/ratios</code> 原生歷史資料。
+                <b>Key 只存 localStorage</b>。
             </p>
             <p class="hint">
                 <b>FRED（美聯儲 St. Louis Fed）免費 API key</b>：到

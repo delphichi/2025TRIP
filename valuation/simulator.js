@@ -1597,6 +1597,397 @@
         };
     }
 
+    // ---------- AlphaVantage API（FMP 402 備援）----------
+    // 免費 tier：25 次/日，很窄 —— 每個 endpoint 都用 localStorage 加 24hr 快取降低耗用
+    // AV 特殊慣例：額度用完 / key 錯 / 參數錯都回 HTTP 200，錯誤包在 body 的
+    //   Note（rate limit）/ Information（key 或額度問題）/ Error Message（參數錯）裡，必須明確檢查
+    // 資料形狀策略：adapter 把 AV 回傳轉成跟 FMP raw row 同樣的欄位名（revenue / grossProfit / operatingIncome /
+    //   operatingCashFlow / freeCashFlow ...），這樣可以直接重用既有的 processFundamentals() / processCashFlow()，
+    //   不用重寫一套算 YoY/QoQ delta 的邏輯
+    const AV_BASE = 'https://www.alphavantage.co/query';
+    const AV_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+    // 防禦性轉數字：AV 缺值常見用字串 "None" 表示，不是 null/undefined
+    function avNum(v) {
+        if (v === null || v === undefined || v === 'None' || v === '-' || v === '') return null;
+        const n = parseFloat(v);
+        return isFinite(n) ? n : null;
+    }
+
+    async function avFetch(fnName, ticker, apiKey, extraParams) {
+        const cacheKey = `av_cache_${fnName}_${ticker}`;
+        try {
+            const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+            if (cached && cached.ts && (Date.now() - cached.ts) < AV_CACHE_TTL_MS) return cached.data;
+        } catch (_) { /* 壞快取，當沒有 */ }
+
+        const params = new URLSearchParams(Object.assign({ function: fnName, symbol: ticker, apikey: apiKey }, extraParams || {}));
+        const res = await fetch(`${AV_BASE}?${params.toString()}`);
+        if (!res.ok) throw new Error(`AlphaVantage HTTP ${res.status}`);
+        const data = await res.json();
+        if (data['Error Message']) throw new Error(`AlphaVantage：${data['Error Message']}`);
+        if (data['Note']) throw new Error(`AlphaVantage 額度限制：${data['Note']}`);
+        if (data['Information']) throw new Error(`AlphaVantage：${data['Information']}`);
+
+        try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data })); } catch (_) { /* localStorage 滿了 · 靜默略過快取 */ }
+        return data;
+    }
+
+    // 一次抓齊全部要用的 endpoint（8 個），individual 失敗不擋整體 —— 跟 fetchStockData 的 label() 模式一致
+    async function fetchAvRaw(ticker, apiKey) {
+        const label = (name, promise) => promise.then(
+            v => ({ name, ok: true, value: v }),
+            e => ({ name, ok: false, error: e.message })
+        );
+        const results = await Promise.all([
+            label('overview',  avFetch('OVERVIEW', ticker, apiKey)),
+            label('quote',     avFetch('GLOBAL_QUOTE', ticker, apiKey)),
+            label('income',    avFetch('INCOME_STATEMENT', ticker, apiKey)),
+            label('earnings',  avFetch('EARNINGS', ticker, apiKey)),
+            label('cashflow',  avFetch('CASH_FLOW', ticker, apiKey)),
+            label('balance',   avFetch('BALANCE_SHEET', ticker, apiKey)),
+            label('monthly',   avFetch('TIME_SERIES_MONTHLY_ADJUSTED', ticker, apiKey)),
+            label('dividends', avFetch('DIVIDENDS', ticker, apiKey)),
+        ]);
+        return Object.fromEntries(results.map(r => [r.name, r]));
+    }
+
+    // INCOME_STATEMENT（quarterlyReports）+ EARNINGS（quarterlyEarnings 的 reportedEPS）合併成
+    //   FMP raw income-statement row 同形狀：{date, revenue, grossProfit, operatingIncome, netIncome, eps, weightedAverageShsOutDil}
+    function buildAvIncomeRows(incomeJson, earningsJson) {
+        const incQ = (incomeJson && Array.isArray(incomeJson.quarterlyReports)) ? incomeJson.quarterlyReports : [];
+        if (incQ.length === 0) return [];
+        const earnByDate = new Map();
+        if (earningsJson && Array.isArray(earningsJson.quarterlyEarnings)) {
+            earningsJson.quarterlyEarnings.forEach(e => earnByDate.set(e.fiscalDateEnding, e));
+        }
+        const rows = incQ.map(r => {
+            const e = earnByDate.get(r.fiscalDateEnding);
+            const revenue = avNum(r.totalRevenue);
+            const netIncome = avNum(r.netIncome);
+            const eps = e ? avNum(e.reportedEPS) : null;
+            // AV 沒有季度稀釋股數欄位 · 用「淨利 ÷ EPS」反推近似值（只給股本 YoY 用 · 不是精確稀釋股數）
+            const approxShares = (eps && eps !== 0 && netIncome !== null) ? netIncome / eps : null;
+            return {
+                date: r.fiscalDateEnding,
+                revenue,
+                grossProfit: avNum(r.grossProfit),
+                operatingIncome: avNum(r.operatingIncome),
+                incomeBeforeTax: avNum(r.incomeBeforeTax),
+                incomeTaxExpense: avNum(r.incomeTaxExpense),
+                netIncome,
+                eps,
+                epsDiluted: eps,
+                weightedAverageShsOutDil: approxShares,
+            };
+        });
+        rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        return rows;
+    }
+
+    function buildAvFundamentals(incomeJson, earningsJson) {
+        const rows = buildAvIncomeRows(incomeJson, earningsJson);
+        if (rows.length === 0) return null;
+        const safeDiv = (num, den) => (num !== null && num !== undefined && den) ? num / den : null;
+        const result = processFundamentals(rows, {
+            revenue: r => r.revenue,
+            eps: r => r.eps,
+            grossMargin:     r => safeDiv(r.grossProfit, r.revenue),
+            operatingMargin: r => safeDiv(r.operatingIncome, r.revenue),
+        });
+        if (result) {
+            result.rawIncomeQuarterly = rows.slice(0, 8);
+            result.dataSource = 'AlphaVantage';
+        }
+        return result;
+    }
+
+    // CASH_FLOW（quarterlyReports）→ FMP raw cash-flow row 同形狀
+    // AV 沒有直接 freeCashFlow 欄位 · 用 operatingCashflow − |capitalExpenditures| 自算
+    // AV 沒有股份基礎薪酬（SBC）獨立欄位 · sbc 留 null（sbcRatioTtm 這塊 AV 路徑不會有值）
+    function buildAvCashFlowRows(cashflowJson) {
+        const rows = (cashflowJson && Array.isArray(cashflowJson.quarterlyReports)) ? cashflowJson.quarterlyReports : [];
+        return rows.map(r => {
+            const opCF = avNum(r.operatingCashflow);
+            const capex = avNum(r.capitalExpenditures);
+            return {
+                date: r.fiscalDateEnding,
+                operatingCashFlow: opCF,
+                freeCashFlow: (opCF !== null && capex !== null) ? opCF - Math.abs(capex) : null,
+                netIncome: avNum(r.netIncome),
+            };
+        }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }
+
+    function buildAvCashFlow(cashflowJson) {
+        const rows = buildAvCashFlowRows(cashflowJson);
+        if (rows.length === 0) return null;
+        return processCashFlow(rows, {
+            operatingCF: r => r.operatingCashFlow,
+            freeCF:      r => r.freeCashFlow,
+            netIncome:   r => r.netIncome,
+        });
+    }
+
+    // BALANCE_SHEET（quarterlyReports[0] = 最新一期）→ 跟 fetchFmpBalanceSheet 回傳同形狀的 snapshot
+    // AV 沒有 key-metrics 等價端點 · roe/roa/roic/evEbitda 與其歷史 series 留空，靠 downstream 的
+    //   Array.isArray() guard 優雅降級（跟既有 FMP 路徑同樣的降級方式，不是新發明的行為）
+    function buildAvBalanceSheet(balanceJson) {
+        const rows = (balanceJson && Array.isArray(balanceJson.quarterlyReports)) ? balanceJson.quarterlyReports : [];
+        if (rows.length === 0) return null;
+        const latest = rows[0];
+        return {
+            date: latest.fiscalDateEnding || null,
+            totalAssets: avNum(latest.totalAssets),
+            cash: avNum(latest.cashAndCashEquivalentsAtCarryingValue),
+            accountsReceivable: avNum(latest.currentNetReceivables),
+            inventories: avNum(latest.inventory),
+            currentAssets: avNum(latest.totalCurrentAssets),
+            ppe: avNum(latest.propertyPlantEquipment),
+            intangibles: (avNum(latest.intangibleAssets) || 0) + (avNum(latest.goodwill) || 0),
+            ltInvestments: avNum(latest.longTermInvestments),
+            accountsPayable: avNum(latest.currentAccountsPayable),
+            currentLiabilities: avNum(latest.totalCurrentLiabilities),
+            longTermDebt: avNum(latest.longTermDebt),
+            totalLiabilities: avNum(latest.totalLiabilities),
+            contractLiabilities: avNum(latest.deferredRevenue),
+            shortTermBorrowings: avNum(latest.shortTermDebt),
+            otherPayables: null,
+            currentTaxLiabilities: null,
+            otherCurrentLiabilities: avNum(latest.otherCurrentLiabilities),
+            equity: avNum(latest.totalShareholderEquity),
+            retainedEarnings: avNum(latest.retainedEarnings),
+            roe: null, roa: null, roic: null, evEbitda: null,
+            evEbitdaSeries: [], roaSeries: [], roicSeries: [],
+            source: 'AlphaVantage',
+        };
+    }
+
+    // DIVIDENDS → 依年 aggregate，跟 fetchFmpDividends 回傳同形狀
+    function buildAvDividends(dividendsJson) {
+        const rows = (dividendsJson && Array.isArray(dividendsJson.data)) ? dividendsJson.data : [];
+        if (rows.length === 0) return null;
+        const byYear = new Map();
+        rows.forEach(r => {
+            const year = (r.ex_dividend_date || '').slice(0, 4);
+            const amt = avNum(r.amount);
+            if (!year || amt === null) return;
+            byYear.set(year, (byYear.get(year) || 0) + amt);
+        });
+        return Array.from(byYear.entries())
+            .map(([year, cash]) => ({ year, cash, stock: 0 }))
+            .sort((a, b) => b.year.localeCompare(a.year))
+            .slice(0, 10);
+    }
+
+    // TIME_SERIES_MONTHLY_ADJUSTED → [{date, close}]（舊到新），給熱區圖 + 歷史 PE/PBR 反推的價格來源用
+    function buildAvMonthlySeries(monthlyJson) {
+        const series = monthlyJson && monthlyJson['Monthly Adjusted Time Series'];
+        if (!series) return [];
+        return Object.entries(series)
+            .map(([date, v]) => ({ date, close: avNum(v['4. close']) }))
+            .filter(p => p.close !== null)
+            .sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    // 在月線序列裡找離 targetDate 最近的一筆（不限方向）
+    function nearestMonthlyPrice(monthlySeries, targetDate) {
+        if (!monthlySeries || monthlySeries.length === 0 || !targetDate) return null;
+        const target = new Date(targetDate).getTime();
+        if (!isFinite(target)) return null;
+        let best = null, bestDiff = Infinity;
+        for (const p of monthlySeries) {
+            const t = new Date(p.date).getTime();
+            if (!isFinite(t)) continue;
+            const diff = Math.abs(t - target);
+            if (diff < bestDiff) { bestDiff = diff; best = p; }
+        }
+        return best;
+    }
+
+    // 重建歷年 PE/PBR：AV 沒有 FMP /ratios 那種現成的歷史比率端點，改用
+    //   年度 EPS（EARNINGS.annualEarnings）+ 年度每股淨值（BALANCE_SHEET.annualReports 的
+    //   totalShareholderEquity ÷ commonStockSharesOutstanding）+ 該財年結算日最近的月均價 反推。
+    // 任一年缺 EPS 或缺 BVPS 都還是可以算出「有值的那一個」比率（PE-only 或 PBR-only），
+    //   兩個都缺才整年跳過 —— 呼應「未驗證 ≠ 通過」：缺資料就是缺，不用另一個當假設補上
+    function buildAvRatiosHistory(earningsJson, balanceJson, monthlySeries) {
+        const annualEps = (earningsJson && Array.isArray(earningsJson.annualEarnings)) ? earningsJson.annualEarnings : [];
+        const annualBs = (balanceJson && Array.isArray(balanceJson.annualReports)) ? balanceJson.annualReports : [];
+        if (annualEps.length === 0 && annualBs.length === 0) return [];
+
+        const bsByYear = new Map();
+        annualBs.forEach(r => {
+            const year = (r.fiscalDateEnding || '').slice(0, 4);
+            const equity = avNum(r.totalShareholderEquity);
+            const shares = avNum(r.commonStockSharesOutstanding);
+            if (year && equity !== null && shares && shares > 0) {
+                bsByYear.set(year, { date: r.fiscalDateEnding, bvps: equity / shares });
+            }
+        });
+        const epsByYear = new Map();
+        annualEps.forEach(r => {
+            const year = (r.fiscalDateEnding || '').slice(0, 4);
+            const eps = avNum(r.reportedEPS);
+            if (year && eps !== null) epsByYear.set(year, { date: r.fiscalDateEnding, eps });
+        });
+
+        const years = new Set([...bsByYear.keys(), ...epsByYear.keys()]);
+        const history = [];
+        years.forEach(year => {
+            const epsEntry = epsByYear.get(year);
+            const bvpsEntry = bsByYear.get(year);
+            const refDate = (epsEntry && epsEntry.date) || (bvpsEntry && bvpsEntry.date);
+            if (!refDate) return;
+            const priceAtDate = nearestMonthlyPrice(monthlySeries, refDate);
+            if (!priceAtDate) return;
+            const pe  = (epsEntry  && epsEntry.eps   && epsEntry.eps !== 0)  ? priceAtDate.close / epsEntry.eps  : null;
+            const pbr = (bvpsEntry && bvpsEntry.bvps && bvpsEntry.bvps !== 0) ? priceAtDate.close / bvpsEntry.bvps : null;
+            if (pe === null && pbr === null) return;
+            history.push({ year, pe, pbr, date: refDate });
+        });
+        history.sort((a, b) => a.year.localeCompare(b.year));   // 舊到新
+        return history;
+    }
+
+    // ---------- AlphaVantage 主查詢 orchestrator（跟 fetchStockData 回傳同形狀）----------
+    async function fetchStockDataFromAlphaVantage(ticker, avKey, years) {
+        setStatus('loading', `📡 改用 AlphaVantage 抓 ${ticker}（免費 tier 25 次/日 · 已加 24hr 快取）……`);
+
+        const raw = await fetchAvRaw(ticker, avKey);
+        const overview = raw.overview.ok ? raw.overview.value : null;
+        const quoteJson = raw.quote.ok ? raw.quote.value : null;
+        const gq = quoteJson && quoteJson['Global Quote'];
+        const quote = (gq && gq['05. price'] !== undefined) ? { price: avNum(gq['05. price']) } : null;
+
+        // OVERVIEW 若回傳空物件（{}）代表 ticker 查不到 · Symbol 欄位是判斷依據
+        const overviewValid = overview && overview.Symbol;
+        if (!overviewValid && !quote) {
+            const failed = Object.values(raw).filter(r => !r.ok).map(f => `<b>${f.name}</b>: ${f.error}`).join(' · ');
+            throw new Error(
+                `${ticker} AlphaVantage 也查不到（OVERVIEW + GLOBAL_QUOTE 都失敗或空）。可能 ticker 錯誤、key 無效，或今日 25 次免費額度用完。` +
+                `<br>失敗端點：${failed || '（無明確錯誤，回傳但缺必要欄位）'}`
+            );
+        }
+
+        const incomeJson    = raw.income.ok    ? raw.income.value    : null;
+        const earningsJson  = raw.earnings.ok  ? raw.earnings.value  : null;
+        const cashflowJson  = raw.cashflow.ok  ? raw.cashflow.value  : null;
+        const balanceJson   = raw.balance.ok   ? raw.balance.value   : null;
+        const monthlyJson   = raw.monthly.ok   ? raw.monthly.value   : null;
+        const dividendsJson = raw.dividends.ok ? raw.dividends.value : null;
+
+        const monthlySeries = buildAvMonthlySeries(monthlyJson);
+        const fundamentals  = buildAvFundamentals(incomeJson, earningsJson);
+        const cashFlow      = buildAvCashFlow(cashflowJson);
+        const balanceSheet  = buildAvBalanceSheet(balanceJson);
+        const dividends     = buildAvDividends(dividendsJson);
+
+        const ratiosHistory = buildAvRatiosHistory(earningsJson, balanceJson, monthlySeries);
+        if (ratiosHistory.length < 3) {
+            throw new Error(
+                `${ticker} AlphaVantage 歷史 PE/PBR 樣本不足（只反推出 ${ratiosHistory.length} 筆）。` +
+                `需要年度 EPS（EARNINGS）+ 股東權益與股數（BALANCE_SHEET annualReports）+ 對應月均價` +
+                `（TIME_SERIES_MONTHLY_ADJUSTED）同時有值才能反推歷史 PE/PBR，任一年缺項就跳過那年。`
+            );
+        }
+        const sliced = ratiosHistory.slice(-years);   // 反推結果本就舊到新排 · 直接取最近 N 年
+
+        // ROE / 淨利 CV / 股本 YoY —— 跟 FMP 路徑（fetchStockData 內同名邏輯）同方法論，
+        //   複用同一份 fundamentals.rawIncomeQuarterly + balanceSheet.equity，只是資料來源換成 AV
+        if (fundamentals && balanceSheet) {
+            fundamentals.balanceSheetSnapshot = balanceSheet;
+            const rawQ = fundamentals.rawIncomeQuarterly;
+            if (Array.isArray(rawQ) && rawQ.length > 0) {
+                const equity = balanceSheet.equity;
+                if (equity && equity > 0 && rawQ.length >= 4) {
+                    let ttmNi = 0, validQ = 0;
+                    for (let i = 0; i < 4; i++) {
+                        const ni = rawQ[i] && rawQ[i].netIncome;
+                        if (ni !== null && ni !== undefined && isFinite(ni)) { ttmNi += ni; validQ++; }
+                    }
+                    if (validQ === 4) {
+                        fundamentals.roe = (ttmNi / equity) * 100;
+                        fundamentals.roeBreakdown = { ttmNetIncome: ttmNi, equity, equityDate: balanceSheet.date, method: 'AlphaVantage TTM' };
+                    }
+                }
+                const niVals = rawQ.slice(0, 8).map(r => r && r.netIncome).filter(v => v !== null && v !== undefined && isFinite(v));
+                if (niVals.length >= 4) {
+                    const mean = niVals.reduce((a, b) => a + b, 0) / niVals.length;
+                    if (mean > 0) {
+                        const variance = niVals.reduce((a, b) => a + (b - mean) ** 2, 0) / niVals.length;
+                        fundamentals.netIncomeCV = (Math.sqrt(variance) / mean) * 100;
+                        fundamentals.netIncomeCVBasis = 'quarterly';
+                        fundamentals.netIncomeCVSamples = niVals.length;
+                    }
+                } else {
+                    fundamentals.netIncomeCVInsufficientReason = `AlphaVantage 只 ${rawQ.length} 季資料 · 不足 4 季無法算 CV`;
+                }
+                const sharesLatest = rawQ[0] && rawQ[0].weightedAverageShsOutDil;
+                const sharesYearAgo = rawQ.length >= 5 ? (rawQ[4] && rawQ[4].weightedAverageShsOutDil) : null;
+                if (sharesLatest && sharesYearAgo && sharesYearAgo > 0) {
+                    fundamentals.shareCapYoY = ((sharesLatest / sharesYearAgo) - 1) * 100;
+                } else if (rawQ.length < 5) {
+                    fundamentals.shareCapYoYInsufficientReason = `AlphaVantage 只 ${rawQ.length} 季 · 需要滿 5 季才有真 YoY 對照點`;
+                } else {
+                    fundamentals.shareCapYoYInsufficientReason = 'AlphaVantage 這支股票淨利或 EPS 缺值 · 無法反推股數（股數是用淨利÷EPS 反推的近似值，非精確稀釋股數）';
+                }
+            }
+        }
+        if (fundamentals && dividends) fundamentals.dividendHistory = dividends;
+
+        const price = quote ? quote.price : (monthlySeries.length ? monthlySeries[monthlySeries.length - 1].close : null);
+        let currentPE = overviewValid ? avNum(overview.PERatio) : null;
+        if (currentPE === null) currentPE = sliced.length ? sliced[sliced.length - 1].pe : null;
+        let currentPBR = overviewValid ? avNum(overview.PriceToBookRatio) : null;
+        if (currentPBR === null) currentPBR = sliced.length ? sliced[sliced.length - 1].pbr : null;
+
+        const optionalStatus = Object.values(raw).map(r => ({
+            name: r.name, key: r.name, ok: r.ok, err: r.error, hasData: r.ok,
+        }));
+
+        return {
+            ticker,
+            name: (overviewValid && overview.Name) || ticker,
+            price,
+            currentPE,
+            currentPBR,
+            marketCap: overviewValid ? avNum(overview.MarketCapitalization) : null,
+            history: sliced.map(({ year, pe, pbr }) => ({ year, pe, pbr })),
+            latestRatioDate: sliced.length ? sliced[sliced.length - 1].date : null,
+            sector: overviewValid ? overview.Sector : '',
+            industry: overviewValid ? overview.Industry : '',
+            description: overviewValid ? overview.Description : null,
+            fundamentals,
+            cashFlow,
+            balanceSheet,
+            rawIncomeQuarterly: (fundamentals && fundamentals.rawIncomeQuarterly) || null,
+            institutional: null,
+            fmpEndpointStatus: optionalStatus,
+            priceSeries: monthlySeries,
+            dataSource: 'AlphaVantage',
+        };
+    }
+
+    // FMP 先查 · 失敗且有 AV key 才 fallback 改查 AlphaVantage · 兩邊都沒 key 用哪個就查哪個
+    async function fetchStockDataWithFallback(ticker, fmpKey, avKey, years) {
+        if (!fmpKey) return fetchStockDataFromAlphaVantage(ticker, avKey, years);
+        try {
+            return await fetchStockData(ticker, fmpKey, years);
+        } catch (fmpErr) {
+            if (!avKey) throw fmpErr;
+            setStatus('loading', `⚠️ FMP 失敗 → 改用 AlphaVantage 備援查 ${ticker}……`);
+            try {
+                return await fetchStockDataFromAlphaVantage(ticker, avKey, years);
+            } catch (avErr) {
+                throw new Error(
+                    `${ticker} FMP 跟 AlphaVantage 都查不到。` +
+                    `<br>FMP：${fmpErr.message}` +
+                    `<br>AlphaVantage：${avErr.message}`
+                );
+            }
+        }
+    }
+
     // ---------- Percentile / Statistics ----------
     function percentileOf(value, sortedArray) {
         // Midrank formula：value == 某樣本時，該筆各半算 below / above
@@ -7600,9 +7991,11 @@
         // → 只要用戶填了就存 localStorage，不管當下的 query mode 是哪個
         //   （之前 bug：只在 mode 命中對應分支才存，台股 mode 下 FMP key 就會被吃掉）
         const fmpKey = $('cfg-api-key').value.trim();
+        const avKey = $('cfg-alphavantage-key') ? $('cfg-alphavantage-key').value.trim() : '';
         const finmindToken = $('cfg-finmind-token').value.trim();
         const fredKey = $('cfg-fred-key').value.trim();
         if (fmpKey)       localStorage.setItem('fmp_api_key',   fmpKey);
+        if (avKey)        localStorage.setItem('alphavantage_api_key', avKey);
         if (finmindToken) localStorage.setItem('finmind_token', finmindToken);
         if (fredKey)      localStorage.setItem('fred_api_key',  fredKey);
 
@@ -7616,11 +8009,11 @@
                 }
                 stockPromise = fetchTwStockData(ticker, finmindToken, years);
             } else {
-                if (!fmpKey) {
-                    setStatus('error', '⚠️ 美股需要 FMP API key — 請先貼進「FMP API Key」欄位');
+                if (!fmpKey && !avKey) {
+                    setStatus('error', '⚠️ 美股需要 FMP API key 或 AlphaVantage API key（至少填一個）— 請先貼進對應欄位');
                     return;
                 }
-                stockPromise = fetchStockData(ticker, fmpKey, years);
+                stockPromise = fetchStockDataWithFallback(ticker, fmpKey, avKey, years);
             }
 
             // 先 await stockPromise · 判 ETF 早退——避免 ETF 情況下跑一堆用不到的 fetch（buyback / fx / margin）
@@ -7757,6 +8150,8 @@
         // 讀存的 API key / token
         const savedKey = localStorage.getItem('fmp_api_key');
         if (savedKey) $('cfg-api-key').value = savedKey;
+        const savedAvKey = localStorage.getItem('alphavantage_api_key');
+        if (savedAvKey && $('cfg-alphavantage-key')) $('cfg-alphavantage-key').value = savedAvKey;
         const savedToken = localStorage.getItem('finmind_token');
         if (savedToken) $('cfg-finmind-token').value = savedToken;
         const savedFredKey = localStorage.getItem('fred_api_key');
