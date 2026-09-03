@@ -259,6 +259,15 @@ def render(scorecard, stage2, pattern):
     exp_buckets = load_all_csv_verdicts(as_of)
     insider_data = load_insider_data()
 
+    def _valuation_link(sym):
+        """一鍵跳 valuation 頁 · 帶 ?ticker=X · 自動載入 PE/PBR/EPS/現金流/內部人分析"""
+        if not sym:
+            return ""
+        s = escape(str(sym))
+        return (f'<a href="../../valuation/index.html?ticker={s}" target="_blank" '
+                f'title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" '
+                f'style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a>')
+
     def _insider_badge(sym, compact=True):
         """回傳 HTML badge 或空字串 · sym: stock symbol · compact=True 為個股表用縮小"""
         d = insider_data.get(sym)
@@ -417,10 +426,12 @@ def render(scorecard, stage2, pattern):
         alert = r.get("stock_gap_alert") or ""
         alert_html = f'<span class="alert">{escape(alert)}</span>' if alert else ""
         extra = f'<span class="dim">{surp}</span>' if surp else ""
+        vlink = _valuation_link(r.get("symbol"))
+        insider = _insider_badge(r.get("symbol"), compact=True)
         return f'''
         <tr>
           <td class="tag">{tag}</td>
-          <td><b>{symbol}</b> <span class="dim">{name}</span></td>
+          <td><b>{symbol}</b>{vlink}{insider} <span class="dim">{name}</span></td>
           <td>{sector}</td>
           <td class="n">{pt}</td>
           <td class="n">{vp}</td>
@@ -498,7 +509,8 @@ def render(scorecard, stage2, pattern):
                 # 3 日內新訊號 🆕
                 is_new = str(r.get("is_new_signal_3d") or "").lower() in ("true", "1")
                 new_badge = ' <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span>' if is_new else ''
-                lis.append(f'<li><span><b>{sym}</b>{new_badge} <span class="sec">{sec}</span></span><span class="dim">{pt_s} · 26W {c26_s}</span></li>')
+                vlink = _valuation_link(r.get("symbol"))
+                lis.append(f'<li><span><b>{sym}</b>{vlink}{new_badge} <span class="sec">{sec}</span></span><span class="dim">{pt_s} · 26W {c26_s}</span></li>')
             body = '<ul>' + ''.join(lis) + '</ul>'
             if cnt > limit:
                 body += f'<div class="dim" style="font-size:10.5px;margin-top:4px;">... 另 {cnt - limit} 支</div>'
@@ -723,9 +735,11 @@ def render(scorecard, stage2, pattern):
         else:
             ud_disp = f'<span class="down">▼ {ud:.2f}</span>'
             days_disp = f'<span class="dim">{upd}</span>/<span class="down">{dnd}</span>'
+        vlink = _valuation_link(s.get("symbol"))
+        insider = _insider_badge(s.get("symbol"), compact=True)
         return (
             f'<tr>'
-            f'<td><b>{sym}</b> <span class="dim">{name}</span></td>'
+            f'<td><b>{sym}</b>{vlink}{insider} <span class="dim">{name}</span></td>'
             f'<td class="dim">{sec}</td>'
             f'<td class="n">{price:.2f}</td>'
             f'<td class="n {ret_cls}">{ret20:+.1f}%</td>'
@@ -800,9 +814,10 @@ def render(scorecard, stage2, pattern):
         cls5 = "up" if ret5 > 0 else ("down" if ret5 < 0 else "flat")
         cls20 = "up" if ret20 > 0 else ("down" if ret20 < 0 else "flat")
         badge = _insider_badge(s.get("symbol"), compact=True)
+        vlink = _valuation_link(s.get("symbol"))
         return (
             f'<tr>'
-            f'<td><b>{sym}</b>{badge} <span class="dim" style="font-size:11px;">{name}</span></td>'
+            f'<td><b>{sym}</b>{vlink}{badge} <span class="dim" style="font-size:11px;">{name}</span></td>'
             f'<td class="n">{price:.2f}</td>'
             f'<td class="n {cls5}">{ret5:+.1f}%</td>'
             f'<td class="n {cls20}">{ret20:+.1f}%</td>'
@@ -936,9 +951,10 @@ def render(scorecard, stage2, pattern):
         cls20 = "up" if ret20 > 0 else ("down" if ret20 < 0 else "flat")
         weight_col = f'<td class="n">{extra_col}</td>' if extra_col else ""
         badge = _insider_badge(s.get("symbol"), compact=True)
+        vlink = _valuation_link(s.get("symbol"))
         return (
             f'<tr>'
-            f'<td><b>{sym}</b>{badge}</td>'
+            f'<td><b>{sym}</b>{vlink}{badge}</td>'
             f'<td class="dim" style="font-size:11px;">{sec_zh} {sec_etf}</td>'
             f'<td class="n {cls5}">{ret5:+.1f}%</td>'
             f'<td class="n {cls20}">{ret20:+.1f}%</td>'
@@ -1063,9 +1079,10 @@ def render(scorecard, stage2, pattern):
             title = escape((it.get("top_title") or "")[:22])
             cls = "up" if net > 0 else "down"
             ofc_cell = f'<span class="up">{ofc} (${ofc_val:+.2f}M)</span>' if ofc else '<span class="dim">—</span>'
+            vlink = _valuation_link(it["symbol"])
             rows_html.append(
                 f'<tr>'
-                f'<td><b>{sym}</b></td>'
+                f'<td><b>{sym}</b>{vlink}</td>'
                 f'<td class="n {cls}"><b>${net:+.2f}M</b></td>'
                 f'<td class="n dim">{buy}/{sell}</td>'
                 f'<td class="n">{ofc_cell}</td>'
