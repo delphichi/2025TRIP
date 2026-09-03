@@ -19,6 +19,11 @@
 (function () {
     'use strict';
 
+    // 版本標記：每次改計分邏輯就更新這個字串 · 畫面上的除錯校驗行會秀出來 ·
+    //   若使用者回報的數字跟目前 repo 邏輯對不上 · 先比對這個版本號有沒有變 ·
+    //   沒變 = 真的是新 bug；版本號是舊的 = 瀏覽器快取問題，不是程式邏輯問題
+    const CHAIN_VERSION = '2026-09-03.1';
+
     // ---------- 資料存取 (localStorage) ----------
     function storageKey(ticker) { return 'chain_' + (ticker || 'unknown'); }
 
@@ -525,6 +530,21 @@
             ? `<span class="chain-merged-ok">✓ 全 10 關已完成：<b>${mainPass}/${mainTotal}</b> 通過（持續期另計 ${durPass}/4）</span>`
             : `<span class="chain-merged-pending">⏳ 部分完成：還有 <b>${pendingCount}</b> 項待填 · 無法給出完整穿透鏈分數</span>`;
 
+        // 除錯校驗行：把「自動 N1/7 + 手動 N2/3 + 持續期 N3/4 = 總計」的原始算式攤開顯示 ·
+        //   任何人都能一眼核對總分不是黑箱數字 · 也能拿版本號判斷瀏覽器是否還在用舊快取的 chain.js
+        const rawSum = autoPass + manualPass + durPass;
+        console.log(
+            `[PenetrationChain ${CHAIN_VERSION}] ${ticker} · ` +
+            `自動 ${autoPass}/${autoTotal} + 手動 ${manualPass}/3 + 持續期 ${durPass}/4 = 總計 ${rawSum}/14 · ` +
+            `(合併「10 關」分數只計自動+手動 = ${mainPass}/${mainTotal} · 條件：手動已填 3/3 且持續期已填 4/4 才顯示)`
+        );
+        const debugLine = `
+          <div class="chain-debug">
+            🔧 除錯校驗（build ${CHAIN_VERSION}）：自動 ${autoPass}/${autoTotal} + 手動 ${manualPass}/3 + 持續期 ${durPass}/4
+            = 總計 <b>${rawSum}/14</b>　·　若你看到的畫面數字跟這行對不上，代表瀏覽器還在用舊版 chain.js，
+            請強制重新整理（Ctrl/Cmd+Shift+R）
+          </div>`;
+
         const summary = `
           <div class="chain-summary">
             ${progressBar}
@@ -536,6 +556,7 @@
               <span>持續期：已填 <b>${durFilled}/4</b>${durFilled > 0 ? ` · 通過 <b>${durPass}/${durFilled}</b>` : ' · 尚未填'}</span>
               <span>${mergedLine}</span>
             </div>
+            ${debugLine}
           </div>`;
         el.innerHTML = summary + gates.map((g, i) => renderGate(g, i)).join('');
 
