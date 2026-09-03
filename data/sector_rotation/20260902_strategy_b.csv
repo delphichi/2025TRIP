@@ -1,0 +1,4 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+DDOG,Datadog,Information Technology,2026-09-02,209.23,223.84,-6.53,249.55,176.06,True,True,27.5,6173900,4955735,1.25
+OMC,Omnicom Group,Communication Services,2026-09-02,81.76,86.09,-5.03,82.3,76.97,True,True,28.1,4838600,2040000,2.37
+PANW,Palo Alto Networks,Information Technology,2026-09-02,328.48,362.09,-9.28,347.57,231.78,True,True,32.4,13214800,5680610,2.33

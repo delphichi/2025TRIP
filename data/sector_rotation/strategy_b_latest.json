@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-02T20:25:17.818377+00:00",
-  "as_of_date": "2026-09-01",
+  "generated_at": "2026-09-03T23:52:59.522375+00:00",
+  "as_of_date": "2026-09-02",
   "as_of_date_note": "T-1 · 抓到的最後一根 close 的日期（非腳本執行當日）",
   "scanned_count": 503,
-  "hits_count": 1,
+  "hits_count": 3,
   "conditions": {
     "daily_drop_pct": "< -5.0% （當日跌 > 5%）",
     "ma50_up": "50MA 向上（今日 MA > 6 天前 MA）",
@@ -18,22 +18,56 @@
   ],
   "hits": [
     {
-      "symbol": "DELL",
-      "name": "Dell Technologies",
+      "symbol": "DDOG",
+      "name": "Datadog",
       "sector": "Information Technology",
-      "as_of_date": "2026-09-01",
-      "t_price": 425.0,
-      "prev_price": 456.01,
-      "daily_drop_pct": -6.8,
-      "ma50": 433.96,
-      "ma200": 247.09,
+      "as_of_date": "2026-09-02",
+      "t_price": 209.23,
+      "prev_price": 223.84,
+      "daily_drop_pct": -6.53,
+      "ma50": 249.55,
+      "ma200": 176.06,
       "ma50_up": true,
       "ma200_up": true,
-      "rsi_14": 32.7,
-      "vol_today": 15948000,
-      "vol_20d_avg": 5407165,
-      "vol_ratio_vs_20d": 2.95
+      "rsi_14": 27.5,
+      "vol_today": 6173900,
+      "vol_20d_avg": 4955735,
+      "vol_ratio_vs_20d": 1.25
+    },
+    {
+      "symbol": "OMC",
+      "name": "Omnicom Group",
+      "sector": "Communication Services",
+      "as_of_date": "2026-09-02",
+      "t_price": 81.76,
+      "prev_price": 86.09,
+      "daily_drop_pct": -5.03,
+      "ma50": 82.3,
+      "ma200": 76.97,
+      "ma50_up": true,
+      "ma200_up": true,
+      "rsi_14": 28.1,
+      "vol_today": 4838600,
+      "vol_20d_avg": 2040000,
+      "vol_ratio_vs_20d": 2.37
+    },
+    {
+      "symbol": "PANW",
+      "name": "Palo Alto Networks",
+      "sector": "Information Technology",
+      "as_of_date": "2026-09-02",
+      "t_price": 328.48,
+      "prev_price": 362.09,
+      "daily_drop_pct": -9.28,
+      "ma50": 347.57,
+      "ma200": 231.78,
+      "ma50_up": true,
+      "ma200_up": true,
+      "rsi_14": 32.4,
+      "vol_today": 13214800,
+      "vol_20d_avg": 5680610,
+      "vol_ratio_vs_20d": 2.33
     }
   ],
-  "csv": "20260901_strategy_b.csv"
+  "csv": "20260902_strategy_b.csv"
 }
