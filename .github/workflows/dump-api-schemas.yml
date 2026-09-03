@@ -10,8 +10,11 @@ name: dump-api-schemas
 #   FRED_API_KEY          = FRED API key（fred.stlouisfed.org/docs/api/api_key.html 免費申請）
 #   ALPHAVANTAGE_API_KEY  = AlphaVantage API key（alphavantage.co/support/#api-key 免費申請）
 #
-# ⚠️ AlphaVantage 免費 tier 只有 25 次/日，dump script 已經照類別分批 + 節流，
-#    但還是不要一次選太多 av_categories，額度會被這個 workflow 吃光，app 裡的 AV 備援當天就不能用了。
+# ⚠️ AlphaVantage 免費 tier 只有 25 次/日，dump script 已經照類別分批 + 節流。
+#    av_categories 預設是 all（全部 30 個 endpoint，一次列出 AlphaVantage 抓到的所有數據），
+#    這會直接吃光當天 25 次額度（超過的部分會清楚標示失敗原因，不是漏掉）——
+#    代表這個 workflow 跑完當天，app 裡查詢遇到 FMP 402 時的 AlphaVantage 備援也會失敗，
+#    要等隔天額度重置。若不想影響 app 當天可用性，把 av_categories 改小（例如只填 intelligence）。
 #
 # 用法：Actions → dump-api-schemas → Run workflow → 可改 ticker / av_categories → 跑完下載 artifact
 # 或看 job step summary（會直接 render 出來）。
@@ -32,8 +35,8 @@ on:
         default: '2'
         required: false
       av_categories:
-        description: '⚠️ 只填「類別」名稱不是 AV function 名（不要填 INCOME_STATEMENT 這種）：fundamentals/intelligence/timeseries/forex/commodities/econ/technical，逗號分隔，25次/日額度別選太多'
-        default: 'intelligence,timeseries,forex,commodities,econ,technical'
+        description: '⚠️ 只填「類別」名稱不是 AV function 名（不要填 INCOME_STATEMENT 這種）：fundamentals/intelligence/timeseries/forex/commodities/econ/technical，逗號分隔；填 all = 全部一次跑（30 個 endpoint，會超過 25次/日額度，超額的那幾個會清楚標示失敗原因）'
+        default: 'all'
         required: false
 
 jobs:

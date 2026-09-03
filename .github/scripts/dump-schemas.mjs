@@ -417,20 +417,27 @@ async function avFetch(ep, ticker) {
 //   現在明確驗證：輸入裡有認不得的字就大聲警告，而不是默默跑出 0 次。
 const AV_VALID_CATEGORIES = ['fundamentals', 'intelligence', 'timeseries', 'forex', 'commodities', 'econ', 'technical'];
 
-async function dumpAlphaVantage(ticker, categories) {
+async function dumpAlphaVantage(ticker, categoriesInput) {
     let out = heading(2, '🇺🇸 AlphaVantage');
     out += `\n- ticker: ${inlineCode(ticker)}\n- key: ${ALPHAVANTAGE_API_KEY ? '✅ 有' : '❌ 未設 ALPHAVANTAGE_API_KEY secret'}\n`;
-    out += `- categories 這次跑: ${inlineCode(categories.join(', '))}（可用值：${AV_VALID_CATEGORIES.join(' / ')}）\n`;
 
     if (!ALPHAVANTAGE_API_KEY) {
+        out += `- categories 這次跑: ${inlineCode(categoriesInput.join(', '))}（可用值：${AV_VALID_CATEGORIES.join(' / ')} / all）\n`;
         out += '\n> ⚠️ 沒有 ALPHAVANTAGE_API_KEY，跳過。到 Settings → Secrets 加。免費申請：alphavantage.co/support/#api-key\n';
         return out;
     }
 
-    const unknownCategories = categories.filter(c => !AV_VALID_CATEGORIES.includes(c));
+    // "all"（不分大小寫）= AV_VALID_CATEGORIES 全選 —— 「列出 AlphaVantage 抓到的所有數據」的最簡單填法，
+    //   不用一個個打 7 個類別名。全部 30 個 endpoint 超過每日 25 次額度，一定會有幾個 quota 用完的錯誤，
+    //   但那些也會清楚列出來（❌ AV 錯誤 · Note/Information），不是靜默漏掉，隔天重跑同一個 input 就會補齊。
+    const wantsAll = categoriesInput.some(c => c.toLowerCase() === 'all');
+    const categories = wantsAll ? AV_VALID_CATEGORIES : categoriesInput;
+    out += `- categories 這次跑: ${inlineCode(wantsAll ? `all（= ${AV_VALID_CATEGORIES.join(', ')}）` : categories.join(', '))}（可用值：${AV_VALID_CATEGORIES.join(' / ')} / all）\n`;
+
+    const unknownCategories = wantsAll ? [] : categories.filter(c => !AV_VALID_CATEGORIES.includes(c));
     if (unknownCategories.length > 0) {
         out += `\n> 🔴 **\`av_categories\` 裡有認不得的值：${unknownCategories.map(c => inlineCode(c)).join('、')}** —— `;
-        out += `這是「類別」不是 AlphaVantage 的 function 名（不要填 \`INCOME_STATEMENT\`、\`TIME_SERIES_DAILY\` 這種），只能是：${AV_VALID_CATEGORIES.map(inlineCode).join(' / ')}。\n`;
+        out += `這是「類別」不是 AlphaVantage 的 function 名（不要填 \`INCOME_STATEMENT\`、\`TIME_SERIES_DAILY\` 這種），只能是：${AV_VALID_CATEGORIES.map(inlineCode).join(' / ')}，或填 \`all\` 全部跑。\n`;
         out += `> 認不得的值會被忽略（不會報錯中斷），下面若顯示「這次會打 0 次」就是因為篩完之後沒有任何 endpoint 符合。\n`;
     }
 
@@ -438,11 +445,11 @@ async function dumpAlphaVantage(ticker, categories) {
     out += `\n> ⚠️ **免費 tier 硬限制 25 次/日 + burst limiter（併發太快會被擋，即使當日額度還夠）**。\n`;
     out += `> 這次會打 **${endpoints.length} 次** AV API，每次間隔 ${AV_MIN_INTERVAL_MS}ms 節流。若當日已經用掉一些額度，這次可能會有幾個回額度用完的錯誤，屬正常現象。\n`;
     if (endpoints.length === 0) {
-        out += `> 🔴 **0 個 endpoint 符合、什麼都沒 dump**。請確認 \`av_categories\` 填的是上面列的類別名稱，用逗號分隔，例如 \`intelligence,timeseries\`。\n`;
+        out += `> 🔴 **0 個 endpoint 符合、什麼都沒 dump**。請確認 \`av_categories\` 填的是上面列的類別名稱，用逗號分隔，例如 \`intelligence,timeseries\`，或填 \`all\`。\n`;
         return out;
     }
     if (endpoints.length > 25) {
-        out += `> 🔴 **這次選的 categories 總共 ${endpoints.length} 個 endpoint，已經超過每日 25 次額度上限**，一定會有一部分失敗，建議拆成多次 workflow run（改 \`av_categories\` input 分批跑）。\n`;
+        out += `> 🔴 **這次選的 categories 總共 ${endpoints.length} 個 endpoint，已經超過每日 25 次額度上限**，一定會有一部分回額度用完的錯誤（下面每筆都會清楚標示是哪種失敗，不是漏掉）。⚠️ 這支 dump script 本身不像 app 端有 24hr localStorage 快取（CI 每次都是全新容器），額度用完的那幾個只能等隔天額度重置後重新整批打一次，不會自動只補跑失敗的部分。\n`;
     }
 
     for (let i = 0; i < endpoints.length; i++) {
