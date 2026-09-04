@@ -1,0 +1,23 @@
+supply_chain,as_of_date,stock_count,point,breadth_pct,breadth_up,breadth_total,inst_net_20d_est_NTD_M,inst_net_20d_est_NTD_M_per_stock,node_count,resonance_pct,z_point,z_capital,cpd,cpd_quadrant
+Environmental Infrastructure,2026-09-02,2,118.86,0.0,0,2,-379.7,-189.85,2,100.0,2.5,-0.07,-2.57,⚠️ Price Leading
+Passive Components,2026-09-02,3,105.96,66.7,2,3,-81116.9,-27038.97,3,100.0,2.11,-2.45,-4.56,⚠️ Price Leading
+CCL / High-Speed Materials,2026-09-02,6,87.76,100.0,6,6,26335.0,4389.17,5,80.0,1.56,0.72,-0.84,🚀 Confirmed
+Display & Optical,2026-09-02,4,84.11,75.0,3,4,17539.2,4384.8,2,100.0,1.45,0.46,-0.99,🚀 Confirmed
+Thermal / Liquid Cooling,2026-09-02,5,41.7,100.0,5,5,27981.5,5596.3,3,100.0,0.16,0.77,0.6,🚀 Confirmed
+PCB / HDI / IC Substrate,2026-09-02,10,41.15,70.0,7,10,35990.4,3599.04,7,100.0,0.15,1.0,0.86,🚀 Confirmed
+AI / HPC Semiconductor,2026-09-02,9,37.74,77.8,7,9,26634.8,2959.42,8,100.0,0.04,0.73,0.69,🚀 Confirmed
+Cloud / Data Center / Cybersecurity,2026-09-02,5,32.28,60.0,3,5,-27043.6,-5408.72,3,66.7,-0.12,-0.86,-0.73,❄️ Weak
+Optical Communication / AI Networking,2026-09-02,6,31.76,66.7,4,6,771.2,128.53,5,100.0,-0.14,-0.04,0.1,❄️ Weak
+Advanced Packaging,2026-09-02,9,30.82,66.7,6,9,25600.6,2844.51,3,100.0,-0.17,0.7,0.86,💰 Capital Leading
+AI Server / ODM,2026-09-02,22,29.09,77.3,17,22,-34097.9,-1549.9,15,93.3,-0.22,-1.06,-0.84,❄️ Weak
+Memory / HBM,2026-09-02,7,27.64,85.7,6,7,70098.6,10014.09,6,66.7,-0.26,2.01,2.27,💰 Capital Leading
+Semiconductor Equipment & Materials,2026-09-02,14,21.53,35.7,5,14,-23694.6,-1692.47,10,100.0,-0.45,-0.76,-0.31,❄️ Weak
+Robotics / Automation,2026-09-02,6,21.39,50.0,3,6,7555.9,1259.32,3,100.0,-0.45,0.17,0.62,💰 Capital Leading
+Biotech / Innovative Drug / CDMO,2026-09-02,2,17.88,50.0,1,2,-3974.9,-1987.45,2,50.0,-0.56,-0.18,0.38,❄️ Weak
+Data Center Power / PSU,2026-09-02,5,17.68,60.0,3,5,-17451.6,-3490.32,5,80.0,-0.57,-0.57,-0.01,❄️ Weak
+Shipping / Logistics,2026-09-02,5,16.86,60.0,3,5,49971.8,9994.36,2,100.0,-0.59,1.42,2.01,💰 Capital Leading
+Solar / Wind Renewable,2026-09-02,1,15.18,0.0,0,1,96.6,96.6,1,,-0.64,-0.05,0.59,❄️ Weak
+EV / Auto Electronics,2026-09-02,4,11.04,50.0,2,4,-46668.3,-11667.08,3,100.0,-0.77,-1.43,-0.67,❄️ Weak
+Steel,2026-09-02,2,10.91,100.0,2,2,5239.7,2619.85,2,50.0,-0.77,0.1,0.87,💰 Capital Leading
+Energy Storage / Battery,2026-09-02,3,-0.71,100.0,3,3,-25883.6,-8627.87,3,33.3,-1.12,-0.82,0.3,❄️ Weak
+Smart Grid / Transformer,2026-09-02,6,-1.01,83.3,5,6,9614.9,1602.48,3,66.7,-1.13,0.23,1.36,💰 Capital Leading

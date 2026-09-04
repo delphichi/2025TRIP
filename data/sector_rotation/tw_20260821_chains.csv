@@ -1,0 +1,23 @@
+supply_chain,as_of_date,stock_count,point,breadth_pct,breadth_up,breadth_total,inst_net_20d_est_NTD_M,inst_net_20d_est_NTD_M_per_stock,node_count,resonance_pct,z_point,z_capital,cpd,cpd_quadrant
+Environmental Infrastructure,2026-08-21,2,239.62,50.0,1,2,-12.6,-6.3,2,100.0,3.79,-0.15,-3.94,⚠️ Price Leading
+Passive Components,2026-08-21,3,125.66,33.3,1,3,-69332.3,-23110.77,3,100.0,1.52,-2.17,-3.69,⚠️ Price Leading
+CCL / High-Speed Materials,2026-08-21,6,98.82,100.0,6,6,7433.3,1238.88,5,100.0,0.99,0.06,-0.93,🚀 Confirmed
+Display & Optical,2026-08-21,4,58.07,75.0,3,4,-5468.0,-1367.0,2,100.0,0.18,-0.31,-0.49,⚠️ Price Leading
+PCB / HDI / IC Substrate,2026-08-21,10,52.07,80.0,8,10,31442.6,3144.26,7,100.0,0.06,0.76,0.7,🚀 Confirmed
+Advanced Packaging,2026-08-21,9,48.36,55.6,5,9,14916.4,1657.38,3,100.0,-0.02,0.28,0.3,💰 Capital Leading
+Thermal / Liquid Cooling,2026-08-21,5,43.43,80.0,4,5,33913.9,6782.78,3,100.0,-0.11,0.83,0.95,💰 Capital Leading
+AI / HPC Semiconductor,2026-08-21,9,38.69,66.7,6,9,-12493.7,-1388.19,8,100.0,-0.21,-0.52,-0.31,❄️ Weak
+Memory / HBM,2026-08-21,7,38.19,85.7,6,7,93503.6,13357.66,6,100.0,-0.22,2.56,2.78,💰 Capital Leading
+Biotech / Innovative Drug / CDMO,2026-08-21,2,36.13,100.0,2,2,2782.9,1391.45,2,50.0,-0.26,-0.07,0.19,❄️ Weak
+Cloud / Data Center / Cybersecurity,2026-08-21,5,36.03,40.0,2,5,-6813.8,-1362.76,3,100.0,-0.26,-0.35,-0.09,❄️ Weak
+Semiconductor Equipment & Materials,2026-08-21,14,33.15,28.6,4,14,-14215.5,-1015.39,10,100.0,-0.32,-0.57,-0.25,❄️ Weak
+AI Server / ODM,2026-08-21,22,32.8,68.2,15,22,45224.3,2055.65,15,93.3,-0.33,1.16,1.49,💰 Capital Leading
+EV / Auto Electronics,2026-08-21,4,32.45,50.0,2,4,-42068.0,-10517.0,3,100.0,-0.33,-1.38,-1.04,❄️ Weak
+Optical Communication / AI Networking,2026-08-21,6,31.72,50.0,3,6,-3722.6,-620.43,5,100.0,-0.35,-0.26,0.09,❄️ Weak
+Robotics / Automation,2026-08-21,6,29.2,83.3,5,6,9097.6,1516.27,3,100.0,-0.4,0.11,0.51,💰 Capital Leading
+Data Center Power / PSU,2026-08-21,5,28.69,20.0,1,5,-16655.4,-3331.08,5,80.0,-0.41,-0.64,-0.23,❄️ Weak
+Shipping / Logistics,2026-08-21,5,27.23,80.0,4,5,63955.1,12791.02,2,100.0,-0.44,1.7,2.14,💰 Capital Leading
+Solar / Wind Renewable,2026-08-21,1,19.17,0.0,0,1,317.4,317.4,1,,-0.6,-0.14,0.45,❄️ Weak
+Steel,2026-08-21,2,13.98,100.0,2,2,7503.5,3751.75,2,50.0,-0.7,0.06,0.76,💰 Capital Leading
+Smart Grid / Transformer,2026-08-21,6,10.56,66.7,4,6,3964.3,660.72,3,66.7,-0.77,-0.04,0.73,❄️ Weak
+Energy Storage / Battery,2026-08-21,3,7.78,66.7,2,3,-26703.7,-8901.23,3,66.7,-0.82,-0.93,-0.11,❄️ Weak
