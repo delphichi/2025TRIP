@@ -1,13 +1,13 @@
 {
-  "date": "2026-09-03",
-  "generated_at": "2026-09-03T22:40:29+08:00",
-  "consensus_date": "2026-09-03",
+  "date": "2026-09-04",
+  "generated_at": "2026-09-04T22:27:52+08:00",
+  "consensus_date": "2026-09-04",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260903.csv",
-      "snapshot_date": "2026-09-03",
+      "snapshot": "00991A_20260904.csv",
+      "snapshot_date": "2026-09-04",
       "holdings_count": 50,
       "actions": {
         "new": [],
@@ -84,102 +84,70 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260903.csv",
-      "snapshot_date": "2026-09-03",
-      "holdings_count": 52,
+      "snapshot": "00403A_20260904.csv",
+      "snapshot_date": "2026-09-04",
+      "holdings_count": 51,
       "actions": {
-        "new": [
-          {
-            "code": "2301",
-            "name": "光寶科",
-            "weight": 0.06
-          },
-          {
-            "code": "2882",
-            "name": "國泰金",
-            "weight": 0.08
-          }
-        ],
+        "new": [],
         "drop": [
           {
-            "code": "5347",
-            "name": "世界",
+            "code": "4958",
+            "name": "臻鼎-KY",
             "weight": 0.0
           }
         ],
         "add": [
           {
-            "code": "6669",
-            "name": "緯穎",
-            "pct": 198.27942857142858,
-            "weight": 3.39
-          },
-          {
-            "code": "3450",
-            "name": "聯鈞",
-            "pct": 27.906976744186046,
-            "weight": 0.41
+            "code": "6442",
+            "name": "光聖",
+            "pct": 55.55555555555556,
+            "weight": 0.39
           },
           {
             "code": "5274",
             "name": "信驊",
-            "pct": 26.755852842809364,
-            "weight": 2.09
+            "pct": 11.081794195250659,
+            "weight": 2.39
           }
         ],
         "reduce": [
           {
-            "code": "2337",
-            "name": "旺宏",
-            "pct": -33.33333333333333,
-            "weight": 0.15
-          },
+            "code": "6805",
+            "name": "富世達",
+            "pct": -23.52941176470588,
+            "weight": 0.87
+          }
+        ],
+        "build": [
           {
-            "code": "8358",
-            "name": "金居",
-            "pct": -33.33333333333333,
+            "code": "2481",
+            "name": "強茂",
             "weight": 0.13
           },
           {
-            "code": "2344",
-            "name": "華邦電",
-            "pct": -28.57142857142857,
-            "weight": 0.56
+            "code": "2882",
+            "name": "國泰金",
+            "weight": 0.29
           },
           {
-            "code": "3711",
-            "name": "日月光投控",
-            "pct": -25.0,
-            "weight": 1.65
-          },
-          {
-            "code": "6805",
-            "name": "富世達",
-            "pct": -19.047619047619047,
-            "weight": 1.12
+            "code": "4966",
+            "name": "譜瑞-KY",
+            "weight": 0.01
           }
-        ],
-        "build": []
+        ]
       }
     },
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260903.csv",
-      "snapshot_date": "2026-09-03",
+      "snapshot": "00988A_20260904.csv",
+      "snapshot_date": "2026-09-04",
       "holdings_count": 9,
       "actions": {
         "new": [],
         "drop": [],
         "add": [],
-        "reduce": [
-          {
-            "code": "2330",
-            "name": "台積電",
-            "pct": -15.384615384615385,
-            "weight": 2.58
-          }
-        ],
+        "reduce": [],
         "build": []
       }
     }
