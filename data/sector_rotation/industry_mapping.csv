@@ -146,3 +146,70 @@ ticker,company,market,official_sector,sub_industry,supply_chain,chain_node,theme
 4128,中天,,化學生技醫療,Biotech,Medical Device / Healthcare,Healthcare,Health,Biotech,1.0,medium,analyst_mapping(2026-09-04),2026-09-04
 4108,懷特,TWSE,化學生技醫療,Drug/Medical,Medical Device / Healthcare,Healthcare,Health,Developer,1.0,medium,analyst_mapping(2026-09-04),2026-09-04
 8404,百和興業,TWSE,紡織纖維,Medical Textile,Medical Device / Healthcare,MedTech,Healthcare,Material,1.0,medium,analyst_mapping(2026-09-04),2026-09-04
+2303,聯電,TWSE,電子工業,,AI / HPC Semiconductor,Foundry,AI/HPC,Foundry,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3035,智原,TWSE,電子工業,,AI / HPC Semiconductor,ASIC/IP,AI/HPC,Design Service,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6789,采鈺,TWSE,電子工業,,AI / HPC Semiconductor,CIS Manufacturing,AI/HPC,Manufacturing,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6257,矽格,TWSE,電子工業,,Advanced Packaging,Test,AI/HPC,OSAT,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6515,穎崴,TWSE,電子工業,,Advanced Packaging,Test Equipment,AI/HPC,Test,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2449,京元電子,TWSE,電子工業,,Advanced Packaging,Test,AI/HPC,OSAT,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2441,超豐,TWSE,電子工業,,Advanced Packaging,Packaging/Test,AI/HPC,OSAT,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+8150,南茂,TWSE,電子工業,,Advanced Packaging,Packaging/Test,AI/HPC,OSAT,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6271,同欣電,TWSE,電子工業,,Advanced Packaging,Sensor Packaging,AI/HPC,OSAT,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6451,訊芯-KY,TWSE,電子工業,,Advanced Packaging,Packaging/Test,AI/HPC,OSAT,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6770,力積電,TWSE,電子工業,,Memory / HBM,Foundry,AI Memory,Foundry,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3413,京鼎,TWSE,電子工業,,Semiconductor Equipment & Materials,Equipment,AI Capex,Equipment,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6830,汎銓,TWSE,電子工業,,Semiconductor Equipment & Materials,Analysis/Test Service,AI Capex,Materials,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+8021,尖點,TWSE,電子工業,,Semiconductor Equipment & Materials,Consumables,AI Capex,Consumables,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+5434,崇越,TWSE,電子工業,,Semiconductor Equipment & Materials,Materials Distribution,AI Capex,Materials,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3016,嘉晶,TWSE,電子工業,,Semiconductor Equipment & Materials,Epitaxial Wafer,AI Capex,Materials,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3563,牧德,TWSE,電子工業,,Semiconductor Equipment & Materials,AOI Equipment,AI Capex,Equipment,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3532,台勝科,TWSE,電子工業,,Semiconductor Equipment & Materials,Silicon Wafer,AI Capex,Materials,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+8028,昇陽半導體,TWSE,電子工業,,Semiconductor Equipment & Materials,Cleaning Equipment,AI Capex,Equipment,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2360,致茂,TWSE,電子工業,,Semiconductor Equipment & Materials,Test & Measurement,AI Capex,Equipment,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6691,洋基工程,TWSE,電子工業,,Semiconductor Equipment & Materials,Facility Engineering,AI Capex,Facility,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+7769,鴻勁,TWSE,電子工業,,Semiconductor Equipment & Materials,Test Handler,AI Capex,Equipment,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+1773,勝一,TWSE,化學生技醫療,,Semiconductor Equipment & Materials,Electronic Chemicals,AI Capex,Materials,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2467,志聖,TWSE,電子零組件業,,Semiconductor Equipment & Materials,Process Equipment,AI Capex,Equipment,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+8996,高力,TWSE,電機機械,,Semiconductor Equipment & Materials,Precision Components,AI Capex,Materials,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+4938,和碩,TWSE,電腦及週邊設備業,,AI Server / ODM,Server/PC ODM,AI,ODM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2352,佳世達,TWSE,電腦及週邊設備業,,AI Server / ODM,Server/Display,AI,ODM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3706,神達,TWSE,電腦及週邊設備業,,AI Server / ODM,Server ODM,AI,ODM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+7711,永擎,TWSE,電腦及週邊設備業,,AI Server / ODM,AI Server,AI,ODM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+8210,勤誠,TWSE,電腦及週邊設備業,,AI Server / ODM,Server Chassis,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2324,仁寶,TWSE,電腦及週邊設備業,,AI Server / ODM,Server/PC ODM,AI,ODM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3515,華擎,TWSE,電腦及週邊設備業,,AI Server / ODM,Motherboard,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2356,英業達,TWSE,電腦及週邊設備業,,AI Server / ODM,AI Server ODM,AI,ODM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2377,微星,TWSE,電腦及週邊設備業,,AI Server / ODM,Motherboard/System,AI Server,System,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2354,鴻準,TWSE,電子工業,,AI Server / ODM,Precision Chassis,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3665,貿聯-KY,TWSE,電子工業,,AI Server / ODM,Cable Assembly,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3023,信邦,TWSE,電子工業,,AI Server / ODM,Cable/Connector,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2059,川湖,TWSE,電子零組件業,,AI Server / ODM,Rack Slide Rail,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2327,國巨*,TWSE,電子工業,,AI Server / ODM,Passive Components,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+5269,祥碩,TWSE,電子工業,,AI Server / ODM,Interconnect IC,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2316,楠梓電,TWSE,電子零組件業,,PCB / HDI / IC Substrate,PCB,AI Server,Core,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3533,嘉澤,TWSE,電子零組件業,,PCB / HDI / IC Substrate,Connector,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6805,富世達,TWSE,電子零組件業,,PCB / HDI / IC Substrate,Connector,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2367,燿華,TWSE,電子工業,,PCB / HDI / IC Substrate,PCB,AI/Consumer,Core,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+3715,定穎投控,TWSE,電子工業,,PCB / HDI / IC Substrate,PCB,AI/Consumer,Core,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+5469,瀚宇博,TWSE,電子零組件業,,PCB / HDI / IC Substrate,PCB,AI/Consumer,Core,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+8039,台虹,TWSE,電子零組件業,,CCL / High-Speed Materials,FCCL/PI Film,AI/PCB,Material,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+1717,長興,TWSE,化學生技醫療,,CCL / High-Speed Materials,Resin/CCL,AI/PCB,Upstream,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2421,建準,TWSE,電子零組件業,,Thermal / Liquid Cooling,Cooling Fan,AI Server,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6415,矽力*-KY,TWSE,電子工業,,Data Center Power / PSU,Power Management IC,AI/DC,Component,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2385,群光,TWSE,電子零組件業,,Data Center Power / PSU,Power Supply,AI/DC,Power,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2455,全新,TWSE,電子工業,,Optical Communication / AI Networking,Compound Semi Foundry,AI Networking,Foundry,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6285,啟碁,TWSE,電子工業,,Optical Communication / AI Networking,Networking Equipment,AI Networking,Equipment,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+4585,達明,TWSE,電子工業,,Robotics / Automation,Collaborative Robot,Robotics,Robot,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2359,所羅門,TWSE,電子工業,,Robotics / Automation,Automation Integration,Robotics,Integrator,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+7750,新代,TWSE,電機機械,,Robotics / Automation,CNC Controller,Robotics,Controller,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6414,樺漢,TWSE,電腦及週邊設備業,,Robotics / Automation,Edge/Industrial Computing,AI/Robotics,Controller,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6579,研揚,TWSE,電腦及週邊設備業,,Robotics / Automation,Edge Computing,AI/Robotics,Controller,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2472,立隆電,TWSE,電子工業,,Energy Storage / Battery,Battery,Storage,Manufacturer,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6409,旭隼,TWSE,電子工業,,Solar / Wind Renewable,Inverter,Solar/EV,Inverter,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2206,三陽工業,TWSE,汽車工業,,EV / Auto Electronics,Vehicle,EV,OEM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2204,中華,TWSE,汽車工業,,EV / Auto Electronics,Vehicle,EV,OEM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2258,鴻華先進-創,TWSE,創新板股票,,EV / Auto Electronics,EV Manufacturing,EV,OEM,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2645,長榮航太,TWSE,航運業,,Defense / Aerospace / Drone,Aerospace MRO,Defense,Maintenance,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+2607,榮運,TWSE,航運業,,Shipping / Logistics,Trucking/Warehousing,Logistics,Carrier,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+6919,康霈*,TWSE,生技醫療業,,Biotech / Innovative Drug / CDMO,Dermatology Drug,Pharma,Innovator,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
+7799,禾榮科,TWSE,生技醫療業,,Medical Device / Healthcare,Proton Therapy Equipment,MedTech,Manufacturer,1.0,low,"analyst_inference_v2(claude,未經使用者逐筆確認)",2026-09-04
