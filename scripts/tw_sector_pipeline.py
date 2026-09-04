@@ -100,6 +100,10 @@ from sector_rotation_screener import (
     _compute_vp_score_stock,
     _json_safe,
 )
+# CPD_QUADRANT / add_sector_cpd 抽到 tw_cpd.py 給 tw_industry_mapping.py 共用
+# （分組維度是官方 sector 還是 supply_chain，Z-score 分象限的邏輯完全一樣），
+# 這裡重新匯出，呼叫端 tw.add_sector_cpd() / tw.CPD_QUADRANT 不用改。
+from tw_cpd import CPD_QUADRANT, add_sector_cpd
 
 FINMIND_BASE = "https://api.finmindtrade.com/api/v4/data"
 FINMIND_TOKEN = os.environ.get("FINMIND_TOKEN", "").strip()
@@ -631,13 +635,6 @@ def add_sector_acceleration(df, as_of):
     return df
 
 
-CPD_QUADRANT = {
-    (True, True): "🚀 Confirmed",       # 價格強 + 資金強：同步確認
-    (False, True): "💰 Capital Leading",  # 價格弱 + 資金強：資金先進，價格未反映（狩獵區）
-    (True, False): "⚠️ Price Leading",   # 價格強 + 資金弱：價格已動但法人沒跟，追高風險
-    (False, False): "❄️ Weak",          # 價格弱 + 資金弱：都沒動靜
-}
-
 # Transition Sensor 用的敘事排序：不代表 CPD 兩個維度真的線性相關，只是把使用者
 # 想追的「這個板塊離『資金價格雙確認』有多近」編成一個可以比較前後兩天的分數。
 TRANSITION_ORDER = {
@@ -654,41 +651,6 @@ OVERHEAT_BREADTH_DROP_PCT = 15
 # Sensor 第一次執行就有真實資料可比，不用等「明天」——用的是這次執行本來就抓好的
 # 14 個月價量/法人歷史，不多打一次 API。
 TRANSITION_BACKFILL_DAYS = 10
-
-
-def add_sector_cpd(df):
-    """Sector Capital-Price Divergence：CPD = Z(法人金額) - Z(SectorPoint)，
-    當日跨板塊（約 10-15 個 sector）做橫斷面 Z-score，再依 (point, capital) 正負
-    分四象限。CPD 越正代表「資金比價格更早、更用力」——這正是最初定義的狩獵目標
-    「資金正在進入、但價格尚未完全反映」，比單純看 SectorPoint 高一層。
-    注意：n 只有 10-15 個 sector，Z-score 是小樣本相對排名，不是嚴謹統計顯著性，
-    只拿來做粗略的「相對於今天其他板塊」象限分類，不代表絕對強弱門檻。
-    """
-    df = df.copy()
-    if df.empty:
-        for col in ("z_point", "z_capital", "cpd", "cpd_quadrant"):
-            df[col] = pd.Series(dtype="object")
-        return df
-
-    def _z(series):
-        std = series.std()
-        if not std or std != std or std == 0:
-            return pd.Series([0.0] * len(series), index=series.index)
-        return (series - series.mean()) / std
-
-    z_point = _z(df["point"])
-    # inst_net_20d_est_NTD_M 全 None（例如法人資料整批抓取失敗）時，缺失值當 0 處理，
-    # 不讓單一板塊的缺資料拖垮整批 Z-score 計算。
-    capital = df["inst_net_20d_est_NTD_M"].fillna(0.0) if "inst_net_20d_est_NTD_M" in df.columns else pd.Series([0.0] * len(df), index=df.index)
-    z_capital = _z(capital)
-
-    df["z_point"] = z_point.round(2)
-    df["z_capital"] = z_capital.round(2)
-    df["cpd"] = (z_capital - z_point).round(2)
-    df["cpd_quadrant"] = [
-        CPD_QUADRANT[(p > 0, c > 0)] for p, c in zip(z_point, z_capital)
-    ]
-    return df
 
 
 def add_transition_sensor(df, as_of):
@@ -1157,6 +1119,29 @@ def main():
             + ("（Transition Sensor 這次執行就能比對真實資料，不用等明天）" if n_backfilled else "（沒有缺口需要補，或資料不足）"))
     except Exception as e:
         log(f"⚠ 歷史回填失敗（不影響今天的主要輸出）: {e}")
+
+    log("=" * 78)
+    log("Phase 2：產業鏈聚合（IndustryMappingTable，many-to-many，涵蓋率未達 100%——"
+        "只算今天股票池裡「有對到 mapping」的股票，見 tw_industry_mapping.py）")
+    log("=" * 78)
+    try:
+        import tw_industry_mapping as tim
+        mapping_df = tim.load_mapping()
+        chain_df = tim.aggregate_supply_chains(all_df, mapping_df, as_of)
+        if chain_df.empty:
+            log("  ⚠ 今天股票池跟 IndustryMappingTable 沒有交集，跳過（mapping 目前只映射部分股票）")
+        else:
+            chain_path = tim.save_chain_scorecard(chain_df, as_of)
+            cov = tim.coverage_report(mapping_df, all_df["stock_id"])
+            log(f"  📊 {len(chain_df)} 條產業鏈有資料 · 股票池涵蓋 {cov['covered_in_universe']}/"
+                f"{cov['universe_size']} 檔（{cov['coverage_pct']}%）· 存至 {chain_path}")
+            for _, r in chain_df.head(10).iterrows():
+                res = f"{r['resonance_pct']}%" if r.get("resonance_pct") is not None else "—"
+                log(f"    {r['supply_chain']:38s} point={r['point']:7.2f}  "
+                    f"breadth={r['breadth_pct']}%  n={r['stock_count']}  "
+                    f"resonance={res}({r['node_count']} nodes)  cpd={r.get('cpd_quadrant','—')}")
+    except Exception as e:
+        log(f"⚠ 產業鏈聚合失敗（不影響 Phase 1 主要輸出）: {e}")
 
     log("=" * 78)
     log("Layer 1：板塊（industry_category）聚合")

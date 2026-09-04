@@ -21,6 +21,9 @@ import csv
 from datetime import datetime, timezone
 from html import escape
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import tw_industry_mapping as tim  # noqa: E402  (產業鏈雷達卡片的涵蓋率統計用)
+
 DATA_DIR = "data/sector_rotation"
 REPORTS_DIR = "sector-rotation/reports"
 
@@ -281,12 +284,96 @@ def cpd_matrix_html(rows_sorted):
     return "".join(cols)
 
 
+def chain_row(r):
+    """產業鏈雷達表格一列：跟 sector_row() 同精神，多了 Resonance（節點共振度）——
+    同一條鏈裡有幾個不同的 chain_node（例如 AI Server 底下的 Compute/PCB/CCL/
+    Thermal）平均 point 轉正，比整條鏈的個股 Breadth 更能看出這是單一環節帶動、
+    還是真的全鏈擴散。cpd_cell() 直接重用（chain 沒有 market_state 這個 Transition
+    Sensor 才有的欄位，cpd_cell 內部 .get() 會自動退回純 cpd_quadrant，不會壞）。
+    """
+    chain = escape(r.get("supply_chain", ""))
+    pt = num(r.get("point"), 1)
+    breadth = r.get("breadth_pct")
+    try:
+        breadth_f = float(breadth) if breadth not in (None, "") else None
+    except (TypeError, ValueError):
+        breadth_f = None
+    breadth_str = f"{breadth_f:.0f}%" if breadth_f is not None else "—"
+    n = int(float(r.get("stock_count") or 0))
+    inst = r.get("inst_net_20d_est_NTD_M")
+    inst_html = ntd_amount(inst)
+    try:
+        inst_f = float(inst) if inst not in (None, "") else None
+    except (TypeError, ValueError):
+        inst_f = None
+    inst_cls = "up" if (inst_f is not None and inst_f > 0) else ("down" if (inst_f is not None and inst_f < 0) else "flat")
+    inst_avg_html = ntd_amount(r.get("inst_net_20d_est_NTD_M_per_stock"))
+
+    resonance = r.get("resonance_pct")
+    node_count = r.get("node_count") or "—"
+    try:
+        resonance_f = float(resonance) if resonance not in (None, "") else None
+    except (TypeError, ValueError):
+        resonance_f = None
+    if resonance_f is None:
+        resonance_html = f'<span class="dim" title="只有 1 個節點，跟自己比沒有意義">單一節點</span>'
+    else:
+        res_cls = "up" if resonance_f >= 60 else ("down" if resonance_f < 30 else "flat")
+        resonance_html = f'<span class="{res_cls}">{resonance_f:.0f}%</span> <span class="dim">({node_count} 節點)</span>'
+
+    cpd_html = cpd_cell(r)
+
+    return f'''
+        <tr>
+          <td><b>{chain}</b> <span class="dim">n={n}</span></td>
+          <td class="n">{pt}</td>
+          <td class="n">{breadth_str}</td>
+          <td class="n {inst_cls}">{inst_html}</td>
+          <td class="n">{inst_avg_html}</td>
+          <td>{resonance_html}</td>
+          {cpd_html}
+        </tr>'''
+
+
+def chain_table_html(chain_rows, coverage_note=""):
+    if not chain_rows:
+        return '<p class="empty">今日沒有產業鏈資料（IndustryMappingTable 目前只涵蓋部分股票池，可能跟今天股票池沒有交集）</p>'
+    rows_html = "".join(chain_row(r) for r in chain_rows)
+    note_html = f'<p class="dim" style="margin:8px 18px 0;">{escape(coverage_note)}</p>' if coverage_note else ""
+    return f'''
+    <table>
+      <thead>
+        <tr><th>Supply Chain</th><th class="n">Point</th>
+            <th class="n" title="鏈內個股 4W 累報 > 0 的比例">寬度</th>
+            <th class="n" title="鏈內所有股票三大法人 20 日淨買賣加總（同一檔股票若掛多條鏈，會分別計入每一條）">法人 20d 淨買</th>
+            <th class="n" title="法人 20d 淨買金額 ÷ 鏈內股票數，跨鏈可比較的正規化指標">平均每檔淨買</th>
+            <th title="Node Resonance：鏈內有幾個不同節點（chain_node）平均 point 轉正——比個股 Breadth 更能看出是單一環節帶動還是全鏈擴散">節點共振</th>
+            <th title="CPD = Z(法人金額) - Z(ChainPoint)，跨產業鏈橫斷面相對排名">狀態</th></tr>
+      </thead>
+      <tbody>{rows_html}</tbody>
+    </table>{note_html}'''
+
+
 def load_all_stocks(as_of):
     """讀當日 tw_{date}_all.csv（全股票池），給暴漲候選池 + 法人資金榜用"""
     if not as_of:
         return []
     stamp = as_of.replace("-", "")
     path = os.path.join(DATA_DIR, f"tw_{stamp}_all.csv")
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def load_chain_scorecard(as_of):
+    """讀當日 tw_{date}_chains.csv（tw_industry_mapping.aggregate_supply_chains()
+    的輸出）。檔案不一定存在——mapping 目前只涵蓋部分股票池，某天股票池剛好完全
+    沒交集就不會有這個檔案，回傳空 list，報表那一段直接跳過，不是錯誤。"""
+    if not as_of:
+        return []
+    stamp = as_of.replace("-", "")
+    path = os.path.join(DATA_DIR, f"tw_{stamp}_chains.csv")
     if not os.path.exists(path):
         return []
     with open(path, encoding="utf-8") as f:
@@ -527,6 +614,19 @@ def render(scorecard, stage2):
     all_rows = load_all_stocks(as_of)
     top_stocks = (stage2.get("top3", {}) or {}).get("composite", [])
 
+    chain_rows = load_chain_scorecard(as_of)
+    chain_rows_sorted = sorted(chain_rows, key=lambda r: -(float(r.get("point") or 0)))
+    chain_coverage_note = ""
+    if all_rows:
+        try:
+            mapping_df = tim.load_mapping()
+            cov = tim.coverage_report(mapping_df, [r.get("stock_id") for r in all_rows])
+            chain_coverage_note = (f"IndustryMappingTable 涵蓋率：股票池 {cov['universe_size']} 檔中 "
+                                    f"{cov['covered_in_universe']} 檔（{cov['coverage_pct']}%）有對到至少一條產業鏈"
+                                    f"——不是全覆蓋，未對到的股票不影響 Phase 1 板塊/個股資料。")
+        except Exception:
+            chain_coverage_note = ""
+
     sector_rows_html = "".join(sector_row(r, i) for i, r in enumerate(rows_sorted)) \
         or '<tr><td colspan="7" class="empty">今日無板塊資料</td></tr>'
 
@@ -630,6 +730,13 @@ def render(scorecard, stage2):
     <div class="card-h">🧭 資金-價格背離象限（CPD）<span class="n" title="CPD = Z(法人金額) - Z(SectorPoint)，跨今日全部板塊做橫斷面相對排名">跨板塊相對排名</span></div>
     <div class="card-b">
       <div class="cpdcols">{cpd_matrix_html(rows_sorted)}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🔗 產業鏈雷達（Phase 2 · IndustryMappingTable）<span class="n">{len(chain_rows_sorted)}</span></div>
+    <div class="card-b" style="padding:0;">
+      {chain_table_html(chain_rows_sorted, chain_coverage_note)}
     </div>
   </div>
 

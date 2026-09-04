@@ -20,9 +20,19 @@ sector）不同，這份表是 many-to-many：同一檔股票可以出現在多�
 market 欄位只在能用真實資料交叉驗證（跟 TWSE STOCK_DAY_ALL 官方上市清單比對）時
 才填 TWSE，驗證不到的先留空，不用猜的。
 
-這個模組本身只做「讀取 + 查詢 + 覆蓋率統計」，還沒接上 ChainPoint/ChainCPD/
-Chain Resonance 這些 Phase 2 感測器計算——那是下一步，先確保這份地基資料結構
-正確、涵蓋率透明可查，再往上疊算法。
+aggregate_supply_chains() 是這個模組的第二步：把「讀取 + 查詢 + 覆蓋率統計」
+接上 Phase 2 感測器計算——對今天的全股票池明細（tw_sector_pipeline 的
+all_df，一列一檔股票，含 point/cum_ret_4w/inst_net_20d_est_NTD_M）跟這份
+mapping 做 many-to-many join，算出 ChainPoint / ChainBreadth /
+ChainCapitalFlow（沿用跟 aggregate_sectors() 一樣的定義，只是分組維度換成
+supply_chain），加上一個 sector 版本沒有的東西——Node Resonance：同一條鏈
+可能有好幾個「節點」（例如 AI Server 底下有 Compute/PCB/CCL/Thermal/Power），
+Resonance = 這些節點裡有幾個「平均 point 轉正」的比例，比單看整條鏈的
+Breadth（個股層級）更能反映「這條鏈是不是從單一環節在往外擴散」。
+
+ChainAcceleration（跟 add_sector_acceleration 一樣需要多天歷史）跟完整的
+Chain CPD 歷史回填還沒做——這條鏈才剛有第一天資料，跟 Transition Sensor
+當初的處境一樣，是下一步。
 
 手動跑（覆蓋率報告）：
   python scripts/tw_industry_mapping.py
@@ -32,6 +42,12 @@ import argparse
 import os
 
 import pandas as pd
+
+# add_sector_cpd() 的 CPD = Z(法人金額) - Z(SectorPoint) 這套邏輯本來就是通用的
+# 横斷面 Z-score 分象限，跟「分組維度是 sector 還是 supply_chain」無關——從 tw_cpd
+# 共用模組匯入，不重寫一份幾乎一樣的程式碼，也不 import tw_sector_pipeline 本身
+# （它反過來也需要匯入這個模組來算 ChainPoint，兩邊互相 import 會循環依賴）。
+from tw_cpd import add_sector_cpd
 
 MAPPING_PATH = "data/sector_rotation/industry_mapping.csv"
 REQUIRED_COLUMNS = [
@@ -91,6 +107,86 @@ def coverage_report(mapping_df, universe_tickers):
         "unmapped_in_universe": unmapped,
         "stocks_per_chain_in_universe": by_chain.to_dict(),
     }
+
+
+def _node_resonance(chain_rows):
+    """chain_rows：某條 supply_chain 在今天股票池裡的 (stock_id, chain_node, point)
+    列表。Resonance = 有幾個不同的 chain_node「平均 point 轉正」÷ 這條鏈今天總共
+    出現幾個不同的 chain_node——比整條鏈的個股 Breadth 更能看出「這是從單一環節
+    在往外擴散，還是真的全鏈共振」。只有 1 個節點時 resonance 沒有意義（跟自己比
+    100%），回傳 None，不假裝有訊號。"""
+    by_node = {}
+    for r in chain_rows:
+        node = r.get("chain_node") or "(未分類)"
+        by_node.setdefault(node, []).append(r["point"])
+    if len(by_node) < 2:
+        return None, len(by_node)
+    strong = sum(1 for pts in by_node.values() if sum(pts) / len(pts) > 0)
+    return round(100 * strong / len(by_node), 1), len(by_node)
+
+
+def aggregate_supply_chains(all_df, mapping_df, as_of):
+    """Phase 2 核心：把今天的全股票池明細（tw_sector_pipeline.py 的 all_df，一列
+    一檔股票）跟 IndustryMappingTable 做 many-to-many join，依 supply_chain 分組
+    算出 ChainPoint / ChainBreadth / ChainCapitalFlow / Node Resonance，再套用
+    跟 Phase 1 sector 版一樣的 CPD 象限分類（重用 tw_sector_pipeline.add_sector_cpd）。
+
+    只計算「今天股票池裡實際有對應到的股票」——涵蓋率不是 100%，這是誠實反映
+    IndustryMappingTable 目前只映射了部分股票（見 coverage_report），不是這裡的
+    bug。回傳空 DataFrame 如果完全沒有交集（例如 mapping 是空的）。
+    """
+    # 個股層級欄位是 inst_total_net_20d_est_NTD_M（fetch_institutional_flow() 的
+    # 原始欄位名）——跟 aggregate_sectors() 輸出的 inst_net_20d_est_NTD_M（已經是
+    # 加總過的板塊層級欄位，少了 total 兩個字）是兩個不同東西，不能搞混。
+    need_cols = {"stock_id", "point", "cum_ret_4w", "inst_total_net_20d_est_NTD_M"}
+    missing = need_cols - set(all_df.columns)
+    if missing:
+        raise ValueError(f"all_df 缺少必要欄位：{missing}")
+
+    stock_df = all_df.copy()
+    stock_df["stock_id"] = stock_df["stock_id"].astype(str)
+    m = mapping_df.copy()
+    m["ticker"] = m["ticker"].astype(str)
+
+    merged = m.merge(stock_df, left_on="ticker", right_on="stock_id", how="inner")
+    if merged.empty:
+        return pd.DataFrame()
+
+    groups = []
+    for chain, g in merged.groupby("supply_chain"):
+        n = len(g)
+        point = float(g["point"].mean())
+        breadth_up = int((g["cum_ret_4w"] > 0).sum())
+        breadth_pct = round(100 * breadth_up / n, 1) if n else None
+        inst_ntd = g["inst_total_net_20d_est_NTD_M"].dropna()
+        inst_sum = float(inst_ntd.sum()) if not inst_ntd.empty else None
+        resonance_pct, node_count = _node_resonance(g[["stock_id", "chain_node", "point"]].to_dict("records"))
+        groups.append({
+            "supply_chain": chain, "as_of_date": as_of, "stock_count": n,
+            "point": round(point, 2),
+            "breadth_pct": breadth_pct, "breadth_up": breadth_up, "breadth_total": n,
+            "inst_net_20d_est_NTD_M": round(inst_sum, 1) if inst_sum is not None else None,
+            "inst_net_20d_est_NTD_M_per_stock": round(inst_sum / n, 2) if inst_sum is not None and n else None,
+            "node_count": node_count,
+            "resonance_pct": resonance_pct,
+        })
+
+    chain_df = pd.DataFrame(groups).sort_values("point", ascending=False).reset_index(drop=True)
+    return add_sector_cpd(chain_df)
+
+
+def save_chain_scorecard(chain_df, as_of, outdir="data/sector_rotation"):
+    """存 tw_{date}_chains.csv，跟 tw_sector_pipeline.py 的 tw_{date}_scorecard.csv
+    同精神，只是分組維度是 supply_chain 不是官方 sector。chain_df 為空（今天股票池
+    跟 mapping 完全沒有交集）就不寫檔，回傳 None 讓呼叫端知道跳過了，不是靜默失敗。
+    """
+    if chain_df is None or chain_df.empty:
+        return None
+    os.makedirs(outdir, exist_ok=True)
+    stamp = as_of.replace("-", "")
+    path = os.path.join(outdir, f"tw_{stamp}_chains.csv")
+    chain_df.to_csv(path, index=False)
+    return path
 
 
 def _cli():
