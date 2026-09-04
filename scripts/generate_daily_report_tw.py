@@ -123,6 +123,7 @@ def top_stock_row(r):
     pt = num(r.get("point"), 1)
     vp = num(r.get("vp_score_stock"), 0)
     c4 = num(r.get("cum_ret_4w"), 1, pct=True, sign=True)
+    c13 = num(r.get("cum_ret_13w"), 1, pct=True, sign=True)
     c26 = num(r.get("cum_ret_26w"), 1, pct=True, sign=True)
     alert = r.get("stock_gap_alert") or ""
     alert_html = f'<span class="alert">{escape(alert)}</span>' if alert else ""
@@ -140,6 +141,7 @@ def top_stock_row(r):
           <td class="n">{pt}</td>
           <td class="n">{vp}</td>
           <td class="n">{c4}</td>
+          <td class="n">{c13}</td>
           <td class="n">{c26}</td>
           <td>{alert_html}</td>
           {dow_cell(r)}
@@ -487,7 +489,7 @@ def render(scorecard, stage2):
 
     top_stocks_sorted = sorted(top_stocks, key=_top_stock_sort_key)[:60]
     top_rows_html = "".join(top_stock_row(r) for r in top_stocks_sorted) \
-        or '<tr><td colspan="11" class="empty">今日無個股資料</td></tr>'
+        or '<tr><td colspan="12" class="empty">今日無個股資料</td></tr>'
 
     leader = rows_sorted[0] if rows_sorted else None
     laggard = rows_sorted[-1] if rows_sorted else None
@@ -579,7 +581,7 @@ def render(scorecard, stage2):
       <table>
         <thead>
           <tr><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th>
-              <th class="n">4W</th><th class="n">26W</th><th>Alert</th>
+              <th class="n">4W</th><th class="n">13W</th><th class="n">26W</th><th>Alert</th>
               <th title="Dow Theory 頭頭低/底底高">Dow</th><th>量價象限</th><th>暴漲判定</th>
               <th class="n" title="三大法人 20 日淨買賣（依最新收盤價換算金額）">法人 20d</th></tr>
         </thead>

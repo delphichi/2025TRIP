@@ -5,9 +5,10 @@
 =====================================================================
 跟美股版（sector_scorecard.py + sector_rotation_screener.py）對齊的邏輯，但：
   - Layer 1（板塊）用 TWSE/TPEx 官方 industry_category 粗分類，不是 GICS 11 sectors
-    （硬套 GICS 會失真——台股資金流動的顆粒度是「產業→次產業→供應鏈」，
-    但次產業/供應鏈細分沒有官方機器可讀資料源，需要人工建映射表，留到 Phase 2）
-  - S1-S5 感測器 + Opportunity Engine（TODAY/TRIGGER/AVOID）也留到 Phase 2 ·
+    （硬套 GICS 會失真——台股資金流動的顆粒度理論上是「產業→次產業→供應鏈」，
+    但次產業/供應鏈細分沒有官方機器可讀資料源，需要人工建映射表；決定不做這塊，
+    Layer 1 維持官方粗分類，改用 CPD 資金-價格背離象限補強板塊層的判斷力）
+  - S1-S5 感測器 + Opportunity Engine（TODAY/TRIGGER/AVOID）留到 Phase 2 ·
     Phase 1 先把 Layer 0-3 資料地基跑通、產出真實資料的每日報表
 
   Layer 0  市場：優先用 TW Market Data（獨立付費 API，非 FinMind）的官方 TAIEX 指數；
