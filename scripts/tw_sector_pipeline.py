@@ -92,6 +92,16 @@ FINMIND_TOKEN = os.environ.get("FINMIND_TOKEN", "").strip()
 TWMD_BASE = "https://api.twmarketdata.com/v2/datasets/market-index"
 TWMD_API_KEY = os.environ.get("TWMARKETDATA_API_KEY", "").strip()
 
+# TWSE OpenAPI（openapi.twse.com.tw）· 官方資料，不需要 token、不吃 FinMind 額度。
+# 用「已發行普通股數（t187ap03_L）× 收盤價（STOCK_DAY_ALL）」自己算全市場市值排名，
+# 取代原本人工貼表的 UNIVERSE_SEED 靜態快照——每天用當天真實股數/股價重算，
+# 涵蓋全部 ~1,094 檔上市公司，不受任何一次性貼表筆數上限。
+# 兩個 endpoint 都是 bulk（不帶參數，一次回傳全市場），跟 tw_twse_snapshot.py 用的
+# STOCK_DAY_ALL 是同一個資料源，這裡獨立呼叫一次（不共用 snapshot 檔案，避免耦合
+# 兩個腳本的執行順序）。任何一步失敗 → 回傳 None，呼叫端退回 UNIVERSE_SEED 保底。
+TWSE_COMPANY_INFO_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
+TWSE_STOCK_DAY_ALL_URL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
+
 OUTDIR = "data/sector_rotation"
 MANIFEST_PATH = os.path.join(OUTDIR, "tw_scorecard_latest.json")
 STAGE2_PATH = os.path.join(OUTDIR, "tw_latest.json")
@@ -192,15 +202,66 @@ def fm_fetch(dataset, data_id=None, start_date=None, end_date=None, retries=2):
 # ============================================================
 # 1. 股票池：市值前 N 大 + 官方產業分類
 # ============================================================
+def fetch_twse_market_cap_ranking(timeout=30):
+    """TWSE OpenAPI 自算全市場市值排名：已發行普通股數（t187ap03_L）× 收盤價
+    （STOCK_DAY_ALL），依市值由大到小排序，回傳 [stock_id, ...]。
+    兩個 endpoint 都不需要 token、bulk 一次拿全部、不吃 FinMind 額度，也跟
+    TaiwanStockMarketValueWeight 的限制（sponsor-only、要 per-stock 查）完全無關。
+    任何一步失敗（網路/HTTP/JSON 格式）→ 回傳 None，呼叫端退回 UNIVERSE_SEED 保底。
+    """
+    try:
+        res_info = requests.get(TWSE_COMPANY_INFO_URL, headers={"accept": "application/json"}, timeout=timeout)
+        res_price = requests.get(TWSE_STOCK_DAY_ALL_URL, headers={"accept": "application/json"}, timeout=timeout)
+    except requests.RequestException as e:
+        log(f"⚠ TWSE OpenAPI 市值排名網路錯誤：{e}")
+        return None
+    if not res_info.ok or not res_price.ok:
+        log(f"⚠ TWSE OpenAPI 市值排名 HTTP 錯誤：info={res_info.status_code} price={res_price.status_code}")
+        return None
+    try:
+        companies = res_info.json()
+        prices = res_price.json()
+    except ValueError:
+        log("⚠ TWSE OpenAPI 市值排名回傳非 JSON")
+        return None
+    if not isinstance(companies, list) or not isinstance(prices, list) or not companies or not prices:
+        log("⚠ TWSE OpenAPI 市值排名回傳空陣列或非預期格式")
+        return None
+
+    price_by_code = {r.get("Code"): r for r in prices if r.get("Code")}
+    ranked = []
+    for c in companies:
+        sid = c.get("公司代號")
+        shares_str = c.get("已發行普通股數或TDR原股發行股數")
+        price_row = price_by_code.get(sid)
+        if not sid or not shares_str or not price_row:
+            continue
+        try:
+            shares = float(shares_str)
+            close = float(price_row.get("ClosingPrice") or 0)
+        except (TypeError, ValueError):
+            continue
+        if shares <= 0 or close <= 0:
+            continue
+        ranked.append((sid, shares * close))
+
+    if not ranked:
+        log("⚠ TWSE OpenAPI 市值排名算出 0 檔可用資料")
+        return None
+    ranked.sort(key=lambda x: -x[1])
+    return [sid for sid, _ in ranked]
+
+
 def fetch_universe(as_of, size=UNIVERSE_SIZE):
     """
     1) TaiwanStockInfo（不帶 data_id）→ 全市場清單 + industry_category
        · 只留上市/上櫃普通股（type ∈ twse/tpex），濾掉 ETF（industry_category == 'ETF'）
        · 轉板股票會保留多列，取 date 最新那列
-    2) UNIVERSE_SEED（TWSE 官方市值比重排行靜態快照）取前 size 檔
-       · 不用 TaiwanStockMarketValueWeight：文件確認它是「單一個股」市值歷史查詢
-         （一定要帶 stock_id），且限定 backer/sponsor members，免費 tier 打了保證 400，
-         詳見模組開頭說明。
+    2) 優先用 fetch_twse_market_cap_ranking() 算出的即時全市場市值排名取前 size 檔；
+       失敗才退回 UNIVERSE_SEED（TWSE 官方市值比重排行靜態快照，2026/8/31）保底。
+       · 不用 FinMind TaiwanStockMarketValueWeight：文件確認它是「單一個股」市值歷史
+         查詢（一定要帶 stock_id），且限定 backer/sponsor members，免費 tier 打了
+         保證 400，詳見模組開頭說明。
     回傳 list[{stock_id, stock_name, industry_category}]，長度 <= size
     """
     info_rows = fm_fetch("TaiwanStockInfo")
@@ -220,8 +281,13 @@ def fetch_universe(as_of, size=UNIVERSE_SIZE):
         if prev is None or (r.get("date") or "") >= (prev.get("date") or ""):
             info_by_id[sid] = r
 
-    ranked_ids = [sid for sid in UNIVERSE_SEED if sid in info_by_id][:size]
-    log(f"  股票池：UNIVERSE_SEED，{len(ranked_ids)} 檔")
+    twse_ranked = fetch_twse_market_cap_ranking()
+    if twse_ranked:
+        ranked_ids = [sid for sid in twse_ranked if sid in info_by_id][:size]
+        log(f"  股票池：TWSE OpenAPI 即時市值排名，{len(ranked_ids)} 檔")
+    else:
+        ranked_ids = [sid for sid in UNIVERSE_SEED if sid in info_by_id][:size]
+        log(f"  股票池：TWSE 市值排名失敗，改用 UNIVERSE_SEED 靜態保底，{len(ranked_ids)} 檔")
 
     universe = []
     for sid in ranked_ids[:size]:
