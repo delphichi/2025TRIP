@@ -385,12 +385,16 @@ def classify_sensor_signals(stage2, scorecard, exp_buckets):
     scored = [(r, compute_sensor_scores(r, sector_by_name)) for r in pool]
 
     # AVOID：有矛盾扣分的優先 —— 扣分越重、原始分（表面強度）越高，越容易誤判，越該排前面
-    avoid_pool = [(r, sc) for r, sc in scored if sc["conflict_penalty"] > 0]
-    avoid_pool.sort(key=lambda x: (-x[1]["conflict_penalty"], -x[1]["raw_total"]))
-    avoid = avoid_pool[:5]
-    avoid_symbols = {r.get("symbol") for r, _ in avoid}
+    # 注意：AVOID 表格只「顯示」前 5 檔最該警惕的，但排除到 TODAY/TRIGGER 之外的範圍是
+    #   「全部」有矛盾扣分的候選（conflicted_symbols），不能只排除進了 AVOID 前 5 名的那幾檔——
+    #   否則矛盾扣分較輕、沒排進 AVOID 前 5 名的候選會漏網跑進 TODAY/TRIGGER，
+    #   等於矛盾被「稀釋掉」而不是被攔下來，違背「矛盾 = 風險，不是中性」這個核心原則
+    conflicted = [(r, sc) for r, sc in scored if sc["conflict_penalty"] > 0]
+    conflicted.sort(key=lambda x: (-x[1]["conflict_penalty"], -x[1]["raw_total"]))
+    avoid = conflicted[:5]
+    conflicted_symbols = {r.get("symbol") for r, _ in conflicted}
 
-    clean = [(r, sc) for r, sc in scored if r.get("symbol") not in avoid_symbols]
+    clean = [(r, sc) for r, sc in scored if r.get("symbol") not in conflicted_symbols]
     clean.sort(key=lambda x: -x[1]["total"])
 
     today = [(r, sc) for r, sc in clean
