@@ -521,7 +521,7 @@ def render(scorecard, stage2):
       <span class="tag">PHASE 1 · BETA</span>
       <h1>台股板塊研究日報 · {as_of}</h1>
       <p>資料源：FinMind · 官方 industry_category 粗分類（無供應鏈次產業細分，Phase 2 補）·
-         股票池 {len(rows) and sum(int(r.get("stock_count",0)) for r in rows)} 檔（市值前 100 大）</p>
+         股票池 {len(rows) and sum(int(r.get("stock_count",0)) for r in rows)} 檔（依市值排名選取）</p>
     </div>
   </div>
 
