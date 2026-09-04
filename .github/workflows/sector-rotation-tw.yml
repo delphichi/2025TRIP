@@ -1,0 +1,103 @@
+name: sector-rotation-tw-daily
+
+# 目的：每交易日跑台股板塊輪動 Phase 1 pipeline（scripts/tw_sector_pipeline.py）
+#   + 產出每日報表（scripts/generate_daily_report_tw.py）· commit data/sector_rotation/tw_*
+#   跟 sector-rotation/reports/daily-tw-*.html
+#
+# 排程：FinMind 文件標示的更新時間都是 Taipei time（UTC+8）：
+#   TaiwanStockPrice                          星期一至五 17:30
+#   TaiwanStockInstitutionalInvestorsBuySell  星期一至五 20:00
+#   兩個都更新完才跑，UTC 13:00（= Taipei 21:00）留了安全緩衝。
+#
+# 手動觸發：Actions → sector-rotation-tw-daily → Run workflow
+#
+# 前置：Repo → Settings → Secrets and variables → Actions 加：
+#   FINMIND_TOKEN = FinMind API token（免費申請：finmindtrade.com）
+#   免費 tier 300 次/小時，pipeline 預設股票池 100 檔（budget ≈ 203 次），有餘裕。
+
+on:
+  schedule:
+    - cron: '0 13 * * 1-5'      # 週一~五 UTC 13:00（Taipei 21:00）
+  workflow_dispatch:
+    inputs:
+      as_of_date:
+        description: '回放日期 YYYY-MM-DD · 空 = 用最新'
+        required: false
+        default: ''
+      universe_size:
+        description: '股票池大小（市值前 N 大）· 免費 tier 300 次/小時，N×2+3 不要超過'
+        required: false
+        default: '100'
+
+permissions:
+  contents: write
+
+jobs:
+  tw-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install pandas requests
+
+      - name: Run TW sector pipeline (Layer 0-3)
+        shell: bash
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+          AS_OF: ${{ inputs.as_of_date }}
+          UNIVERSE_SIZE: ${{ inputs.universe_size }}
+        run: |
+          set -o pipefail
+          ARGS=""
+          if [ -n "$AS_OF" ]; then ARGS="$ARGS --as-of $AS_OF"; fi
+          if [ -n "$UNIVERSE_SIZE" ]; then ARGS="$ARGS --universe-size $UNIVERSE_SIZE"; fi
+          python scripts/tw_sector_pipeline.py $ARGS 2>&1 | tee /tmp/tw_pipeline.log
+
+      - name: Generate TW daily report
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/generate_daily_report_tw.py 2>&1 | tee /tmp/tw_report.log
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 台股板塊輪動 · $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo '### Pipeline log（尾 40 行）' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -40 /tmp/tw_pipeline.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "(no log)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -f data/sector_rotation/tw_scorecard_latest.json ]; then
+            echo '### tw_scorecard_latest.json（不含 rows）' >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            python -c "import json; d=json.load(open('data/sector_rotation/tw_scorecard_latest.json')); d.pop('rows',None); print(json.dumps(d,indent=2,ensure_ascii=False))" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Commit snapshots
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sector_rotation/tw_*.csv data/sector_rotation/tw_*.json 2>/dev/null || true
+          git add sector-rotation/reports/daily-tw-*.html 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No new data to commit"
+            exit 0
+          fi
+          STAMP="$(date -u '+%Y-%m-%d')"
+          if [ -n "${{ inputs.as_of_date }}" ]; then STAMP="replay ${{ inputs.as_of_date }}"; fi
+          git commit -m "chore(sector-rotation-tw): snapshot $STAMP"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main && git push origin HEAD:main && break
+            echo "Push attempt $i failed · sleep $((2**i))s"
+            sleep $((2**i))
+          done

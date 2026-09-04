@@ -461,6 +461,10 @@ def render(scorecard, stage2, pattern):
     exp_buckets = load_all_csv_verdicts(as_of)
     insider_data = load_insider_data()
 
+    # 台股板塊報表（Phase 1）連結 · 只在檔案已存在時顯示，避免 Phase 1 第一次 CI 成功跑之前連到 404
+    tw_report_path = os.path.join(REPORTS_DIR, "daily-tw-latest.html")
+    tw_report_link = ' · <a href="daily-tw-latest.html">看台股板塊報表</a>' if os.path.exists(tw_report_path) else ''
+
     def _valuation_link(sym):
         """一鍵跳 valuation 頁 · 帶 ?ticker=X · 自動載入 PE/PBR/EPS/現金流/內部人分析"""
         if not sym:
@@ -1907,7 +1911,7 @@ def render(scorecard, stage2, pattern):
       &nbsp;·&nbsp;
       🚀 <b>explosive</b> · 1y avg <b>{num(exp_stats.get("avg"), 1, pct=True, sign=True)}</b> / 命中 <b>{num(exp_stats.get("hit_rate_pct"), 1, pct=True)}</b> (n={exp_stats.get("n","—")})
     </div>
-    產生時間 {gen_ts} · <a href="../index.html">回主頁</a> · <a href="8-sample-analysis.html">看回測方法論</a> · <a href="backtest-summary.html">看 pipeline 回測</a>
+    產生時間 {gen_ts} · <a href="../index.html">回主頁</a> · <a href="8-sample-analysis.html">看回測方法論</a> · <a href="backtest-summary.html">看 pipeline 回測</a>{tw_report_link}
     <br><br>
     <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
   </div>
