@@ -163,6 +163,7 @@ def sector_row(r):
     inst_html = ntd_amount(inst)
     inst_cls = "up" if (inst is not None and inst == inst and inst > 0) else (
         "down" if (inst is not None and inst == inst and inst < 0) else "flat")
+    cpd_html = cpd_cell(r)
     return f'''
         <tr>
           <td><b>{sec}</b> <span class="dim">n={n}</span></td>
@@ -170,7 +171,63 @@ def sector_row(r):
           <td class="n {acc_cls}">{acc_str}</td>
           <td class="n">{breadth_str}</td>
           <td class="n {inst_cls}">{inst_html}</td>
+          {cpd_html}
         </tr>'''
+
+
+CPD_META = {
+    "🚀 Confirmed": "cpd-confirmed",
+    "💰 Capital Leading": "cpd-leading",
+    "⚠️ Price Leading": "cpd-warn",
+    "❄️ Weak": "cpd-weak",
+}
+
+
+def cpd_cell(r):
+    q = r.get("cpd_quadrant")
+    cpd = r.get("cpd")
+    if not q or q != q:
+        return '<td><span class="dow-none">—</span></td>'
+    cls = CPD_META.get(q, "cpd-weak")
+    cpd_str = num(cpd, 2, sign=True) if cpd is not None else ""
+    return f'<td><span class="cpd {cls}" title="CPD = Z(法人金額) - Z(SectorPoint)：{cpd_str}">{escape(q)}</span></td>'
+
+
+def cpd_matrix_html(rows_sorted):
+    """四象限分組卡：💰 Capital Leading 是狩獵區（資金已進、價格尚未反映）；
+    🚀 Confirmed 資金價格同步；⚠️ Price Leading 價格已動法人沒跟，追高風險；
+    ❄️ Weak 都沒動靜。每個象限內依 |CPD| 由大到小排（背離越明顯排越前面）。
+    """
+    buckets = {"💰 Capital Leading": [], "🚀 Confirmed": [], "⚠️ Price Leading": [], "❄️ Weak": []}
+    for r in rows_sorted:
+        q = r.get("cpd_quadrant")
+        if q in buckets:
+            buckets[q].append(r)
+
+    def _cpd(r):
+        try:
+            return abs(float(r.get("cpd")))
+        except (TypeError, ValueError):
+            return 0.0
+
+    for q in buckets:
+        buckets[q].sort(key=_cpd, reverse=True)
+
+    col_cls = {"💰 Capital Leading": "leading", "🚀 Confirmed": "confirmed",
+               "⚠️ Price Leading": "warn", "❄️ Weak": "weak"}
+    cols = []
+    for label, items in buckets.items():
+        lis = "".join(
+            f'<li><b>{escape(r.get("sector",""))}</b> '
+            f'<span>point {num(r.get("point"),1)} · {ntd_amount(r.get("inst_net_20d_est_NTD_M"))}</span></li>'
+            for r in items
+        ) or '<li class="empty">今日無</li>'
+        cols.append(f'''
+        <div class="cpdcol {col_cls[label]}">
+          <h4>{label}<span class="cnt">{len(items)}</span></h4>
+          <ul>{lis}</ul>
+        </div>''')
+    return "".join(cols)
 
 
 def load_all_stocks(as_of):
@@ -359,6 +416,26 @@ CSS = '''
   .exp-cand { background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
   .exp-risk { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
   .exp-none { color:#94a3b8; }
+  .cpd {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .cpd-confirmed { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .cpd-leading { background:#fef3c7; color:#92400e; border:1px solid #fbbf24; }
+  .cpd-warn { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+  .cpd-weak { background:#f3f4f6; color:#6b7280; }
+  .cpdcols { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media(max-width:640px) { .cpdcols { grid-template-columns:1fr; } }
+  .cpdcol { background:#f9fafb; border-radius:8px; padding:10px 12px; border-left:3px solid var(--muted); }
+  .cpdcol.leading { border-left-color:#f59e0b; background:#fffbeb; }
+  .cpdcol.confirmed { border-left-color:#22c55e; background:#f0fdf4; }
+  .cpdcol.warn { border-left-color:#ef4444; background:#fef2f2; }
+  .cpdcol.weak { border-left-color:#94a3b8; background:#f9fafb; }
+  .cpdcol h4 { margin:0 0 6px 0; font-size:13px; color:var(--navy); }
+  .cpdcol .cnt { font-size:11px; color:var(--muted); margin-left:6px; }
+  .cpdcol ul { margin:0; padding-left:0; list-style:none; font-size:12px; }
+  .cpdcol li { padding:2px 0; display:flex; justify-content:space-between; }
+  .cpdcol .empty { color:var(--muted); font-style:italic; font-size:11px; }
   .expcols { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   @media(max-width:800px) { .expcols { grid-template-columns:1fr; } }
   .expcol { background:#f9fafb; border-radius:8px; padding:10px 12px; border-left:3px solid var(--muted); }
@@ -390,7 +467,7 @@ def render(scorecard, stage2):
     top_stocks = (stage2.get("top3", {}) or {}).get("composite", [])
 
     sector_rows_html = "".join(sector_row(r) for r in rows_sorted) \
-        or '<tr><td colspan="5" class="empty">今日無板塊資料</td></tr>'
+        or '<tr><td colspan="6" class="empty">今日無板塊資料</td></tr>'
 
     # 排序：先依板塊（跟上面 📊 板塊表同一個 point 排名順序），同板塊內再依「個股 20 日
     # 全部成交金額」由大到小——這是市場關注度/熱度（誰在被交易），跟「法人 20d」欄位
@@ -474,10 +551,18 @@ def render(scorecard, stage2):
           <tr><th>Sector</th><th class="n">Point</th>
               <th class="n" title="今日 point - 過去 5 日 point 均值 · 首次執行前 5 天沒歷史資料會是 —">加速度</th>
               <th class="n" title="板塊內 4W 累報 > 0 的股票比例">寬度</th>
-              <th class="n" title="板塊內所有個股三大法人 20 日淨買賣加總（依最新收盤價換算金額）">法人 20d 淨買（金額）</th></tr>
+              <th class="n" title="板塊內所有個股三大法人 20 日淨買賣加總（依最新收盤價換算金額）">法人 20d 淨買（金額）</th>
+              <th title="CPD = Z(法人金額) - Z(SectorPoint)，跨板塊橫斷面相對排名，非嚴謹統計顯著性。💰 Capital Leading = 資金先進、價格尚未反映（狩獵區）">CPD 象限</th></tr>
         </thead>
         <tbody>{sector_rows_html}</tbody>
       </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 資金-價格背離象限（CPD）<span class="n" title="CPD = Z(法人金額) - Z(SectorPoint)，跨今日全部板塊做橫斷面相對排名">跨板塊相對排名</span></div>
+    <div class="card-b">
+      <div class="cpdcols">{cpd_matrix_html(rows_sorted)}</div>
     </div>
   </div>
 

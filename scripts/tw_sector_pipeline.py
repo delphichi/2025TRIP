@@ -535,6 +535,49 @@ def add_sector_acceleration(df, as_of):
     return df
 
 
+CPD_QUADRANT = {
+    (True, True): "🚀 Confirmed",       # 價格強 + 資金強：同步確認
+    (False, True): "💰 Capital Leading",  # 價格弱 + 資金強：資金先進，價格未反映（狩獵區）
+    (True, False): "⚠️ Price Leading",   # 價格強 + 資金弱：價格已動但法人沒跟，追高風險
+    (False, False): "❄️ Weak",          # 價格弱 + 資金弱：都沒動靜
+}
+
+
+def add_sector_cpd(df):
+    """Sector Capital-Price Divergence：CPD = Z(法人金額) - Z(SectorPoint)，
+    當日跨板塊（約 10-15 個 sector）做橫斷面 Z-score，再依 (point, capital) 正負
+    分四象限。CPD 越正代表「資金比價格更早、更用力」——這正是最初定義的狩獵目標
+    「資金正在進入、但價格尚未完全反映」，比單純看 SectorPoint 高一層。
+    注意：n 只有 10-15 個 sector，Z-score 是小樣本相對排名，不是嚴謹統計顯著性，
+    只拿來做粗略的「相對於今天其他板塊」象限分類，不代表絕對強弱門檻。
+    """
+    df = df.copy()
+    if df.empty:
+        for col in ("z_point", "z_capital", "cpd", "cpd_quadrant"):
+            df[col] = pd.Series(dtype="object")
+        return df
+
+    def _z(series):
+        std = series.std()
+        if not std or std != std or std == 0:
+            return pd.Series([0.0] * len(series), index=series.index)
+        return (series - series.mean()) / std
+
+    z_point = _z(df["point"])
+    # inst_net_20d_est_NTD_M 全 None（例如法人資料整批抓取失敗）時，缺失值當 0 處理，
+    # 不讓單一板塊的缺資料拖垮整批 Z-score 計算。
+    capital = df["inst_net_20d_est_NTD_M"].fillna(0.0) if "inst_net_20d_est_NTD_M" in df.columns else pd.Series([0.0] * len(df), index=df.index)
+    z_capital = _z(capital)
+
+    df["z_point"] = z_point.round(2)
+    df["z_capital"] = z_capital.round(2)
+    df["cpd"] = (z_capital - z_point).round(2)
+    df["cpd_quadrant"] = [
+        CPD_QUADRANT[(p > 0, c > 0)] for p, c in zip(z_point, z_capital)
+    ]
+    return df
+
+
 # ============================================================
 # 5. Layer 2：個股在板塊內的排名 + gap_alert
 # ============================================================
@@ -766,11 +809,12 @@ def main():
     log("=" * 78)
     sector_df = aggregate_sectors(all_rows, as_of)
     sector_df = add_sector_acceleration(sector_df, as_of)
+    sector_df = add_sector_cpd(sector_df)
     for _, r in sector_df.head(15).iterrows():
         acc = r.get("acceleration")
         acc_str = f"{acc:+.2f}" if acc is not None and not pd.isna(acc) else "—"
         log(f"  {r['sector']:12s} point={r['point']:7.2f}  acc={acc_str:>7s}  "
-            f"breadth={r['breadth_pct']}%  n={r['stock_count']}")
+            f"breadth={r['breadth_pct']}%  n={r['stock_count']}  cpd={r.get('cpd_quadrant','—')}")
 
     log("=" * 78)
     log("Layer 0：市場快照（優先 TW Market Data 官方 TAIEX，退回 0050 代理）")
