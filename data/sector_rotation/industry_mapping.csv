@@ -303,3 +303,81 @@ ticker,company,market,official_sector,sub_industry,supply_chain,chain_node,theme
 7610,聯友金屬-創,TWSE,綠能環保,,Environmental Infrastructure,Metal Materials Recycling,Circular Economy,Materials,1.0,medium,"analyst_mapping_v1.2(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
 5234,達興材料,TWSE,光電業,,Energy Storage / Battery,Battery Materials,EV / Storage,Materials,1.0,medium,"analyst_mapping_v1.2(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,ENABLER
 5234,達興材料,TWSE,光電業,,Solar / Wind Renewable,Solar Materials,Solar,Materials,1.0,medium,"analyst_mapping_v1.2(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,ENABLER
+2314,台揚,TWSE,電子工業,無線通訊／衛星天線,Optical Communication / AI Networking,RF / Antenna,5G / Satellite,RF / Antenna,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+2314,台揚,TWSE,電子工業,無線通訊／衛星天線,Defense / Aerospace / Drone,RF / Antenna,Satellite / Defense,RF / Antenna,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+6715,嘉基,TWSE,電子工業,高速傳輸／連接,Optical Communication / AI Networking,Interconnect,AI / Data Center,Interconnect,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4906,正文,TWSE,電子工業,通訊設備,Optical Communication / AI Networking,Networking Equipment,5G / Networking,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3380,明泰,TWSE,電子工業,網路設備,Optical Communication / AI Networking,Networking Equipment,5G / AI Networking,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6674,鋐寶科技,TWSE,電子工業,通訊設備／網通,Optical Communication / AI Networking,Networking Equipment,5G / Networking,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6152,百一,TWSE,電子工業,通訊設備／網路,Optical Communication / AI Networking,Networking Equipment,5G,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2419,仲琦,TWSE,電子工業,寬頻／通訊設備,Optical Communication / AI Networking,Networking Equipment,5G / Broadband,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6136,富爾特,TWSE,電子工業,通訊模組／網路,Optical Communication / AI Networking,Networking Module,5G / IoT,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4977,眾達-KY,TWSE,電子工業,光通訊設備,Optical Communication / AI Networking,Optical,AI Networking,Optical,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6426,統新,TWSE,電子工業,光通訊元件,Optical Communication / AI Networking,Optical,AI Networking,Optical,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6456,GIS-KY,TWSE,電子工業,觸控／顯示／精密電子,Display & Optical,Module,AI Device,Module,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3622,洋華,TWSE,電子工業,觸控／顯示模組,Display & Optical,Touch Module,HMI / Smart Device,Module,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2302,麗正,TWSE,電子工業,IC／二極體製造,AI / HPC Semiconductor,Semiconductor,Specialty Semiconductor,Semiconductor,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2434,統懋,TWSE,電子工業,晶圓／IC,AI / HPC Semiconductor,Foundry,Specialty Semiconductor,Foundry,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3094,聯傑,TWSE,電子工業,Network IC,Optical Communication / AI Networking,Network IC,Networking,Designer,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+8261,富鼎,TWSE,電子工業,Power Semiconductor,AI / HPC Semiconductor,Power Semiconductor,Power / EV,Power Semiconductor,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6533,晶心科,TWSE,電子工業,CPU IP／RISC-V IP,AI / HPC Semiconductor,IP,Edge AI,IP Provider,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2436,偉詮電,TWSE,電子工業,MCU／電源／IC,AI / HPC Semiconductor,MCU,Edge AI / Power,Designer,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6962,奕力-KY,TWSE,電子工業,Display Driver IC,Display & Optical,DDIC,AI Display,Designer,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+7749,意騰-KY,TWSE,電子工業,AI／運算晶片,AI / HPC Semiconductor,AI Chip,AI,Designer,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3055,蔚華科,TWSE,電子通路業,半導體設備／材料通路,Semiconductor Equipment & Materials,Distribution,AI Capex,Distributor,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,DISTRIBUTOR
+3209,全科,TWSE,電子通路業,半導體／電子通路,Semiconductor Equipment & Materials,Distribution,AI / Computing,Distributor,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,DISTRIBUTOR
+3312,弘憶股,TWSE,電子通路業,半導體／記憶體通路,Memory / HBM,Distribution,AI / Memory,Distributor,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,DISTRIBUTOR
+6269,台郡,TWSE,電子零組件業,FPC／PCB,PCB / HDI / IC Substrate,FPC/PCB,AI / Mobile,PCB,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6108,競國,TWSE,電子零組件業,PCB,PCB / HDI / IC Substrate,PCB,AI / Electronics,PCB,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4927,泰鼎-KY,TWSE,電子零組件業,PCB／FPC,PCB / HDI / IC Substrate,PCB/FPC,Automotive / AI,PCB,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6672,騰輝電子-KY,TWSE,電子零組件業,CCL／覆銅板,CCL / High-Speed Materials,CCL,AI Server,Materials,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2402,毅嘉,TWSE,電子零組件業,FPC／機構件,PCB / HDI / IC Substrate,FPC/Component,AI Device / Auto,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3645,達邁,TWSE,電子零組件業,FPC材料／PI,PCB / HDI / IC Substrate,FPC Materials,AI / Electronics,Materials,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+8039,台虹*,TWSE,電子零組件業,FPC材料,PCB / HDI / IC Substrate,FPC Materials,AI / Mobile,Materials,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2478,大毅,TWSE,電子零組件業,被動元件／電子零件,Passive Components,Resistor,AI / Electronics,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4943,康控-KY,TWSE,電子零組件業,Connector,Connector / Interconnect,Connector,AI / Auto,Connector,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6115,鎰勝,TWSE,電子零組件業,Connector／Switch,Connector / Interconnect,Connector/Switch,AI / Electronics,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+8103,瀚荃,TWSE,電子零組件業,Connector,Connector / Interconnect,Connector,AI / Auto,Connector,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6272,驊陞,TWSE,電子零組件業,Connector / Auto Electronics,Connector / Interconnect,Connector,EV / AI,Connector,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3605,宏致,TWSE,電子零組件業,Connector,Connector / Interconnect,Connector,AI / Computing,Connector,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3003,健和興,TWSE,電子零組件業,Connector／端子,Connector / Interconnect,Connector/Terminal,EV / AI,Connector,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6155,鈞寶,TWSE,電子零組件業,Connector／精密零件,Connector / Interconnect,Precision Component,AI / Electronics,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2420,新巨,TWSE,電子零組件業,Connector／Interface,Connector / Interconnect,Connector/Interface,AI / Industrial,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2476,鉅祥,TWSE,電子工業,Precision Metal / Connector,Connector / Interconnect,Precision Metal,AI / Auto,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+2486,一詮,TWSE,電子工業,Leadframe／精密金屬,AI / HPC Semiconductor,Leadframe,AI,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+2486,一詮,TWSE,電子工業,Leadframe／精密金屬,Connector / Interconnect,Leadframe,AI,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+2392,正崴,TWSE,電子工業,Connector／Cable,Connector / Interconnect,Connector/Cable,AI / EV,Connector,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+7788,松川精密,TWSE,電子零組件業,Connector,Connector / Interconnect,Connector,AI / Auto,Connector,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6224,聚鼎,TWSE,電子工業,保護元件／電阻,Passive Components,Protection/Resistor,AI / Electronics,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+6224,聚鼎,TWSE,電子工業,保護元件／電阻,PCB / HDI / IC Substrate,Protection Component,AI / Electronics,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+6224,聚鼎,TWSE,電子工業,保護元件／電阻,Display & Optical,Protection Component,AI / Electronics,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+8105,凌巨,TWSE,電子工業,面板／顯示模組／觸控,Display & Optical,Panel/Module,Industrial Display,Panel / Module,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3504,揚明光,TWSE,電子工業,光學元件／投影,Display & Optical,Optical,Display / AI Vision,Optical,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3356,奇偶,TWSE,電子工業,光學／影像,Display & Optical,Vision,AI Vision,Vision,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6209,今國光,TWSE,電子工業,光學鏡片,Display & Optical,Lens,AI Vision / Auto,Lens,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6226,光鼎,TWSE,電子工業,LED封裝／模組,Display & Optical,LED Packaging,LED / Display,Packaging,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6168,宏齊,TWSE,電子工業,LED封裝,Display & Optical,LED Packaging,LED / Display,Packaging,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4956,光鋐,TWSE,電子工業,LED／光電,Display & Optical,LED Epi,LED / Display,Epi / LED,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2417,圓剛*,TWSE,電腦及週邊設備業,Video / Edge AI,AI Server / ODM,Edge Video System,AI Vision,System,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+6215,和椿,TWSE,電子工業,自動化／系統整合,Robotics / Automation,Integrator,Smart Factory,Integrator,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4562,穎漢,TWSE,電機機械,CNC／自動化,Robotics / Automation,Equipment,Smart Factory,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4571,鈞興-KY,TWSE,電機機械,傳動／齒輪,Robotics / Automation,Motion,Robotics,Motion,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+8374,羅昇,TWSE,電機機械,傳動／自動化,Robotics / Automation,Motion,Robotics,Motion,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4560,強信-KY,TWSE,電機機械,CNC／精密機械,Robotics / Automation,Equipment,Smart Factory,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+1597,直得,TWSE,電機機械,線性滑軌／傳動,Robotics / Automation,Linear Motion,Robotics,Motion,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+1583,程泰,TWSE,電機機械,CNC工具機,Robotics / Automation,Machine Tool,Smart Factory,Machine Tool,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4540,全球傳動,TWSE,電機機械,傳動元件,Robotics / Automation,Motion,Robotics,Motion,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4555,氣立,TWSE,電機機械,氣動元件,Robotics / Automation,Actuator,Automation,Actuator,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+1531,高林股,TWSE,電機機械,工具機／自動化,Robotics / Automation,Equipment,Smart Factory,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+1515,力山,TWSE,電機機械,電機／機械,Robotics / Automation,Equipment,Electrification,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+4566,時碩工業,TWSE,電機機械,車用機械傳動零件,Robotics / Automation,Component,EV / Robotics,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+2371,大同,TWSE,電機機械,馬達／電力設備,Robotics / Automation,Motor,Electrification,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+3617,碩天,TWSE,電子工業,UPS／儲能電源,Data Center Power / PSU,Power,AI/DC,Power,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+1608,華榮,TWSE,電器電纜,電線電纜,Smart Grid / Transformer,Cable,Electrification,Cable,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+3617,碩天,TWSE,電子工業,Backup Power,Energy Storage / Battery,ESS,ESS,Power System,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,
+7730,暉盛-創,TWSE,電子工業,半導體/面板/PCB設備檢測,Semiconductor Equipment & Materials,Equipment/Inspection,AI Capex,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+7730,暉盛-創,TWSE,電子工業,半導體/面板/PCB設備檢測,Display & Optical,Equipment/Inspection,AI Capex,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+7730,暉盛-創,TWSE,電子工業,半導體/面板/PCB設備檢測,PCB / HDI / IC Substrate,Equipment/Inspection,AI Capex,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+4949,有成精密,TWSE,電子工業,半導體/太陽能設備,Semiconductor Equipment & Materials,Equipment,AI/HPC,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+4949,有成精密,TWSE,電子工業,半導體/太陽能設備,Solar / Wind Renewable,Module/System,Solar,Equipment,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
+1537,廣隆,TWSE,電機機械,傳動零件/車用大功率鋰電池BMS動力馬達,EV / Auto Electronics,BMS / Motor Component,EV Electrification,Component,1.0,medium,"analyst_mapping_v1.3(使用者提供+官方價值鏈交叉核對,2026-09-04)",2026-09-04,CROSS_CHAIN
