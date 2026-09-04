@@ -1030,6 +1030,17 @@ def main():
                     f"breadth={r['breadth_pct']}%  n={r['stock_count']}  "
                     f"resonance={res}({r['node_count']} nodes)  "
                     f"state={r.get('market_state','—')}  {dir_icon} {r.get('transition_label','')}")
+
+            edges_df = tim.load_chain_edges()
+            dep_df = tim.chain_dependency_check(chain_df, edges_df)
+            if not dep_df.empty:
+                dep_path = tim.save_chain_dependency(dep_df, as_of)
+                log(f"  🔗 {len(dep_df)} 條鏈有上游依賴資料可查（industry_chain_edges.csv，"
+                    f"分析模型非官方資料）· 存至 {dep_path}")
+                for _, r in dep_df.iterrows():
+                    log(f"    {r['chain']:38s} state={r['chain_state']}  "
+                        f"upstream_confirmed={r['upstream_confirmed']}/{r['upstream_count']}"
+                        f"（{r['upstream_confirmed_pct']}%）")
     except Exception as e:
         log(f"⚠ 產業鏈聚合失敗（不影響 Phase 1 主要輸出）: {e}")
 

@@ -1,0 +1,28 @@
+source_chain,edge_type,target_chain,weight,confidence,source,updated_at
+AI Server / ODM,requires,AI / HPC Semiconductor,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI Server / ODM,requires,Memory / HBM,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI Server / ODM,requires,Advanced Packaging,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI Server / ODM,requires,PCB / HDI / IC Substrate,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI Server / ODM,requires,CCL / High-Speed Materials,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI Server / ODM,requires,Thermal / Liquid Cooling,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI Server / ODM,requires,Data Center Power / PSU,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI Server / ODM,requires,Optical Communication / AI Networking,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI Server / ODM,requires,Passive Components,0.6,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI / HPC Semiconductor,requires,Semiconductor Equipment & Materials,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+AI / HPC Semiconductor,requires,Advanced Packaging,0.8,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Advanced Packaging,requires,Semiconductor Equipment & Materials,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Advanced Packaging,requires,PCB / HDI / IC Substrate,0.7,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+PCB / HDI / IC Substrate,requires,CCL / High-Speed Materials,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Memory / HBM,requires,Semiconductor Equipment & Materials,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Memory / HBM,requires,Advanced Packaging,0.8,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Cloud / Data Center / Cybersecurity,requires,AI Server / ODM,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Cloud / Data Center / Cybersecurity,requires,Optical Communication / AI Networking,0.8,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+EV / Auto Electronics,requires,Energy Storage / Battery,1.0,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+EV / Auto Electronics,requires,AI / HPC Semiconductor,0.6,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+EV / Auto Electronics,requires,Passive Components,0.6,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Robotics / Automation,requires,AI / HPC Semiconductor,0.7,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Robotics / Automation,requires,Semiconductor Equipment & Materials,0.5,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Smart Grid / Transformer,requires,Passive Components,0.5,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Smart Grid / Transformer,requires,Steel,0.6,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Data Center Power / PSU,requires,Passive Components,0.7,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04
+Display & Optical,requires,Semiconductor Equipment & Materials,0.6,medium,analyst_model(not_official_TPEx_cross_chain_graph),2026-09-04

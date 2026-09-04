@@ -47,11 +47,23 @@ group_col="supply_chain", glob_pattern="tw_*_chains.csv")）第一次執行就�
 ChainAcceleration（跟 add_sector_acceleration 一樣需要多天歷史，但沒有
 Overheated 這種需要跨天判斷的東西，優先度較低）還沒做。
 
+chain_dependency_check() 是第四步：data/sector_rotation/industry_chain_edges.csv
+是「鏈跟鏈之間」的依賴圖（不是股票對鏈，是鏈對鏈——例如 AI Server / ODM
+requires AI / HPC Semiconductor / Advanced Packaging / Thermal 等）。TPEx 沒有
+發布這種跨鏈依賴的官方資料，這張表整個是分析模型（source 欄位明講
+"analyst_model(not_official_TPEx_cross_chain_graph)"，不是宣稱有官方依據）。
+用途：一條鏈今天 point 很高、CPD 很強，不代表這個強勢有基本面支撐——如果它
+依賴的上游鏈（例如 AI Server 需要的 Advanced Packaging/Thermal）今天都是
+❄️ Weak，那這條鏈的強勢可能只是價格面單獨噴出，供應鏈還沒真的跟上。
+upstream_confirmed_pct 就是量化這件事：這條鏈的上游鏈裡，有幾成今天也是
+🚀 Confirmed 或 💰 Capital Leading。
+
 手動跑（覆蓋率報告）：
   python scripts/tw_industry_mapping.py
   python scripts/tw_industry_mapping.py --universe-csv data/sector_rotation/tw_20260903_all.csv
 """
 import argparse
+import json
 import os
 
 import pandas as pd
@@ -66,6 +78,7 @@ from tw_cpd import add_sector_cpd
 
 OUTDIR = "data/sector_rotation"
 MAPPING_PATH = os.path.join(OUTDIR, "industry_mapping.csv")
+EDGES_PATH = os.path.join(OUTDIR, "industry_chain_edges.csv")
 REQUIRED_COLUMNS = [
     "ticker", "company", "market", "official_sector", "sub_industry",
     "supply_chain", "chain_node", "theme", "role", "weight",
@@ -73,6 +86,12 @@ REQUIRED_COLUMNS = [
 ]
 GRAPH_ROLES = {"CORE", "COMPONENT", "UPSTREAM", "DOWNSTREAM", "INFRASTRUCTURE", "ENABLER",
                "CROSS_CHAIN", "DISTRIBUTOR"}
+EDGE_REQUIRED_COLUMNS = ["source_chain", "edge_type", "target_chain", "weight",
+                          "confidence", "source", "updated_at"]
+# 供 upstream_confirmed_pct 判定「這條上游鏈今天算不算強勢」——跟 CPD 象限的
+# 命名一致（🚀 Confirmed / 💰 Capital Leading 都是「資金有進來」的兩種形式，
+# 差別只在價格有沒有跟上，這裡兩者都算數）。
+_CONFIRMED_STATES = {"🚀 Confirmed", "💰 Capital Leading"}
 
 
 def load_mapping(path=MAPPING_PATH):
@@ -207,6 +226,22 @@ def save_chain_scorecard(chain_df, as_of, outdir=OUTDIR):
     return path
 
 
+def save_chain_dependency(dep_df, as_of, outdir=OUTDIR):
+    """存 tw_{date}_chain_deps.csv（chain_dependency_check() 的輸出）。
+    upstream_states 是 dict，存檔前轉成 JSON 字串，人眼看得懂也能重新
+    json.loads() 回來，不是純粹被 to_csv() str() 化的 Python dict repr。
+    """
+    if dep_df is None or dep_df.empty:
+        return None
+    os.makedirs(outdir, exist_ok=True)
+    stamp = as_of.replace("-", "")
+    path = os.path.join(outdir, f"tw_{stamp}_chain_deps.csv")
+    out = dep_df.copy()
+    out["upstream_states"] = out["upstream_states"].apply(json.dumps, ensure_ascii=False)
+    out.to_csv(path, index=False)
+    return path
+
+
 def backfill_chain_transition_history(universe, batch, yf_tickers, inst_daily_pivots, mapping_df, as_of,
                                        days=TRANSITION_BACKFILL_DAYS, outdir=OUTDIR):
     """跟 tw_sector_pipeline.backfill_transition_history() 同精神：用這次執行
@@ -304,6 +339,66 @@ def backfill_chain_transition_history(universe, batch, yf_tickers, inst_daily_pi
         written += 1
 
     return written
+
+
+def load_chain_edges(path=EDGES_PATH):
+    """讀鏈對鏈依賴圖。跟 load_mapping() 一樣 keep_default_na=False（source/
+    confidence 是文字欄位，空字串跟缺列要分清楚）。檔案不存在回傳空 df，不是
+    錯誤——這張表是選配的分析層，沒有它 aggregate_supply_chains() 照樣能跑。
+    """
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=EDGE_REQUIRED_COLUMNS)
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    missing = [c for c in EDGE_REQUIRED_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(f"industry_chain_edges.csv 缺少必要欄位：{missing}")
+    df["weight"] = pd.to_numeric(df["weight"], errors="coerce").fillna(1.0)
+    return df
+
+
+def chain_dependency_check(chain_df, edges_df):
+    """對每條「有登記上游依賴」的鏈，算 upstream_confirmed_pct：它的上游鏈裡，
+    今天有幾成也是 🚀 Confirmed 或 💰 Capital Leading（見 _CONFIRMED_STATES）。
+
+    用途：一條鏈自己 point 很高、CPD 很強，不代表這個強勢有供應鏈基本面支撐——
+    如果它依賴的上游鏈今天大多是 ❄️ Weak，這條鏈的強勢可能只是價格面單獨噴出，
+    供應鏈資金還沒真的跟上。這是分析模型（industry_chain_edges.csv 裡沒有
+    「requires」以外真正官方依據），不是嚴謹的供需模型。
+
+    chain_df 沒有任何一條邊涉及的鏈，或 edges_df 是空的，回傳空 df（不是缺陷，
+    純粹是還沒有依賴圖資料可用）。
+    """
+    if edges_df is None or edges_df.empty or chain_df is None or chain_df.empty:
+        return pd.DataFrame()
+
+    def _state(row):
+        ms = row.get("market_state")
+        if isinstance(ms, str) and ms:
+            return ms
+        return row.get("cpd_quadrant")
+
+    state_by_chain = {r["supply_chain"]: _state(r) for r in chain_df.to_dict("records")}
+
+    rows = []
+    for source, g in edges_df.groupby("source_chain"):
+        upstream_states = {}
+        for target in g["target_chain"]:
+            if target in state_by_chain:
+                upstream_states[target] = state_by_chain[target]
+        if not upstream_states:
+            continue
+        confirmed = sum(1 for s in upstream_states.values() if s in _CONFIRMED_STATES)
+        rows.append({
+            "chain": source,
+            "chain_state": state_by_chain.get(source),
+            "upstream_count": len(upstream_states),
+            "upstream_confirmed": confirmed,
+            "upstream_confirmed_pct": round(100 * confirmed / len(upstream_states), 1),
+            "upstream_states": upstream_states,
+        })
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).sort_values("upstream_confirmed_pct", ascending=False).reset_index(drop=True)
 
 
 def _cli():

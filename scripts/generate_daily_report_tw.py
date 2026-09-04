@@ -383,6 +383,54 @@ def load_chain_scorecard(as_of):
         return list(csv.DictReader(f))
 
 
+def load_chain_dependency(as_of):
+    """讀當日 tw_{date}_chain_deps.csv（tw_industry_mapping.chain_dependency_check()
+    的輸出）。跟 load_chain_scorecard 一樣，檔案不一定存在（今天沒有任何鏈同時
+    有依賴圖資料 + 今日股票池資料），回傳空 list，不是錯誤。"""
+    if not as_of:
+        return []
+    stamp = as_of.replace("-", "")
+    path = os.path.join(DATA_DIR, f"tw_{stamp}_chain_deps.csv")
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def chain_dependency_html(dep_rows):
+    """供應鏈同步度卡片：upstream_confirmed_pct 低的鏈排最前面——這些是「自己價格/
+    資金很強，但依賴的上游鏈今天大多還沒同步確認」的鏈，可能是價格面單獨噴出，
+    供應鏈基本面還沒跟上（跟 CPD 象限的邏輯互補，不是重複）。這張表是分析模型
+    （industry_chain_edges.csv 不是官方跨鏈依賴資料），只列出有依賴圖資料可查的
+    鏈，不是全部 24 條都會出現。
+    """
+    if not dep_rows:
+        return '<p class="empty">今日沒有供應鏈依賴資料（industry_chain_edges.csv 涵蓋的鏈可能跟今天有資料的鏈沒有交集）</p>'
+
+    def _pct(r):
+        try:
+            return float(r.get("upstream_confirmed_pct") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    rows_sorted = sorted(dep_rows, key=_pct)
+    items = []
+    for r in rows_sorted:
+        chain = escape(r.get("chain", ""))
+        state_raw = r.get("chain_state") or "—"
+        pct = _pct(r)
+        cls = "down" if pct < 30 else ("flat" if pct < 60 else "up")
+        cnt = f"{r.get('upstream_confirmed','—')}/{r.get('upstream_count','—')}"
+        warn = (' <span class="alert" title="這條鏈本身強勢，但依賴的上游鏈大多還沒確認，'
+                '可能是價格面單獨噴出">⚠️ 上游未確認</span>') if pct < 30 and state_raw in (
+                    "🚀 Confirmed", "💰 Capital Leading") else ""
+        items.append(
+            f'<li><b>{chain}</b> <span class="dim">{escape(state_raw)}</span>{warn}'
+            f'<span class="{cls}">{pct:.0f}%</span> <span class="dim">({cnt} 上游確認)</span></li>'
+        )
+    return f'<ul class="deplist">{"".join(items)}</ul>'
+
+
 def explosive_pool_html(all_rows):
     buckets = {"🚀 暴漲中": [], "🎯 潛在暴漲": [], "🔥 追高風險": []}
     for r in all_rows:
@@ -599,6 +647,10 @@ CSS = '''
   .expcol li { padding:2px 0; display:flex; justify-content:space-between; }
   .expcol .sec { color:var(--muted); font-size:10.5px; }
   .expcol .empty { color:var(--muted); font-style:italic; font-size:11px; }
+  .deplist { margin:0; padding:0; list-style:none; font-size:13px; }
+  .deplist li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; }
+  .deplist li:last-child { border-bottom:none; }
+  .deplist li > span:last-child { margin-left:auto; font-weight:700; }
   .foot {
     background:var(--card); border-radius:10px; padding:16px 20px;
     margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);
@@ -619,6 +671,7 @@ def render(scorecard, stage2):
 
     chain_rows = load_chain_scorecard(as_of)
     chain_rows_sorted = sorted(chain_rows, key=lambda r: -(float(r.get("point") or 0)))
+    chain_dep_rows = load_chain_dependency(as_of)
     chain_coverage_note = ""
     if all_rows:
         try:
@@ -740,6 +793,13 @@ def render(scorecard, stage2):
     <div class="card-h">🔗 產業鏈雷達（Phase 2 · IndustryMappingTable）<span class="n">{len(chain_rows_sorted)}</span></div>
     <div class="card-b" style="padding:0;">
       {chain_table_html(chain_rows_sorted, chain_coverage_note)}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧬 供應鏈同步度<span class="n" title="這條鏈依賴的上游鏈，今天有幾成也在 Confirmed/Capital Leading——低比例代表可能是價格面單獨噴出，供應鏈基本面還沒跟上。industry_chain_edges.csv 是分析模型，不是官方跨鏈依賴資料">分析模型，非官方資料</span></div>
+    <div class="card-b">
+      {chain_dependency_html(chain_dep_rows)}
     </div>
   </div>
 
