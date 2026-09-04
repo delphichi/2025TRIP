@@ -21,14 +21,19 @@
 
 資料源：FinMind（免費 tier 300 次/小時）
   TaiwanStockInfo                          （bulk，不帶 data_id）全市場清單 + 官方產業分類
-  TaiwanStockMarketValueWeight              （bulk）市值排名，抓前 N 大當股票池
-                                             ⚠️ 這個 dataset 的確切欄位名沒有文件可查證過，
-                                             用防禦性多欄位嘗試；抓不到/解析不出來就退回
-                                             FALLBACK_SEED（人工列的常見大型股清單）保底
   TaiwanStockPrice                          個股日 OHLCV（每股 1 次）
   TaiwanStockInstitutionalInvestorsBuySell  個股法人買賣（每股 1 次）
 
-股票池：市值前 UNIVERSE_SIZE 大（預設 100）。budget = N×2 + 3 固定開銷 ≈ 203 次/小時，
+  股票池選取：原本想用 FinMind TaiwanStockMarketValueWeight 抓市值排名前 N 大，但官方
+  文件確認這個 dataset 其實是「單一個股」市值歷史查詢（一定要帶 stock_id，不是全市場
+  排名快照），而且限定「backer/sponsor members」才能用——免費 tier 打了保證 400。
+  用 data_id 逐股查又會反過來造成「要先有股票池才能查市值排名選股票池」的雞生蛋
+  問題，划不來。改用 UNIVERSE_SEED：TWSE 官網「發行量加權股價指數成分股暨市值比重」
+  頁面的官方排行（依市值佔大盤比重排序，非 FinMind），是真的市值排名，只是靜態
+  快照會隨時間漂移，需要時手動更新（見 UNIVERSE_SEED 定義處的說明）。
+
+股票池：UNIVERSE_SEED 前 UNIVERSE_SIZE 檔（預設 100，清單本身依市值排名有 150 檔）。
+        budget = N×2 + 3 固定開銷 ≈ 203 次/小時，
         在 FinMind 免費 300 次/小時額度內留有餘裕（S&P 500 版用 yfinance 沒有這個限制，
         這是台股版跟美股版架構上最大的差異）。
 
@@ -85,18 +90,30 @@ HISTORY_MONTHS = 14          # 抓 14 個月 daily ≈ 290 交易日，26W 量�
 
 AS_OF_DATE = None  # type: ignore[assignment]  · 由 main() 從 --as-of 設定
 
-# 保底大型股清單：TaiwanStockMarketValueWeight 抓取/解析失敗時的 fallback。
-# 涵蓋半導體/電子/金融/傳產/航運/電信等主要族群的常見權值股，只是保底不是精選榜單。
-FALLBACK_SEED = [
-    "2330", "2317", "2454", "2308", "2382", "2412", "2881", "2882", "2891", "2886",
-    "2884", "2892", "2885", "2880", "2883", "5880", "1301", "1303", "1326", "6505",
-    "2603", "2609", "2615", "3711", "2379", "3034", "2357", "2395", "2408", "3008",
-    "2327", "2345", "2352", "2377", "2409", "3231", "4938", "6669", "2474", "3037",
-    "3045", "4904", "2049", "1216", "1101", "1102", "2002", "9910", "9904", "2207",
-    "2201", "1590", "6415", "6488", "3661", "8046", "3443", "2059", "2301", "2324",
-    "3702", "2059", "2385", "2059", "2492", "2059",
+# Phase 1 股票池：TWSE 官方「發行量加權股價指數成分股暨市值比重」排行前 150 名
+# （資料日期 2026/8/31，使用者直接從 TWSE 官網頁面貼出），依市值佔大盤比重由大到小排序。
+# 這是加權指數（TAIEX）成分股 → 只含上市（TWSE），不含上櫃（TPEx）；Phase 1 先接受這個
+# 簡化（跟 TaiwanStockMarketValueWeight 不可用一樣，都留給 Phase 2 視需要擴充上櫃）。
+# 這份清單是靜態快照，會隨時間漂移（新股上市、市值排名變動）——之後要更新時，從
+# https://www.twse.com.tw 的「個股市值占大盤比重」頁面重新貼一份，取代下面整個清單即可。
+UNIVERSE_SEED = [
+    "2330", "2454", "2308", "2317", "3711", "2881", "2383", "1303", "2408", "3037",
+    "2303", "2882", "2382", "2059", "3017", "6669", "2891", "2345", "2327", "2412",
+    "7769", "3008", "2887", "2885", "3653", "2360", "2344", "3443", "8046", "2357",
+    "2886", "2301", "6505", "2884", "2890", "2368", "6446", "2395", "2880", "2883",
+    "3231", "4958", "2892", "2603", "3665", "1216", "3045", "3189", "1301", "5880",
+    "1326", "3481", "2379", "4904", "6770", "3661", "2449", "3034", "2615", "2313",
+    "2801", "2002", "2207", "1590", "3044", "1519", "2337", "3036", "4938", "2376",
+    "2356", "2618", "6515", "2912", "5876", "6239", "2609", "5871", "2404", "2409",
+    "6213", "3533", "1101", "2324", "6139", "1802", "2834", "1605", "1504", "3702",
+    "7750", "6415", "6805", "1402", "6531", "6789", "6919", "3532", "2347", "2492",
+    "6442", "2377", "2451", "2027", "2049", "2610", "3026", "3706", "1102", "2812",
+    "8210", "6285", "3406", "2474", "8996", "8464", "6196", "5269", "1503", "1560",
+    "6526", "6257", "2542", "2105", "5434", "6949", "1717", "2467", "2353", "6781",
+    "3450", "2838", "2354", "6409", "7610", "2455", "3006", "8039", "1476", "1513",
+    "6691", "2385", "2855", "9945", "1229", "6005", "3023", "9904", "3005", "6944",
 ]
-FALLBACK_SEED = list(dict.fromkeys(FALLBACK_SEED))  # 去重，保留原順序
+UNIVERSE_SEED = list(dict.fromkeys(UNIVERSE_SEED))  # 去重，保留原順序（原始資料已無重複）
 
 
 def log(msg):
@@ -162,8 +179,10 @@ def fetch_universe(as_of, size=UNIVERSE_SIZE):
     1) TaiwanStockInfo（不帶 data_id）→ 全市場清單 + industry_category
        · 只留上市/上櫃普通股（type ∈ twse/tpex），濾掉 ETF（industry_category == 'ETF'）
        · 轉板股票會保留多列，取 date 最新那列
-    2) TaiwanStockMarketValueWeight → 市值排名，取前 N 大
-       · 抓不到/解析不出來 → 退回 FALLBACK_SEED 保底
+    2) UNIVERSE_SEED（TWSE 官方市值比重排行靜態快照）取前 size 檔
+       · 不用 TaiwanStockMarketValueWeight：文件確認它是「單一個股」市值歷史查詢
+         （一定要帶 stock_id），且限定 backer/sponsor members，免費 tier 打了保證 400，
+         詳見模組開頭說明。
     回傳 list[{stock_id, stock_name, industry_category}]，長度 <= size
     """
     info_rows = fm_fetch("TaiwanStockInfo")
@@ -183,39 +202,8 @@ def fetch_universe(as_of, size=UNIVERSE_SIZE):
         if prev is None or (r.get("date") or "") >= (prev.get("date") or ""):
             info_by_id[sid] = r
 
-    ranked_ids = []
-    try:
-        mvw_rows = fm_fetch("TaiwanStockMarketValueWeight", start_date=as_of, end_date=as_of)
-        if not mvw_rows:
-            # 當日可能還沒入庫 · 往前找幾天
-            base = datetime.strptime(as_of, "%Y-%m-%d").date()
-            for back in range(1, 6):
-                d = (base - timedelta(days=back)).strftime("%Y-%m-%d")
-                mvw_rows = fm_fetch("TaiwanStockMarketValueWeight", start_date=d, end_date=d)
-                if mvw_rows:
-                    break
-
-        def _mv(row):
-            for k in ("market_value", "MarketValue", "TradingValue", "value", "weight", "Weight"):
-                if k in row and row[k] not in (None, ""):
-                    try:
-                        return float(row[k])
-                    except (TypeError, ValueError):
-                        pass
-            return None
-
-        scored = [(r.get("stock_id"), _mv(r)) for r in mvw_rows if r.get("stock_id")]
-        scored = [(sid, mv) for sid, mv in scored if mv is not None and sid in info_by_id]
-        scored.sort(key=lambda x: -x[1])
-        ranked_ids = [sid for sid, _ in scored[:size]]
-        if ranked_ids:
-            log(f"  股票池：TaiwanStockMarketValueWeight 排出 {len(ranked_ids)} 檔")
-    except Exception as e:
-        log(f"⚠ TaiwanStockMarketValueWeight 抓取/解析失敗（{e}）· 改用保底大型股清單")
-
-    if not ranked_ids:
-        ranked_ids = [sid for sid in FALLBACK_SEED if sid in info_by_id][:size]
-        log(f"  股票池：改用 FALLBACK_SEED，{len(ranked_ids)} 檔")
+    ranked_ids = [sid for sid in UNIVERSE_SEED if sid in info_by_id][:size]
+    log(f"  股票池：UNIVERSE_SEED，{len(ranked_ids)} 檔")
 
     universe = []
     for sid in ranked_ids[:size]:

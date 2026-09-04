@@ -25,7 +25,7 @@ on:
         required: false
         default: ''
       universe_size:
-        description: '股票池大小（市值前 N 大）· 免費 tier 300 次/小時，N×2+3 不要超過'
+        description: '股票池大小（UNIVERSE_SEED 前 N 檔，非市值排名）· 免費 tier 300 次/小時，N×2+3 不要超過'
         required: false
         default: '100'
 
