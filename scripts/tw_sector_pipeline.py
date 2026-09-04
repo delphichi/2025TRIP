@@ -143,6 +143,8 @@ _request_count = 0
 def fm_fetch(dataset, data_id=None, start_date=None, end_date=None, retries=2):
     """FinMind v4 API 呼叫，回傳 data 欄位（list of dict）。
     429（額度用完）不重試——免費 tier 額度是整點重置，重試只會多耗一次額度、沒有幫助。
+    402（Payment Required）也不重試——實測發現免費 tier 對「當日不同股票數」另有上限，
+    達到上限後同一輪剩下的股票會連續 402，重試沒有意義。
     只有網路層級的暫時性錯誤（timeout/連線失敗）才重試。
     """
     global _request_count
@@ -169,6 +171,9 @@ def fm_fetch(dataset, data_id=None, start_date=None, end_date=None, retries=2):
             raise RuntimeError(f"{dataset}({data_id}) 網路錯誤: {e}")
         if res.status_code == 429:
             raise RuntimeError(f"{dataset}({data_id}) 額度用完（429，免費 tier 300 次/小時）")
+        if res.status_code == 402:
+            raise RuntimeError(f"{dataset}({data_id}) 額度用完（402 Payment Required，"
+                                f"免費 tier 對當日不同股票數可能另有上限）")
         if not res.ok:
             raise RuntimeError(f"{dataset}({data_id}) HTTP {res.status_code}")
         try:
