@@ -322,6 +322,7 @@ def chain_row(r):
         resonance_html = f'<span class="{res_cls}">{resonance_f:.0f}%</span> <span class="dim">({node_count} 節點)</span>'
 
     cpd_html = cpd_cell(r)
+    trans_html = transition_cell(r)
 
     return f'''
         <tr>
@@ -332,6 +333,7 @@ def chain_row(r):
           <td class="n">{inst_avg_html}</td>
           <td>{resonance_html}</td>
           {cpd_html}
+          {trans_html}
         </tr>'''
 
 
@@ -348,7 +350,8 @@ def chain_table_html(chain_rows, coverage_note=""):
             <th class="n" title="鏈內所有股票三大法人 20 日淨買賣加總（同一檔股票若掛多條鏈，會分別計入每一條）">法人 20d 淨買</th>
             <th class="n" title="法人 20d 淨買金額 ÷ 鏈內股票數，跨鏈可比較的正規化指標">平均每檔淨買</th>
             <th title="Node Resonance：鏈內有幾個不同節點（chain_node）平均 point 轉正——比個股 Breadth 更能看出是單一環節帶動還是全鏈擴散">節點共振</th>
-            <th title="CPD = Z(法人金額) - Z(ChainPoint)，跨產業鏈橫斷面相對排名">狀態</th></tr>
+            <th title="CPD = Z(法人金額) - Z(ChainPoint)，跨產業鏈橫斷面相對排名">狀態</th>
+            <th title="Chain Transition Sensor：昨天 → 今天這條鏈移動到哪個狀態">轉移</th></tr>
       </thead>
       <tbody>{rows_html}</tbody>
     </table>{note_html}'''

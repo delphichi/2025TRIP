@@ -30,9 +30,14 @@ supply_chain），加上一個 sector 版本沒有的東西——Node Resonance�
 Resonance = 這些節點裡有幾個「平均 point 轉正」的比例，比單看整條鏈的
 Breadth（個股層級）更能反映「這條鏈是不是從單一環節在往外擴散」。
 
-ChainAcceleration（跟 add_sector_acceleration 一樣需要多天歷史）跟完整的
-Chain CPD 歷史回填還沒做——這條鏈才剛有第一天資料，跟 Transition Sensor
-當初的處境一樣，是下一步。
+backfill_chain_transition_history() 是第三步：跟 tw_sector_pipeline.
+backfill_transition_history() 同精神（用這次執行本來就抓好的 14 個月價量/法人
+歷史回填過去幾天，零額外 API 呼叫），只是分組維度換成 supply_chain
+（many-to-many）——讓 Chain Transition Sensor（用 tw_cpd.add_transition_sensor(
+group_col="supply_chain", glob_pattern="tw_*_chains.csv")）第一次執行就有
+真實資料可比，不用重演 sector 版當初「為什麼沒辦法比較」的那次來回。
+ChainAcceleration（跟 add_sector_acceleration 一樣需要多天歷史，但沒有
+Overheated 這種需要跨天判斷的東西，優先度較低）還沒做。
 
 手動跑（覆蓋率報告）：
   python scripts/tw_industry_mapping.py
@@ -43,13 +48,16 @@ import os
 
 import pandas as pd
 
+from tw_cpd import TRANSITION_BACKFILL_DAYS
+
 # add_sector_cpd() 的 CPD = Z(法人金額) - Z(SectorPoint) 這套邏輯本來就是通用的
 # 横斷面 Z-score 分象限，跟「分組維度是 sector 還是 supply_chain」無關——從 tw_cpd
 # 共用模組匯入，不重寫一份幾乎一樣的程式碼，也不 import tw_sector_pipeline 本身
 # （它反過來也需要匯入這個模組來算 ChainPoint，兩邊互相 import 會循環依賴）。
 from tw_cpd import add_sector_cpd
 
-MAPPING_PATH = "data/sector_rotation/industry_mapping.csv"
+OUTDIR = "data/sector_rotation"
+MAPPING_PATH = os.path.join(OUTDIR, "industry_mapping.csv")
 REQUIRED_COLUMNS = [
     "ticker", "company", "market", "official_sector", "sub_industry",
     "supply_chain", "chain_node", "theme", "role", "weight",
@@ -175,7 +183,7 @@ def aggregate_supply_chains(all_df, mapping_df, as_of):
     return add_sector_cpd(chain_df)
 
 
-def save_chain_scorecard(chain_df, as_of, outdir="data/sector_rotation"):
+def save_chain_scorecard(chain_df, as_of, outdir=OUTDIR):
     """存 tw_{date}_chains.csv，跟 tw_sector_pipeline.py 的 tw_{date}_scorecard.csv
     同精神，只是分組維度是 supply_chain 不是官方 sector。chain_df 為空（今天股票池
     跟 mapping 完全沒有交集）就不寫檔，回傳 None 讓呼叫端知道跳過了，不是靜默失敗。
@@ -187,6 +195,105 @@ def save_chain_scorecard(chain_df, as_of, outdir="data/sector_rotation"):
     path = os.path.join(outdir, f"tw_{stamp}_chains.csv")
     chain_df.to_csv(path, index=False)
     return path
+
+
+def backfill_chain_transition_history(universe, batch, yf_tickers, inst_daily_pivots, mapping_df, as_of,
+                                       days=TRANSITION_BACKFILL_DAYS, outdir=OUTDIR):
+    """跟 tw_sector_pipeline.backfill_transition_history() 同精神：用這次執行
+    本來就抓好的 14 個月價量/法人歷史，回填過去幾個交易日的 tw_{date}_chains.csv，
+    零額外 API 呼叫。差異只在最後「怎麼分組」——sector 版一檔股票對一個板塊，這裡
+    透過 mapping_df 做 many-to-many（同一檔股票可能同時算進好幾條鏈）。
+
+    只補「檔案還不存在」的日期，不覆蓋任何真實存過的資料；法人資料只涵蓋額度用完
+    前成功抓到的股票，缺的股票該天 inst_net_20d_est_NTD_M 就是 None——跟平常執行
+    同樣的額度限制，不是這裡新增的缺陷（跟 sector 版 backfill 的說明一致）。
+    """
+    from tw_backfill import point_series_for_stock, inst_20d_asof
+
+    if mapping_df is None or mapping_df.empty:
+        return 0
+
+    stock_series = {}
+    for u in universe:
+        sid = u["stock_id"]
+        yft = yf_tickers.get(sid)
+        if not yft or yft not in batch["close"].columns:
+            continue
+        pdf = point_series_for_stock(batch["close"][yft])
+        if pdf is not None:
+            stock_series[sid] = (pdf, batch["close"][yft].dropna().astype(float))
+
+    if not stock_series:
+        return 0
+
+    all_dates = sorted(set().union(*(pdf.index for pdf, _ in stock_series.values())))
+    if len(all_dates) < 2:
+        return 0
+    backfill_dates = all_dates[:-1][-days:]  # 排除「今天」，只回填今天以前最近 N 天
+
+    m = mapping_df.copy()
+    m["ticker"] = m["ticker"].astype(str)
+    chain_membership = {}  # ticker -> [(supply_chain, chain_node), ...]（many-to-many）
+    for _, row in m.iterrows():
+        chain_membership.setdefault(row["ticker"], []).append((row["supply_chain"], row["chain_node"]))
+
+    written = 0
+    for d in backfill_dates:
+        stamp = d.strftime("%Y%m%d")
+        out_path = os.path.join(outdir, f"tw_{stamp}_chains.csv")
+        if os.path.exists(out_path):
+            continue  # 已經有真實存檔（正常排程跑過），不覆蓋
+
+        rows = []
+        for sid, memberships in chain_membership.items():
+            if sid not in stock_series:
+                continue
+            pdf, close = stock_series[sid]
+            if d not in pdf.index:
+                continue
+            point = float(pdf.loc[d, "point"])
+            cum_ret_4w = float(pdf.loc[d, "cum_ret_4w"])
+            inst_ntd = None
+            pivot = inst_daily_pivots.get(sid)
+            if pivot is not None:
+                px = close.loc[:d]
+                if not px.empty:
+                    inst_ntd = inst_20d_asof(pivot, d, float(px.iloc[-1]))
+            for chain, node in memberships:
+                rows.append({
+                    "supply_chain": chain, "chain_node": node,
+                    "point": point, "cum_ret_4w": cum_ret_4w,
+                    "inst_net_20d_est_NTD_M": inst_ntd,
+                })
+        if not rows:
+            continue
+
+        day_df = pd.DataFrame(rows)
+        sec_rows = []
+        for chain, g in day_df.groupby("supply_chain"):
+            n = len(g)
+            breadth_up = int((g["cum_ret_4w"] > 0).sum())
+            inst_sum = (float(g["inst_net_20d_est_NTD_M"].dropna().sum())
+                        if g["inst_net_20d_est_NTD_M"].notna().any() else None)
+            resonance_pct, node_count = _node_resonance(g[["chain_node", "point"]].to_dict("records"))
+            sec_rows.append({
+                "supply_chain": chain, "as_of_date": d.strftime("%Y-%m-%d"), "stock_count": n,
+                "point": round(float(g["point"].mean()), 2),
+                "breadth_pct": round(100 * breadth_up / n, 1) if n else None,
+                "breadth_up": breadth_up, "breadth_total": n,
+                "inst_net_20d_est_NTD_M": round(inst_sum, 1) if inst_sum is not None else None,
+                "inst_net_20d_est_NTD_M_per_stock": round(inst_sum / n, 2) if inst_sum is not None and n else None,
+                "node_count": node_count,
+                "resonance_pct": resonance_pct,
+            })
+        if not sec_rows:
+            continue
+        chain_day_df = pd.DataFrame(sec_rows).sort_values("point", ascending=False).reset_index(drop=True)
+        chain_day_df = add_sector_cpd(chain_day_df)
+        chain_day_df.to_csv(out_path, index=False)
+        written += 1
+
+    return written
 
 
 def _cli():

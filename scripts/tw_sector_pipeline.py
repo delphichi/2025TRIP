@@ -100,10 +100,18 @@ from sector_rotation_screener import (
     _compute_vp_score_stock,
     _json_safe,
 )
-# CPD_QUADRANT / add_sector_cpd 抽到 tw_cpd.py 給 tw_industry_mapping.py 共用
-# （分組維度是官方 sector 還是 supply_chain，Z-score 分象限的邏輯完全一樣），
-# 這裡重新匯出，呼叫端 tw.add_sector_cpd() / tw.CPD_QUADRANT 不用改。
-from tw_cpd import CPD_QUADRANT, add_sector_cpd
+# CPD_QUADRANT / add_sector_cpd / add_transition_sensor / TRANSITION_* 抽到
+# tw_cpd.py，_point_series_for_stock / _inst_20d_asof 抽到 tw_backfill.py，給
+# tw_industry_mapping.py 的 Chain CPD/Transition/Backfill 共用（分組維度是官方
+# sector 還是 supply_chain，底層數學邏輯完全一樣）。這裡重新匯出，呼叫端
+# tw.add_sector_cpd() / tw.add_transition_sensor() / tw.CPD_QUADRANT /
+# tw._point_series_for_stock() / tw._inst_20d_asof() 都不用改。
+from tw_cpd import (
+    CPD_QUADRANT, add_sector_cpd, add_transition_sensor,
+    TRANSITION_ORDER, TRANSITION_DIR_ICON, OVERHEAT_BREADTH_DROP_PCT, TRANSITION_BACKFILL_DAYS,
+)
+from tw_backfill import point_series_for_stock as _point_series_for_stock
+from tw_backfill import inst_20d_asof as _inst_20d_asof
 
 FINMIND_BASE = "https://api.finmindtrade.com/api/v4/data"
 FINMIND_TOKEN = os.environ.get("FINMIND_TOKEN", "").strip()
@@ -635,132 +643,6 @@ def add_sector_acceleration(df, as_of):
     return df
 
 
-# Transition Sensor 用的敘事排序：不代表 CPD 兩個維度真的線性相關，只是把使用者
-# 想追的「這個板塊離『資金價格雙確認』有多近」編成一個可以比較前後兩天的分數。
-TRANSITION_ORDER = {
-    "❄️ Weak": 0,
-    "⚠️ Price Leading": 1,
-    "💰 Capital Leading": 2,
-    "🚀 Confirmed": 3,
-}
-TRANSITION_DIR_ICON = {"ADVANCING": "🔼", "REVERSING": "🔽", "STEADY": "→", "NEW": "·"}
-# 連續兩天都是 Confirmed，但寬度掉超過這個百分點 → 判定過熱/出貨徵兆，即使 CPD
-# 象限本身還沒翻轉（象限翻轉通常已經晚了，這裡是想抓早一步的退燒訊號）。
-OVERHEAT_BREADTH_DROP_PCT = 15
-# backfill_transition_history() 回填幾個交易日的歷史 scorecard，讓 Transition
-# Sensor 第一次執行就有真實資料可比，不用等「明天」——用的是這次執行本來就抓好的
-# 14 個月價量/法人歷史，不多打一次 API。
-TRANSITION_BACKFILL_DAYS = 10
-
-
-def add_transition_sensor(df, as_of):
-    """Transition Sensor：不只問「今天在哪個 CPD 象限」，追蹤「昨天 → 今天」板塊
-    的象限移動方向——這比單純排名更早看出「正在往資金價格雙確認移動」還是「正在
-    退燒」。跟 add_sector_acceleration 同精神，讀歷史 tw_*_scorecard.csv 找最近一份
-    「今天以前」的存檔當作前一交易日（cpd_quadrant 欄位是這次改版才加的，更早的
-    存檔沒有這欄，會被當成沒有前一日資料，不是錯誤）。
-
-    market_state 疊加一個過熱判定：連續兩天都是 🚀 Confirmed，但寬度掉了超過
-    OVERHEAT_BREADTH_DROP_PCT 個百分點——資金/價格都還沒轉弱到象限翻轉，但參與
-    的股票已經在減少，比等 CPD 象限真的翻轉才示警更早一步。
-    """
-    df = df.copy()
-    if df.empty:
-        for col in ("prev_cpd_quadrant", "transition_label", "transition_dir", "market_state"):
-            df[col] = pd.Series(dtype="object")
-        return df
-
-    import glob
-    files = sorted(glob.glob(os.path.join(OUTDIR, "tw_*_scorecard.csv")))
-    stamp_today = as_of.replace("-", "")
-    files = [f for f in files if stamp_today not in os.path.basename(f)]
-
-    prev_quadrant, prev_breadth = {}, {}
-    if files:
-        try:
-            prev_df = pd.read_csv(files[-1])
-            if "cpd_quadrant" in prev_df.columns:
-                prev_quadrant = dict(zip(prev_df["sector"], prev_df["cpd_quadrant"]))
-            if "breadth_pct" in prev_df.columns:
-                prev_breadth = dict(zip(prev_df["sector"], prev_df["breadth_pct"]))
-        except Exception:
-            pass
-
-    def _row(r):
-        sector = r["sector"]
-        curr_q = r.get("cpd_quadrant")
-        prev_q = prev_quadrant.get(sector)
-        if not prev_q or prev_q != prev_q:
-            return pd.Series({
-                "prev_cpd_quadrant": None,
-                "transition_label": "(無前一日資料)",
-                "transition_dir": "NEW",
-                "market_state": curr_q,
-            })
-
-        curr_score = TRANSITION_ORDER.get(curr_q)
-        prev_score = TRANSITION_ORDER.get(prev_q)
-        if curr_score is None or prev_score is None:
-            direction = "NEW"
-        else:
-            diff = curr_score - prev_score
-            direction = "ADVANCING" if diff > 0 else ("REVERSING" if diff < 0 else "STEADY")
-
-        market_state = curr_q
-        if curr_q == "🚀 Confirmed" and prev_q == "🚀 Confirmed":
-            pb, cb = prev_breadth.get(sector), r.get("breadth_pct")
-            if (pb is not None and pb == pb and cb is not None and cb == cb
-                    and (pb - cb) >= OVERHEAT_BREADTH_DROP_PCT):
-                market_state = "🔥 Overheated"
-
-        label = f"{curr_q}（持平）" if prev_q == curr_q else f"{prev_q} → {curr_q}"
-        return pd.Series({
-            "prev_cpd_quadrant": prev_q,
-            "transition_label": label,
-            "transition_dir": direction,
-            "market_state": market_state,
-        })
-
-    trans = df.apply(_row, axis=1)
-    return pd.concat([df, trans], axis=1)
-
-
-def _point_series_for_stock(close, min_len=131):
-    """向量化算出整條 close 序列裡，每個「有足夠歷史」的日期的 point + cum_ret_4w。
-    跟 compute_stock_row() 的 point 公式完全一樣（r4*0.25+r13*0.25+r26*0.5），只是
-    compute_stock_row 只回傳最後一天，這裡回傳整條序列，backfill 才能一次拿到過去
-    N 天各自的 point，不用重複呼叫。"""
-    s = close.dropna().astype(float)
-    if len(s) < min_len:
-        return None
-    # compute_stock_row() 用 close.iloc[-20]/[-65]/[-130]：對「最後一天」來說，
-    # iloc[-20] 是往前 19 天（不是 20 天），所以這裡要 shift(19)/(64)/(129) 才會跟
-    # 它對同一天算出同一個 point，不能直接用 20/65/130（差一天）。
-    r4 = s / s.shift(19) - 1
-    r13 = s / s.shift(64) - 1
-    r26 = s / s.shift(129) - 1
-    point = (r4 * 0.25 + r13 * 0.25 + r26 * 0.50) * 100
-    out = pd.DataFrame({"point": point, "cum_ret_4w": r4 * 100}).dropna()
-    return out if not out.empty else None
-
-
-def _inst_20d_asof(pivot, date, latest_close):
-    """從逐日法人淨買 pivot 裡，算出「截至 date（含）」的 20 個交易日滾動總額
-    （NTD 百萬）——跟 fetch_institutional_flow() 對「今天」做的事完全一樣，只是
-    這裡可以對任何一個過去的 date 做，不用重新打 API。"""
-    if pivot is None or pivot.empty or latest_close is None:
-        return None
-    sub = pivot.loc[:date]
-    if sub.empty:
-        return None
-    cols = [c for c in ("foreign", "trust", "dealer") if c in sub.columns]
-    if not cols:
-        return None
-    n = min(20, len(sub))
-    total_shares = float(sub[cols].iloc[-n:].sum().sum())
-    return round(total_shares * latest_close / 1e6, 1)
-
-
 def backfill_transition_history(universe, batch, yf_tickers, inst_daily_pivots, as_of,
                                  days=TRANSITION_BACKFILL_DAYS):
     """把這次執行本來就抓好的價量/法人歷史（14 個月），拿來回填過去幾個交易日的
@@ -1127,19 +1009,27 @@ def main():
     try:
         import tw_industry_mapping as tim
         mapping_df = tim.load_mapping()
+        n_chain_backfilled = tim.backfill_chain_transition_history(
+            universe, batch, yf_tickers, inst_daily_pivots, mapping_df, as_of)
+        if n_chain_backfilled:
+            log(f"  📜 回填 {n_chain_backfilled} 天產業鏈歷史（Chain Transition Sensor 這次執行就能比對真實資料）")
         chain_df = tim.aggregate_supply_chains(all_df, mapping_df, as_of)
         if chain_df.empty:
             log("  ⚠ 今天股票池跟 IndustryMappingTable 沒有交集，跳過（mapping 目前只映射部分股票）")
         else:
+            chain_df = add_transition_sensor(chain_df, as_of, group_col="supply_chain",
+                                              glob_pattern="tw_*_chains.csv")
             chain_path = tim.save_chain_scorecard(chain_df, as_of)
             cov = tim.coverage_report(mapping_df, all_df["stock_id"])
             log(f"  📊 {len(chain_df)} 條產業鏈有資料 · 股票池涵蓋 {cov['covered_in_universe']}/"
                 f"{cov['universe_size']} 檔（{cov['coverage_pct']}%）· 存至 {chain_path}")
             for _, r in chain_df.head(10).iterrows():
                 res = f"{r['resonance_pct']}%" if r.get("resonance_pct") is not None else "—"
+                dir_icon = TRANSITION_DIR_ICON.get(r.get("transition_dir"), "·")
                 log(f"    {r['supply_chain']:38s} point={r['point']:7.2f}  "
                     f"breadth={r['breadth_pct']}%  n={r['stock_count']}  "
-                    f"resonance={res}({r['node_count']} nodes)  cpd={r.get('cpd_quadrant','—')}")
+                    f"resonance={res}({r['node_count']} nodes)  "
+                    f"state={r.get('market_state','—')}  {dir_icon} {r.get('transition_label','')}")
     except Exception as e:
         log(f"⚠ 產業鏈聚合失敗（不影響 Phase 1 主要輸出）: {e}")
 
