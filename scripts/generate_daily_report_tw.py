@@ -386,6 +386,7 @@ def render(scorecard, stage2):
     rows = scorecard.get("rows") or []
     rows_sorted = sorted(rows, key=lambda r: -(r.get("point") or 0))
     market = scorecard.get("market_snapshot") or {}
+    market_label = "TAIEX（官方指數）" if market.get("proxy") == "TAIEX" else "0050（TAIEX 代理）"
     all_rows = load_all_stocks(as_of)
     top_stocks = (stage2.get("top3", {}) or {}).get("composite", [])
 
@@ -434,7 +435,7 @@ def render(scorecard, stage2):
 
   <div class="snap">
     <div class="snap-cell">
-      <div class="l">0050（TAIEX 代理）</div>
+      <div class="l">{market_label}</div>
       <div class="v">{num(market.get("price"), 2)}</div>
       <div class="s">60d {num(market.get("vs_60d_pct"), 2, pct=True, sign=True)} · {market.get("trend_label","—")}</div>
     </div>

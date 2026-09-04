@@ -14,6 +14,9 @@ name: sector-rotation-tw-daily
 # 前置：Repo → Settings → Secrets and variables → Actions 加：
 #   FINMIND_TOKEN = FinMind API token（免費申請：finmindtrade.com）
 #   免費 tier 300 次/小時，pipeline 預設股票池 100 檔（budget ≈ 203 次），有餘裕。
+#   TWMARKETDATA_API_KEY = TW Market Data API key（twmarketdata.com，選填）
+#   給 Layer 0 市場快照真實 TAIEX 指數用（1 次 request/次執行，跟 FinMind 額度無關）；
+#   沒設就自動退回 0050 ETF 代理，不影響 pipeline 其餘部分。
 
 on:
   schedule:
@@ -53,6 +56,7 @@ jobs:
         shell: bash
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+          TWMARKETDATA_API_KEY: ${{ secrets.TWMARKETDATA_API_KEY }}
           AS_OF: ${{ inputs.as_of_date }}
           UNIVERSE_SIZE: ${{ inputs.universe_size }}
         run: |

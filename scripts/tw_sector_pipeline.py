@@ -10,8 +10,10 @@
   - S1-S5 感測器 + Opportunity Engine（TODAY/TRIGGER/AVOID）也留到 Phase 2 ·
     Phase 1 先把 Layer 0-3 資料地基跑通、產出真實資料的每日報表
 
-  Layer 0  市場：0050（元大台灣50）當 TAIEX 代理指標（TAIEX 本身在 FinMind 用什麼
-                 dataset/data_id 查沒有把握確認過，0050 是已知可行的 TaiwanStockPrice call）
+  Layer 0  市場：優先用 TW Market Data（獨立付費 API，非 FinMind）的官方 TAIEX 指數；
+                 沒設 TWMARKETDATA_API_KEY 或呼叫失敗 → 退回 0050（元大台灣50）當代理
+                 （TAIEX 本身在 FinMind 用什麼 dataset/data_id 查沒有把握確認過，
+                   0050 是已知可行的 TaiwanStockPrice call）
   Layer 1  板塊：industry_category 分組 · Return（point）/ Acceleration / Breadth / Capital Flow
   Layer 2  個股：Dow 頭頭低/底底高趨勢 + 量價象限判定 + explosive_verdict
                 （直接 import sector_rotation_screener.py 的通用演算法函式 ——
@@ -23,6 +25,11 @@
   TaiwanStockInfo                          （bulk，不帶 data_id）全市場清單 + 官方產業分類
   TaiwanStockPrice                          個股日 OHLCV（每股 1 次）
   TaiwanStockInstitutionalInvestorsBuySell  個股法人買賣（每股 1 次）
+
+  另有 TW Market Data（twmarketdata.com，獨立第三方付費 API，非 FinMind，不吃 FinMind
+  額度）market-index dataset：官方 TWSE TAIEX 每日指數，只用在 Layer 0 市場快照（1 次
+  request/次執行）。需要 TWMARKETDATA_API_KEY；沒設就整個 Layer 0 退回 0050 代理，
+  不影響 Layer 1-3。
 
   股票池選取：原本想用 FinMind TaiwanStockMarketValueWeight 抓市值排名前 N 大，但官方
   文件確認這個 dataset 其實是「單一個股」市值歷史查詢（一定要帶 stock_id，不是全市場
@@ -78,6 +85,12 @@ from sector_rotation_screener import (
 
 FINMIND_BASE = "https://api.finmindtrade.com/api/v4/data"
 FINMIND_TOKEN = os.environ.get("FINMIND_TOKEN", "").strip()
+
+# TW Market Data（twmarketdata.com）· 獨立第三方付費 API，不是 FinMind，不吃 FinMind 300
+# 次/小時額度。market-index dataset 給官方 TWSE TAIEX 每日指數（index_code=TWSE_TAIEX），
+# 比 0050 ETF 代理更準確當 Layer 0 市場快照。需要 TWMARKETDATA_API_KEY；沒設 → 退回 0050。
+TWMD_BASE = "https://api.twmarketdata.com/v2/datasets/market-index"
+TWMD_API_KEY = os.environ.get("TWMARKETDATA_API_KEY", "").strip()
 
 OUTDIR = "data/sector_rotation"
 MANIFEST_PATH = os.path.join(OUTDIR, "tw_scorecard_latest.json")
@@ -471,9 +484,64 @@ def add_stock_ranks(df):
 
 
 # ============================================================
-# 6. Layer 0：市場快照（0050 當 TAIEX 代理）
+# 6. Layer 0：市場快照（優先真實 TAIEX，沒有金鑰/失敗才退回 0050 代理）
 # ============================================================
+def fetch_taiex_official(start_date, end_date, limit=500):
+    """TW Market Data market-index dataset · 官方 TWSE TAIEX 每日指數，index_code=
+    TWSE_TAIEX（IX0001 不是這個 endpoint 認得的代碼，文件明講）。獨立第三方付費 API，
+    跟 FinMind 無關、不吃 FinMind 額度；沒設 TWMARKETDATA_API_KEY 直接回傳 None，
+    呼叫端退回 0050 代理，不是硬性依賴。
+    """
+    if not TWMD_API_KEY:
+        return None
+    res = requests.get(
+        TWMD_BASE,
+        params={"index_code": "TWSE_TAIEX", "market": "TWSE",
+                "start_date": start_date, "end_date": end_date, "limit": limit},
+        headers={"X-API-Key": TWMD_API_KEY},
+        timeout=30,
+    )
+    if not res.ok:
+        raise RuntimeError(f"TW Market Data market-index HTTP {res.status_code}")
+    items = (res.json() or {}).get("items") or []
+    rows = []
+    for it in items:
+        d = (it.get("market_identity") or {}).get("as_of_date")
+        v = (it.get("index_level") or {}).get("value")
+        if d is None or v is None:
+            continue
+        rows.append({"date": d, "close": float(v)})
+    if not rows:
+        return None
+    return (pd.DataFrame(rows)
+            .drop_duplicates(subset="date")
+            .sort_values("date")
+            .reset_index(drop=True))
+
+
 def fetch_market_snapshot(start_date, end_date):
+    try:
+        df = fetch_taiex_official(start_date, end_date)
+        if df is not None and len(df) >= 61:
+            close = df["close"]
+            cur = float(close.iloc[-1])
+            past60 = float(close.iloc[-61])
+            ma50 = float(close.iloc[-50:].mean())
+            log(f"  市場快照來源：TW Market Data 官方 TAIEX（{len(df)} 天）")
+            return {
+                "proxy": "TAIEX", "source": "twse_official(TW Market Data)",
+                "as_of_date": str(df["date"].iloc[-1]),
+                "price": round(cur, 2),
+                "vs_60d_pct": round((cur / past60 - 1) * 100, 2),
+                "ma50": round(ma50, 2),
+                "vs_50ma_pct": round((cur / ma50 - 1) * 100, 2),
+                "trend_label": "🟢" if cur > past60 else "🔴",
+            }
+        if df is not None:
+            log(f"⚠ TW Market Data TAIEX 資料不足（{len(df)} < 61 天）· 改用 0050 代理")
+    except Exception as e:
+        log(f"⚠ TW Market Data TAIEX 抓取失敗（{e}）· 改用 0050 代理")
+
     rows = fm_fetch("TaiwanStockPrice", data_id="0050", start_date=start_date, end_date=end_date)
     if not rows:
         return None
@@ -486,8 +554,9 @@ def fetch_market_snapshot(start_date, end_date):
     cur = float(close.iloc[-1])
     past60 = float(close.iloc[-61])
     ma50 = float(close.iloc[-50:].mean())
+    log("  市場快照來源：0050 代理（TW Market Data 未設金鑰或失敗）")
     return {
-        "proxy": "0050",
+        "proxy": "0050", "source": "finmind_price_proxy",
         "as_of_date": str(df["date"].iloc[-1]),
         "price": round(cur, 2),
         "vs_60d_pct": round((cur / past60 - 1) * 100, 2),
@@ -624,7 +693,7 @@ def main():
             f"breadth={r['breadth_pct']}%  n={r['stock_count']}")
 
     log("=" * 78)
-    log("Layer 0：市場快照（0050 代理 TAIEX）")
+    log("Layer 0：市場快照（優先 TW Market Data 官方 TAIEX，退回 0050 代理）")
     log("=" * 78)
     try:
         market_snapshot = fetch_market_snapshot(start_date, end_date)
