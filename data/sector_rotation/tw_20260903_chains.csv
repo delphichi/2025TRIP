@@ -1,24 +1,25 @@
 supply_chain,as_of_date,stock_count,point,breadth_pct,breadth_up,breadth_total,inst_net_20d_est_NTD_M,inst_net_20d_est_NTD_M_per_stock,node_count,resonance_pct,z_point,z_capital,cpd,cpd_quadrant
-CCL / High-Speed Materials,2026-09-03,6,78.88,100.0,6,6,15298.6,2549.77,5,80.0,2.89,0.44,-2.45,🚀 Confirmed
-Passive Components,2026-09-03,7,59.81,71.4,5,7,-59779.7,-8539.96,7,100.0,1.94,-2.46,-4.4,⚠️ Price Leading
-Display & Optical,2026-09-03,10,42.53,100.0,10,10,11585.6,1158.56,6,83.3,1.07,0.3,-0.78,🚀 Confirmed
-Thermal / Liquid Cooling,2026-09-03,6,35.04,100.0,6,6,34678.1,5779.68,4,100.0,0.7,1.19,0.49,🚀 Confirmed
-AI / HPC Semiconductor,2026-09-03,12,33.05,66.7,8,12,55031.5,4585.96,11,100.0,0.6,1.98,1.38,🚀 Confirmed
-AI Server / ODM,2026-09-03,24,30.88,79.2,19,24,5742.5,239.27,16,87.5,0.49,0.07,-0.42,🚀 Confirmed
-Optical Communication / AI Networking,2026-09-03,5,29.42,80.0,4,5,1486.5,297.3,4,100.0,0.42,-0.09,-0.51,⚠️ Price Leading
-Cloud / Data Center / Cybersecurity,2026-09-03,7,25.13,57.1,4,7,-21587.4,-3083.91,5,60.0,0.21,-0.99,-1.19,⚠️ Price Leading
-Semiconductor Equipment & Materials,2026-09-03,20,22.16,70.0,14,20,-15433.2,-771.66,18,88.9,0.06,-0.75,-0.8,⚠️ Price Leading
-Advanced Packaging,2026-09-03,15,21.41,60.0,9,15,20192.6,1346.17,6,83.3,0.02,0.63,0.61,🚀 Confirmed
-PCB / HDI / IC Substrate,2026-09-03,16,19.98,50.0,8,16,14509.8,906.86,7,85.7,-0.05,0.41,0.46,💰 Capital Leading
-Memory / HBM,2026-09-03,9,19.27,44.4,4,9,28690.0,3187.78,8,62.5,-0.09,0.96,1.05,💰 Capital Leading
-Shipping / Logistics,2026-09-03,8,18.17,75.0,6,8,53168.6,6646.07,4,100.0,-0.14,1.9,2.05,💰 Capital Leading
-Robotics / Automation,2026-09-03,15,17.56,40.0,6,15,9141.5,609.43,10,70.0,-0.17,0.2,0.38,💰 Capital Leading
-Defense / Aerospace / Drone,2026-09-03,3,10.07,33.3,1,3,-6801.7,-2267.23,2,50.0,-0.55,-0.41,0.13,❄️ Weak
-Data Center Power / PSU,2026-09-03,7,6.58,42.9,3,7,-12727.9,-1818.27,6,50.0,-0.72,-0.64,0.08,❄️ Weak
-Energy Storage / Battery,2026-09-03,4,5.68,50.0,2,4,-18691.0,-4672.75,4,50.0,-0.77,-0.87,-0.11,❄️ Weak
-Biotech / Innovative Drug / CDMO,2026-09-03,4,5.65,25.0,1,4,-4957.0,-1239.25,2,50.0,-0.77,-0.34,0.42,❄️ Weak
-EV / Auto Electronics,2026-09-03,10,4.25,80.0,8,10,-33512.2,-3351.22,6,83.3,-0.84,-1.45,-0.61,❄️ Weak
-Steel,2026-09-03,7,2.19,14.3,1,7,3990.2,570.03,6,33.3,-0.94,0.0,0.94,💰 Capital Leading
-Medical Device / Healthcare,2026-09-03,2,1.91,50.0,1,2,512.4,256.2,2,50.0,-0.95,-0.13,0.82,❄️ Weak
-Solar / Wind Renewable,2026-09-03,2,-2.82,50.0,1,2,100.0,50.0,2,50.0,-1.19,-0.15,1.04,❄️ Weak
-Smart Grid / Transformer,2026-09-03,7,-3.32,71.4,5,7,9208.3,1315.47,3,33.3,-1.22,0.2,1.42,💰 Capital Leading
+Environmental Infrastructure,2026-09-03,3,85.07,0.0,0,3,335.9,111.97,3,66.7,2.6,-0.12,-2.72,⚠️ Price Leading
+CCL / High-Speed Materials,2026-09-03,6,78.88,100.0,6,6,15298.6,2549.77,5,80.0,2.34,0.46,-1.88,🚀 Confirmed
+Passive Components,2026-09-03,7,59.81,71.4,5,7,-59779.7,-8539.96,7,100.0,1.53,-2.44,-3.98,⚠️ Price Leading
+Display & Optical,2026-09-03,14,43.88,92.9,13,14,21679.9,1548.56,9,77.8,0.86,0.7,-0.16,🚀 Confirmed
+Thermal / Liquid Cooling,2026-09-03,7,36.74,100.0,7,7,32642.6,4663.23,5,100.0,0.56,1.13,0.56,🚀 Confirmed
+AI Server / ODM,2026-09-03,35,26.74,71.4,25,35,5052.5,144.36,26,84.6,0.14,0.06,-0.08,🚀 Confirmed
+AI / HPC Semiconductor,2026-09-03,16,26.69,50.0,8,16,53855.3,3365.96,15,93.3,0.14,1.95,1.81,🚀 Confirmed
+Advanced Packaging,2026-09-03,16,25.76,62.5,10,16,21166.2,1322.89,7,85.7,0.1,0.68,0.58,🚀 Confirmed
+Optical Communication / AI Networking,2026-09-03,6,25.65,83.3,5,6,1494.8,249.13,5,100.0,0.1,-0.08,-0.17,⚠️ Price Leading
+Cloud / Data Center / Cybersecurity,2026-09-03,7,25.13,57.1,4,7,-21587.4,-3083.91,5,60.0,0.07,-0.97,-1.04,⚠️ Price Leading
+Robotics / Automation,2026-09-03,16,20.55,43.8,7,16,7387.7,461.73,11,72.7,-0.12,0.15,0.27,💰 Capital Leading
+Memory / HBM,2026-09-03,9,19.27,44.4,4,9,28690.0,3187.78,8,62.5,-0.17,0.97,1.15,💰 Capital Leading
+PCB / HDI / IC Substrate,2026-09-03,17,19.22,52.9,9,17,14355.5,844.44,8,87.5,-0.17,0.42,0.6,💰 Capital Leading
+Shipping / Logistics,2026-09-03,8,18.17,75.0,6,8,53168.6,6646.07,4,100.0,-0.22,1.92,2.14,💰 Capital Leading
+Semiconductor Equipment & Materials,2026-09-03,29,16.88,58.6,17,29,-28434.4,-980.5,22,86.4,-0.27,-1.23,-0.96,❄️ Weak
+Defense / Aerospace / Drone,2026-09-03,3,10.07,33.3,1,3,-6801.7,-2267.23,2,50.0,-0.56,-0.4,0.16,❄️ Weak
+Medical Device / Healthcare,2026-09-03,3,9.88,33.3,1,3,474.8,158.27,3,66.7,-0.57,-0.11,0.45,❄️ Weak
+Energy Storage / Battery,2026-09-03,6,8.66,50.0,3,6,-18356.6,-3059.43,6,50.0,-0.62,-0.84,-0.22,❄️ Weak
+Data Center Power / PSU,2026-09-03,7,6.58,42.9,3,7,-12727.9,-1818.27,6,50.0,-0.71,-0.62,0.08,❄️ Weak
+Biotech / Innovative Drug / CDMO,2026-09-03,4,5.65,25.0,1,4,-4957.0,-1239.25,2,50.0,-0.75,-0.32,0.42,❄️ Weak
+EV / Auto Electronics,2026-09-03,10,4.25,80.0,8,10,-33512.2,-3351.22,6,83.3,-0.8,-1.43,-0.62,❄️ Weak
+Steel,2026-09-03,7,2.19,14.3,1,7,3990.2,570.03,6,33.3,-0.89,0.02,0.91,💰 Capital Leading
+Smart Grid / Transformer,2026-09-03,11,0.27,72.7,8,11,9627.0,875.18,7,42.9,-0.97,0.24,1.21,💰 Capital Leading
+Solar / Wind Renewable,2026-09-03,4,-15.27,25.0,1,4,-313.4,-78.35,4,25.0,-1.63,-0.15,1.48,❄️ Weak

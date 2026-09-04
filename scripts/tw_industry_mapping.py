@@ -71,7 +71,8 @@ REQUIRED_COLUMNS = [
     "supply_chain", "chain_node", "theme", "role", "weight",
     "confidence", "source", "updated_at", "graph_role",
 ]
-GRAPH_ROLES = {"CORE", "COMPONENT", "UPSTREAM", "DOWNSTREAM", "INFRASTRUCTURE", "ENABLER", "CROSS_CHAIN"}
+GRAPH_ROLES = {"CORE", "COMPONENT", "UPSTREAM", "DOWNSTREAM", "INFRASTRUCTURE", "ENABLER",
+               "CROSS_CHAIN", "DISTRIBUTOR"}
 
 
 def load_mapping(path=MAPPING_PATH):
