@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-03T23:52:33.177410+00:00",
+  "generated_at": "2026-09-04T00:31:44.646863+00:00",
   "as_of_date": "2026-09-02",
   "market_context": {
     "as_of_date": "2026-09-02",
@@ -42,9 +42,9 @@
     "regime_stats": {
       "historical": {
         "🟢 多頭": {
-          "n": 1592,
+          "n": 1591,
           "mean": 1.1,
-          "win_rate": 72.4,
+          "win_rate": 72.3,
           "p25": -0.32,
           "p50": 1.85,
           "p75": 3.32,
@@ -84,18 +84,18 @@
       },
       "current_regime": "🟢 多頭",
       "current_conditions": {
-        "spy_price": 773.17,
-        "spy_60d_ago": 735.16,
+        "spy_price": 765.16,
+        "spy_60d_ago": 737.32,
         "price_up_60d": true,
-        "ma50": 756.14,
+        "ma50": 755.34,
         "ma50_up": true,
-        "ma200": 709.32,
+        "ma200": 708.78,
         "ma200_up": true
       },
       "current": {
-        "n": 1592,
+        "n": 1591,
         "mean": 1.1,
-        "win_rate": 72.4,
+        "win_rate": 72.3,
         "p25": -0.32,
         "p50": 1.85,
         "p75": 3.32,
