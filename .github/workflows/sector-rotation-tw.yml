@@ -7,6 +7,8 @@ name: sector-rotation-tw-daily
 #     跟 FinMind 額度無關）：MI_INDEX（官方類股指數，未來可能取代 Layer 1 抽樣平均）
 #     跟 STOCK_DAY_ALL（全上市個股官方 OHLCV，未來可能取代 FinMind 逐股查詢）；
 #     兩者都只有「當下最新交易日」快照，先純累積存檔，還沒接進 Layer 0-3 計算邏輯。
+#     另外每次也會嘗試累積財報基本資料（損益表+資產負債表 × 6 個產業別，一樣不需要
+#     token）；財報季更新，季別沒變就跳過存檔，不會每天產生重複檔案。
 #
 # 排程：FinMind 文件標示的更新時間都是 Taipei time（UTC+8）：
 #   TaiwanStockPrice                          星期一至五 17:30
@@ -85,7 +87,7 @@ jobs:
       # + STOCK_DAY_ALL（全上市個股官方 OHLCV）每日快照，供未來接進 Layer 1/2 用。
       # 兩個 endpoint 都只回傳「當下最新交易日」，累積夠歷史前先純存檔；continue-on-error
       # 保底（腳本內部本身也吞了所有例外，正常不會讓這步失敗）。
-      - name: Snapshot TWSE OpenAPI (MI_INDEX + STOCK_DAY_ALL)
+      - name: Snapshot TWSE OpenAPI (MI_INDEX + STOCK_DAY_ALL + 財報季度快照)
         if: ${{ !inputs.report_only }}
         continue-on-error: true
         shell: bash
