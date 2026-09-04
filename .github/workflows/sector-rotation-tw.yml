@@ -19,7 +19,9 @@ name: sector-rotation-tw-daily
 #
 # 前置：Repo → Settings → Secrets and variables → Actions 加：
 #   FINMIND_TOKEN = FinMind API token（免費申請：finmindtrade.com）
-#   免費 tier 300 次/小時，pipeline 預設股票池 100 檔（budget ≈ 203 次），有餘裕。
+#   免費 tier 300 次/小時；Layer 2 個股價量已經改用 yfinance（不吃 FinMind 額度），
+#   FinMind 現在只剩 Layer 3 三大法人資料 + 固定開銷，budget ≈ N+3 次
+#   （預設股票池 100 檔 ≈ 103 次），比原本 N×2+3 少了快一半，有更多餘裕。
 #   TWMARKETDATA_API_KEY = TW Market Data API key（twmarketdata.com，選填）
 #   給 Layer 0 市場快照真實 TAIEX 指數用（1 次 request/次執行，跟 FinMind 額度無關）；
 #   沒設就自動退回 0050 ETF 代理，不影響 pipeline 其餘部分。
@@ -34,7 +36,7 @@ on:
         required: false
         default: ''
       universe_size:
-        description: '股票池大小（依 TWSE 即時市值排名前 N 檔；排名失敗才退回 UNIVERSE_SEED 靜態清單）· 免費 tier 300 次/小時，N×2+3 不要超過'
+        description: '股票池大小（依 TWSE 即時市值排名前 N 檔；排名失敗才退回 UNIVERSE_SEED 靜態清單）· Layer 2 已用 yfinance，FinMind budget 只剩 N+3（Layer 3 法人資料），免費 tier 300 次/小時'
         required: false
         default: '100'
       report_only:
@@ -60,7 +62,7 @@ jobs:
       - name: Install deps
         run: |
           pip install --upgrade pip
-          pip install pandas requests
+          pip install pandas requests yfinance
 
       - name: Run TW sector pipeline (Layer 0-3)
         if: ${{ !inputs.report_only }}

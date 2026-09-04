@@ -17,15 +17,30 @@
                    0050 是已知可行的 TaiwanStockPrice call）
   Layer 1  板塊：industry_category 分組 · Return（point）/ Acceleration / Breadth / Capital Flow
   Layer 2  個股：Dow 頭頭低/底底高趨勢 + 量價象限判定 + explosive_verdict
-                （直接 import sector_rotation_screener.py 的通用演算法函式 ——
-                  這些函式本來就是純數學/字串邏輯，不綁 yfinance，可以直接共用，
-                  不用重寫一份、也不會跟已驗證過的美股版邏輯分岔）
+                （價量資料源是 yfinance，不是 FinMind——見下方「資料源」說明；
+                  Dow 趨勢/量價象限/explosive_verdict 判定邏輯本身直接 import
+                  sector_rotation_screener.py 的通用演算法函式，這些函式是純
+                  數學/字串邏輯，不綁資料源，可以直接共用，不用重寫一份、也不會
+                  跟已驗證過的美股版邏輯分岔）
   Layer 3  資金：三大法人（外資/投信/自營商）20 日淨買賣，個股 + 板塊聚合
 
-資料源：FinMind（免費 tier 300 次/小時）
-  TaiwanStockInfo                          （bulk，不帶 data_id）全市場清單 + 官方產業分類
-  TaiwanStockPrice                          個股日 OHLCV（每股 1 次）
-  TaiwanStockInstitutionalInvestorsBuySell  個股法人買賣（每股 1 次）
+資料源：
+  yfinance（Layer 2 個股價量，免費、無配額限制）
+    fetch_batch_prices() 批次下載全部股票池的歷史 OHLCV（跟美股版
+    fetch_weekly_returns() 同一套批次下載模式：YF_BATCH chunk size + threads=True
+    + group_by="ticker"），取代原本 FinMind TaiwanStockPrice 逐股查詢——這是
+    解除 FinMind 配額瓶頸的核心改動，用 GitHub Actions CI 實測驗證過（跟美股版
+    同一個網路環境）2330.TW/2454.TW/0050.TW/8299.TWO 都能拿到 5 年歷史 OHLCV。
+    auto_adjust=True 用還原權值價（美股版原本就這樣做，這裡保持一致），不是
+    FinMind 版原本用的原始收盤價——報酬率不會被除權息當天的價格跳空污染。
+    沒有「成交金額」欄位（不像 FinMind 的 Trading_money），
+    trade_value_20d_est_NTD_M 改用 Volume × Close 逐日估算。
+
+  FinMind（免費 tier 300 次/小時，Layer 0 市場快照 fallback + Layer 1 股票池
+  分類 + Layer 3 法人資金專用；Layer 2 個股價量已經不再用 FinMind）
+    TaiwanStockInfo                          （bulk，不帶 data_id）全市場清單 + 官方產業分類
+    TaiwanStockPrice                          Layer 0 市場快照 fallback 用（0050 代理）
+    TaiwanStockInstitutionalInvestorsBuySell  個股法人買賣（每股 1 次，Layer 3 唯一資料源）
 
   另有 TW Market Data（twmarketdata.com，獨立第三方付費 API，非 FinMind，不吃 FinMind
   額度）market-index dataset：官方 TWSE TAIEX 每日指數，只用在 Layer 0 市場快照（1 次
@@ -41,9 +56,10 @@
   快照會隨時間漂移，需要時手動更新（見 UNIVERSE_SEED 定義處的說明）。
 
 股票池：UNIVERSE_SEED 前 UNIVERSE_SIZE 檔（預設 100，清單本身依市值排名有 150 檔）。
-        budget = N×2 + 3 固定開銷 ≈ 203 次/小時，
-        在 FinMind 免費 300 次/小時額度內留有餘裕（S&P 500 版用 yfinance 沒有這個限制，
-        這是台股版跟美股版架構上最大的差異）。
+        Layer 2 換 yfinance 後，FinMind budget 只剩 Layer 3 法人資料 + 固定開銷
+        ≈ N + 3 次/小時，比原本 N×2+3 少了快一半——UNIVERSE_SIZE 可以往上調，
+        yfinance 本身沒有這個限制（跟美股版架構對齊的地方，過去這是台股版跟
+        美股版架構上最大的差異，現在只剩 Layer 3 法人資料還受 FinMind 配額限制）。
 
 輸出：
   data/sector_rotation/tw_{YYYYMMDD}_all.csv          全股票池個股明細（跟美股 *_all.csv 對齊欄位精神）
@@ -65,6 +81,7 @@ from datetime import datetime, date, timezone, timedelta
 
 import pandas as pd
 import requests
+import yfinance as yf
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # 重用美股版已經驗證過的通用演算法（純數學/字串邏輯，不綁 yfinance）：
@@ -107,10 +124,12 @@ OUTDIR = "data/sector_rotation"
 MANIFEST_PATH = os.path.join(OUTDIR, "tw_scorecard_latest.json")
 STAGE2_PATH = os.path.join(OUTDIR, "tw_latest.json")
 
-UNIVERSE_SIZE = 100          # 市值前 N 大 · budget = N×2 + 3 次（免費 tier 300 次/小時）
+UNIVERSE_SIZE = 100          # 市值前 N 大 · FinMind budget = N + 3 次（Layer 2 換 yfinance 後
+                              # 只剩 Layer 3 法人資料吃 FinMind 額度，免費 tier 300 次/小時）
 ACCEL_LOOKBACK_DAYS = 5
 GAP_ALERT_THRESHOLD = 5
 HISTORY_MONTHS = 14          # 抓 14 個月 daily ≈ 290 交易日，26W 量能變化需要 260 天 buffer
+YF_BATCH = 80                 # yfinance 批次下載 chunk size，避免 400 URL too long（跟美股版同一個安全值）
 
 AS_OF_DATE = None  # type: ignore[assignment]  · 由 main() 從 --as-of 設定
 
@@ -263,7 +282,9 @@ def fetch_universe(as_of, size=UNIVERSE_SIZE):
        · 不用 FinMind TaiwanStockMarketValueWeight：文件確認它是「單一個股」市值歷史
          查詢（一定要帶 stock_id），且限定 backer/sponsor members，免費 tier 打了
          保證 400，詳見模組開頭說明。
-    回傳 list[{stock_id, stock_name, industry_category}]，長度 <= size
+    回傳 list[{stock_id, stock_name, industry_category, type}]，長度 <= size
+    （type 是 "twse"/"tpex"，給 yf_ticker_symbol() 決定 yfinance suffix 用：
+    twse → .TW，tpex → .TWO）
     """
     info_rows = fm_fetch("TaiwanStockInfo")
     if not info_rows:
@@ -299,6 +320,7 @@ def fetch_universe(as_of, size=UNIVERSE_SIZE):
             "stock_id": sid,
             "stock_name": info.get("stock_name"),
             "industry_category": info.get("industry_category") or "其他",
+            "type": info.get("type") or "twse",
         })
     return universe
 
@@ -306,31 +328,89 @@ def fetch_universe(as_of, size=UNIVERSE_SIZE):
 # ============================================================
 # 2. 個股層：Price → Dow 趨勢 / 量價象限 / explosive_verdict
 # ============================================================
-def fetch_stock_row(stock_id, industry_category, stock_name, start_date, end_date):
+def yf_ticker_symbol(stock_id, market_type):
+    """FinMind 股票代碼 → yfinance ticker：twse（上市）→ .TW，tpex（上櫃）→ .TWO。"""
+    return f"{stock_id}{'.TWO' if market_type == 'tpex' else '.TW'}"
+
+
+def fetch_batch_prices(tickers, start_date, end_date):
+    """批次下載全部股票池的歷史 OHLCV，取代 FinMind TaiwanStockPrice 逐股查詢——
+    這是解除 FinMind 配額瓶頸的核心改動。跟美股版 fetch_weekly_returns() 同一套
+    批次下載模式（YF_BATCH chunk size 避免 400 URL too long、threads=True 平行
+    下載、group_by="ticker" 解析多檔股票的 MultiIndex 回應）。
+
+    auto_adjust=True：用還原權值價（股利/減資調整過），不是原始收盤價——這樣算
+    出來的報酬率不會被除權息當天的價格跳空污染，是財務分析的標準做法（美股版
+    原本就這樣做，這裡保持一致，不是 FinMind 版原本用的 raw close 邏輯）。
+
+    回傳 dict {"close": df, "high": df, "low": df, "volume": df}，每個 df 都是
+    index=日期、columns=ticker 的寬表；某檔股票抓不到就整欄 NaN／根本不存在該欄，
+    呼叫端（compute_stock_row）自己判斷資料夠不夠，不在這裡先篩。
     """
-    對應美股版 fetch_weekly_returns() + compute_vcp_row() 合併後的單股計算，
-    資料源換成 FinMind TaiwanStockPrice（Trading_Volume 當量、max/min 當 High/Low），
-    Dow 趨勢 / 量價象限 / explosive_verdict 直接呼叫美股版的通用函式。
-    資料不足（< 131 個有效交易日）→ 回傳 None。
+    all_close = all_high = all_low = all_vol = None
+    n_batches = (len(tickers) + YF_BATCH - 1) // YF_BATCH
+    for i in range(0, len(tickers), YF_BATCH):
+        chunk = tickers[i:i + YF_BATCH]
+        log(f"  yfinance batch {i // YF_BATCH + 1}/{n_batches}（{len(chunk)} 檔）")
+        try:
+            data = yf.download(
+                chunk, start=start_date, end=end_date, interval="1d",
+                auto_adjust=True, progress=False, threads=True, group_by="ticker",
+            )
+        except Exception as e:
+            log(f"  ⚠ yfinance batch 抓取失敗（{e}），這批 {len(chunk)} 檔跳過")
+            continue
+        if data is None or data.empty:
+            log(f"  ⚠ yfinance batch 回傳空資料，這批 {len(chunk)} 檔跳過")
+            continue
+        if isinstance(data.columns, pd.MultiIndex):
+            avail = [t for t in chunk if t in data.columns.get_level_values(0)]
+            close = pd.DataFrame({t: data[t]["Close"] for t in avail})
+            high = pd.DataFrame({t: data[t]["High"] for t in avail})
+            low = pd.DataFrame({t: data[t]["Low"] for t in avail})
+            vol = pd.DataFrame({t: data[t]["Volume"] for t in avail})
+        else:
+            # 單一 ticker 的批次（極少發生，chunk size 通常 > 1），欄位不是 MultiIndex
+            close = data[["Close"]].rename(columns={"Close": chunk[0]})
+            high = data[["High"]].rename(columns={"High": chunk[0]})
+            low = data[["Low"]].rename(columns={"Low": chunk[0]})
+            vol = data[["Volume"]].rename(columns={"Volume": chunk[0]})
+        all_close = close if all_close is None else all_close.join(close, how="outer")
+        all_high = high if all_high is None else all_high.join(high, how="outer")
+        all_low = low if all_low is None else all_low.join(low, how="outer")
+        all_vol = vol if all_vol is None else all_vol.join(vol, how="outer")
+
+    if all_close is None or all_close.empty:
+        raise RuntimeError("yfinance 沒抓到任何資料")
+
+    all_close = all_close.sort_index()
+    all_high = all_high.reindex(all_close.index)
+    all_low = all_low.reindex(all_close.index)
+    all_vol = all_vol.reindex(all_close.index)
+    return {"close": all_close, "high": all_high, "low": all_low, "volume": all_vol}
+
+
+def compute_stock_row(stock_id, industry_category, stock_name, close, high, low, vol):
     """
-    rows = fm_fetch("TaiwanStockPrice", data_id=stock_id, start_date=start_date, end_date=end_date)
-    if not rows:
-        return None
-    df = pd.DataFrame(rows)
-    # 興櫃/無公告成交價的日子 open/max/min/close 全 0（FinMind 文件明載）· 濾掉
-    df["close"] = pd.to_numeric(df["close"], errors="coerce")
-    df = df[df["close"] > 0].sort_values("date").reset_index(drop=True)
+    對應美股版 fetch_weekly_returns() + compute_vcp_row() 合併後的單股計算。
+    輸入是 fetch_batch_prices() 批次抓好的單一 ticker 價量 Series（這個函式本身
+    不發網路請求）。Dow 趨勢 / 量價象限 / explosive_verdict 直接呼叫美股版的
+    通用函式。資料不足（< 131 個有效交易日）→ 回傳 None。
+
+    注意：沒有「成交金額」欄位（yfinance 不像 FinMind 有 Trading_money），
+    trade_value_20d_est_NTD_M 改用 Volume × Close 逐日相乘估算，不是精確金額。
+    """
+    df = pd.DataFrame({"close": close, "high": high, "low": low, "vol": vol}).dropna(subset=["close"])
     if len(df) < 131:
         return None
 
     close = df["close"].astype(float)
-    high = pd.to_numeric(df["max"], errors="coerce").astype(float)
-    low = pd.to_numeric(df["min"], errors="coerce").astype(float)
-    vol = pd.to_numeric(df["Trading_Volume"], errors="coerce").fillna(0).astype(float)
-    trading_money = pd.to_numeric(df["Trading_money"], errors="coerce").fillna(0).astype(float)
+    high = df["high"].astype(float)
+    low = df["low"].astype(float)
+    vol = df["vol"].fillna(0).astype(float)
 
     t_price = float(close.iloc[-1])
-    actual_as_of = str(df["date"].iloc[-1])
+    actual_as_of = str(df.index[-1].date())
 
     r4 = (t_price / close.iloc[-20] - 1) * 100
     r13 = (t_price / close.iloc[-65] - 1) * 100
@@ -416,9 +496,10 @@ def fetch_stock_row(stock_id, industry_category, stock_name, start_date, end_dat
         "vol_10d_avg": int(vol.iloc[-10:].mean()) if len(vol) >= 10 else None,
         # 個股 20 日「全部」成交金額（不分是誰買的：法人+自營+散戶全部加總）——
         # 跟 Layer 3 的三大法人「淨買賣」金額是兩回事：這個量的是市場關注度/熱度，
-        # 三大法人金額量的是資金淨流向，不能互相替代。
-        "trade_value_20d_est_NTD_M": round(float(trading_money.iloc[-20:].sum()) / 1e6, 1)
-        if len(trading_money) >= 20 else None,
+        # 三大法人金額量的是資金淨流向，不能互相替代。yfinance 沒有成交金額欄位，
+        # 用 Volume × Close 逐日相乘估算（近似值，不是精確金額）。
+        "trade_value_20d_est_NTD_M": round(float((vol.iloc[-20:] * close.iloc[-20:]).sum()) / 1e6, 1)
+        if len(vol) >= 20 else None,
     }
 
 
@@ -786,38 +867,57 @@ def main():
     log(f"  股票池大小：{len(universe)} 檔")
 
     log("=" * 78)
-    log(f"逐股抓 TaiwanStockPrice + TaiwanStockInstitutionalInvestorsBuySell "
-        f"（budget 預估 {len(universe) * 2 + 3} 次 / FinMind 300 次/小時）")
+    log(f"Layer 2：批次抓 yfinance 個股價量（{len(universe)} 檔，不吃 FinMind 額度）")
+    log("=" * 78)
+    yf_tickers = {u["stock_id"]: yf_ticker_symbol(u["stock_id"], u.get("type")) for u in universe}
+    try:
+        batch = fetch_batch_prices(list(yf_tickers.values()), start_date, end_date)
+    except Exception as e:
+        sys.exit(f"❌ yfinance 批次抓取全部失敗：{e}")
+    log(f"  批次完成，{len(batch['close'].columns)} 檔有資料")
+
+    log("=" * 78)
+    log(f"Layer 3：逐股抓 FinMind TaiwanStockInstitutionalInvestorsBuySell "
+        f"（budget 預估 {len(universe) + 3} 次 / FinMind 300 次/小時）")
     log("=" * 78)
     all_rows = []
     failed = []
+    inst_quota_exhausted = False
     for i, u in enumerate(universe, 1):
         sid = u["stock_id"]
-        try:
-            row = fetch_stock_row(sid, u["industry_category"], u["stock_name"], start_date, end_date)
-            if row is None:
-                failed.append({"stock_id": sid, "reason": "資料不足（< 131 個有效交易日）"})
-                continue
+        yft = yf_tickers[sid]
+        if yft not in batch["close"].columns:
+            failed.append({"stock_id": sid, "reason": f"yfinance 沒有 {yft} 的資料"})
+            continue
+        row = compute_stock_row(
+            sid, u["industry_category"], u["stock_name"],
+            batch["close"][yft], batch["high"][yft], batch["low"][yft], batch["volume"][yft],
+        )
+        if row is None:
+            failed.append({"stock_id": sid, "reason": "資料不足（< 131 個有效交易日）"})
+            continue
+
+        # 額度用完只影響法人資料（Layer 3），個股價量（Layer 2）已經批次抓好、
+        # 不受影響——不像以前 FinMind 版那樣整檔股票都要丟掉，剩下的股票照樣
+        # 進 all_rows，只是缺法人 20d 淨買欄位。
+        if not inst_quota_exhausted:
             try:
                 inst = fetch_institutional_flow(sid, start_date, end_date, latest_close=row["t_price"])
                 if inst:
                     row.update(inst)
             except Exception as e:
-                log(f"  ⚠ {sid} 法人資料抓取失敗（不影響其他欄位）: {e}")
-            all_rows.append(row)
-        except Exception as e:
-            failed.append({"stock_id": sid, "reason": str(e)})
-            if "額度用完" in str(e):
-                log(f"  ⛔ {sid}: {e} · 額度用完，中止剩餘股票的抓取")
-                failed.extend([{"stock_id": u2["stock_id"], "reason": "額度用完，未抓取"}
-                               for u2 in universe[i:]])
-                break
-            log(f"  ⚠ {sid}: {e}")
+                if "額度用完" in str(e):
+                    inst_quota_exhausted = True
+                    log(f"  ⛔ {sid}: {e} · FinMind 額度用完，剩餘股票不再抓法人資料"
+                        f"（Layer 2 價量資料不受影響，繼續處理）")
+                else:
+                    log(f"  ⚠ {sid} 法人資料抓取失敗（不影響其他欄位）: {e}")
+        all_rows.append(row)
         if i % 20 == 0:
-            log(f"  進度 {i}/{len(universe)} · 已用 {_request_count} 次請求")
+            log(f"  進度 {i}/{len(universe)} · 已用 {_request_count} 次 FinMind 請求")
 
     if not all_rows:
-        sys.exit(f"❌ 沒抓到任何個股資料（失敗 {len(failed)} 檔），檢查 FINMIND_TOKEN 或 FinMind 服務狀態")
+        sys.exit(f"❌ 沒抓到任何個股資料（失敗 {len(failed)} 檔），檢查 yfinance 連線或股票池是否正確")
 
     all_df = pd.DataFrame(all_rows)
     # 用實際抓到的資料日期眾數當 pipeline 的 as_of（可能有個股當天停牌等邊界情況）
