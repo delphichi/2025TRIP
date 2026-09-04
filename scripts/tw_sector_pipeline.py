@@ -629,6 +629,19 @@ CPD_QUADRANT = {
     (False, False): "❄️ Weak",          # 價格弱 + 資金弱：都沒動靜
 }
 
+# Transition Sensor 用的敘事排序：不代表 CPD 兩個維度真的線性相關，只是把使用者
+# 想追的「這個板塊離『資金價格雙確認』有多近」編成一個可以比較前後兩天的分數。
+TRANSITION_ORDER = {
+    "❄️ Weak": 0,
+    "⚠️ Price Leading": 1,
+    "💰 Capital Leading": 2,
+    "🚀 Confirmed": 3,
+}
+TRANSITION_DIR_ICON = {"ADVANCING": "🔼", "REVERSING": "🔽", "STEADY": "→", "NEW": "·"}
+# 連續兩天都是 Confirmed，但寬度掉超過這個百分點 → 判定過熱/出貨徵兆，即使 CPD
+# 象限本身還沒翻轉（象限翻轉通常已經晚了，這裡是想抓早一步的退燒訊號）。
+OVERHEAT_BREADTH_DROP_PCT = 15
+
 
 def add_sector_cpd(df):
     """Sector Capital-Price Divergence：CPD = Z(法人金額) - Z(SectorPoint)，
@@ -663,6 +676,78 @@ def add_sector_cpd(df):
         CPD_QUADRANT[(p > 0, c > 0)] for p, c in zip(z_point, z_capital)
     ]
     return df
+
+
+def add_transition_sensor(df, as_of):
+    """Transition Sensor：不只問「今天在哪個 CPD 象限」，追蹤「昨天 → 今天」板塊
+    的象限移動方向——這比單純排名更早看出「正在往資金價格雙確認移動」還是「正在
+    退燒」。跟 add_sector_acceleration 同精神，讀歷史 tw_*_scorecard.csv 找最近一份
+    「今天以前」的存檔當作前一交易日（cpd_quadrant 欄位是這次改版才加的，更早的
+    存檔沒有這欄，會被當成沒有前一日資料，不是錯誤）。
+
+    market_state 疊加一個過熱判定：連續兩天都是 🚀 Confirmed，但寬度掉了超過
+    OVERHEAT_BREADTH_DROP_PCT 個百分點——資金/價格都還沒轉弱到象限翻轉，但參與
+    的股票已經在減少，比等 CPD 象限真的翻轉才示警更早一步。
+    """
+    df = df.copy()
+    if df.empty:
+        for col in ("prev_cpd_quadrant", "transition_label", "transition_dir", "market_state"):
+            df[col] = pd.Series(dtype="object")
+        return df
+
+    import glob
+    files = sorted(glob.glob(os.path.join(OUTDIR, "tw_*_scorecard.csv")))
+    stamp_today = as_of.replace("-", "")
+    files = [f for f in files if stamp_today not in os.path.basename(f)]
+
+    prev_quadrant, prev_breadth = {}, {}
+    if files:
+        try:
+            prev_df = pd.read_csv(files[-1])
+            if "cpd_quadrant" in prev_df.columns:
+                prev_quadrant = dict(zip(prev_df["sector"], prev_df["cpd_quadrant"]))
+            if "breadth_pct" in prev_df.columns:
+                prev_breadth = dict(zip(prev_df["sector"], prev_df["breadth_pct"]))
+        except Exception:
+            pass
+
+    def _row(r):
+        sector = r["sector"]
+        curr_q = r.get("cpd_quadrant")
+        prev_q = prev_quadrant.get(sector)
+        if not prev_q or prev_q != prev_q:
+            return pd.Series({
+                "prev_cpd_quadrant": None,
+                "transition_label": "(無前一日資料)",
+                "transition_dir": "NEW",
+                "market_state": curr_q,
+            })
+
+        curr_score = TRANSITION_ORDER.get(curr_q)
+        prev_score = TRANSITION_ORDER.get(prev_q)
+        if curr_score is None or prev_score is None:
+            direction = "NEW"
+        else:
+            diff = curr_score - prev_score
+            direction = "ADVANCING" if diff > 0 else ("REVERSING" if diff < 0 else "STEADY")
+
+        market_state = curr_q
+        if curr_q == "🚀 Confirmed" and prev_q == "🚀 Confirmed":
+            pb, cb = prev_breadth.get(sector), r.get("breadth_pct")
+            if (pb is not None and pb == pb and cb is not None and cb == cb
+                    and (pb - cb) >= OVERHEAT_BREADTH_DROP_PCT):
+                market_state = "🔥 Overheated"
+
+        label = f"{curr_q}（持平）" if prev_q == curr_q else f"{prev_q} → {curr_q}"
+        return pd.Series({
+            "prev_cpd_quadrant": prev_q,
+            "transition_label": label,
+            "transition_dir": direction,
+            "market_state": market_state,
+        })
+
+    trans = df.apply(_row, axis=1)
+    return pd.concat([df, trans], axis=1)
 
 
 # ============================================================
@@ -932,11 +1017,14 @@ def main():
     sector_df = aggregate_sectors(all_rows, as_of)
     sector_df = add_sector_acceleration(sector_df, as_of)
     sector_df = add_sector_cpd(sector_df)
+    sector_df = add_transition_sensor(sector_df, as_of)
     for _, r in sector_df.head(15).iterrows():
         acc = r.get("acceleration")
         acc_str = f"{acc:+.2f}" if acc is not None and not pd.isna(acc) else "—"
+        dir_icon = TRANSITION_DIR_ICON.get(r.get("transition_dir"), "·")
         log(f"  {r['sector']:12s} point={r['point']:7.2f}  acc={acc_str:>7s}  "
-            f"breadth={r['breadth_pct']}%  n={r['stock_count']}  cpd={r.get('cpd_quadrant','—')}")
+            f"breadth={r['breadth_pct']}%  n={r['stock_count']}  "
+            f"state={r.get('market_state','—')}  {dir_icon} {r.get('transition_label','')}")
 
     log("=" * 78)
     log("Layer 0：市場快照（優先 TW Market Data 官方 TAIEX，退回 0050 代理）")

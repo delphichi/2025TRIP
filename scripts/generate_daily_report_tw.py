@@ -172,6 +172,7 @@ def sector_row(r, point_rank=None):
     inst_avg_cls = "up" if (inst_avg is not None and inst_avg == inst_avg and inst_avg > 0) else (
         "down" if (inst_avg is not None and inst_avg == inst_avg and inst_avg < 0) else "flat")
     cpd_html = cpd_cell(r)
+    trans_html = transition_cell(r)
 
     # n<3：這個「板塊」point 其實就是 1-2 檔個股的走勢，不是板塊性訊號，用斜體+灰階
     # 視覺上跟真正有寬度的板塊區分開，不用使用者自己去看 n 欄位才注意到。
@@ -193,6 +194,7 @@ def sector_row(r, point_rank=None):
           <td class="n {inst_cls}">{inst_html}</td>
           <td class="n {inst_avg_cls}">{inst_avg_html}</td>
           {cpd_html}
+          {trans_html}
         </tr>'''
 
 
@@ -201,27 +203,55 @@ CPD_META = {
     "💰 Capital Leading": "cpd-leading",
     "⚠️ Price Leading": "cpd-warn",
     "❄️ Weak": "cpd-weak",
+    "🔥 Overheated": "cpd-overheat",
 }
 
 
 def cpd_cell(r):
-    q = r.get("cpd_quadrant")
+    # market_state：跟 cpd_quadrant 大部分時候相同，差異只在「連兩天 Confirmed
+    # 但寬度掉超過門檻」被 add_transition_sensor() 升級成 🔥 Overheated 的情況——
+    # 這裡優先顯示 market_state，比純象限早一步標出退燒徵兆。
+    raw_q = r.get("cpd_quadrant")
+    q = r.get("market_state") or raw_q
     cpd = r.get("cpd")
     if not q or q != q:
         return '<td><span class="dow-none">—</span></td>'
     cls = CPD_META.get(q, "cpd-weak")
     cpd_str = num(cpd, 2, sign=True) if cpd is not None else ""
-    return f'<td><span class="cpd {cls}" title="CPD = Z(法人金額) - Z(SectorPoint)：{cpd_str}">{escape(q)}</span></td>'
+    title = f"CPD = Z(法人金額) - Z(SectorPoint)：{cpd_str}"
+    if q != raw_q:
+        title += f" · 原始象限 {raw_q}（連兩日 Confirmed 但寬度下滑，判定過熱/出貨徵兆）"
+    return f'<td><span class="cpd {cls}" title="{escape(title)}">{escape(q)}</span></td>'
+
+
+TRANSITION_DIR_META = {
+    "ADVANCING": ("trans-adv", "🔼"),
+    "REVERSING": ("trans-rev", "🔽"),
+    "STEADY": ("trans-steady", "→"),
+    "NEW": ("trans-new", "·"),
+}
+
+
+def transition_cell(r):
+    """Transition Sensor：昨天 → 今天板塊移動到哪個象限，比單看今天排名更早看出
+    「正往資金價格雙確認推進」還是「正在退燒」。NEW = 沒有前一日資料可比對
+    （第一次執行，或這個板塊今天才第一次出現在股票池）。"""
+    direction = r.get("transition_dir")
+    label = r.get("transition_label") or "—"
+    cls, icon = TRANSITION_DIR_META.get(direction, ("trans-new", "·"))
+    return f'<td><span class="trans {cls}">{icon}</span> <span class="dim">{escape(label)}</span></td>'
 
 
 def cpd_matrix_html(rows_sorted):
-    """四象限分組卡：💰 Capital Leading 是狩獵區（資金已進、價格尚未反映）；
-    🚀 Confirmed 資金價格同步；⚠️ Price Leading 價格已動法人沒跟，追高風險；
-    ❄️ Weak 都沒動靜。每個象限內依 |CPD| 由大到小排（背離越明顯排越前面）。
+    """狀態卡：💰 Capital Leading 是狩獵區（資金已進、價格尚未反映）；🚀 Confirmed
+    資金價格同步；⚠️ Price Leading 價格已動法人沒跟，追高風險；❄️ Weak 都沒動靜；
+    🔥 Overheated 是從 Confirmed 分出來的過熱/出貨徵兆（見 cpd_cell 的 market_state
+    邏輯）。用 market_state 分組（不是原始 cpd_quadrant），每組內依 |CPD| 由大到小排。
     """
-    buckets = {"💰 Capital Leading": [], "🚀 Confirmed": [], "⚠️ Price Leading": [], "❄️ Weak": []}
+    buckets = {"💰 Capital Leading": [], "🚀 Confirmed": [], "⚠️ Price Leading": [],
+               "❄️ Weak": [], "🔥 Overheated": []}
     for r in rows_sorted:
-        q = r.get("cpd_quadrant")
+        q = r.get("market_state") or r.get("cpd_quadrant")
         if q in buckets:
             buckets[q].append(r)
 
@@ -235,7 +265,7 @@ def cpd_matrix_html(rows_sorted):
         buckets[q].sort(key=_cpd, reverse=True)
 
     col_cls = {"💰 Capital Leading": "leading", "🚀 Confirmed": "confirmed",
-               "⚠️ Price Leading": "warn", "❄️ Weak": "weak"}
+               "⚠️ Price Leading": "warn", "❄️ Weak": "weak", "🔥 Overheated": "overheat"}
     cols = []
     for label, items in buckets.items():
         lis = "".join(
@@ -448,13 +478,20 @@ CSS = '''
   .cpd-leading { background:#fef3c7; color:#92400e; border:1px solid #fbbf24; }
   .cpd-warn { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
   .cpd-weak { background:#f3f4f6; color:#6b7280; }
-  .cpdcols { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .cpd-overheat { background:#fecaca; color:#7f1d1d; border:1px solid #ef4444; font-weight:700; }
+  .trans { display:inline-block; padding:1px 6px; border-radius:8px; font-size:11px; font-weight:700; }
+  .trans-adv { background:#dcfce7; color:#166534; }
+  .trans-rev { background:#fee2e2; color:#991b1b; }
+  .trans-steady { background:#f3f4f6; color:#6b7280; }
+  .trans-new { background:#f3f4f6; color:#9ca3af; }
+  .cpdcols { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
   @media(max-width:640px) { .cpdcols { grid-template-columns:1fr; } }
   .cpdcol { background:#f9fafb; border-radius:8px; padding:10px 12px; border-left:3px solid var(--muted); }
   .cpdcol.leading { border-left-color:#f59e0b; background:#fffbeb; }
   .cpdcol.confirmed { border-left-color:#22c55e; background:#f0fdf4; }
   .cpdcol.warn { border-left-color:#ef4444; background:#fef2f2; }
   .cpdcol.weak { border-left-color:#94a3b8; background:#f9fafb; }
+  .cpdcol.overheat { border-left-color:#b91c1c; background:#fef2f2; }
   .cpdcol h4 { margin:0 0 6px 0; font-size:13px; color:var(--navy); }
   .cpdcol .cnt { font-size:11px; color:var(--muted); margin-left:6px; }
   .cpdcol ul { margin:0; padding-left:0; list-style:none; font-size:12px; }
@@ -581,7 +618,8 @@ def render(scorecard, stage2):
               <th class="n" title="板塊內 4W 累報 > 0 的股票比例">寬度</th>
               <th class="n" title="板塊內所有個股三大法人 20 日淨買賣加總（依最新收盤價換算金額）">法人 20d 淨買（金額）</th>
               <th class="n" title="法人 20d 淨買金額 ÷ 板塊成分股數——原始總額板塊間不能直接比大小（成分股數量差很多），這欄才是可以跨板塊比較的正規化指標">平均每檔淨買</th>
-              <th title="CPD = Z(法人金額) - Z(SectorPoint)，跨板塊橫斷面相對排名，非嚴謹統計顯著性。💰 Capital Leading = 資金先進、價格尚未反映（狩獵區）">CPD 象限</th></tr>
+              <th title="CPD = Z(法人金額) - Z(SectorPoint)，跨板塊橫斷面相對排名，非嚴謹統計顯著性。💰 Capital Leading = 資金先進、價格尚未反映（狩獵區）· 🔥 Overheated = 連兩日 Confirmed 但寬度下滑，過熱/出貨徵兆">狀態</th>
+              <th title="Transition Sensor：昨天 → 今天板塊移動到哪個狀態，比單看今天排名更早看出正在推進還是退燒">轉移</th></tr>
         </thead>
         <tbody>{sector_rows_html}</tbody>
       </table>
