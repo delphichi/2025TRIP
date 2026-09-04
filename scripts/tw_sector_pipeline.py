@@ -526,6 +526,9 @@ def fetch_institutional_flow(stock_id, start_date, end_date, latest_close=None):
     if df.empty:
         return None
     df["net"] = pd.to_numeric(df["buy"], errors="coerce").fillna(0) - pd.to_numeric(df["sell"], errors="coerce").fillna(0)
+    # date 轉成 Timestamp（不只是排序用的字串）——_inst_20d_asof() 之後要拿 yfinance
+    # 價格序列的 Timestamp 索引來對 pivot 做 .loc[:date] 切片，型別要一致。
+    df["date"] = pd.to_datetime(df["date"])
     pivot = df.groupby(["date", "group"])["net"].sum().unstack(fill_value=0).sort_index()
 
     def _sum_last(n, col):
@@ -546,6 +549,12 @@ def fetch_institutional_flow(stock_id, start_date, end_date, latest_close=None):
     }
     if latest_close:
         result["inst_total_net_20d_est_NTD_M"] = round(total * latest_close / 1e6, 1)
+    # fm_fetch 這次呼叫其實抓了 start_date~end_date 整段（14 個月）的逐日法人買賣，
+    # 上面只取了最後 20 天算今天的總額，其餘全部被丟掉。這裡把逐日 pivot 也帶出去，
+    # 讓 main() 可以在同一次執行、零額外 API 呼叫的情況下，回填過去幾天的板塊 CPD
+    # 歷史（見 backfill_transition_history()）。呼叫端要記得 pop 掉這個 key 再存進
+    # all_rows，不然會混進 tw_*_all.csv。
+    result["_daily_net_pivot"] = pivot
     return result
 
 
@@ -641,6 +650,10 @@ TRANSITION_DIR_ICON = {"ADVANCING": "🔼", "REVERSING": "🔽", "STEADY": "→"
 # 連續兩天都是 Confirmed，但寬度掉超過這個百分點 → 判定過熱/出貨徵兆，即使 CPD
 # 象限本身還沒翻轉（象限翻轉通常已經晚了，這裡是想抓早一步的退燒訊號）。
 OVERHEAT_BREADTH_DROP_PCT = 15
+# backfill_transition_history() 回填幾個交易日的歷史 scorecard，讓 Transition
+# Sensor 第一次執行就有真實資料可比，不用等「明天」——用的是這次執行本來就抓好的
+# 14 個月價量/法人歷史，不多打一次 API。
+TRANSITION_BACKFILL_DAYS = 10
 
 
 def add_sector_cpd(df):
@@ -748,6 +761,126 @@ def add_transition_sensor(df, as_of):
 
     trans = df.apply(_row, axis=1)
     return pd.concat([df, trans], axis=1)
+
+
+def _point_series_for_stock(close, min_len=131):
+    """向量化算出整條 close 序列裡，每個「有足夠歷史」的日期的 point + cum_ret_4w。
+    跟 compute_stock_row() 的 point 公式完全一樣（r4*0.25+r13*0.25+r26*0.5），只是
+    compute_stock_row 只回傳最後一天，這裡回傳整條序列，backfill 才能一次拿到過去
+    N 天各自的 point，不用重複呼叫。"""
+    s = close.dropna().astype(float)
+    if len(s) < min_len:
+        return None
+    # compute_stock_row() 用 close.iloc[-20]/[-65]/[-130]：對「最後一天」來說，
+    # iloc[-20] 是往前 19 天（不是 20 天），所以這裡要 shift(19)/(64)/(129) 才會跟
+    # 它對同一天算出同一個 point，不能直接用 20/65/130（差一天）。
+    r4 = s / s.shift(19) - 1
+    r13 = s / s.shift(64) - 1
+    r26 = s / s.shift(129) - 1
+    point = (r4 * 0.25 + r13 * 0.25 + r26 * 0.50) * 100
+    out = pd.DataFrame({"point": point, "cum_ret_4w": r4 * 100}).dropna()
+    return out if not out.empty else None
+
+
+def _inst_20d_asof(pivot, date, latest_close):
+    """從逐日法人淨買 pivot 裡，算出「截至 date（含）」的 20 個交易日滾動總額
+    （NTD 百萬）——跟 fetch_institutional_flow() 對「今天」做的事完全一樣，只是
+    這裡可以對任何一個過去的 date 做，不用重新打 API。"""
+    if pivot is None or pivot.empty or latest_close is None:
+        return None
+    sub = pivot.loc[:date]
+    if sub.empty:
+        return None
+    cols = [c for c in ("foreign", "trust", "dealer") if c in sub.columns]
+    if not cols:
+        return None
+    n = min(20, len(sub))
+    total_shares = float(sub[cols].iloc[-n:].sum().sum())
+    return round(total_shares * latest_close / 1e6, 1)
+
+
+def backfill_transition_history(universe, batch, yf_tickers, inst_daily_pivots, as_of,
+                                 days=TRANSITION_BACKFILL_DAYS):
+    """把這次執行本來就抓好的價量/法人歷史（14 個月），拿來回填過去幾個交易日的
+    板塊 scorecard——讓 Transition Sensor 第一次執行就有真實資料可比，不用等
+    「明天」才有前一日快照。零額外 API 呼叫：
+      - Point/寬度：yfinance 批次價量本來就是整段歷史，只是平常只算「今天」這天。
+      - 法人 20 日滾動總額：fetch_institutional_flow() 內部本來就抓了整段每日
+        買賣明細，只是平常只取最後 20 天算「今天」的總額，中間全部被丟掉——這裡
+        用 main() 順手留下來的 inst_daily_pivots 重新滾動計算過去每一天。
+    只補「檔案還不存在」的日期，不覆蓋任何已經真實存過的 scorecard。回傳實際
+    寫入的天數。法人資料只涵蓋額度用完前成功抓到的股票（inst_daily_pivots 沒有
+    的股票，回填的那幾天 inst_net_20d_est_NTD_M 就是 None）——跟平常執行同樣的
+    額度限制，不是這裡新增的缺陷。
+    """
+    stock_series = {}
+    for u in universe:
+        sid = u["stock_id"]
+        yft = yf_tickers.get(sid)
+        if not yft or yft not in batch["close"].columns:
+            continue
+        pdf = _point_series_for_stock(batch["close"][yft])
+        if pdf is not None:
+            stock_series[sid] = (pdf, batch["close"][yft].dropna().astype(float))
+
+    if not stock_series:
+        return 0
+
+    all_dates = sorted(set().union(*(pdf.index for pdf, _ in stock_series.values())))
+    if len(all_dates) < 2:
+        return 0
+    backfill_dates = all_dates[:-1][-days:]  # 排除「今天」，只回填今天以前最近 N 天
+
+    sector_by_stock = {u["stock_id"]: u["industry_category"] for u in universe}
+    written = 0
+    for d in backfill_dates:
+        stamp = d.strftime("%Y%m%d")
+        out_path = os.path.join(OUTDIR, f"tw_{stamp}_scorecard.csv")
+        if os.path.exists(out_path):
+            continue  # 已經有真實存檔（正常排程跑過），不覆蓋
+
+        rows = []
+        for sid, (pdf, close) in stock_series.items():
+            if d not in pdf.index:
+                continue
+            inst_ntd = None
+            pivot = inst_daily_pivots.get(sid)
+            if pivot is not None:
+                px = close.loc[:d]
+                if not px.empty:
+                    inst_ntd = _inst_20d_asof(pivot, d, float(px.iloc[-1]))
+            rows.append({
+                "sector": sector_by_stock.get(sid, "其他"),
+                "point": float(pdf.loc[d, "point"]),
+                "cum_ret_4w": float(pdf.loc[d, "cum_ret_4w"]),
+                "inst_net_20d_est_NTD_M": inst_ntd,
+            })
+        if not rows:
+            continue
+
+        day_df = pd.DataFrame(rows)
+        sec_rows = []
+        for sector, g in day_df.groupby("sector"):
+            n = len(g)
+            breadth_up = int((g["cum_ret_4w"] > 0).sum())
+            inst_sum = (float(g["inst_net_20d_est_NTD_M"].dropna().sum())
+                        if g["inst_net_20d_est_NTD_M"].notna().any() else None)
+            sec_rows.append({
+                "sector": sector, "as_of_date": d.strftime("%Y-%m-%d"), "stock_count": n,
+                "point": round(float(g["point"].mean()), 2),
+                "breadth_pct": round(100 * breadth_up / n, 1) if n else None,
+                "breadth_up": breadth_up, "breadth_total": n,
+                "inst_net_20d_est_NTD_M": round(inst_sum, 1) if inst_sum is not None else None,
+                "inst_net_20d_est_NTD_M_per_stock": round(inst_sum / n, 2) if inst_sum is not None and n else None,
+            })
+        if not sec_rows:
+            continue
+        sector_day_df = pd.DataFrame(sec_rows).sort_values("point", ascending=False).reset_index(drop=True)
+        sector_day_df = add_sector_cpd(sector_day_df)
+        sector_day_df.to_csv(out_path, index=False)
+        written += 1
+
+    return written
 
 
 # ============================================================
@@ -968,6 +1101,7 @@ def main():
     all_rows = []
     failed = []
     inst_quota_exhausted = False
+    inst_daily_pivots = {}  # stock_id -> 逐日法人淨買 pivot，只給 backfill_transition_history() 用
     for i, u in enumerate(universe, 1):
         sid = u["stock_id"]
         yft = yf_tickers[sid]
@@ -989,6 +1123,9 @@ def main():
             try:
                 inst = fetch_institutional_flow(sid, start_date, end_date, latest_close=row["t_price"])
                 if inst:
+                    pivot = inst.pop("_daily_net_pivot", None)
+                    if pivot is not None and not pivot.empty:
+                        inst_daily_pivots[sid] = pivot
                     row.update(inst)
             except Exception as e:
                 if "額度用完" in str(e):
@@ -1010,6 +1147,16 @@ def main():
     log(f"  → as_of_date（實際資料眾數）= {as_of} · 成功 {len(all_df)} / 失敗 {len(failed)}")
 
     all_df = add_stock_ranks(all_df)
+
+    log("=" * 78)
+    log("歷史回填：用這次抓好的價量/法人歷史，補過去幾天的 scorecard（不吃額外 API 額度）")
+    log("=" * 78)
+    try:
+        n_backfilled = backfill_transition_history(universe, batch, yf_tickers, inst_daily_pivots, as_of)
+        log(f"  📜 回填 {n_backfilled} 天歷史 scorecard"
+            + ("（Transition Sensor 這次執行就能比對真實資料，不用等明天）" if n_backfilled else "（沒有缺口需要補，或資料不足）"))
+    except Exception as e:
+        log(f"⚠ 歷史回填失敗（不影響今天的主要輸出）: {e}")
 
     log("=" * 78)
     log("Layer 1：板塊（industry_category）聚合")
