@@ -492,6 +492,10 @@ def aggregate_sectors(stock_rows, as_of):
         inst_net = float(g[inst_col].dropna().sum()) if inst_col in g.columns and g[inst_col].notna().any() else None
         ntd_col = "inst_total_net_20d_est_NTD_M"
         inst_net_ntd = float(g[ntd_col].dropna().sum()) if ntd_col in g.columns and g[ntd_col].notna().any() else None
+        # 板塊間原始金額不能直接比大小——成分股數量差很多（例如金融保險 19 檔 vs
+        # 航運業 7 檔），金額大很可能只是「板塊夠大」而不是「資金真的比較集中」。
+        # 平均每檔淨買才是可以跨板塊比較的正規化指標。
+        inst_net_ntd_per_stock = round(inst_net_ntd / n, 2) if inst_net_ntd is not None and n else None
         groups.append({
             "sector": sector, "as_of_date": as_of, "stock_count": n,
             "point": round(point, 2),
@@ -499,6 +503,7 @@ def aggregate_sectors(stock_rows, as_of):
             "breadth_pct": breadth_pct, "breadth_up": breadth_up, "breadth_total": n,
             "inst_net_20d_shares": inst_net,
             "inst_net_20d_est_NTD_M": inst_net_ntd,
+            "inst_net_20d_est_NTD_M_per_stock": inst_net_ntd_per_stock,
         })
     return pd.DataFrame(groups).sort_values("point", ascending=False).reset_index(drop=True)
 
@@ -690,6 +695,24 @@ def fetch_market_snapshot(start_date, end_date):
     }
 
 
+def select_top3_per_sector(all_df):
+    """各板塊 Top 3 候選池：先排除「🔥 追高風險」（explosive_verdict 判定為追高，
+    通常已經漲多、追價風險高，不該被推薦為「這個板塊裡最值得看的」），再依
+    composite_in_sector（point + vp_score 加權，越小越好）在健康候選裡重新排名，
+    取前 3——不是先取全板塊 top3 再篩，而是先篩健康再取 top3，這樣才能讓排名第 4、
+    第 5 名的健康股票遞補上來，而不是排名前 3 卻是追高股時整個板塊沒東西可看。
+    如果某板塊全部成分股都被標記追高風險，這個板塊在這裡就不會有任何候選——沒有
+    健康的可以顯示，比硬塞 3 檔追高股更誠實。
+    """
+    healthy = all_df[all_df["explosive_verdict"] != "🔥 追高風險"].copy()
+    if healthy.empty:
+        return healthy
+    healthy["health_rank_in_sector"] = healthy.groupby("sector")["composite_in_sector"].rank(
+        method="min", ascending=True)
+    return (healthy[healthy["health_rank_in_sector"] <= 3]
+            .sort_values(["sector", "health_rank_in_sector"]))
+
+
 # ============================================================
 # 7. 輸出
 # ============================================================
@@ -722,10 +745,8 @@ def save_outputs(all_df, sector_df, as_of, market_snapshot, failed):
         json.dump(_json_safe(scorecard_manifest), f, ensure_ascii=False, indent=2, allow_nan=False)
     log(f"  saved manifest {MANIFEST_PATH}")
 
-    # Stage2 latest.json：跟美股版同精神，top3（依 composite_rank_in_sector）+ 全量 all
-    top3 = (all_df[all_df["composite_rank_in_sector"] <= 3]
-            .sort_values(["sector", "composite_rank_in_sector"])
-            .to_dict(orient="records"))
+    # Stage2 latest.json：跟美股版同精神，top3 + 全量 all
+    top3 = select_top3_per_sector(all_df).to_dict(orient="records")
     stage2 = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "as_of_date": as_of,

@@ -32,9 +32,13 @@ on:
         required: false
         default: ''
       universe_size:
-        description: '股票池大小（UNIVERSE_SEED 前 N 檔，非市值排名）· 免費 tier 300 次/小時，N×2+3 不要超過'
+        description: '股票池大小（依 TWSE 即時市值排名前 N 檔；排名失敗才退回 UNIVERSE_SEED 靜態清單）· 免費 tier 300 次/小時，N×2+3 不要超過'
         required: false
         default: '100'
+      report_only:
+        description: '只重新排版報表（跳過 pipeline 抓資料 + TWSE 快照，不吃任何 API 額度）· 用已 commit 的 tw_*.csv/json 重跑 generate_daily_report_tw.py，適合純調報表排版/顯示邏輯時用'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -57,6 +61,7 @@ jobs:
           pip install pandas requests
 
       - name: Run TW sector pipeline (Layer 0-3)
+        if: ${{ !inputs.report_only }}
         shell: bash
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
@@ -81,6 +86,7 @@ jobs:
       # 兩個 endpoint 都只回傳「當下最新交易日」，累積夠歷史前先純存檔；continue-on-error
       # 保底（腳本內部本身也吞了所有例外，正常不會讓這步失敗）。
       - name: Snapshot TWSE OpenAPI (MI_INDEX + STOCK_DAY_ALL)
+        if: ${{ !inputs.report_only }}
         continue-on-error: true
         shell: bash
         run: |

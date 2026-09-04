@@ -151,7 +151,7 @@ def top_stock_row(r):
         </tr>'''
 
 
-def sector_row(r):
+def sector_row(r, point_rank=None):
     sec = escape(r.get("sector", ""))
     pt = num(r.get("point"), 1)
     acc = r.get("acceleration")
@@ -160,19 +160,38 @@ def sector_row(r):
         "down" if (acc is not None and acc == acc and acc < 0) else "flat")
     breadth = r.get("breadth_pct")
     breadth_str = f"{breadth:.0f}%" if breadth is not None and breadth == breadth else "—"
-    n = r.get("stock_count", 0)
+    n = int(r.get("stock_count") or 0)
     inst = r.get("inst_net_20d_est_NTD_M")
     inst_html = ntd_amount(inst)
     inst_cls = "up" if (inst is not None and inst == inst and inst > 0) else (
         "down" if (inst is not None and inst == inst and inst < 0) else "flat")
+    # 平均每檔淨買：正規化過的金額，才能跨板塊比較（原始總額板塊成分股數量差很多，
+    # 金額大很可能只是板塊夠大，不是資金真的比較集中）。
+    inst_avg = r.get("inst_net_20d_est_NTD_M_per_stock")
+    inst_avg_html = ntd_amount(inst_avg)
+    inst_avg_cls = "up" if (inst_avg is not None and inst_avg == inst_avg and inst_avg > 0) else (
+        "down" if (inst_avg is not None and inst_avg == inst_avg and inst_avg < 0) else "flat")
     cpd_html = cpd_cell(r)
+
+    # n<3：這個「板塊」point 其實就是 1-2 檔個股的走勢，不是板塊性訊號，用斜體+灰階
+    # 視覺上跟真正有寬度的板塊區分開，不用使用者自己去看 n 欄位才注意到。
+    row_cls = ' class="thin-sector"' if n < 3 else ""
+    n_html = f'<span class="dim">n={n}{" ⚠️樣本過少" if n < 3 else ""}</span>'
+
+    # 寬度 < 20% 但 point 排進全表前 3 名：多半是單一極端值撐起來的高分，不是板塊性
+    # 資金輪動——這個矛盾很直接，不該讓使用者自己交叉比對「寬度」跟「排名」兩欄才發現。
+    extreme_html = ""
+    if point_rank is not None and point_rank < 3 and breadth is not None and breadth == breadth and breadth < 20:
+        extreme_html = ' <span class="alert" title="寬度過低但 point 排進全表前 3 名，高分可能是單一極端值撐起來的，不代表板塊性趨勢">⚠️ 極端值驅動</span>'
+
     return f'''
-        <tr>
-          <td><b>{sec}</b> <span class="dim">n={n}</span></td>
-          <td class="n">{pt}</td>
+        <tr{row_cls}>
+          <td><b>{sec}</b> {n_html}</td>
+          <td class="n">{pt}{extreme_html}</td>
           <td class="n {acc_cls}">{acc_str}</td>
           <td class="n">{breadth_str}</td>
           <td class="n {inst_cls}">{inst_html}</td>
+          <td class="n {inst_avg_cls}">{inst_avg_html}</td>
           {cpd_html}
         </tr>'''
 
@@ -391,6 +410,9 @@ CSS = '''
   tr:last-child td { border-bottom:none; }
   .empty { text-align:center; padding:16px; color:var(--muted); font-style:italic; }
   .alert { background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:10px; font-size:11px; }
+  tr.thin-sector { font-style:italic; color:var(--muted); }
+  tr.thin-sector td { color:var(--muted); }
+  tr.thin-sector .cpd, tr.thin-sector .up, tr.thin-sector .down { opacity:.7; }
   .dow {
     display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
     white-space:nowrap;
@@ -468,8 +490,8 @@ def render(scorecard, stage2):
     all_rows = load_all_stocks(as_of)
     top_stocks = (stage2.get("top3", {}) or {}).get("composite", [])
 
-    sector_rows_html = "".join(sector_row(r) for r in rows_sorted) \
-        or '<tr><td colspan="6" class="empty">今日無板塊資料</td></tr>'
+    sector_rows_html = "".join(sector_row(r, i) for i, r in enumerate(rows_sorted)) \
+        or '<tr><td colspan="7" class="empty">今日無板塊資料</td></tr>'
 
     # 排序：先依板塊（跟上面 📊 板塊表同一個 point 排名順序），同板塊內再依「個股 20 日
     # 全部成交金額」由大到小——這是市場關注度/熱度（誰在被交易），跟「法人 20d」欄位
@@ -491,14 +513,18 @@ def render(scorecard, stage2):
     top_rows_html = "".join(top_stock_row(r) for r in top_stocks_sorted) \
         or '<tr><td colspan="12" class="empty">今日無個股資料</td></tr>'
 
-    leader = rows_sorted[0] if rows_sorted else None
-    laggard = rows_sorted[-1] if rows_sorted else None
+    # 領先/落後板塊只從 n>=3（至少 3 檔成分股）的板塊裡挑——n=1/n=2 的「板塊」point
+    # 其實就是單一個股的走勢，不是真正的板塊性訊號，選進 TL;DR headline 會誤導使用者
+    # 去追一個不存在的「板塊趨勢」。
+    tldr_candidates = [r for r in rows_sorted if int(r.get("stock_count") or 0) >= 3]
+    leader = tldr_candidates[0] if tldr_candidates else None
+    laggard = tldr_candidates[-1] if tldr_candidates else None
     tldr_parts = []
     if leader:
         tldr_parts.append(f"領先板塊：{leader['sector']}（point {num(leader.get('point'),1)}）")
     if laggard and laggard is not leader:
         tldr_parts.append(f"落後板塊：{laggard['sector']}（point {num(laggard.get('point'),1)}）")
-    tldr = " · ".join(tldr_parts) if tldr_parts else "資料不足"
+    tldr = " · ".join(tldr_parts) if tldr_parts else "板塊成分股數都太少（n<3），無足夠寬度的領先/落後訊號"
 
     failed = scorecard.get("failed_tickers") or []
     budget = scorecard.get("request_budget_used")
@@ -554,6 +580,7 @@ def render(scorecard, stage2):
               <th class="n" title="今日 point - 過去 5 日 point 均值 · 首次執行前 5 天沒歷史資料會是 —">加速度</th>
               <th class="n" title="板塊內 4W 累報 > 0 的股票比例">寬度</th>
               <th class="n" title="板塊內所有個股三大法人 20 日淨買賣加總（依最新收盤價換算金額）">法人 20d 淨買（金額）</th>
+              <th class="n" title="法人 20d 淨買金額 ÷ 板塊成分股數——原始總額板塊間不能直接比大小（成分股數量差很多），這欄才是可以跨板塊比較的正規化指標">平均每檔淨買</th>
               <th title="CPD = Z(法人金額) - Z(SectorPoint)，跨板塊橫斷面相對排名，非嚴謹統計顯著性。💰 Capital Leading = 資金先進、價格尚未反映（狩獵區）">CPD 象限</th></tr>
         </thead>
         <tbody>{sector_rows_html}</tbody>
