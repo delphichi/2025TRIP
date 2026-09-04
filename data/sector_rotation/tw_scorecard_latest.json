@@ -1,259 +1,399 @@
 {
-  "generated_at": "2026-09-04T13:11:09.911470+00:00",
+  "generated_at": "2026-09-04T13:43:07.473646+00:00",
   "as_of_date": "2026-09-04",
   "phase": 1,
   "phase_note": "Phase 1：Layer 0-3 用官方 industry_category 粗分類，沒有供應鏈次產業細分（Layer 1.5）跟 S1-S5 感測器（留 Phase 2）",
-  "sector_count": 16,
+  "sector_count": 6,
   "market_snapshot": {
-    "proxy": "0050",
+    "proxy": "TAIEX",
+    "source": "twse_official(TW Market Data)",
     "as_of_date": "2026-09-04",
-    "price": 107.9,
-    "vs_60d_pct": 7.63,
-    "ma50": 104.33,
-    "vs_50ma_pct": 3.42,
+    "price": 46551.13,
+    "vs_60d_pct": 4.13,
+    "ma50": 44902.72,
+    "vs_50ma_pct": 3.67,
     "trend_label": "🟢"
   },
   "request_budget_used": 129,
-  "failed_tickers": [],
+  "failed_tickers": [
+    {
+      "stock_id": "8046",
+      "reason": "TaiwanStockPrice(8046) HTTP 402"
+    },
+    {
+      "stock_id": "2357",
+      "reason": "TaiwanStockPrice(2357) HTTP 402"
+    },
+    {
+      "stock_id": "2886",
+      "reason": "TaiwanStockPrice(2886) HTTP 402"
+    },
+    {
+      "stock_id": "2301",
+      "reason": "TaiwanStockPrice(2301) HTTP 402"
+    },
+    {
+      "stock_id": "6505",
+      "reason": "TaiwanStockPrice(6505) HTTP 402"
+    },
+    {
+      "stock_id": "2884",
+      "reason": "TaiwanStockPrice(2884) HTTP 402"
+    },
+    {
+      "stock_id": "2890",
+      "reason": "TaiwanStockPrice(2890) HTTP 402"
+    },
+    {
+      "stock_id": "2368",
+      "reason": "TaiwanStockPrice(2368) HTTP 402"
+    },
+    {
+      "stock_id": "6446",
+      "reason": "TaiwanStockPrice(6446) HTTP 402"
+    },
+    {
+      "stock_id": "2395",
+      "reason": "TaiwanStockPrice(2395) HTTP 402"
+    },
+    {
+      "stock_id": "2880",
+      "reason": "TaiwanStockPrice(2880) HTTP 402"
+    },
+    {
+      "stock_id": "2883",
+      "reason": "TaiwanStockPrice(2883) HTTP 402"
+    },
+    {
+      "stock_id": "3231",
+      "reason": "TaiwanStockPrice(3231) HTTP 402"
+    },
+    {
+      "stock_id": "4958",
+      "reason": "TaiwanStockPrice(4958) HTTP 402"
+    },
+    {
+      "stock_id": "2892",
+      "reason": "TaiwanStockPrice(2892) HTTP 402"
+    },
+    {
+      "stock_id": "2603",
+      "reason": "TaiwanStockPrice(2603) HTTP 402"
+    },
+    {
+      "stock_id": "3665",
+      "reason": "TaiwanStockPrice(3665) HTTP 402"
+    },
+    {
+      "stock_id": "1216",
+      "reason": "TaiwanStockPrice(1216) HTTP 402"
+    },
+    {
+      "stock_id": "3045",
+      "reason": "TaiwanStockPrice(3045) HTTP 402"
+    },
+    {
+      "stock_id": "3189",
+      "reason": "TaiwanStockPrice(3189) HTTP 402"
+    },
+    {
+      "stock_id": "1301",
+      "reason": "TaiwanStockPrice(1301) HTTP 402"
+    },
+    {
+      "stock_id": "5880",
+      "reason": "TaiwanStockPrice(5880) HTTP 402"
+    },
+    {
+      "stock_id": "1326",
+      "reason": "TaiwanStockPrice(1326) HTTP 402"
+    },
+    {
+      "stock_id": "3481",
+      "reason": "TaiwanStockPrice(3481) HTTP 402"
+    },
+    {
+      "stock_id": "2379",
+      "reason": "TaiwanStockPrice(2379) HTTP 402"
+    },
+    {
+      "stock_id": "4904",
+      "reason": "TaiwanStockPrice(4904) HTTP 402"
+    },
+    {
+      "stock_id": "6770",
+      "reason": "TaiwanStockPrice(6770) HTTP 402"
+    },
+    {
+      "stock_id": "3661",
+      "reason": "TaiwanStockPrice(3661) HTTP 402"
+    },
+    {
+      "stock_id": "2449",
+      "reason": "TaiwanStockPrice(2449) HTTP 402"
+    },
+    {
+      "stock_id": "3034",
+      "reason": "TaiwanStockPrice(3034) HTTP 402"
+    },
+    {
+      "stock_id": "2615",
+      "reason": "TaiwanStockPrice(2615) HTTP 402"
+    },
+    {
+      "stock_id": "2313",
+      "reason": "TaiwanStockPrice(2313) HTTP 402"
+    },
+    {
+      "stock_id": "2801",
+      "reason": "TaiwanStockPrice(2801) HTTP 402"
+    },
+    {
+      "stock_id": "2002",
+      "reason": "TaiwanStockPrice(2002) HTTP 402"
+    },
+    {
+      "stock_id": "2207",
+      "reason": "TaiwanStockPrice(2207) HTTP 402"
+    },
+    {
+      "stock_id": "1590",
+      "reason": "TaiwanStockPrice(1590) HTTP 402"
+    },
+    {
+      "stock_id": "3044",
+      "reason": "TaiwanStockPrice(3044) HTTP 402"
+    },
+    {
+      "stock_id": "1519",
+      "reason": "TaiwanStockPrice(1519) HTTP 402"
+    },
+    {
+      "stock_id": "2337",
+      "reason": "TaiwanStockPrice(2337) HTTP 402"
+    },
+    {
+      "stock_id": "3036",
+      "reason": "TaiwanStockPrice(3036) HTTP 402"
+    },
+    {
+      "stock_id": "4938",
+      "reason": "TaiwanStockPrice(4938) HTTP 402"
+    },
+    {
+      "stock_id": "2376",
+      "reason": "TaiwanStockPrice(2376) HTTP 402"
+    },
+    {
+      "stock_id": "2356",
+      "reason": "TaiwanStockPrice(2356) HTTP 402"
+    },
+    {
+      "stock_id": "2618",
+      "reason": "TaiwanStockPrice(2618) HTTP 402"
+    },
+    {
+      "stock_id": "6515",
+      "reason": "TaiwanStockPrice(6515) HTTP 402"
+    },
+    {
+      "stock_id": "2912",
+      "reason": "TaiwanStockPrice(2912) HTTP 402"
+    },
+    {
+      "stock_id": "5876",
+      "reason": "TaiwanStockPrice(5876) HTTP 402"
+    },
+    {
+      "stock_id": "6239",
+      "reason": "TaiwanStockPrice(6239) HTTP 402"
+    },
+    {
+      "stock_id": "2609",
+      "reason": "TaiwanStockPrice(2609) HTTP 402"
+    },
+    {
+      "stock_id": "5871",
+      "reason": "TaiwanStockPrice(5871) HTTP 402"
+    },
+    {
+      "stock_id": "2404",
+      "reason": "TaiwanStockPrice(2404) HTTP 402"
+    },
+    {
+      "stock_id": "2409",
+      "reason": "TaiwanStockPrice(2409) HTTP 402"
+    },
+    {
+      "stock_id": "6213",
+      "reason": "TaiwanStockPrice(6213) HTTP 402"
+    },
+    {
+      "stock_id": "3533",
+      "reason": "TaiwanStockPrice(3533) HTTP 402"
+    },
+    {
+      "stock_id": "1101",
+      "reason": "TaiwanStockPrice(1101) HTTP 402"
+    },
+    {
+      "stock_id": "2324",
+      "reason": "TaiwanStockPrice(2324) HTTP 402"
+    },
+    {
+      "stock_id": "6139",
+      "reason": "TaiwanStockPrice(6139) HTTP 402"
+    },
+    {
+      "stock_id": "1802",
+      "reason": "TaiwanStockPrice(1802) HTTP 402"
+    },
+    {
+      "stock_id": "2834",
+      "reason": "TaiwanStockPrice(2834) HTTP 402"
+    },
+    {
+      "stock_id": "1605",
+      "reason": "TaiwanStockPrice(1605) HTTP 402"
+    },
+    {
+      "stock_id": "1504",
+      "reason": "TaiwanStockPrice(1504) HTTP 402"
+    },
+    {
+      "stock_id": "3702",
+      "reason": "TaiwanStockPrice(3702) HTTP 402"
+    },
+    {
+      "stock_id": "7750",
+      "reason": "TaiwanStockPrice(7750) HTTP 402"
+    },
+    {
+      "stock_id": "6415",
+      "reason": "TaiwanStockPrice(6415) HTTP 402"
+    },
+    {
+      "stock_id": "6805",
+      "reason": "TaiwanStockPrice(6805) HTTP 402"
+    },
+    {
+      "stock_id": "1402",
+      "reason": "TaiwanStockPrice(1402) HTTP 402"
+    },
+    {
+      "stock_id": "6531",
+      "reason": "TaiwanStockPrice(6531) HTTP 402"
+    },
+    {
+      "stock_id": "6789",
+      "reason": "TaiwanStockPrice(6789) HTTP 402"
+    },
+    {
+      "stock_id": "6919",
+      "reason": "TaiwanStockPrice(6919) HTTP 402"
+    },
+    {
+      "stock_id": "3532",
+      "reason": "TaiwanStockPrice(3532) HTTP 402"
+    },
+    {
+      "stock_id": "2347",
+      "reason": "TaiwanStockPrice(2347) HTTP 402"
+    },
+    {
+      "stock_id": "2492",
+      "reason": "TaiwanStockPrice(2492) HTTP 402"
+    }
+  ],
   "csv": "tw_20260904_scorecard.csv",
   "rows": [
     {
-      "sector": "半導體業",
-      "as_of_date": "2026-09-04",
-      "stock_count": 2,
-      "point": 71.64,
-      "ret_4w": 21.57,
-      "ret_13w": 22.4,
-      "ret_26w": 121.31,
-      "breadth_pct": 100.0,
-      "breadth_up": 2,
-      "breadth_total": 2,
-      "inst_net_20d_shares": -7661749.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
       "sector": "塑膠工業",
       "as_of_date": "2026-09-04",
-      "stock_count": 3,
-      "point": 56.06,
-      "ret_4w": 19.77,
-      "ret_13w": 53.17,
-      "ret_26w": 75.65,
+      "stock_count": 1,
+      "point": 107.24,
+      "ret_4w": 21.89,
+      "ret_13w": 103.15,
+      "ret_26w": 151.96,
       "breadth_pct": 100.0,
-      "breadth_up": 3,
-      "breadth_total": 3,
-      "inst_net_20d_shares": 156760385.0,
+      "breadth_up": 1,
+      "breadth_total": 1,
+      "inst_net_20d_shares": -4078903.0,
       "point_5d_avg": null,
       "acceleration": null
     },
     {
       "sector": "電子零組件業",
       "as_of_date": "2026-09-04",
-      "stock_count": 6,
-      "point": 55.3,
-      "ret_4w": 2.95,
-      "ret_13w": 16.49,
-      "ret_26w": 100.88,
-      "breadth_pct": 66.7,
+      "stock_count": 5,
+      "point": 76.59,
+      "ret_4w": 10.47,
+      "ret_13w": 39.37,
+      "ret_26w": 128.26,
+      "breadth_pct": 80.0,
       "breadth_up": 4,
-      "breadth_total": 6,
-      "inst_net_20d_shares": -2234358.0,
+      "breadth_total": 5,
+      "inst_net_20d_shares": 50534279.0,
       "point_5d_avg": null,
       "acceleration": null
     },
     {
-      "sector": "油電燃氣業",
+      "sector": "半導體業",
       "as_of_date": "2026-09-04",
       "stock_count": 1,
-      "point": 31.37,
-      "ret_4w": 13.19,
-      "ret_13w": 35.83,
-      "ret_26w": 38.23,
+      "point": 74.91,
+      "ret_4w": 28.26,
+      "ret_13w": 32.05,
+      "ret_26w": 119.66,
       "breadth_pct": 100.0,
       "breadth_up": 1,
       "breadth_total": 1,
-      "inst_net_20d_shares": -25077053.0,
+      "inst_net_20d_shares": 2702942.0,
       "point_5d_avg": null,
       "acceleration": null
     },
     {
       "sector": "電子工業",
       "as_of_date": "2026-09-04",
-      "stock_count": 17,
-      "point": 29.23,
-      "ret_4w": 4.14,
-      "ret_13w": 3.79,
-      "ret_26w": 54.49,
-      "breadth_pct": 47.1,
-      "breadth_up": 8,
-      "breadth_total": 17,
-      "inst_net_20d_shares": 97353818.0,
+      "stock_count": 13,
+      "point": 34.27,
+      "ret_4w": 4.89,
+      "ret_13w": 1.7,
+      "ret_26w": 65.25,
+      "breadth_pct": 38.5,
+      "breadth_up": 5,
+      "breadth_total": 13,
+      "inst_net_20d_shares": -32137242.0,
       "point_5d_avg": null,
       "acceleration": null
     },
     {
       "sector": "金融保險",
       "as_of_date": "2026-09-04",
-      "stock_count": 10,
-      "point": 25.06,
-      "ret_4w": 7.56,
-      "ret_13w": 20.09,
-      "ret_26w": 36.31,
-      "breadth_pct": 80.0,
-      "breadth_up": 8,
-      "breadth_total": 10,
-      "inst_net_20d_shares": 906860728.0,
+      "stock_count": 5,
+      "point": 33.17,
+      "ret_4w": 10.36,
+      "ret_13w": 21.8,
+      "ret_26w": 50.26,
+      "breadth_pct": 100.0,
+      "breadth_up": 5,
+      "breadth_total": 5,
+      "inst_net_20d_shares": 229568727.0,
       "point_5d_avg": null,
       "acceleration": null
     },
     {
       "sector": "電腦及週邊設備業",
       "as_of_date": "2026-09-04",
-      "stock_count": 9,
-      "point": 23.38,
-      "ret_4w": 2.48,
-      "ret_13w": 0.43,
-      "ret_26w": 45.3,
-      "breadth_pct": 77.8,
-      "breadth_up": 7,
-      "breadth_total": 9,
-      "inst_net_20d_shares": 269877507.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "電子通路業",
-      "as_of_date": "2026-09-04",
-      "stock_count": 1,
-      "point": 19.24,
-      "ret_4w": -20.0,
-      "ret_13w": -10.73,
-      "ret_26w": 53.85,
-      "breadth_pct": 0.0,
-      "breadth_up": 0,
-      "breadth_total": 1,
-      "inst_net_20d_shares": -30505145.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "航運業",
-      "as_of_date": "2026-09-04",
       "stock_count": 3,
-      "point": 16.87,
-      "ret_4w": 17.7,
-      "ret_13w": 15.18,
-      "ret_26w": 17.29,
-      "breadth_pct": 100.0,
-      "breadth_up": 3,
+      "point": 8.54,
+      "ret_4w": -6.05,
+      "ret_13w": -12.27,
+      "ret_26w": 26.23,
+      "breadth_pct": 66.7,
+      "breadth_up": 2,
       "breadth_total": 3,
-      "inst_net_20d_shares": 412627124.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "電機機械",
-      "as_of_date": "2026-09-04",
-      "stock_count": 2,
-      "point": 12.7,
-      "ret_4w": -8.68,
-      "ret_13w": 3.95,
-      "ret_26w": 27.77,
-      "breadth_pct": 0.0,
-      "breadth_up": 0,
-      "breadth_total": 2,
-      "inst_net_20d_shares": 1380061.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "汽車工業",
-      "as_of_date": "2026-09-04",
-      "stock_count": 2,
-      "point": 3.69,
-      "ret_4w": 8.88,
-      "ret_13w": 9.5,
-      "ret_26w": -1.81,
-      "breadth_pct": 100.0,
-      "breadth_up": 2,
-      "breadth_total": 2,
-      "inst_net_20d_shares": -288173.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "其他電子業",
-      "as_of_date": "2026-09-04",
-      "stock_count": 1,
-      "point": 2.69,
-      "ret_4w": 4.23,
-      "ret_13w": -13.43,
-      "ret_26w": 9.97,
-      "breadth_pct": 100.0,
-      "breadth_up": 1,
-      "breadth_total": 1,
-      "inst_net_20d_shares": 2069227.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "食品工業",
-      "as_of_date": "2026-09-04",
-      "stock_count": 1,
-      "point": 2.07,
-      "ret_4w": 0.13,
-      "ret_13w": 2.72,
-      "ret_26w": 2.72,
-      "breadth_pct": 100.0,
-      "breadth_up": 1,
-      "breadth_total": 1,
-      "inst_net_20d_shares": 91914219.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "水泥工業",
-      "as_of_date": "2026-09-04",
-      "stock_count": 2,
-      "point": -0.89,
-      "ret_4w": 3.37,
-      "ret_13w": 1.4,
-      "ret_26w": -4.16,
-      "breadth_pct": 100.0,
-      "breadth_up": 2,
-      "breadth_total": 2,
-      "inst_net_20d_shares": 15210984.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "鋼鐵工業",
-      "as_of_date": "2026-09-04",
-      "stock_count": 1,
-      "point": -3.73,
-      "ret_4w": -2.8,
-      "ret_13w": -0.78,
-      "ret_26w": -5.68,
-      "breadth_pct": 0.0,
-      "breadth_up": 0,
-      "breadth_total": 1,
-      "inst_net_20d_shares": 85533969.0,
-      "point_5d_avg": null,
-      "acceleration": null
-    },
-    {
-      "sector": "運動休閒",
-      "as_of_date": "2026-09-04",
-      "stock_count": 2,
-      "point": -14.1,
-      "ret_4w": 0.11,
-      "ret_13w": -10.62,
-      "ret_26w": -22.94,
-      "breadth_pct": 50.0,
-      "breadth_up": 1,
-      "breadth_total": 2,
-      "inst_net_20d_shares": -8679413.0,
+      "inst_net_20d_shares": 48472610.0,
       "point_5d_avg": null,
       "acceleration": null
     }
