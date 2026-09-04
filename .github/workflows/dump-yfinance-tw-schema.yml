@@ -1,0 +1,46 @@
+name: dump-yfinance-tw-schema
+
+# 目的：一次性診斷——驗證 yfinance 能不能用來補 TW pipeline 目前卡在 FinMind
+# 配額的 Layer 2（個股價量歷史）。不是常態 pipeline，純手動觸發，不會自動排程。
+#
+# 本地 sandbox 連不到 yahoo finance（跟連不到 openapi.twse.com.tw 一樣的網路
+# 限制），所以丟到這裡跑——美股版 pipeline（sector-rotation-daily.yml）已經在
+# 同一個 CI 環境成功用 yfinance 跑 S&P 500，代表網路是通的，這裡只是換成台股
+# ticker 測試涵蓋範圍（歷史 OHLCV / 基本面 info / 財報 / 三大法人持股）。
+#
+# 用法：Actions → dump-yfinance-tw-schema → Run workflow → 看 job step summary
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install yfinance pandas
+
+      - name: Run yfinance TW schema dump
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/dump_yfinance_tw_schema.py 2>&1 | tee /tmp/yf_dump.log
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## yfinance 台股資料能力探索" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/yf_dump.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "(no log)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
