@@ -6,14 +6,22 @@
 Phase 2 第一步：把「板塊排名」進化成「產業鏈資金流向雷達」的資料地基。
 
 data/sector_rotation/industry_mapping.csv 是手動整理的 IndustryMappingTable
-（20 條高價值產業鏈 × 核心台股公司），欄位：
+（v1.1：23 條供應鏈 × 核心台股公司，最初 20 條 + Steel / Display & Optical /
+Passive Components），欄位：
   ticker, company, market, official_sector, sub_industry, supply_chain,
-  chain_node, theme, role, weight, confidence, source, updated_at
+  chain_node, theme, role, weight, confidence, source, updated_at, graph_role
 
 跟 Phase 1 的 industry_category（TWSE/TPEx 官方粗分類，一檔股票只能屬於一個
 sector）不同，這份表是 many-to-many：同一檔股票可以出現在多條 supply_chain
 （例如台達電同時掛在 Thermal/Data Center Power/Energy Storage/EV），一列
 代表一組 (ticker, supply_chain) 關聯，不是一檔股票一列。
+
+graph_role（CORE/COMPONENT/UPSTREAM/DOWNSTREAM/INFRASTRUCTURE/ENABLER/
+CROSS_CHAIN）標記這檔股票在這條鏈裡的網路角色，尤其 CROSS_CHAIN 標出「這家
+公司同時是好幾條鏈的節點」（例如台達電、致訊、貿聯、同欣電）——這種公司的
+Chain Resonance 訊號比單一節點公司更值得注意，不該被硬塞進單一 SupplyChain。
+目前只對明確核對過的股票填值，其餘留空（誠實：還沒逐筆重新分類，不是這些
+股票就沒有 graph_role，只是還沒標）。
 
 這份表是「分析模型映射」，不是官方分類——source/confidence 欄位就是為了讓使用者
 知道每一筆的可信度跟依據，不是宣稱跟 TWSE/TPEx 官方產業鏈資訊平台的分類完全一致。
@@ -61,8 +69,9 @@ MAPPING_PATH = os.path.join(OUTDIR, "industry_mapping.csv")
 REQUIRED_COLUMNS = [
     "ticker", "company", "market", "official_sector", "sub_industry",
     "supply_chain", "chain_node", "theme", "role", "weight",
-    "confidence", "source", "updated_at",
+    "confidence", "source", "updated_at", "graph_role",
 ]
+GRAPH_ROLES = {"CORE", "COMPONENT", "UPSTREAM", "DOWNSTREAM", "INFRASTRUCTURE", "ENABLER", "CROSS_CHAIN"}
 
 
 def load_mapping(path=MAPPING_PATH):
