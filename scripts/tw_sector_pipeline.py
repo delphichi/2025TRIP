@@ -326,6 +326,7 @@ def fetch_stock_row(stock_id, industry_category, stock_name, start_date, end_dat
     high = pd.to_numeric(df["max"], errors="coerce").astype(float)
     low = pd.to_numeric(df["min"], errors="coerce").astype(float)
     vol = pd.to_numeric(df["Trading_Volume"], errors="coerce").fillna(0).astype(float)
+    trading_money = pd.to_numeric(df["Trading_money"], errors="coerce").fillna(0).astype(float)
 
     t_price = float(close.iloc[-1])
     actual_as_of = str(df["date"].iloc[-1])
@@ -412,6 +413,11 @@ def fetch_stock_row(stock_id, industry_category, stock_name, start_date, end_dat
         "explosive_verdict": explosive_verdict,
         "vol_today": int(vol.iloc[-1]),
         "vol_10d_avg": int(vol.iloc[-10:].mean()) if len(vol) >= 10 else None,
+        # 個股 20 日「全部」成交金額（不分是誰買的：法人+自營+散戶全部加總）——
+        # 跟 Layer 3 的三大法人「淨買賣」金額是兩回事：這個量的是市場關注度/熱度，
+        # 三大法人金額量的是資金淨流向，不能互相替代。
+        "trade_value_20d_est_NTD_M": round(float(trading_money.iloc[-20:].sum()) / 1e6, 1)
+        if len(trading_money) >= 20 else None,
     }
 
 
@@ -483,12 +489,15 @@ def aggregate_sectors(stock_rows, as_of):
         breadth_pct = round(100 * breadth_up / n, 1) if n else None
         inst_col = "inst_total_net_20d_shares"
         inst_net = float(g[inst_col].dropna().sum()) if inst_col in g.columns and g[inst_col].notna().any() else None
+        ntd_col = "inst_total_net_20d_est_NTD_M"
+        inst_net_ntd = float(g[ntd_col].dropna().sum()) if ntd_col in g.columns and g[ntd_col].notna().any() else None
         groups.append({
             "sector": sector, "as_of_date": as_of, "stock_count": n,
             "point": round(point, 2),
             "ret_4w": round(ret_4w, 2), "ret_13w": round(ret_13w, 2), "ret_26w": round(ret_26w, 2),
             "breadth_pct": breadth_pct, "breadth_up": breadth_up, "breadth_total": n,
             "inst_net_20d_shares": inst_net,
+            "inst_net_20d_est_NTD_M": inst_net_ntd,
         })
     return pd.DataFrame(groups).sort_values("point", ascending=False).reset_index(drop=True)
 

@@ -48,23 +48,22 @@ def num(v, d=2, pct=False, sign=False):
     return s + ("%" if pct else "")
 
 
-def shares(v):
-    """股數簡化顯示：>=1e8 用「億股」、>=1e4 用「萬股」"""
-    if v is None:
+def ntd_amount(v_million):
+    """金額顯示：輸入單位是 NT$ 百萬元（inst_*_est_NTD_M 這類欄位的單位）。
+    >=100（=1億）用「億元」、否則用「萬元」——比股數更容易讀出資金規模大小。"""
+    if v_million is None:
         return "—"
     try:
-        v = float(v)
+        v = float(v_million)
     except (TypeError, ValueError):
         return "—"
-    if v != v:
+    if v != v:  # NaN
         return "—"
     sign = "+" if v > 0 else ("" if v == 0 else "-")
     av = abs(v)
-    if av >= 1e8:
-        return f"{sign}{av / 1e8:.2f}億股"
-    if av >= 1e4:
-        return f"{sign}{av / 1e4:.1f}萬股"
-    return f"{sign}{av:.0f}股"
+    if av >= 100:
+        return f"{sign}{av / 100:.2f}億元"
+    return f"{sign}{av * 100:.0f}萬元"
 
 
 DOW_META = {
@@ -127,8 +126,8 @@ def top_stock_row(r):
     c26 = num(r.get("cum_ret_26w"), 1, pct=True, sign=True)
     alert = r.get("stock_gap_alert") or ""
     alert_html = f'<span class="alert">{escape(alert)}</span>' if alert else ""
-    inst = r.get("inst_total_net_20d_shares")
-    inst_html = shares(inst)
+    inst = r.get("inst_total_net_20d_est_NTD_M")
+    inst_html = ntd_amount(inst)
     inst_cls = "up" if (inst is not None and inst == inst and inst > 0) else (
         "down" if (inst is not None and inst == inst and inst < 0) else "flat")
     vlink = (f'<a href="../../valuation/index.html?ticker={sid}.TW" target="_blank" '
@@ -160,8 +159,8 @@ def sector_row(r):
     breadth = r.get("breadth_pct")
     breadth_str = f"{breadth:.0f}%" if breadth is not None and breadth == breadth else "—"
     n = r.get("stock_count", 0)
-    inst = r.get("inst_net_20d_shares")
-    inst_html = shares(inst)
+    inst = r.get("inst_net_20d_est_NTD_M")
+    inst_html = ntd_amount(inst)
     inst_cls = "up" if (inst is not None and inst == inst and inst > 0) else (
         "down" if (inst is not None and inst == inst and inst < 0) else "flat")
     return f'''
@@ -227,7 +226,7 @@ def inst_flow_leaderboard_html(all_rows, top_n=10):
         except (TypeError, ValueError):
             return None
 
-    scored = [(r, _f(r, "inst_total_net_20d_shares")) for r in all_rows]
+    scored = [(r, _f(r, "inst_total_net_20d_est_NTD_M")) for r in all_rows]
     scored = [(r, v) for r, v in scored if v is not None]
     inflow = sorted(scored, key=lambda x: -x[1])[:top_n]
     outflow = sorted(scored, key=lambda x: x[1])[:top_n]
@@ -237,21 +236,21 @@ def inst_flow_leaderboard_html(all_rows, top_n=10):
             f'''<tr>
               <td><b>{escape(r.get("stock_id",""))}</b> <span class="dim">{escape((r.get("stock_name") or "")[:16])}</span></td>
               <td>{escape(r.get("sector",""))}</td>
-              <td class="n {'up' if v > 0 else 'down'}">{shares(v)}</td>
+              <td class="n {'up' if v > 0 else 'down'}">{ntd_amount(v)}</td>
             </tr>''' for r, v in items
         ) or '<tr><td colspan="3" class="empty">資料不足</td></tr>'
 
     return f'''
   <div class="card">
-    <div class="card-h">💵 三大法人 20 日淨買賣 Top {top_n}<span class="n">個股層</span></div>
+    <div class="card-h">💵 三大法人 20 日淨買賣 Top {top_n}<span class="n">依金額排序</span></div>
     <div class="card-b" style="padding:0;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
         <div>
-          <table><thead><tr><th>淨買超</th><th>Sector</th><th class="n">20d 淨買（股）</th></tr></thead>
+          <table><thead><tr><th>淨買超</th><th>Sector</th><th class="n">20d 淨買（金額）</th></tr></thead>
           <tbody>{_rows(inflow)}</tbody></table>
         </div>
         <div>
-          <table><thead><tr><th>淨賣超</th><th>Sector</th><th class="n">20d 淨賣（股）</th></tr></thead>
+          <table><thead><tr><th>淨賣超</th><th>Sector</th><th class="n">20d 淨賣（金額）</th></tr></thead>
           <tbody>{_rows(outflow)}</tbody></table>
         </div>
       </div>
@@ -393,7 +392,23 @@ def render(scorecard, stage2):
     sector_rows_html = "".join(sector_row(r) for r in rows_sorted) \
         or '<tr><td colspan="5" class="empty">今日無板塊資料</td></tr>'
 
-    top_stocks_sorted = sorted(top_stocks, key=lambda r: -(r.get("point") or 0))[:60]
+    # 排序：先依板塊（跟上面 📊 板塊表同一個 point 排名順序），同板塊內再依「個股 20 日
+    # 全部成交金額」由大到小——這是市場關注度/熱度（誰在被交易），跟「法人 20d」欄位
+    # 顯示的三大法人淨買賣金額是兩回事，不能拿法人金額當排序（法人淨額可能很小，但
+    # 整體成交金額很大，那還是一支值得注意的熱門股）。
+    sector_rank = {r.get("sector"): i for i, r in enumerate(rows_sorted)}
+
+    def _top_stock_sort_key(r):
+        sec_rank = sector_rank.get(r.get("sector"), len(sector_rank))
+        try:
+            trade_value = float(r.get("trade_value_20d_est_NTD_M"))
+        except (TypeError, ValueError):
+            trade_value = float("-inf")
+        if trade_value != trade_value:  # NaN
+            trade_value = float("-inf")
+        return (sec_rank, -trade_value)
+
+    top_stocks_sorted = sorted(top_stocks, key=_top_stock_sort_key)[:60]
     top_rows_html = "".join(top_stock_row(r) for r in top_stocks_sorted) \
         or '<tr><td colspan="11" class="empty">今日無個股資料</td></tr>'
 
@@ -459,7 +474,7 @@ def render(scorecard, stage2):
           <tr><th>Sector</th><th class="n">Point</th>
               <th class="n" title="今日 point - 過去 5 日 point 均值 · 首次執行前 5 天沒歷史資料會是 —">加速度</th>
               <th class="n" title="板塊內 4W 累報 > 0 的股票比例">寬度</th>
-              <th class="n" title="板塊內所有個股三大法人 20 日淨買賣加總（股數）">法人 20d 淨買（股）</th></tr>
+              <th class="n" title="板塊內所有個股三大法人 20 日淨買賣加總（依最新收盤價換算金額）">法人 20d 淨買（金額）</th></tr>
         </thead>
         <tbody>{sector_rows_html}</tbody>
       </table>
@@ -474,14 +489,14 @@ def render(scorecard, stage2):
   </div>
 
   <div class="card">
-    <div class="card-h">🏆 各板塊 Top 3（依 composite_rank_in_sector）<span class="n">{len(top_stocks_sorted)}</span></div>
+    <div class="card-h">🏆 各板塊 Top 3（板塊 → 20D 全部成交金額排序）<span class="n">{len(top_stocks_sorted)}</span></div>
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
           <tr><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th>
               <th class="n">4W</th><th class="n">26W</th><th>Alert</th>
               <th title="Dow Theory 頭頭低/底底高">Dow</th><th>量價象限</th><th>暴漲判定</th>
-              <th class="n" title="三大法人 20 日淨買賣（股數）">法人 20d</th></tr>
+              <th class="n" title="三大法人 20 日淨買賣（依最新收盤價換算金額）">法人 20d</th></tr>
         </thead>
         <tbody>{top_rows_html}</tbody>
       </table>
