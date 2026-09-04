@@ -228,6 +228,204 @@ def explosive_stocks(stage2):
     return sorted(seen.values(), key=lambda x: -x.get("_surp_sum", 0))
 
 
+# ---------- 感測器投資建議（Opportunity Score）----------
+# 核心問題：找「資金正在進入、但價格還沒完全反映」的地方 ——
+#   S1 板塊強度 + S2 個股強度 + S3 成交量確認 + S4 趨勢完整性 + S5 位置/空間，
+#   五個同時成立才算真正機會；缺一個都要看得出來（不是平均掉）。
+# 「矛盾」（強動能訊號 vs Dow 結構已破壞）是風險，不是中性——直接扣總分，
+#   不透過拉低單一感測器分數去稀釋，這樣「表面很強但結構有問題」的股票才會被攔下來。
+def _snum(row, key, default=0.0):
+    """安全轉數字：latest.json 來源已是 float，all.csv（追高風險桶）來源是純字串，統一處理"""
+    v = row.get(key)
+    if v is None or v == "":
+        return default
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return default
+
+
+def _sint(row, key, default=None):
+    v = row.get(key)
+    if v is None or v == "":
+        return default
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return default
+
+
+# pv_verdict → 量能確認基礎分（0-14）· 見 sector_rotation_screener.py::_pv_verdict()
+PV_SCORE_MAP = {
+    "⭐⭐⭐ 完美多頭": 14, "🚀 健康多頭": 12, "🌱 底部剛翻多": 10, "✨ 反彈初期": 9,
+    "➡️ 中性": 6, "😴 弱勢縮量": 4, "⚠️ 量能背離": 3, "⚠️ 中期出貨": 2,
+    "⚠️ 頂部背離": 2, "⚠️ 主升段結束": 2, "🧊 熊市縮量": 1, "📉 主力出貨": 0,
+    "⚠️ 量能衰竭": 0, "資料不足": 5,
+}
+PV_CONFIRMED = {"⭐⭐⭐ 完美多頭", "🚀 健康多頭", "🌱 底部剛翻多"}   # 量能已確認 → 夠格進 TODAY
+PV_EARLY = {"✨ 反彈初期", "➡️ 中性", "⚠️ 量能背離"}                # 量能還沒確認 → 進 TRIGGER 等升級
+
+
+def compute_sensor_scores(row, sector_by_name):
+    """算一支股票的五感測器分數（各 0-20，總分 0-100）+ 矛盾扣分。"""
+    sec = sector_by_name.get(row.get("sector") or "") or {}
+
+    # S1 板塊強度：quadrant（資金方向）+ 30d 淨流向 + 30d 訊號寬度
+    quadrant_pts = {"leading": 8, "improving": 6, "weakening": 3, "lagging": 0}.get(sec.get("quadrant"), 4)
+    flow_ratio = _snum(sec, "flow_ratio", 0.0)   # 範圍約 -1..+1
+    flow_pts = round(max(0.0, min(6.0, (flow_ratio + 1) / 2 * 6)))
+    breadth = _snum(sec, "breadth_30d_ratio", 50.0)   # 範圍 0..100
+    breadth_pts = round(max(0.0, min(6.0, breadth / 100 * 6)))
+    s1 = max(0, min(20, quadrant_pts + flow_pts + breadth_pts))
+
+    # S2 個股強度：sector 內排名 + 動能方向 + 量價分數
+    rank_pts = {1: 8, 2: 6, 3: 4}.get(_sint(row, "composite_rank_in_sector"), 2)
+    c4w = _snum(row, "cum_ret_4w", 0.0)
+    c26w = _snum(row, "cum_ret_26w", 0.0)
+    if c4w > 15 and c26w > 0: mom_pts = 8
+    elif c4w > 5: mom_pts = 6
+    elif c4w > 0: mom_pts = 4
+    elif c4w > -5: mom_pts = 2
+    else: mom_pts = 0
+    vp_score = _snum(row, "vp_score_stock", 50.0)
+    vp_pts = round(max(0.0, min(4.0, vp_score / 100 * 4)))
+    s2 = max(0, min(20, rank_pts + mom_pts + vp_pts))
+
+    # S3 成交量確認：pv_verdict（量價象限判定）+ 上漲/下跌日均量比
+    pv_verdict = row.get("pv_verdict") or ""
+    pv_pts = PV_SCORE_MAP.get(pv_verdict, 5)
+    ud = _snum(row, "ud_ratio", 1.0)
+    if ud >= 2.5: ud_pts = 6
+    elif ud >= 2.0: ud_pts = 5
+    elif ud >= 1.5: ud_pts = 4
+    elif ud >= 1.2: ud_pts = 3
+    elif ud >= 1.0: ud_pts = 2
+    elif ud >= 0.8: ud_pts = 1
+    else: ud_pts = 0
+    s3 = max(0, min(20, pv_pts + ud_pts))
+
+    # S4 趨勢完整性：Dow 型態（多頭/收斂/擴散/空頭）+ 訊號
+    trend_state = row.get("trend_state") or ""
+    trend_signal = row.get("trend_signal") or ""
+    state_pts = {"多頭": 14, "收斂": 9, "擴散": 6, "空頭": 0}.get(trend_state, 7)
+    if "多頭確認" in trend_signal: sig_adj = 6
+    elif "空轉多預警" in trend_signal: sig_adj = 3
+    elif "多轉空預警" in trend_signal: sig_adj = -6
+    elif "空頭確認" in trend_signal: sig_adj = -6
+    else: sig_adj = 0
+    s4 = max(0, min(20, state_pts + sig_adj))
+
+    # S5 位置/空間：離 52w 高點距離（太貼近高點=安全邊際低）+ 暴漲判定 + gap alert
+    pct_from_high = _snum(row, "pct_from_high", -15.0)
+    if pct_from_high >= -3: pos_pts = 4
+    elif pct_from_high >= -10: pos_pts = 10
+    elif pct_from_high >= -20: pos_pts = 8
+    elif pct_from_high >= -35: pos_pts = 5
+    else: pos_pts = 2
+    explosive_verdict = (row.get("explosive_verdict") or "").strip()
+    if "暴漲中" in explosive_verdict: exp_pts = 6
+    elif "潛在暴漲" in explosive_verdict: exp_pts = 8
+    elif "追高風險" in explosive_verdict: exp_pts = 0
+    else: exp_pts = 5
+    gap_alert = row.get("stock_gap_alert") or ""
+    gap_adj = -3 if gap_alert == "吃老本" else (2 if gap_alert == "剛爆發" else 0)
+    s5 = max(0, min(20, pos_pts + exp_pts + gap_adj))
+
+    # 矛盾扣分：強動能訊號候選池裡的股票，若 Dow 結構已經破壞 / 已列追高風險 / 吃老本又沒量能確認
+    #   → 直接扣總分（不是平均掉），因為這是「候選資格」跟「結構現況」互相矛盾，不是單純弱勢
+    conflict_penalty = 0
+    conflict_label = None
+
+    def _add_conflict(pts, label):
+        nonlocal conflict_penalty, conflict_label
+        conflict_penalty += pts
+        conflict_label = (conflict_label + " · " if conflict_label else "") + label
+
+    if trend_state == "空頭":
+        _add_conflict(15, "⚠ 訊號衝突（動能強但 Dow 空頭）")
+    elif trend_state == "擴散":
+        _add_conflict(8, "⚠ 頂區警訊（Dow 擴散喇叭）")
+    if "追高風險" in explosive_verdict:
+        _add_conflict(10, "⚠ 追高風險")
+    if gap_alert == "吃老本" and pv_verdict not in PV_CONFIRMED:
+        _add_conflict(5, "⚠ 吃老本未見量能確認")
+
+    raw_total = s1 + s2 + s3 + s4 + s5
+    total = max(0, min(100, raw_total - conflict_penalty))
+
+    return {
+        "s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5,
+        "raw_total": raw_total, "conflict_penalty": conflict_penalty,
+        "conflict_label": conflict_label, "total": total,
+        "trend_state": trend_state, "pv_verdict": pv_verdict,
+        "explosive_verdict": explosive_verdict,
+    }
+
+
+def build_sensor_pool(stage2, exp_buckets):
+    """感測器候選池：strong_buy + explosive 精選池 ∪ 全市場「追高風險」桶（前 20）。
+    追高風險桶特地從全市場 all.csv 撈，才抓得到沒進 curated top3、但值得放進 AVOID 名單的股票
+    （例如系統已知追高但排名不夠進 strong_buy/explosive 精選池的個股）。"""
+    pool = {}
+    for r in strong_buy_stocks(stage2):
+        pool.setdefault(r.get("symbol"), r)
+    for r in explosive_stocks(stage2):
+        pool.setdefault(r.get("symbol"), r)
+    for r in (exp_buckets or {}).get("🔥 追高風險", [])[:20]:
+        s = r.get("symbol")
+        if s and s not in pool:
+            pool[s] = r
+    return list(pool.values())
+
+
+def classify_sensor_signals(stage2, scorecard, exp_buckets):
+    """把候選池分成 TODAY（已形成機會）/ TRIGGER（等待確認）/ AVOID（矛盾或風險過高）三組，各最多 5 檔。"""
+    sector_by_name = {r.get("sector_name_en"): r for r in (scorecard.get("rows") or [])}
+    pool = build_sensor_pool(stage2, exp_buckets)
+    scored = [(r, compute_sensor_scores(r, sector_by_name)) for r in pool]
+
+    # AVOID：有矛盾扣分的優先 —— 扣分越重、原始分（表面強度）越高，越容易誤判，越該排前面
+    avoid_pool = [(r, sc) for r, sc in scored if sc["conflict_penalty"] > 0]
+    avoid_pool.sort(key=lambda x: (-x[1]["conflict_penalty"], -x[1]["raw_total"]))
+    avoid = avoid_pool[:5]
+    avoid_symbols = {r.get("symbol") for r, _ in avoid}
+
+    clean = [(r, sc) for r, sc in scored if r.get("symbol") not in avoid_symbols]
+    clean.sort(key=lambda x: -x[1]["total"])
+
+    today = [(r, sc) for r, sc in clean
+             if sc["trend_state"] == "多頭" and sc["pv_verdict"] in PV_CONFIRMED][:5]
+    today_symbols = {r.get("symbol") for r, _ in today}
+
+    trigger = [(r, sc) for r, sc in clean
+               if r.get("symbol") not in today_symbols
+               and (sc["trend_state"] == "收斂" or sc["pv_verdict"] in PV_EARLY)][:5]
+    trigger_symbols = {r.get("symbol") for r, _ in trigger}
+
+    # backfill：真實資料不一定剛好湊滿 5 檔嚴格符合條件的，用下一名分數補滿，
+    #   維持「每組都有東西看」而不是空著（缺資料 ≠ 沒機會，只是沒有嚴格符合當天的分類條件）
+    if len(today) < 5:
+        backfill = [(r, sc) for r, sc in clean
+                    if r.get("symbol") not in today_symbols and r.get("symbol") not in trigger_symbols]
+        today += backfill[:5 - len(today)]
+        today_symbols = {r.get("symbol") for r, _ in today}
+    if len(trigger) < 5:
+        backfill = [(r, sc) for r, sc in clean
+                    if r.get("symbol") not in today_symbols and r.get("symbol") not in trigger_symbols]
+        trigger += backfill[:5 - len(trigger)]
+
+    return today, trigger, avoid
+
+
+def _sensor_trigger_text(sc):
+    parts = []
+    if sc["trend_state"] == "收斂":
+        parts.append("Dow 收斂 → 突破確認多頭")
+    if sc["pv_verdict"] in PV_EARLY:
+        parts.append(f"量價轉強（{sc['pv_verdict']} → 健康多頭）")
+    return " + ".join(parts) if parts else "量能／趨勢雙重確認"
+
+
 def make_tldr(scorecard, sb_stocks, exp_stocks, biggest):
     """自動產生一句話 TL;DR"""
     leading = [r for r in scorecard["rows"] if r.get("quadrant") == "leading"]
@@ -447,6 +645,73 @@ def render(scorecard, stage2, pattern):
         or '<tr><td colspan="11" class="empty">今日無 strong_buy 訊號 · 資料日期可能較舊或無合格個股</td></tr>'
     exp_rows_html = "".join(sb_row(r, "🚀") for r in exp_stocks) \
         or '<tr><td colspan="11" class="empty">今日無 explosive 訊號</td></tr>'
+
+    # 感測器投資建議：TODAY（已形成）/ TRIGGER（等確認）/ AVOID（矛盾或風險過高）
+    def _sensor_row(rank, r, sc, group):
+        symbol = escape(r.get("symbol", ""))
+        name = escape((r.get("name") or "")[:24])
+        sector = escape(r.get("sector", ""))
+        vlink = _valuation_link(r.get("symbol"))
+        insider = _insider_badge(r.get("symbol"), compact=True)
+        if group == "today":
+            note = f'<span class="dim">{escape(r.get("stock_gap_alert") or sc["pv_verdict"] or "—")}</span>'
+        elif group == "trigger":
+            note = f'<span class="dim">🎯 {escape(_sensor_trigger_text(sc))}</span>'
+        else:
+            note = f'<span class="dow-conflict">{escape(sc["conflict_label"] or "—")}</span>'
+        penalty_html = f' <span class="dim">(-{sc["conflict_penalty"]})</span>' if sc["conflict_penalty"] else ""
+        return f'''
+        <tr>
+          <td class="n">{rank}</td>
+          <td><b>{symbol}</b>{vlink}{insider} <span class="dim">{name}</span></td>
+          <td>{sector}</td>
+          <td class="n">{sc["s1"]}</td>
+          <td class="n">{sc["s2"]}</td>
+          <td class="n">{sc["s3"]}</td>
+          <td class="n">{sc["s4"]}</td>
+          <td class="n">{sc["s5"]}</td>
+          <td class="n"><b>{sc["total"]}</b>{penalty_html}</td>
+          <td>{note}</td>
+        </tr>'''
+
+    def _sensor_table(items, group, note_header, empty_msg):
+        if not items:
+            return f'<div class="empty" style="padding:10px 14px;">{empty_msg}</div>'
+        rows_html = "".join(_sensor_row(i + 1, r, sc, group) for i, (r, sc) in enumerate(items))
+        return f'''<table>
+          <thead>
+            <tr>
+              <th></th><th>Symbol / Name</th><th>Sector</th>
+              <th class="n" title="板塊強度：quadrant + 30d 資金流向 + 30d 訊號寬度">S1</th>
+              <th class="n" title="個股強度：sector 內排名 + 動能方向 + 量價分數">S2</th>
+              <th class="n" title="成交量確認：pv_verdict + 上漲/下跌日均量比">S3</th>
+              <th class="n" title="趨勢完整性：Dow 型態 + 訊號">S4</th>
+              <th class="n" title="位置/空間：離 52w 高點距離 + 暴漲判定 + gap alert">S5</th>
+              <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分（不平均掉）">Total</th>
+              <th>{note_header}</th>
+            </tr>
+          </thead>
+          <tbody>{rows_html}</tbody>
+        </table>'''
+
+    sensor_today, sensor_trigger, sensor_avoid = classify_sensor_signals(stage2, scorecard, exp_buckets)
+    sensor_html = f'''
+  <div class="card">
+    <div class="card-h">🎯 感測器投資建議 · Opportunity Score<span class="n">{len(sensor_today) + len(sensor_trigger) + len(sensor_avoid)}</span></div>
+    <div class="card-b" style="padding:0;">
+      <div style="padding:12px 14px 0;font-size:12.5px;color:var(--muted);line-height:1.6;">
+        找「資金正在進入、但價格還沒完全反映」的地方：<b>S1 板塊變強</b> + <b>S2 個股變強</b> + <b>S3 成交量確認</b> +
+        <b>S4 趨勢沒破壞</b> + <b>S5 還沒過度遠離合理進場位置</b>，五個同時成立才算真正機會。
+        <b>訊號矛盾（強動能但 Dow 結構已破壞 / 已列追高風險）直接扣總分，不是平均掉</b>——表面很強但結構有問題的標的會被攔進 AVOID。
+      </div>
+      <div style="padding:14px 14px 4px;font-weight:700;">🟢 TODAY · 已形成機會</div>
+      {_sensor_table(sensor_today, "today", "備註", "今日無已形成的高分機會 · 資料日期可能較舊或候選池為空")}
+      <div style="padding:16px 14px 4px;font-weight:700;">🔵 TRIGGER · 等待確認</div>
+      {_sensor_table(sensor_trigger, "trigger", "Trigger（升級 TODAY 需要的條件）", "今日無等待確認的候選")}
+      <div style="padding:16px 14px 4px;font-weight:700;">🔴 AVOID · 訊號矛盾或風險過高</div>
+      {_sensor_table(sensor_avoid, "avoid", "矛盾 / 風險", "今日無明顯矛盾或風險標的")}
+    </div>
+  </div>'''
 
     # 板塊詳細表
     def sec_row(r):
@@ -1629,6 +1894,8 @@ def render(scorecard, stage2, pattern):
   {breadth30_html}
 
   {regime_stats_html}
+
+  {sensor_html}
 
   <div class="foot">
     <div class="conf">
