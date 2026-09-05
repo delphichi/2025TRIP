@@ -9,7 +9,9 @@ name: sector-rotation-daily
 #
 # 手動觸發：Actions → sector-rotation-daily → Run workflow
 #
-# 另有 Stage 2（S&P 500 個股熱區）· 需 FMP_API_KEY · 每週五跑一次
+# 另有 Stage 2（S&P 500 個股熱區，含 VCP/盈餘動能，per-stock 慢）· 每週五跑一次
+# Stock Points Snapshot（S&P 500 個股 point，輕量，沒有 per-stock 迴圈）· 每次都跑，
+#   供美股 v2 報表（generate_daily_report_v2.py）的 Price Lag 平日也有資料可用
 
 on:
   schedule:
@@ -69,6 +71,23 @@ jobs:
           ARGS=""
           if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
           python scripts/theme_scorecard.py $ARGS 2>&1 | tee /tmp/theme_scorecard.log
+          exit 0
+
+      # Price Lag（美股 v2 報表）需要每天都有的全市場個股 point，但完整版
+      # Stage 2（下面那步）因為要跑 VCP + 盈餘動能，per-stock 迴圈慢，只排
+      # 週五 —— 導致 Price Lag 平日永遠是空的。這步只跑 Stage 2 最便宜的
+      # 三步（Wikipedia 成分股 + yfinance 批次抓 4W/13W/26W 動能 + 板塊內
+      # 排名，都是一次性批次，沒有 per-stock 迴圈），輸出獨立的
+      # {date}_stock_points.csv，不覆蓋週五 Stage 2 的完整 {date}_all.csv。
+      - name: Run stock points snapshot (light, daily · for Price Lag)
+        shell: bash
+        env:
+          AS_OF: ${{ inputs.as_of_date }}
+        run: |
+          set +e  # 輕量輔助層 · 失敗不擋主線 CI
+          ARGS=""
+          if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
+          python scripts/stock_points_snapshot.py $ARGS 2>&1 | tee /tmp/stock_points.log
           exit 0
 
       # Stage 2 只在下列情境跑：

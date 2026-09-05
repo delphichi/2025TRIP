@@ -352,15 +352,29 @@ def build_stock_state_groups(stage2, scorecard, exp_buckets, top_n=5):
 def load_all_rows(as_of):
     """讀 {date}_all.csv 全部列（不只是 explosive_verdict 有值的），
     Price Lag 需要 sector 內完整股票池才能算 Z-score，不能只用暴漲候選池
-    的子集（那樣母體會被人為窄化，Z-score 沒有意義）。"""
+    的子集（那樣母體會被人為窄化，Z-score 沒有意義）。
+
+    完整版 {date}_all.csv 由 sector_rotation_screener.py（Stage 2）產生，
+    含 VCP/explosive_verdict/trend_state，但因為這些是 per-stock 迴圈，
+    跑得慢，只排週五。Price Lag 其實只需要 symbol/sector/point，不需要
+    這些欄位——所以優先用完整版（資料最齊），完整版不存在時退回
+    scripts/stock_points_snapshot.py 產的 {date}_stock_points.csv（輕量、
+    每天都有，只夠算 Price Lag，不夠算 Opportunity Radar 的 S1-S5）。
+    回傳 (rows, source)，source ∈ {"full", "light", None}，呼叫端可以用
+    這個判斷要不要加註「資料來源」提示。
+    """
     if not as_of:
-        return []
+        return [], None
     stamp = as_of.replace("-", "")
-    path = os.path.join(DATA_DIR, f"{stamp}_all.csv")
-    if not os.path.exists(path):
-        return []
-    with open(path, encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+    full_path = os.path.join(DATA_DIR, f"{stamp}_all.csv")
+    if os.path.exists(full_path):
+        with open(full_path, encoding="utf-8") as f:
+            return list(csv.DictReader(f)), "full"
+    light_path = os.path.join(DATA_DIR, f"{stamp}_stock_points.csv")
+    if os.path.exists(light_path):
+        with open(light_path, encoding="utf-8") as f:
+            return list(csv.DictReader(f)), "light"
+    return [], None
 
 
 # ============================================================
@@ -492,8 +506,7 @@ def entry_permission(regime_label, state):
 # 太多數字，真正想看的是「系統為什麼把這檔股票放在這裡」。不新增訊號、
 # 不做新公式——直接從 compute_sensor_scores() 已經算好的 S1-S5 子分數
 # （都是同一個 0-20 尺度，互相可比，不用另外標準化）挑分數最高的兩個轉成
-# 短標籤。Price Lag 是額外資訊（不是每天都有，Stage 2 只在週五更新），
-# 有資料且為正時才加進去，不搶 S1-S5 的排名。
+# 短標籤。Price Lag 是額外資訊，有資料且為正時才加進去，不搶 S1-S5 的排名。
 OPPORTUNITY_REASON_LABELS = {
     "s1": "Sector Capital↑",   # S1 板塊強度：quadrant + flow_ratio + breadth
     "s2": "RS↑",               # S2 個股強度：sector 內排名 + 動能 + 量價分數
@@ -549,14 +562,21 @@ PRICE_LAG_CAVEAT = ('<p class="dim" style="margin:10px 0 0;">已知限制：Sect
                      '對這幾檔重倉股的 Price Lag 解讀要打折扣。</p>')
 
 
-def price_lag_html(lag_rows, top_n=15):
+PRICE_LAG_SOURCE_NOTE = {
+    "light": ('<p class="dim" style="margin:6px 0 0;">資料來源：stock_points_snapshot.py 的輕量快照'
+              '（只有 symbol/sector/point，足夠算 Price Lag，但不是週五 Stage 2 的完整版）。</p>'),
+    "full": "",
+}
+
+
+def price_lag_html(lag_rows, top_n=15, all_rows_source=None):
     early = [r for r in lag_rows if r.get("early_flag")]
     if not lag_rows:
-        return ('<p class="empty">今日沒有 Price Lag 資料（sector 樣本數不足或今日資料不存在，'
-                 '例如 Stage 2 個股全量資料只在週五更新，不是每天都有）</p>')
+        return ('<p class="empty">今日沒有 Price Lag 資料（sector 樣本數不足或今日資料不存在）</p>')
     if not early:
-        return ('<p class="empty">今日沒有標記為 EARLY 的候選（有算 Price Lag 的 sector 裡，'
+        return (('<p class="empty">今日沒有標記為 EARLY 的候選（有算 Price Lag 的 sector 裡，'
                  '沒有「sector 已確認、股票仍落後」的組合）</p>')
+                + PRICE_LAG_SOURCE_NOTE.get(all_rows_source, ""))
     rows_sorted = sorted(early, key=lambda r: -r["price_lag"])[:top_n]
     items = "".join(
         f'<li><b>{escape(r["symbol"])}</b> <span class="dim">{escape((r.get("name") or "")[:16])}</span>'
@@ -566,7 +586,7 @@ def price_lag_html(lag_rows, top_n=15):
         f'<span class="up">{r["price_lag"]:.2f}</span></li>'
         for r in rows_sorted
     )
-    return f'<ul class="fpsignal">{items}</ul>{PRICE_LAG_CAVEAT}'
+    return f'<ul class="fpsignal">{items}</ul>{PRICE_LAG_CAVEAT}{PRICE_LAG_SOURCE_NOTE.get(all_rows_source, "")}'
 
 
 def capital_acceleration_html(accel_rows, prior_date, top_n=3):
@@ -658,7 +678,7 @@ def render_v2(scorecard, stage2):
     as_of = scorecard.get("as_of_date")
     scorecard_rows = scorecard.get("rows") or []
     market_ctx = scorecard.get("market_context") or {}
-    all_rows = load_all_rows(as_of)
+    all_rows, all_rows_source = load_all_rows(as_of)
     exp_buckets = gdr.load_all_csv_verdicts(as_of)
 
     regime = regime_gate(market_ctx)
@@ -710,7 +730,7 @@ def render_v2(scorecard, stage2):
 
   <div class="card">
     <div class="card-h">🎯 PRICE LAG · EARLY<span class="n" title="PriceLag = Z(SectorPoint, 跨sector) − Z(StockPoint, sector內)。只列 sector 本身已經 leading/improving、但這檔股票在 sector 內還沒漲上來的組合">sector 已確認、股票落後</span></div>
-    <div class="card-b">{price_lag_html(lag_rows)}</div>
+    <div class="card-b">{price_lag_html(lag_rows, all_rows_source=all_rows_source)}</div>
   </div>
 
   <div class="card">
