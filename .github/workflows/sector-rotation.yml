@@ -58,6 +58,19 @@ jobs:
           if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
           python scripts/sector_scorecard.py $ARGS 2>&1 | tee /tmp/scorecard.log
 
+      # Theme 層（V2 ETF Proxy）· 跟 sector scorecard 同一批資料源、同一時間跑
+      # · 輸出檔完全獨立（theme_scorecard_latest.json），失敗不擋 sector 主線
+      - name: Run theme scorecard (V2 ETF Proxy)
+        shell: bash
+        env:
+          AS_OF: ${{ inputs.as_of_date }}
+        run: |
+          set +e  # theme 是輔助層 · 失敗不 fail 整個 CI
+          ARGS=""
+          if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
+          python scripts/theme_scorecard.py $ARGS 2>&1 | tee /tmp/theme_scorecard.log
+          exit 0
+
       # Stage 2 只在下列情境跑：
       #   1) 週五 UTC 22:00 排程（cron 明確為 '0 22 * * 5'）
       #   2) 手動觸發且勾了 run_stage2（boolean input 直接判 truthy）

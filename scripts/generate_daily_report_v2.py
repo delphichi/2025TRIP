@@ -26,10 +26,14 @@ generate_daily_report_v2.py · 美股「機會雷達」決策儀表板（新版�
      五態，一檔股票對應一個狀態，不重寫底層分數公式。
   5. Entry Permission Gate：EntryPermission = f(Regime, StockState)，
      Regime 是進場許可的 Gate，不是乘在 Opportunity 分數上的乘數。
+  6. Theme Map（V2 ETF Proxy）：跟使用者確認過，不建人工個股↔主題對照表
+     （那是台股 industry_mapping.csv 量級的工程），改成挑 8 檔流動性夠、
+     認知度高的主題 ETF（scripts/theme_scorecard.py：SMH/IGV/CIBR/XBI/
+     ITA/XOP/KRE/JETS），套用跟 Sector 一樣的量價評分方法論。資料完整度
+     比 Sector 層低（沒有 breadth_pct，沒有長期歷史百分位），這是「輕量」
+     的具體意思，不是漏做。
 
 沒做的部分（跟使用者確認過，留待後續）：
-  - Theme 層（Sector → Theme → Stock）：需要人工/半人工分類資料，
-    現在沒有官方資料源可以自動產生，等使用者提供對照表再做
   - 乘法瓶頸邏輯的 OpportunityScore（Regime × SectorHealth × ... ）：
     需要先定義每個因子怎麼標準化到同一尺度才能相乘，這次沒有臨時湊一個
   - Signal Stack 視覺化重排：S1-S5 已經存在，這次只在 detail 表格帶出
@@ -56,6 +60,7 @@ DATA_DIR = gdr.DATA_DIR
 REPORTS_DIR = gdr.REPORTS_DIR
 SCORECARD = gdr.SCORECARD
 STAGE2 = gdr.STAGE2
+THEME_SCORECARD = os.path.join(DATA_DIR, "theme_scorecard_latest.json")  # scripts/theme_scorecard.py 的輸出
 
 PRICE_LAG_MIN_SECTOR_SIZE = 3  # 跟台股版同一條規則：sector 內 Z-score 母體太小（<3 檔）沒有意義
 
@@ -536,6 +541,33 @@ def sector_map_html(scorecard_rows):
     return f'<ul class="fpnames">{"".join(items)}</ul>'
 
 
+# ============================================================
+# 4c. Theme Map：讀 scripts/theme_scorecard.py 的輕量 ETF Proxy 輸出，
+#     跟 SECTOR MAP 同樣的呈現方式（quadrant 徽章），Theme 沒有的欄位
+#     （breadth_pct 等）就不顯示，不假裝有
+# ============================================================
+def load_theme_scorecard():
+    manifest = gdr.load_json(THEME_SCORECARD)
+    if not manifest:
+        return None
+    return manifest.get("rows") or []
+
+
+def theme_map_html(theme_rows):
+    if theme_rows is None:
+        return ('<p class="empty">Theme scorecard 還沒跑過（scripts/theme_scorecard.py），'
+                '目前只有 Sector 層資料</p>')
+    if not theme_rows:
+        return '<p class="empty">今日無 Theme ETF 資料</p>'
+    items = []
+    for r in sorted(theme_rows, key=lambda r: -(r.get("point") or 0)):
+        name = escape(r.get("sector_name", "")) + escape(f'（{r.get("sector","")}）')
+        q = r.get("quadrant")
+        emoji, zh, _ = gdr.QUADRANT_META.get(q, ("⚪", "—", ""))
+        items.append(f'<li>{name}<span>{emoji} {escape(zh)}</span></li>')
+    return f'<ul class="fpnames">{"".join(items)}</ul>'
+
+
 def render_v2(scorecard, stage2):
     as_of = scorecard.get("as_of_date")
     scorecard_rows = scorecard.get("rows") or []
@@ -546,6 +578,7 @@ def render_v2(scorecard, stage2):
     regime = regime_gate(market_ctx)
     lag_rows = compute_price_lag(scorecard_rows, all_rows)
     prior_date, accel_rows = compute_capital_acceleration(scorecard_rows, as_of)
+    theme_rows = load_theme_scorecard()
 
     gen_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -576,6 +609,11 @@ def render_v2(scorecard, stage2):
   <div class="card">
     <div class="card-h">🧭 SECTOR MAP<span class="n">{len(scorecard_rows)} sectors</span></div>
     <div class="card-b">{sector_map_html(scorecard_rows)}</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧬 THEME MAP<span class="n" title="輕量 ETF Proxy：不建個股↔主題對照表，直接對 SMH/IGV/CIBR/XBI/ITA/XOP/KRE/JETS 等主題 ETF 套用跟 Sector 一樣的量價評分方法論。沒有 breadth_pct（沒有個股對照表可算），資料完整度比 Sector 層低">{len(theme_rows) if theme_rows else 0} theme ETFs</span></div>
+    <div class="card-b">{theme_map_html(theme_rows)}</div>
   </div>
 
   <div class="card">
