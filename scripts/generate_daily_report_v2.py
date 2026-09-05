@@ -89,6 +89,7 @@ def regime_gate(market_ctx):
     regime_stats = market_ctx.get("regime_stats") or {}
     current_regime = regime_stats.get("current_regime")
     current_stats = regime_stats.get("current") or {}
+    unconditional_stats = regime_stats.get("unconditional") or {}
     vix = market_ctx.get("vix") or {}
     tnx = market_ctx.get("tnx") or {}
     vix_override = bool(market_ctx.get("vix_override_all_cash"))
@@ -103,12 +104,28 @@ def regime_gate(market_ctx):
         icon, label = "⚪", "UNKNOWN"
         note = "regime_stats 不存在或今日資料不足，無法分類"
 
+    # Regime Edge：使用者提問「重要的不是 RISK-ON 過去賺錢，是 RISK-ON 比
+    # 無條件持有 SPY 好多少」。unconditional 是 sector_scorecard.py 同一個
+    # 10 年回測迴圈裡，不設 regime 條件、每天都塞一份的全樣本統計（跟
+    # current 是同一套方法算出來的，只是母體從「這個 regime 的日子」換成
+    # 「所有日子」），edge = current − unconditional，不是新公式，是同一個
+    # 統計拿掉條件之後的差。regime_stats 是舊版（沒有 unconditional 欄位）
+    # 時兩者皆為 None，誠實顯示算不出來，不硬湊。
+    edge_mean = edge_win_rate = None
+    if current_stats.get("mean") is not None and unconditional_stats.get("mean") is not None:
+        edge_mean = round(current_stats["mean"] - unconditional_stats["mean"], 2)
+    if current_stats.get("win_rate") is not None and unconditional_stats.get("win_rate") is not None:
+        edge_win_rate = round(current_stats["win_rate"] - unconditional_stats["win_rate"], 1)
+
     return {
         "icon": icon, "label": label, "current_regime": current_regime,
         "vix": vix.get("value"), "tnx": tnx.get("value"),
         "vix_override": vix_override, "note": note,
         "historical_n": current_stats.get("n"), "historical_win_rate": current_stats.get("win_rate"),
         "historical_mean": current_stats.get("mean"),
+        "baseline_n": unconditional_stats.get("n"), "baseline_win_rate": unconditional_stats.get("win_rate"),
+        "baseline_mean": unconditional_stats.get("mean"),
+        "edge_mean": edge_mean, "edge_win_rate": edge_win_rate,
         "allocation": market_ctx.get("allocation"),
     }
 
@@ -393,10 +410,21 @@ def regime_banner_html(regime):
     if regime.get("historical_n"):
         hist = (f' · 歷史同 regime 出現 {regime["historical_n"]} 次，20 日後平均 '
                 f'{regime["historical_mean"]:+.2f}%，勝率 {regime["historical_win_rate"]:.1f}%')
+    edge = ""
+    # Regime Edge：同 regime 的表現，比「不分 regime、無條件持有 SPY」的
+    # baseline 好多少——不是「RISK-ON 過去賺錢」（幾乎任何 regime 長期都賺），
+    # 是「RISK-ON 比什麼都不看好多少」。舊資料沒有 baseline 時不硬湊。
+    if regime.get("edge_mean") is not None:
+        edge = (f' <span title="Baseline：不分 regime、全樣本 n={regime.get("baseline_n","—")} '
+                f'的 20 日後平均 {regime.get("baseline_mean",0):+.2f}%，勝率 '
+                f'{regime.get("baseline_win_rate",0):.1f}%">· Regime Edge '
+                f'{regime["edge_mean"]:+.2f}pp'
+                + (f' / 勝率 {regime["edge_win_rate"]:+.1f}pp' if regime.get("edge_win_rate") is not None else "")
+                + '</span>')
     return f'''
   <div class="regime-banner {cls}">
     <div>{regime["icon"]} <b>{escape(regime["label"])}</b></div>
-    <div class="sub">{escape(regime.get("note") or "")}{hist}</div>
+    <div class="sub">{escape(regime.get("note") or "")}{hist}{edge}</div>
     <div class="sub">VIX {regime.get("vix","—")} · 10Y {regime.get("tnx","—")}%</div>
   </div>'''
 

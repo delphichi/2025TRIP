@@ -691,6 +691,8 @@ def compute_regime_stats():
     ma50 = close.rolling(50).mean()
     ma200 = close.rolling(200).mean()
     stats = {"🟢 多頭": [], "🟡 中性": [], "🟠 警戒": [], "🔴 空頭": []}
+    all_rets = []  # 不分 regime 的全樣本（Regime Edge 的 baseline）——同一個迴圈
+    # 每天都塞一份，不用另外抓資料、不用新公式，純粹是「不設條件」版的同一個統計
     n = len(close)
 
     def _regime(price, price60d, m50, m50prev, m200, m200prev):
@@ -710,14 +712,13 @@ def compute_regime_stats():
         regime, _ = _regime(price, price60d, m50, m50prev, m200, m200prev)
         fwd_20d = (float(close.iloc[i + 20]) - price) / price * 100
         stats[regime].append(fwd_20d)
+        all_rets.append(fwd_20d)
 
-    hist = {}
-    for regime, rets in stats.items():
+    def _stats_dict(rets):
         if not rets:
-            hist[regime] = None
-            continue
+            return None
         arr = np.array(rets)
-        hist[regime] = {
+        return {
             "n": len(arr),
             "mean": round(float(arr.mean()), 2),
             "win_rate": round(float((arr > 0).mean() * 100), 1),
@@ -727,9 +728,15 @@ def compute_regime_stats():
             "worst": round(float(arr.min()), 2),
             "best": round(float(arr.max()), 2),
         }
+
+    hist = {regime: _stats_dict(rets) for regime, rets in stats.items()}
+    unconditional = _stats_dict(all_rets)
     for r, d in hist.items():
         if d:
             log(f"  · {r} · n={d['n']:4d} · 20d 均 {d['mean']:+.2f}% · 勝率 {d['win_rate']:.1f}%")
+    if unconditional:
+        log(f"  · Baseline（不分 regime）· n={unconditional['n']:4d} · "
+            f"20d 均 {unconditional['mean']:+.2f}% · 勝率 {unconditional['win_rate']:.1f}%")
 
     # 今日 regime（用最新一根 bar）
     i_last = n - 1
@@ -755,6 +762,7 @@ def compute_regime_stats():
             "ma200_up": m200 > m200prev,
         },
         "current": hist.get(current_regime),
+        "unconditional": unconditional,
     }
 
 
