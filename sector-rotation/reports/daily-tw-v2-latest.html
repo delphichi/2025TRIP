@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>台股資金雷達 · 2026-09-03</title>
+<style>
+  :root {
+    --navy:#1b2a4a; --navy-d:#0f1930; --gold:#c9a24b; --gold-l:#e8d9ae;
+    --bg:#f4f5f7; --card:#ffffff; --line:#e2e5ea;
+    --text:#2a2f3a; --muted:#6b7280;
+    --green:#1e8449; --red:#c0392b; --amber:#d97706; --blue:#2563eb;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:24px; background:var(--bg);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--text); line-height:1.55;
+  }
+  .sheet { max-width:1180px; margin:0 auto; }
+  .up { color:var(--green); font-weight:700; }
+  .down { color:var(--red); font-weight:700; }
+  .flat { color:var(--muted); font-weight:600; }
+  .dim { color:var(--muted); font-size:12px; }
+  .header {
+    background:var(--card); border-radius:10px; padding:22px 26px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:14px;
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+  }
+  .logo {
+    width:56px; height:56px; border-radius:50%;
+    background:linear-gradient(135deg,var(--navy),var(--navy-d));
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold-l); font-weight:800; font-size:22px; border:2px solid var(--gold);
+  }
+  .htitle { flex:1; min-width:280px; }
+  .htitle .tag {
+    display:inline-block; background:var(--navy); color:var(--gold-l);
+    font-size:11px; padding:2px 10px; border-radius:12px; margin-bottom:6px; letter-spacing:1px;
+  }
+  .htitle h1 { margin:0 0 6px 0; font-size:22px; color:var(--navy); }
+  .htitle p { margin:0; font-size:13px; color:var(--muted); }
+  .tldr {
+    background:linear-gradient(90deg,#0f1930,#1b2a4a); color:#fef3c7;
+    padding:16px 22px; border-radius:10px; margin-bottom:14px;
+    font-size:14px; line-height:1.7; border-left:4px solid var(--gold);
+  }
+  .tldr b { color:#fff; }
+  .snap {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:10px; margin-bottom:14px;
+  }
+  .snap-cell {
+    background:var(--card); padding:12px 14px; border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .snap-cell .l { font-size:10.5px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }
+  .snap-cell .v { font-size:20px; font-weight:800; color:var(--navy); margin-top:2px; }
+  .snap-cell .s { font-size:11px; color:var(--muted); margin-top:2px; }
+  .card {
+    background:var(--card); border-radius:10px; overflow:hidden; margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  .card-h {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .card-h .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  .card-b { padding:14px 18px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th {
+    text-align:left; padding:8px 10px; background:#f9fafb; color:var(--muted);
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.5px;
+    border-bottom:2px solid var(--line); font-weight:600;
+  }
+  td { padding:7px 10px; border-bottom:1px solid var(--line); }
+  td.n { text-align:right; font-variant-numeric:tabular-nums; }
+  tr:last-child td { border-bottom:none; }
+  .empty { text-align:center; padding:16px; color:var(--muted); font-style:italic; }
+  .alert { background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:10px; font-size:11px; }
+  tr.thin-sector { font-style:italic; color:var(--muted); }
+  tr.thin-sector td { color:var(--muted); }
+  tr.thin-sector .cpd, tr.thin-sector .up, tr.thin-sector .down { opacity:.7; }
+  .dow {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .dow-long { background:#dcfce7; color:#166534; }
+  .dow-short { background:#fee2e2; color:#991b1b; }
+  .dow-squeeze { background:#fef3c7; color:#92400e; }
+  .dow-broaden { background:#ede9fe; color:#6d28d9; }
+  .dow-none { color:#94a3b8; font-size:10px; }
+  .dow-sig { font-size:10px; color:var(--muted); margin-left:4px; }
+  .pv {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .pv-strong { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .pv-warn { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+  .pv-weak { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+  .pv-early { background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }
+  .pv-neutral { background:#f3f4f6; color:#6b7280; }
+  .exp {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700;
+    white-space:nowrap;
+  }
+  .exp-boom { background:#fef3c7; color:#92400e; border:1px solid #fbbf24; }
+  .exp-cand { background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
+  .exp-risk { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+  .exp-none { color:#94a3b8; }
+  .cpd {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .cpd-confirmed { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .cpd-leading { background:#fef3c7; color:#92400e; border:1px solid #fbbf24; }
+  .cpd-warn { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+  .cpd-weak { background:#f3f4f6; color:#6b7280; }
+  .cpd-overheat { background:#fecaca; color:#7f1d1d; border:1px solid #ef4444; font-weight:700; }
+  .trans { display:inline-block; padding:1px 6px; border-radius:8px; font-size:11px; font-weight:700; }
+  .trans-adv { background:#dcfce7; color:#166534; }
+  .trans-rev { background:#fee2e2; color:#991b1b; }
+  .trans-steady { background:#f3f4f6; color:#6b7280; }
+  .trans-new { background:#f3f4f6; color:#9ca3af; }
+  .cpdcols { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+  @media(max-width:640px) { .cpdcols { grid-template-columns:1fr; } }
+  .cpdcol { background:#f9fafb; border-radius:8px; padding:10px 12px; border-left:3px solid var(--muted); }
+  .cpdcol.leading { border-left-color:#f59e0b; background:#fffbeb; }
+  .cpdcol.confirmed { border-left-color:#22c55e; background:#f0fdf4; }
+  .cpdcol.warn { border-left-color:#ef4444; background:#fef2f2; }
+  .cpdcol.weak { border-left-color:#94a3b8; background:#f9fafb; }
+  .cpdcol.overheat { border-left-color:#b91c1c; background:#fef2f2; }
+  .cpdcol h4 { margin:0 0 6px 0; font-size:13px; color:var(--navy); }
+  .cpdcol .cnt { font-size:11px; color:var(--muted); margin-left:6px; }
+  .cpdcol ul { margin:0; padding-left:0; list-style:none; font-size:12px; }
+  .cpdcol li { padding:2px 0; display:flex; justify-content:space-between; }
+  .cpdcol .empty { color:var(--muted); font-style:italic; font-size:11px; }
+  .expcols { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  @media(max-width:800px) { .expcols { grid-template-columns:1fr; } }
+  .expcol { background:#f9fafb; border-radius:8px; padding:10px 12px; border-left:3px solid var(--muted); }
+  .expcol.boom { border-left-color:#f59e0b; background:#fffbeb; }
+  .expcol.cand { border-left-color:#3b82f6; background:#eff6ff; }
+  .expcol.risk { border-left-color:#ef4444; background:#fef2f2; }
+  .expcol h4 { margin:0 0 6px 0; font-size:13px; color:var(--navy); }
+  .expcol .cnt { font-size:11px; color:var(--muted); margin-left:6px; }
+  .expcol ul { margin:0; padding-left:0; list-style:none; font-size:12px; }
+  .expcol li { padding:2px 0; display:flex; justify-content:space-between; }
+  .expcol .sec { color:var(--muted); font-size:10.5px; }
+  .expcol .empty { color:var(--muted); font-style:italic; font-size:11px; }
+  .deplist { margin:0; padding:0; list-style:none; font-size:13px; }
+  .deplist li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; }
+  .deplist li:last-child { border-bottom:none; }
+  .deplist li > span:last-child { margin-left:auto; font-weight:700; }
+  .foot {
+    background:var(--card); border-radius:10px; padding:16px 20px;
+    margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);
+    text-align:center; font-size:12px; color:var(--muted);
+  }
+  .foot a { color:var(--navy); text-decoration:none; border-bottom:1px dotted var(--navy); }
+
+  /* 首頁「決策儀表板」區塊：TODAY'S SIGNAL / MONEY IS MOVING / RISK /
+     OPPORTUNITY / SECTOR MAP。跟下面 <details> 的「證據層」共用 .card 外觀，
+     只是內容精簡很多，不是另一套視覺語言。 */
+  .fpgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  @media(max-width:800px) { .fpgrid { grid-template-columns:1fr; } }
+  .fpsignal { margin:0; padding:0; list-style:none; font-size:13px; }
+  .fpsignal li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .fpsignal li:last-child { border-bottom:none; }
+  .fpsignal li > b { flex:1; }
+  .fpnames { margin:0; padding:0; list-style:none; font-size:13px; columns:2; column-gap:16px; }
+  .fpnames li { padding:4px 0; display:flex; align-items:center; justify-content:space-between; gap:8px; break-inside:avoid; }
+  .fpsectormap { columns:3; }
+  @media(max-width:800px) { .fpsectormap { columns:2; } }
+  @media(max-width:500px) { .fpnames { columns:1; } .fpsectormap { columns:1; } }
+
+  /* <details> 證據層：跟 .card 同一套外觀，summary 取代 .card-h 當摺疊把手。 */
+  details.card { padding:0; }
+  details.card > summary {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer; list-style:none; display:flex; align-items:center;
+    justify-content:space-between; gap:8px;
+  }
+  details.card > summary::-webkit-details-marker { display:none; }
+  details.card > summary::after { content:"點擊展開 ▾"; font-size:11px; font-weight:400; opacity:.75; }
+  details.card[open] > summary::after { content:"收合 ▴"; }
+  details.card > summary .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  details.card > .card-b { padding:14px 18px; }
+
+  .fpsignal { margin:0; padding:0; list-style:none; font-size:13px; }
+  .fpsignal li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .fpsignal li:last-child { border-bottom:none; }
+  .fpsignal li > b { flex:1; }
+  .fpsignal .empty { color:var(--muted); font-style:italic; padding:6px 0; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">TW</div>
+    <div class="htitle">
+      <span class="tag">V2 · BETA</span>
+      <h1>🇹🇼 台股資金 × 量價交叉雷達 · 2026-09-03</h1>
+      <p>Capital Lens × Price-Volume Lens → Stock State。這是新增的第二版報表，
+         跟現有 daily-tw-latest.html 並存，不取代它——資料源完全相同
+         （tw_scorecard_latest.json / tw_latest.json / tw_{date}_all.csv），
+         沒有重抓任何資料。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 CAPITAL × PRICE-VOLUME CROSS<span class="n">612 檔有法人資料（全池 1066 檔）</span></div>
+    <div class="card-b"><h4 style="margin:10px 0 4px;">🎯 EARLY · 資金先走，價量未確認<span class="dim">（8）</span></h4><ul class="fpsignal"><li><b>3037</b> <span class="dim">欣興</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+11.80</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>2603</b> <span class="dim">長榮</span><span class="dim">[航運業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+5.86</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>3017</b> <span class="dim">奇鋐</span><span class="dim">[電腦及週邊設備業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+5.81</span><span class="dim" title="⚠️ 量能衰竭">量價 破壞</span></li><li><b>2408</b> <span class="dim">南亞科</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+5.06</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>2357</b> <span class="dim">華碩</span><span class="dim">[電腦及週邊設備業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+4.27</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>2330</b> <span class="dim">台積電</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+3.01</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>3653</b> <span class="dim">健策</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+2.85</span><span class="dim" title="⚠️ 量能衰竭">量價 破壞</span></li><li><b>3045</b> <span class="dim">台灣大</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+1.79</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li></ul><h4 style="margin:10px 0 4px;">👀 WATCH · 資金溫和流入，觀察<span class="dim">（8）</span></h4><ul class="fpsignal"><li><b>2882</b> <span class="dim">國泰金</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.92</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>3231</b> <span class="dim">緯創</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.89</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>2356</b> <span class="dim">英業達</span><span class="dim">[電腦及週邊設備業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.87</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>1717</b> <span class="dim">長興</span><span class="dim">[化學生技醫療]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.82</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>2377</b> <span class="dim">微星</span><span class="dim">[電腦及週邊設備業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.67</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>2890</b> <span class="dim">永豐金</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.61</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>2354</b> <span class="dim">鴻準</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.58</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>2421</b> <span class="dim">建準</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.56</span><span class="dim" title="➡️ 中性">量價 中性</span></li></ul><h4 style="margin:10px 0 4px;">🚀 CONFIRMED · 資金價量同步確認<span class="dim">（8）</span></h4><ul class="fpsignal"><li><b>2615</b> <span class="dim">萬海</span><span class="dim">[航運業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+2.74</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>2886</b> <span class="dim">兆豐金</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+2.71</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>2609</b> <span class="dim">陽明</span><span class="dim">[航運業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+2.28</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>2892</b> <span class="dim">第一金</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+2.06</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>6770</b> <span class="dim">力積電</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+1.44</span><span class="dim" title="🌱 底部剛翻多">量價 改善</span></li><li><b>2542</b> <span class="dim">興富發</span><span class="dim">[建材營造]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.48</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>2880</b> <span class="dim">華南金</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.47</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>2606</b> <span class="dim">裕民</span><span class="dim">[航運業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.42</span><span class="dim" title="🚀 健康多頭">量價 強勢</span></li></ul><h4 style="margin:10px 0 4px;">🕰️ MATURE · 價量在動，資金未增<span class="dim">（8）</span></h4><ul class="fpsignal"><li><b>9921</b> <span class="dim">巨大</span><span class="dim">[運動休閒]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.25</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>6214</b> <span class="dim">精誠</span><span class="dim">[資訊服務業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.18</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>3019</b> <span class="dim">亞光</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.15</span><span class="dim" title="✨ 反彈初期">量價 改善</span></li><li><b>2637</b> <span class="dim">慧洋-KY</span><span class="dim">[航運業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.13</span><span class="dim" title="🚀 健康多頭">量價 強勢</span></li><li><b>2845</b> <span class="dim">遠東銀</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.13</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>2392</b> <span class="dim">正崴</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.04</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>2851</b> <span class="dim">中再保</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.02</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>2915</b> <span class="dim">潤泰全</span><span class="dim">[貿易百貨]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.01</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li></ul><h4 style="margin:10px 0 4px;">⏳ WAIT · 雙平淡，無訊號<span class="dim">（8）</span></h4><ul class="fpsignal"><li><b>2002</b> <span class="dim">中鋼</span><span class="dim">[鋼鐵工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.28</span><span class="dim" title="😴 弱勢縮量">量價 中性</span></li><li><b>6271</b> <span class="dim">同欣電</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.27</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>3376</b> <span class="dim">新日興</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.26</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>6781</b> <span class="dim">AES-KY</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.25</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>5880</b> <span class="dim">合庫金</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.24</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>2467</b> <span class="dim">志聖</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.23</span><span class="dim" title="⚠️ 量能背離">量價 弱化</span></li><li><b>1102</b> <span class="dim">亞泥</span><span class="dim">[水泥工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.21</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>2385</b> <span class="dim">群光</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=+0.21</span><span class="dim" title="➡️ 中性">量價 中性</span></li></ul><h4 style="margin:10px 0 4px;">⚠️ DISTRIBUTION · 資金流出但價量還撐，出貨警訊<span class="dim">（3）</span></h4><ul class="fpsignal"><li><b>2449</b> <span class="dim">京元電子</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-2.14</span><span class="dim" title="🌱 底部剛翻多">量價 改善</span></li><li><b>2834</b> <span class="dim">臺企銀</span><span class="dim">[金融保險]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-0.50</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>1519</b> <span class="dim">華城</span><span class="dim">[電機機械]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-0.41</span><span class="dim" title="🌱 底部剛翻多">量價 改善</span></li></ul><h4 style="margin:10px 0 4px;">🔥 OVERHEATED · 追高風險，方向對但位置錯<span class="dim">（8）</span></h4><ul class="fpsignal"><li><b>4958</b> <span class="dim">臻鼎-KY</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-4.27</span><span class="dim" title="😴 弱勢縮量">量價 中性</span></li><li><b>8046</b> <span class="dim">南電</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-3.53</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>3026</b> <span class="dim">禾伸堂</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-1.37</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>3189</b> <span class="dim">景碩</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-0.92</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>8039</b> <span class="dim">台虹</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-0.79</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>6451</b> <span class="dim">訊芯-KY</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-0.51</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>6446</b> <span class="dim">藥華藥</span><span class="dim">[化學生技醫療]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-0.50</span><span class="dim" title="⭐⭐⭐ 完美多頭">量價 強勢</span></li><li><b>3167</b> <span class="dim">大量</span><span class="dim">[電機機械]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-0.46</span><span class="dim" title="➡️ 中性">量價 中性</span></li></ul><h4 style="margin:10px 0 4px;">🚫 REJECT · 資金流出，不建議<span class="dim">（8）</span></h4><ul class="fpsignal"><li><b>2327</b> <span class="dim">國巨*</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-8.40</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>2308</b> <span class="dim">台達電</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-4.91</span><span class="dim" title="⚠️ 量能背離">量價 弱化</span></li><li><b>6669</b> <span class="dim">緯穎</span><span class="dim">[電腦及週邊設備業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-4.17</span><span class="dim" title="⚠️ 頂部背離">量價 弱化</span></li><li><b>2345</b> <span class="dim">智邦</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-3.83</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>3665</b> <span class="dim">貿聯-KY</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-3.59</span><span class="dim" title="⚠️ 主升段結束">量價 弱化</span></li><li><b>2492</b> <span class="dim">華新科</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-2.84</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>3533</b> <span class="dim">嘉澤</span><span class="dim">[電子零組件業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-2.83</span><span class="dim" title="➡️ 中性">量價 中性</span></li><li><b>2368</b> <span class="dim">金像電</span><span class="dim">[電子工業]</span><span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z=-2.30</span><span class="dim" title="➡️ 中性">量價 中性</span></li></ul><p class="dim" style="margin:10px 0 0;">資金鏡頭 × 量價鏡頭交叉出的狀態，不是加權分數；REJECT（Dow 結構空頭）跟 OVERHEATED（追高風險）是結構性否決，不進矩陣排列。Regime Gate（市場能不能做）跟 Capital Acceleration（資金變化速度）下一階段才加，這版只驗證 Cross Matrix 本身。</p></div>
+  </div>
+
+  <div class="foot">
+    產生時間 2026-09-05 23:51 UTC · 資金鏡頭：法人 20 日淨買估計金額橫斷面 Z-score ·
+    量價鏡頭：既有 pv_verdict 透過 PV_SCORE_MAP 分級 · 兩者交叉出 Stock State，
+    不是加權分數 ·
+    <a href="daily-tw-latest.html">看原版台股報表</a>
+    <br><br>
+    <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
+  </div>
+
+</div>
+</body>
+</html>
