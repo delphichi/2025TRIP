@@ -457,9 +457,36 @@ def entry_permission(regime_label, state):
     return row.get(state, ("—", ""))
 
 
-def opportunity_radar_html(stage2, scorecard, exp_buckets, regime):
+# ============================================================
+# 4d. Opportunity Reason：一行「為什麼」標籤
+# ============================================================
+# 使用者反饋：五個感測器分數（S1-S5）+ Entry Permission 對使用者來說還是
+# 太多數字，真正想看的是「系統為什麼把這檔股票放在這裡」。不新增訊號、
+# 不做新公式——直接從 compute_sensor_scores() 已經算好的 S1-S5 子分數
+# （都是同一個 0-20 尺度，互相可比，不用另外標準化）挑分數最高的兩個轉成
+# 短標籤。Price Lag 是額外資訊（不是每天都有，Stage 2 只在週五更新），
+# 有資料且為正時才加進去，不搶 S1-S5 的排名。
+OPPORTUNITY_REASON_LABELS = {
+    "s1": "Sector Capital↑",   # S1 板塊強度：quadrant + flow_ratio + breadth
+    "s2": "RS↑",               # S2 個股強度：sector 內排名 + 動能 + 量價分數
+    "s3": "Volume↑",           # S3 成交量確認：pv_verdict + 漲跌量比
+    "s4": "Trend↑",            # S4 趨勢完整性：Dow 型態 + 訊號
+    "s5": "Room to run",       # S5 位置/空間：離高點距離 + 暴漲判定 + gap alert
+}
+
+
+def opportunity_reason(sc, price_lag=None, top_n=2):
+    ranked = sorted(OPPORTUNITY_REASON_LABELS.items(), key=lambda kv: -(sc.get(kv[0]) or 0))
+    tags = [label for k, label in ranked[:top_n] if (sc.get(k) or 0) > 0]
+    if price_lag is not None and price_lag > 0:
+        tags.append("Price Lag↑")
+    return " + ".join(tags) if tags else "—"
+
+
+def opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol=None):
     groups = build_stock_state_groups(stage2, scorecard, exp_buckets)
     regime_label = regime.get("label", "UNKNOWN") if regime else "UNKNOWN"
+    lag_by_symbol = lag_by_symbol or {}
     sections = []
     for state in STOCK_STATE_ORDER:
         icon, label = STATE_LABELS[state]
@@ -468,12 +495,14 @@ def opportunity_radar_html(stage2, scorecard, exp_buckets, regime):
         for r, sc in items:
             perm_icon, perm_note = entry_permission(regime_label, state)
             perm_html = f'<span title="{escape(perm_note)}">{perm_icon}</span>' if perm_note else f'<span>{perm_icon}</span>'
+            reason = opportunity_reason(sc, lag_by_symbol.get(r.get("symbol")))
             lis_parts.append(
                 f'<li><b>{escape(r.get("symbol",""))}</b> '
                 f'<span class="dim">{escape((r.get("name") or "")[:16])}</span>'
                 f'<span class="dim">[{escape(r.get("sector",""))}]</span>'
                 f'<span class="dim" title="{state}">{sc.get("total","—")}</span>'
-                f'{perm_html}</li>'
+                f'{perm_html}'
+                f'<span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">{escape(reason)}</span></li>'
             )
         lis = "".join(lis_parts) or '<li class="empty">今日無</li>'
         sections.append(f'<h4 style="margin:10px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>'
@@ -481,16 +510,25 @@ def opportunity_radar_html(stage2, scorecard, exp_buckets, regime):
     sections.append(f'<p class="dim" style="margin:10px 0 0;">五態（EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED）'
                      f'沿用既有感測器欄位分類，不是新公式；Entry Permission 是依今日 regime（'
                      f'{escape(regime_label)}）標註的進場許可（✅可進場／⚠️留意／❌不建議），不改變狀態分類本身——'
-                     f'股票處在哪個狀態是一回事，這個環境下該不該進場是另一回事。</p>')
+                     f'股票處在哪個狀態是一回事，這個環境下該不該進場是另一回事。最後一欄的短標籤是從 S1-S5 挑'
+                     f'最高的兩個子分數轉成的「為什麼」，Price Lag 有資料時額外附加。</p>')
     return "".join(sections)
+
+
+PRICE_LAG_CAVEAT = ('<p class="dim" style="margin:10px 0 0;">已知限制：Sector 是市值加權 ETF，'
+                     '重倉成分股（例如 XLK 裡的 AAPL/MSFT/NVDA）自己的價格變化本來就是 ETF 報酬的一大塊，'
+                     '這是所有「拿 cap-weighted ETF 當板塊基準」的方法共通的限制（不是這個公式獨有），'
+                     '對這幾檔重倉股的 Price Lag 解讀要打折扣。</p>')
 
 
 def price_lag_html(lag_rows, top_n=15):
     early = [r for r in lag_rows if r.get("early_flag")]
     if not lag_rows:
-        return '<p class="empty">今日沒有 Price Lag 資料（sector 樣本數不足或今日資料不存在）</p>'
+        return ('<p class="empty">今日沒有 Price Lag 資料（sector 樣本數不足或今日資料不存在，'
+                 '例如 Stage 2 個股全量資料只在週五更新，不是每天都有）</p>')
     if not early:
-        return '<p class="empty">今日沒有標記為 EARLY 的候選（有算 Price Lag 的 sector 裡，沒有「sector 已確認、股票仍落後」的組合）</p>'
+        return ('<p class="empty">今日沒有標記為 EARLY 的候選（有算 Price Lag 的 sector 裡，'
+                 '沒有「sector 已確認、股票仍落後」的組合）</p>')
     rows_sorted = sorted(early, key=lambda r: -r["price_lag"])[:top_n]
     items = "".join(
         f'<li><b>{escape(r["symbol"])}</b> <span class="dim">{escape((r.get("name") or "")[:16])}</span>'
@@ -500,10 +538,14 @@ def price_lag_html(lag_rows, top_n=15):
         f'<span class="up">{r["price_lag"]:.2f}</span></li>'
         for r in rows_sorted
     )
-    return f'<ul class="fpsignal">{items}</ul>'
+    return f'<ul class="fpsignal">{items}</ul>{PRICE_LAG_CAVEAT}'
 
 
-def capital_acceleration_html(accel_rows, prior_date, top_n=6):
+def capital_acceleration_html(accel_rows, prior_date, top_n=3):
+    """使用者反饋：11 個 sector 只有 11 個 sector 選 6+5=11 個列出來，等於
+    全部都列了，跟『Signal』的意思矛盾（不是精選，是完整報表）。改成只列
+    TOP 3 加速流入 + TOP 3 減速/流出，中段變化不明顯的收進 <details>，
+    不是砍掉，只是不擋在第一眼。"""
     if prior_date is None:
         return '<p class="empty">找不到有 flow_ratio 欄位的歷史快照可比對（flow_ratio 是最近才加的欄位），無法算加速度</p>'
     valid = [r for r in accel_rows if r["acceleration"] is not None]
@@ -515,6 +557,7 @@ def capital_acceleration_html(accel_rows, prior_date, top_n=6):
     # 重疊（同一個 sector 同時出現在「加速流入」跟「減速/流出」兩邊）。
     remaining = accel_sorted[top_n:]
     bottom = remaining[-top_n:][::-1] if remaining else []
+    middle = remaining[:len(remaining) - len(bottom)]
 
     def _rows(items, cls):
         return "".join(
@@ -523,9 +566,12 @@ def capital_acceleration_html(accel_rows, prior_date, top_n=6):
             f'<span class="{cls}">{r["acceleration"]:+.3f}</span></li>'
             for r in items
         )
-    html = f'<h4 style="margin:0 0 4px;">🔼 加速流入</h4><ul class="fpsignal">{_rows(top, "up")}</ul>'
+    html = f'<h4 style="margin:0 0 4px;">🔼 TOP {top_n} 加速流入</h4><ul class="fpsignal">{_rows(top, "up")}</ul>'
     if bottom:
-        html += f'<h4 style="margin:12px 0 4px;">🔽 減速/流出</h4><ul class="fpsignal">{_rows(bottom, "down")}</ul>'
+        html += f'<h4 style="margin:12px 0 4px;">🔽 TOP {top_n} 減速/流出</h4><ul class="fpsignal">{_rows(bottom, "down")}</ul>'
+    if middle:
+        html += (f'<details style="margin-top:10px;"><summary class="dim">其餘 {len(middle)} 個板塊'
+                  f'（變化不明顯，非 TOP {top_n}）</summary><ul class="fpsignal">{_rows(middle, "dim")}</ul></details>')
     return html
 
 
@@ -554,17 +600,29 @@ def load_theme_scorecard():
 
 
 def theme_map_html(theme_rows):
+    """使用者對照真實頁面反饋：8 個裸的『⚪ —』看起來像『這個模組壞了』，
+    但實際意思是『目前只有 ETF Proxy 的價量分數，還沒有足夠歷史可以算
+    acceleration/quadrant』（第一天沒有 5 日均可比，第 6 天起才會開始出現
+    leading/improving/weakening/lagging）。quadrant 是 None 時改成明確講
+    這件事，不是留一個看起來像錯誤的符號。"""
     if theme_rows is None:
-        return ('<p class="empty">Theme scorecard 還沒跑過（scripts/theme_scorecard.py），'
+        return ('<p class="empty">Theme ETF Proxy 還沒跑過（scripts/theme_scorecard.py），'
                 '目前只有 Sector 層資料</p>')
     if not theme_rows:
         return '<p class="empty">今日無 Theme ETF 資料</p>'
     items = []
     for r in sorted(theme_rows, key=lambda r: -(r.get("point") or 0)):
-        name = escape(r.get("sector_name", "")) + escape(f'（{r.get("sector","")}）')
+        ticker = escape(r.get("sector", ""))
+        name = escape(r.get("sector_name", "")) + f"（{ticker}）"
         q = r.get("quadrant")
-        emoji, zh, _ = gdr.QUADRANT_META.get(q, ("⚪", "—", ""))
-        items.append(f'<li>{name}<span>{emoji} {escape(zh)}</span></li>')
+        if q:
+            emoji, zh, _ = gdr.QUADRANT_META.get(q, ("⚪", "—", ""))
+            badge = f'{emoji} {escape(zh)}'
+        else:
+            badge = ('<span class="dim" title="ETF 價量分數已算出，累積幾天歷史後才會有 '
+                     'leading/improving/weakening/lagging 象限（跟 Sector Map 同一套規則，'
+                     '只是 Theme 才剛開始收資料）">ETF 訊號可用 · 尚無歷史可比</span>')
+        items.append(f'<li>{name}<span>{badge}</span></li>')
     return f'<ul class="fpnames">{"".join(items)}</ul>'
 
 
@@ -577,6 +635,7 @@ def render_v2(scorecard, stage2):
 
     regime = regime_gate(market_ctx)
     lag_rows = compute_price_lag(scorecard_rows, all_rows)
+    lag_by_symbol = {r["symbol"]: r["price_lag"] for r in lag_rows}
     prior_date, accel_rows = compute_capital_acceleration(scorecard_rows, as_of)
     theme_rows = load_theme_scorecard()
 
@@ -612,7 +671,7 @@ def render_v2(scorecard, stage2):
   </div>
 
   <div class="card">
-    <div class="card-h">🧬 THEME MAP<span class="n" title="輕量 ETF Proxy：不建個股↔主題對照表，直接對 SMH/IGV/CIBR/XBI/ITA/XOP/KRE/JETS 等主題 ETF 套用跟 Sector 一樣的量價評分方法論。沒有 breadth_pct（沒有個股對照表可算），資料完整度比 Sector 層低">{len(theme_rows) if theme_rows else 0} theme ETFs</span></div>
+    <div class="card-h">🧬 THEME ETF PROXY<span class="n" title="不建個股↔主題對照表，直接對 SMH/IGV/CIBR/XBI/ITA/XOP/KRE/JETS 等主題 ETF 套用跟 Sector 一樣的量價評分方法論。沒有 breadth_pct（沒有個股對照表可算），資料完整度比 Sector 層低——這是 Proxy，不是完整 Theme">{len(theme_rows) if theme_rows else 0} theme ETFs</span></div>
     <div class="card-b">{theme_map_html(theme_rows)}</div>
   </div>
 
@@ -628,7 +687,7 @@ def render_v2(scorecard, stage2):
 
   <div class="card">
     <div class="card-h">🔥 OPPORTUNITY RADAR<span class="n" title="重用既有 S1-S5 感測器 + 矛盾扣分邏輯，拆成 EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED 一檔股票一個狀態，並依今日 Regime 標 Entry Permission（✅/⚠️/❌）——Regime 是 Gate 不是乘數，不改變股票本身的 Opportunity 分數">Stock State（5 態）+ Entry Permission</span></div>
-    <div class="card-b">{opportunity_radar_html(stage2, scorecard, exp_buckets, regime)}</div>
+    <div class="card-b">{opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol)}</div>
   </div>
 
   <div class="foot">
