@@ -726,8 +726,212 @@ def pv_chain_summary_html(summary, pv_state="P+V+"):
     </table>{top_html}{note}'''
 
 
-def explosive_pool_html(all_rows):
-    buckets = {"🚀 暴漲中": [], "🎯 潛在暴漲": [], "🔥 追高風險": []}
+# ============================================================
+# 首頁「決策儀表板」區塊：把報表從「資料倉庫」改造成「今天要注意什麼」——
+# 詳細數據不刪，只是收進下面的 <details> 區塊（點擊展開），不佔首屏版面。
+# ============================================================
+FRONT_PAGE_TOP_N = 5
+
+
+def today_signal_html(chain_rows_sorted, top_n=FRONT_PAGE_TOP_N):
+    """今天最強的幾條供應鏈——point 最高的前 N 條，附狀態 + Transition 方向。
+    這是「哪些產業鏈正在形成」這個問題的答案，不是「哪個 Point 最高就買哪個」，
+    只是把 Chain Radar 已經算好的排名做成一眼看完的摘要。
+    """
+    if not chain_rows_sorted:
+        return '<p class="empty">今日無產業鏈資料</p>'
+    items = []
+    for r in chain_rows_sorted[:top_n]:
+        chain = escape(r.get("supply_chain", ""))
+        pt = num(r.get("point"), 1)
+        q = r.get("market_state") or r.get("cpd_quadrant") or "—"
+        cls = CPD_META.get(q, "cpd-weak")
+        direction = r.get("transition_dir")
+        _, icon = TRANSITION_DIR_META.get(direction, ("trans-new", ""))
+        items.append(
+            f'<li><b>{chain}</b><span class="n">{pt}</span>'
+            f'<span class="cpd {cls}">{escape(q)}</span>'
+            f'<span class="dim">{icon}</span></li>'
+        )
+    return f'<ul class="fpsignal">{"".join(items)}</ul>'
+
+
+def money_moving_html(chain_rows_sorted):
+    """💰 Capital Leading 的鏈：資金已經進場，價格還沒完全反映——早期階段。"""
+    names = [escape(r.get("supply_chain", "")) for r in chain_rows_sorted
+             if (r.get("market_state") or r.get("cpd_quadrant")) == "💰 Capital Leading"]
+    if not names:
+        return '<p class="empty">今日無 Capital Leading 鏈</p>'
+    return f'<ul class="fpnames">{"".join(f"<li>{n}</li>" for n in names)}</ul>'
+
+
+def risk_chains_html(chain_rows_sorted):
+    """⚠️ Price Leading（價格已動、法人沒跟，追高風險）+ 🔥 Overheated（連兩日
+    Confirmed 但寬度下滑，過熱/出貨徵兆）——這兩種狀態都是「小心，不是進場訊號」。
+    """
+    risk_states = {"⚠️ Price Leading", "🔥 Overheated"}
+    names = [escape(r.get("supply_chain", "")) for r in chain_rows_sorted
+             if (r.get("market_state") or r.get("cpd_quadrant")) in risk_states]
+    if not names:
+        return '<p class="empty">今日無警示鏈</p>'
+    return f'<ul class="fpnames">{"".join(f"<li>{n}</li>" for n in names)}</ul>'
+
+
+def _chain_for_ticker(stock_id, mapping_df):
+    """給定 ticker，回傳它在 IndustryMappingTable 裡的第一條 supply_chain（如果
+    有映射的話）——用於「機會清單」裡幫沒有 Price Lag 資料的暴漲股標出鏈脈絡，
+    不保證是唯一或最重要的一條（many-to-many，這裡只挑第一筆給畫面用）。"""
+    if mapping_df is None or mapping_df.empty:
+        return None
+    hit = mapping_df[mapping_df["ticker"] == stock_id]
+    if hit.empty:
+        return None
+    return hit.iloc[0]["supply_chain"]
+
+
+def opportunity_html(all_rows, chain_lag_rows, mapping_df, top_n=FRONT_PAGE_TOP_N):
+    """🎯 OPPORTUNITY：合併兩個已經算好的訊號來源，不是發明新公式——
+    🚀 突破：explosive_verdict=='🚀 暴漲中' 的股票（Layer 2 純價量訊號）
+    🎯 早期：Price Lag 標記 EARLY 的股票（鏈已確認、股票鏈內還沒漲上來）
+    兩組各取前 top_n 檔，前者按 point 排序、後者按 price_lag 排序（沿用各自
+    原本的排序邏輯，不是這裡另外發明）。Chain 欄位：EARLY 組直接有 supply_chain；
+    突破組透過 IndustryMappingTable 查第一條有映射到的鏈，查不到就顯示 Sector。
+    """
+    def _f(r, k):
+        try:
+            return float(r.get(k) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    breakout = sorted(
+        [r for r in all_rows if (r.get("explosive_verdict") or "").strip() == "🚀 暴漲中"],
+        key=lambda r: -_f(r, "point"),
+    )[:top_n]
+    early = sorted(
+        [r for r in (chain_lag_rows or []) if (r.get("early_flag") or "").strip()],
+        key=lambda r: -_f(r, "price_lag"),
+    )[:top_n]
+
+    if not breakout and not early:
+        return '<p class="empty">今日無突破或早期機會候選</p>'
+
+    rows_html = []
+    for r in breakout:
+        sid = r.get("stock_id", "")
+        chain = _chain_for_ticker(sid, mapping_df) or r.get("sector", "—")
+        rows_html.append(
+            f'<tr><td><b>{escape(sid)}</b> <span class="dim">{escape((r.get("stock_name") or "")[:10])}</span></td>'
+            f'<td>{escape(chain)}</td>'
+            f'<td class="n">{num(r.get("cum_ret_4w"), 1, pct=True, sign=True)}</td>'
+            f'<td>🚀</td></tr>'
+        )
+    for r in early:
+        sid = r.get("ticker", "")
+        rows_html.append(
+            f'<tr><td><b>{escape(sid)}</b> <span class="dim">{escape((r.get("stock_name") or "")[:10])}</span></td>'
+            f'<td>{escape(r.get("supply_chain", ""))}</td>'
+            f'<td class="n">{num(r.get("stock_point"), 1, sign=True)}</td>'
+            f'<td>🎯</td></tr>'
+        )
+    return f'''
+    <table>
+      <thead><tr><th>Stock</th><th>Chain</th><th class="n">4W / Point</th><th>Signal</th></tr></thead>
+      <tbody>{"".join(rows_html)}</tbody>
+    </table>'''
+
+
+def sector_map_html(rows_sorted):
+    """🧭 SECTOR MAP：板塊名稱 + 狀態圖示，不重複數字——數字在 Sector Detail
+    裡已經有了，這裡只回答「哪個板塊現在是什麼狀態」。"""
+    if not rows_sorted:
+        return '<p class="empty">今日無板塊資料</p>'
+    items = []
+    for r in rows_sorted:
+        sec = escape(r.get("sector", ""))
+        q = r.get("market_state") or r.get("cpd_quadrant") or "—"
+        cls = CPD_META.get(q, "cpd-weak")
+        items.append(f'<li>{sec}<span class="cpd {cls}">{escape(q)}</span></li>')
+    return f'<ul class="fpnames fpsectormap">{"".join(items)}</ul>'
+
+
+def chain_diagnostics_html(chain_rows_sorted, chain_dep_rows, chain_lag_rows):
+    """🔬 Chain Diagnostics：把三個目前分開顯示的鏈層級指標（Node Resonance、
+    Upstream Coherence、Price Lag）合併成同一條鏈的完整診斷檔案，取代「使用者
+    要在畫面上自己對照三張表才能理解同一條鏈」的體驗。這不是新指標，是既有三個
+    指標的合併呈現——resonance 答「鏈內部有沒有全面擴散」，coherence 答「上游
+    供應鏈有沒有跟上」，price lag 答「哪些成分股還沒漲上來」，三個問題不同，
+    合併只是省去讀者自己交叉比對的功夫。
+    """
+    if not chain_rows_sorted:
+        return '<p class="empty">今日無產業鏈資料</p>'
+
+    dep_by_chain = {r.get("chain"): r for r in (chain_dep_rows or [])}
+
+    lag_by_chain = {}
+    for r in (chain_lag_rows or []):
+        chain = r.get("supply_chain")
+        if not chain:
+            continue
+        try:
+            lag = float(r.get("price_lag") or 0)
+        except (TypeError, ValueError):
+            lag = 0.0
+        b = lag_by_chain.setdefault(chain, {"lags": [], "early_count": 0})
+        b["lags"].append(lag)
+        if (r.get("early_flag") or "").strip():
+            b["early_count"] += 1
+
+    rows_html = []
+    for r in chain_rows_sorted:
+        chain = r.get("supply_chain", "")
+        q = r.get("market_state") or r.get("cpd_quadrant") or "—"
+        cls = CPD_META.get(q, "cpd-weak")
+        resonance = r.get("resonance_pct")
+        resonance_str = f"{float(resonance):.0f}%" if resonance not in (None, "") else "單一節點"
+
+        dep = dep_by_chain.get(chain)
+        coherence_pct = float(dep["upstream_coherence_pct"]) if dep and dep.get("upstream_coherence_pct") not in (None, "") else None
+        coherence_str = f"{coherence_pct:.0f}%" if coherence_pct is not None else "—"
+        # 跟舊版 chain_dependency_html() 的 ⚠️ 上游未確認 同一條規則：鏈本身已經
+        # 確認、但加權後上游 coherence < 30% 才標——鏈本身就弱的話低 coherence
+        # 是一致現象，不該額外警示（避免誤報）。
+        warn = (' <span class="alert" title="這條鏈本身強勢，但依賴的上游鏈（加權後）大多還沒確認，可能是價格面單獨噴出">⚠️ 上游未確認</span>'
+                if coherence_pct is not None and coherence_pct < 30 and q in ("🚀 Confirmed", "💰 Capital Leading") else "")
+
+        lag_info = lag_by_chain.get(chain)
+        if lag_info and lag_info["lags"]:
+            avg_lag = sum(lag_info["lags"]) / len(lag_info["lags"])
+            lag_str = f"{avg_lag:+.2f}（{lag_info['early_count']} 檔 EARLY）"
+        else:
+            lag_str = "—"
+
+        rows_html.append(
+            f'<tr><td><b>{escape(chain)}</b>{warn}</td>'
+            f'<td><span class="cpd {cls}">{escape(q)}</span></td>'
+            f'<td class="n">{resonance_str}</td>'
+            f'<td class="n">{coherence_str}</td>'
+            f'<td class="n">{escape(lag_str)}</td></tr>'
+        )
+    return f'''
+    <table>
+      <thead>
+        <tr><th>Chain</th><th title="CPD 象限狀態">State</th>
+            <th class="n" title="鏈內不同節點類型有幾成平均 point 轉正">Node Resonance</th>
+            <th class="n" title="上游依賴鏈的加權確認度（WeightedCoherence）">Upstream Coherence</th>
+            <th class="n" title="鏈內成分股 Price Lag 平均值 + 幾檔標記 EARLY">Price Lag（平均）</th></tr>
+      </thead>
+      <tbody>{"".join(rows_html)}</tbody>
+    </table>'''
+
+
+EXPLOSIVE_BUCKET_ORDER = ["🚀 暴漲中", "🎯 潛在暴漲", "🔥 追高風險"]
+EXPLOSIVE_BUCKET_CLS = {"🚀 暴漲中": "boom", "🎯 潛在暴漲": "cand", "🔥 追高風險": "risk"}
+
+
+def _explosive_buckets(all_rows):
+    """暴漲候選池的分桶 + 排序邏輯，抽成共用函式給精簡版（首頁）跟完整版
+    （detail）共用，避免兩份幾乎一樣的邏輯各自維護一次排序規則。"""
+    buckets = {k: [] for k in EXPLOSIVE_BUCKET_ORDER}
     for r in all_rows:
         v = (r.get("explosive_verdict") or "").strip()
         if v in buckets:
@@ -742,22 +946,53 @@ def explosive_pool_html(all_rows):
     buckets["🚀 暴漲中"].sort(key=lambda r: -_f(r, "point"))
     buckets["🎯 潛在暴漲"].sort(key=lambda r: -_f(r, "point"))
     buckets["🔥 追高風險"].sort(key=lambda r: -_f(r, "cum_ret_26w"))
+    return buckets
 
+
+def explosive_pool_html(all_rows, top_n=FRONT_PAGE_TOP_N):
+    """精簡版：每桶最多 top_n 檔（首頁用）。完整清單見 explosive_pool_full_html()
+    （放在 <details> 裡，不佔首屏版面，但資料完全沒有被丟掉）。"""
+    buckets = _explosive_buckets(all_rows)
     cols = []
-    col_cls = {"🚀 暴漲中": "boom", "🎯 潛在暴漲": "cand", "🔥 追高風險": "risk"}
     for label, rows in buckets.items():
         items = "".join(
             f'<li><b>{escape(r.get("stock_id",""))}</b> '
             f'<span class="sec">{escape((r.get("stock_name") or "")[:12])}</span>'
             f'<span>{num(r.get("cum_ret_4w"), 1, pct=True, sign=True)}</span></li>'
-            for r in rows[:8]
+            for r in rows[:top_n]
         ) or '<li class="empty">今日無</li>'
         cols.append(f'''
-        <div class="expcol {col_cls[label]}">
+        <div class="expcol {EXPLOSIVE_BUCKET_CLS[label]}">
           <h4>{label}<span class="cnt">{len(rows)}</span></h4>
           <ul>{items}</ul>
         </div>''')
     return "".join(cols)
+
+
+def explosive_pool_full_html(all_rows):
+    """完整版：三桶各自的全部股票，一桶一張表，供 <details> 展開查看。"""
+    buckets = _explosive_buckets(all_rows)
+    sections = []
+    for label in EXPLOSIVE_BUCKET_ORDER:
+        rows = buckets[label]
+        if not rows:
+            sections.append(f'<h4 style="margin:12px 0 4px;">{label}（0 檔）</h4><p class="empty">今日無</p>')
+            continue
+        body = "".join(
+            f'<tr><td><b>{escape(r.get("stock_id",""))}</b> '
+            f'<span class="dim">{escape((r.get("stock_name") or "")[:16])}</span></td>'
+            f'<td>{escape(r.get("sector",""))}</td>'
+            f'<td class="n">{num(r.get("cum_ret_4w"), 1, pct=True, sign=True)}</td>'
+            f'<td class="n">{num(r.get("cum_ret_26w"), 1, pct=True, sign=True)}</td></tr>'
+            for r in rows
+        )
+        sections.append(f'''
+        <h4 style="margin:12px 0 4px;">{label}（{len(rows)} 檔）</h4>
+        <table>
+          <thead><tr><th>Stock</th><th>Sector</th><th class="n">4W</th><th class="n">26W</th></tr></thead>
+          <tbody>{body}</tbody>
+        </table>''')
+    return "".join(sections)
 
 
 def inst_flow_leaderboard_html(all_rows, top_n=10):
@@ -952,6 +1187,34 @@ CSS = '''
     text-align:center; font-size:12px; color:var(--muted);
   }
   .foot a { color:var(--navy); text-decoration:none; border-bottom:1px dotted var(--navy); }
+
+  /* 首頁「決策儀表板」區塊：TODAY'S SIGNAL / MONEY IS MOVING / RISK /
+     OPPORTUNITY / SECTOR MAP。跟下面 <details> 的「證據層」共用 .card 外觀，
+     只是內容精簡很多，不是另一套視覺語言。 */
+  .fpgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  @media(max-width:800px) { .fpgrid { grid-template-columns:1fr; } }
+  .fpsignal { margin:0; padding:0; list-style:none; font-size:13px; }
+  .fpsignal li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .fpsignal li:last-child { border-bottom:none; }
+  .fpsignal li > b { flex:1; }
+  .fpnames { margin:0; padding:0; list-style:none; font-size:13px; columns:2; column-gap:16px; }
+  .fpnames li { padding:4px 0; display:flex; align-items:center; justify-content:space-between; gap:8px; break-inside:avoid; }
+  .fpsectormap { columns:3; }
+  @media(max-width:800px) { .fpsectormap { columns:2; } }
+  @media(max-width:500px) { .fpnames { columns:1; } .fpsectormap { columns:1; } }
+
+  /* <details> 證據層：跟 .card 同一套外觀，summary 取代 .card-h 當摺疊把手。 */
+  details.card { padding:0; }
+  details.card > summary {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer; list-style:none; display:flex; align-items:center;
+    justify-content:space-between; gap:8px;
+  }
+  details.card > summary::-webkit-details-marker { display:none; }
+  details.card > summary::after { content:"點擊展開 ▾"; font-size:11px; font-weight:400; opacity:.75; }
+  details.card[open] > summary::after { content:"收合 ▴"; }
+  details.card > summary .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  details.card > .card-b { padding:14px 18px; }
 '''
 
 
@@ -973,6 +1236,8 @@ def render(scorecard, stage2):
     pv_chain_summary_data = {"total_rows": 0, "stock_count": 0, "by_chain": []}
     pv_down_summary = {"total": 0, "mapped": 0, "unmapped": 0, "by_sector": []}
     pv_down_chain_summary_data = {"total_rows": 0, "stock_count": 0, "by_chain": []}
+    mapping_df = None
+    cov = None
     if all_rows:
         try:
             mapping_df = tim.load_mapping()
@@ -1028,12 +1293,16 @@ def render(scorecard, stage2):
     budget = scorecard.get("request_budget_used")
     gen_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
+    universe_n = sum(int(r.get("stock_count", 0)) for r in rows) if rows else 0
+    chain_universe_str = (f"{cov['covered_in_universe']} / {cov['universe_size']}"
+                           if cov else "—")
+
     html = f'''<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>台股板塊研究日報 · {as_of}</title>
+<title>台股產業鏈資金雷達 · {as_of}</title>
 <style>{CSS}</style>
 </head>
 <body>
@@ -1042,14 +1311,12 @@ def render(scorecard, stage2):
   <div class="header">
     <div class="logo">TW</div>
     <div class="htitle">
-      <span class="tag">PHASE 1 · BETA</span>
-      <h1>台股板塊研究日報 · {as_of}</h1>
-      <p>資料源：FinMind · 官方 industry_category 粗分類（無供應鏈次產業細分，Phase 2 補）·
-         股票池 {len(rows) and sum(int(r.get("stock_count",0)) for r in rows)} 檔（依市值排名選取）</p>
+      <span class="tag">PHASE 2.1 · BETA</span>
+      <h1>🇹🇼 台股產業鏈資金雷達 · {as_of}</h1>
+      <p>資料源：FinMind + yfinance · 首頁只回答「今天要注意什麼」，完整證據收在下方
+         各張「點擊展開」的卡片裡，資料完全沒有刪減</p>
     </div>
   </div>
-
-  <div class="tldr"><b>TL;DR</b>　{escape(tldr)}</div>
 
   <div class="snap">
     <div class="snap-cell">
@@ -1058,19 +1325,53 @@ def render(scorecard, stage2):
       <div class="s">60d {num(market.get("vs_60d_pct"), 2, pct=True, sign=True)} · {market.get("trend_label","—")}</div>
     </div>
     <div class="snap-cell">
-      <div class="l">股票池</div>
-      <div class="v">{sum(int(r.get("stock_count",0)) for r in rows) if rows else "—"}</div>
-      <div class="s">{len(rows)} 個 industry_category</div>
+      <div class="l">Market Universe</div>
+      <div class="v">{universe_n or "—"}</div>
+      <div class="s">{len(rows)} 個 industry_category（Phase 1，全部參與）</div>
     </div>
     <div class="snap-cell">
-      <div class="l">FinMind 額度用量</div>
-      <div class="v">{budget if budget is not None else "—"}</div>
-      <div class="s">/ 300 次/小時 · 失敗 {len(failed)} 檔</div>
+      <div class="l">Chain Universe</div>
+      <div class="v">{chain_universe_str}</div>
+      <div class="s">Phase 2 策略性研究池（不是資料缺失）</div>
+    </div>
+  </div>
+
+  <div class="tldr"><b>TL;DR</b>　{escape(tldr)}</div>
+
+  <div class="card">
+    <div class="card-h">🔥 TODAY'S SIGNAL<span class="n" title="今天 Point 最高的前 5 條供應鏈，附狀態與 Transition 方向——哪些產業鏈正在形成，不是哪個 Point 最高就買哪個">Top {FRONT_PAGE_TOP_N} 供應鏈</span></div>
+    <div class="card-b">
+      {today_signal_html(chain_rows_sorted)}
+    </div>
+  </div>
+
+  <div class="fpgrid">
+    <div class="card">
+      <div class="card-h">💰 MONEY IS MOVING<span class="n" title="資金已經進場、價格還沒完全反映——CPD 狀態為 Capital Leading 的鏈">早期階段</span></div>
+      <div class="card-b">{money_moving_html(chain_rows_sorted)}</div>
+    </div>
+    <div class="card">
+      <div class="card-h">⚠️ RISK<span class="n" title="Price Leading（價格已動、法人沒跟）+ Overheated（過熱/出貨徵兆）——小心，不是進場訊號">追高風險</span></div>
+      <div class="card-b">{risk_chains_html(chain_rows_sorted)}</div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-h">📊 板塊（TWSE/TPEx 官方分類）· 依 point 排序<span class="n">{len(rows)}</span></div>
+    <div class="card-h">🎯 OPPORTUNITY<span class="n" title="🚀 突破：explosive_verdict=暴漲中（Layer 2 純價量訊號）；🎯 早期：Price Lag 標記 EARLY（鏈已確認、股票鏈內還沒漲上來）。合併既有兩個訊號，不是新公式，不構成買賣建議">突破 + 早期機會</span></div>
+    <div class="card-b" style="padding:0;">
+      {opportunity_html(all_rows, chain_lag_rows, mapping_df)}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 SECTOR MAP<span class="n" title="板塊名稱 + 狀態圖示，數字在下方「Sector Detail」裡">{len(rows_sorted)} 板塊</span></div>
+    <div class="card-b">
+      {sector_map_html(rows_sorted)}
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>📊 Sector Detail<span class="n">{len(rows)} 板塊完整數據 + CPD 象限</span></summary>
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
@@ -1085,14 +1386,11 @@ def render(scorecard, stage2):
         <tbody>{sector_rows_html}</tbody>
       </table>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-h">🧭 資金-價格背離象限（CPD）<span class="n" title="CPD = Z(法人金額) - Z(SectorPoint)，跨今日全部板塊做橫斷面相對排名">跨板塊相對排名</span></div>
     <div class="card-b">
+      <h4 style="margin:0 0 10px;color:var(--navy);">🧭 資金-價格背離象限（CPD）· 跨板塊橫斷面相對排名</h4>
       <div class="cpdcols">{cpd_matrix_html(rows_sorted)}</div>
     </div>
-  </div>
+  </details>
 
   <div class="card">
     <div class="card-h">🔗 產業鏈雷達（Phase 2 · IndustryMappingTable）<span class="n">{len(chain_rows_sorted)}</span></div>
@@ -1101,12 +1399,12 @@ def render(scorecard, stage2):
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-h">🧬 供應鏈同步度<span class="n" title="這條鏈依賴的上游鏈，今天有幾成也在 Confirmed/Capital Leading——低比例代表可能是價格面單獨噴出，供應鏈基本面還沒跟上。industry_chain_edges.csv 是分析模型，不是官方跨鏈依賴資料">分析模型，非官方資料</span></div>
-    <div class="card-b">
-      {chain_dependency_html(chain_dep_rows)}
+  <details class="card">
+    <summary>🔬 Chain Diagnostics<span class="n" title="Node Resonance / Upstream Coherence / Price Lag 三個既有指標合併成同一條鏈的完整診斷檔案">同步度 + 共振 + Price Lag 合併</span></summary>
+    <div class="card-b" style="padding:0;">
+      {chain_diagnostics_html(chain_rows_sorted, chain_dep_rows, chain_lag_rows)}
     </div>
-  </div>
+  </details>
 
   <div class="card">
     <div class="card-h">🎯 早期機會（Price Lag）<span class="n" title="PriceLag = Z(鏈強度，vs. 其他鏈) − Z(股票鏈內強度，vs. 鏈內同儕)。只列鏈本身已經 🚀 Confirmed／💰 Capital Leading、但這檔股票在鏈內還沒漲上來的組合——鏈的論點還在，股票還沒反映，不是買賣建議">Phase 2.1</span></div>
@@ -1116,14 +1414,21 @@ def render(scorecard, stage2):
   </div>
 
   <div class="card">
-    <div class="card-h">💥 暴漲候選池（全股票池）</div>
+    <div class="card-h">💥 暴漲候選池（Top {FRONT_PAGE_TOP_N} / 桶）</div>
     <div class="card-b">
       <div class="expcols">{explosive_pool_html(all_rows)}</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-h">🏆 各板塊 Top 3（板塊 → 20D 全部成交金額排序）<span class="n">{len(top_stocks_sorted)}</span></div>
+  <details class="card">
+    <summary>💥 暴漲候選池（完整清單）<span class="n">全股票池</span></summary>
+    <div class="card-b">
+      {explosive_pool_full_html(all_rows)}
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>📈 Stock Detail<span class="n">各板塊 Top 3 · {len(top_stocks_sorted)} 檔</span></summary>
     <div class="card-b" style="padding:0;">
       <table>
         <thead>
@@ -1135,40 +1440,28 @@ def render(scorecard, stage2):
         <tbody>{top_rows_html}</tbody>
       </table>
     </div>
-  </div>
+  </details>
 
   {inst_flow_leaderboard_html(all_rows)}
 
-  <div class="card">
-    <div class="card-h">📊 總結：Phase 1 全市場量漲價漲<span class="n" title="用 pv_state_4w=P+V+ 篩全股票池（不限 Phase 2 的 425 檔核心池），依官方產業聚合，標出每個產業有多少檔落在 IndustryMappingTable 之外——中小型股訊號不會被 Phase 2 的子集選擇蓋掉">全市場，非 Phase2 子集</span></div>
+  <details class="card">
+    <summary>📊 更多統計：量漲/量跌總結<span class="n">Phase 1 全市場 + Phase 2 供應鏈 × 量漲價漲/量漲價跌</span></summary>
     <div class="card-b" style="padding:0;">
+      <h4 style="margin:14px 18px 4px;color:var(--navy);">📊 Phase 1 全市場量漲價漲</h4>
       {pv_market_summary_html(pv_summary)}
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-h">🔗 總結：Phase 2 供應鏈量漲價漲<span class="n" title="同樣的 P+V+ 篩選，只看已經進入 IndustryMappingTable 的股票，依 supply_chain 聚合——訊號集中在哪條鏈，跟上面官方產業視角互補">只含已映射股票</span></div>
-    <div class="card-b" style="padding:0;">
+      <h4 style="margin:18px 18px 4px;color:var(--navy);">🔗 Phase 2 供應鏈量漲價漲</h4>
       {pv_chain_summary_html(pv_chain_summary_data)}
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-h">📉 總結：Phase 1 全市場量漲價跌<span class="n" title="用 pv_state_4w=P-V+ 篩全股票池——價跌但量增，可能是主力出貨/恐慌性賣壓，是量漲價漲的對照組警示訊號，不是買進建議">全市場，警示訊號</span></div>
-    <div class="card-b" style="padding:0;">
+      <h4 style="margin:18px 18px 4px;color:var(--navy);">📉 Phase 1 全市場量漲價跌</h4>
       {pv_market_summary_html(pv_down_summary, pv_state="P-V+")}
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-h">⚠️ 總結：Phase 2 供應鏈量漲價跌<span class="n" title="同樣的 P-V+ 篩選，只看已經進入 IndustryMappingTable 的股票，依 supply_chain 聚合——哪些供應鏈今天出現價跌量增的賣壓集中">只含已映射股票</span></div>
-    <div class="card-b" style="padding:0;">
+      <h4 style="margin:18px 18px 4px;color:var(--navy);">⚠️ Phase 2 供應鏈量漲價跌</h4>
       {pv_chain_summary_html(pv_down_chain_summary_data, pv_state="P-V+")}
     </div>
-  </div>
+  </details>
 
   <div class="foot">
-    產生時間 {gen_ts} · Phase 1（Layer 0-3，官方粗分類）· Layer 1.5 供應鏈次產業 + S1-S5 感測器留 Phase 2 ·
+    產生時間 {gen_ts} · FinMind 額度用量 {budget if budget is not None else "—"} / 300 次/小時 ·
+    失敗 {len(failed)} 檔 · Phase 1（Layer 0-3，官方粗分類）+ Phase 2（IndustryMappingTable）+
+    Phase 2.1（Price Lag）·
     <a href="daily-latest.html">看美股板塊報表</a>
     <br><br>
     <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
