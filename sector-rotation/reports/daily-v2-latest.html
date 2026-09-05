@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>美股機會雷達 · 2026-09-02</title>
+<style>
+  .fpgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  @media(max-width:800px) { .fpgrid { grid-template-columns:1fr; } }
+  .fpsignal { margin:0; padding:0; list-style:none; font-size:13px; }
+  .fpsignal li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .fpsignal li:last-child { border-bottom:none; }
+  .fpsignal li > b { flex:1; }
+  .fpnames { margin:0; padding:0; list-style:none; font-size:13px; columns:2; column-gap:16px; }
+  .fpnames li { padding:4px 0; display:flex; align-items:center; justify-content:space-between; gap:8px; break-inside:avoid; }
+  @media(max-width:500px) { .fpnames { columns:1; } }
+  .regime-banner {
+    padding:16px 22px; border-radius:10px; margin-bottom:14px; font-size:15px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .regime-on { background:linear-gradient(90deg,#0f3d1f,#1e8449); color:#fff; }
+  .regime-neutral { background:linear-gradient(90deg,#4a3c0f,#8a6d1a); color:#fff; }
+  .regime-caution { background:linear-gradient(90deg,#5a2f0f,#b45309); color:#fff; }
+  .regime-off { background:linear-gradient(90deg,#4a0f0f,#991b1b); color:#fff; }
+  .regime-unknown { background:var(--muted); color:#fff; }
+  .regime-banner b { font-size:20px; }
+  .regime-banner .sub { font-size:12px; opacity:.85; }
+  details.card { padding:0; }
+  details.card > summary {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer; list-style:none; display:flex; align-items:center;
+    justify-content:space-between; gap:8px;
+  }
+  details.card > summary::-webkit-details-marker { display:none; }
+  details.card > summary::after { content:"點擊展開 ▾"; font-size:11px; font-weight:400; opacity:.75; }
+  details.card[open] > summary::after { content:"收合 ▴"; }
+  details.card > summary .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  details.card > .card-b { padding:14px 18px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">US</div>
+    <div class="htitle">
+      <span class="tag">V2 · BETA</span>
+      <h1>🇺🇸 美股機會雷達 · 2026-09-02</h1>
+      <p>Regime → Sector → Capital → Stock → Entry。這是新增的第二版報表，
+         跟現有 daily-latest.html 並存，不取代它——資料源完全相同
+         （scorecard_latest.json / latest.json），沒有重抓任何資料。</p>
+    </div>
+  </div>
+
+  
+  <div class="regime-banner regime-on">
+    <div>🟢 <b>RISK-ON</b></div>
+    <div class="sub">SPY regime=🟢 多頭（3 條件：&gt;60日前價/50MA向上/200MA向上） · 歷史同 regime 出現 1591 次，20 日後平均 +1.10%，勝率 72.3%</div>
+    <div class="sub">VIX 15.2 · 10Y 4.8%</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 SECTOR MAP<span class="n">11 sectors</span></div>
+    <div class="card-b"><ul class="fpnames"><li>Energy<span>🟢 領先</span></li><li>Information Technology<span>🟠 減弱</span></li><li>Health Care<span>🟢 領先</span></li><li>Financials<span>🟠 減弱</span></li><li>Materials<span>🟠 減弱</span></li><li>Real Estate<span>🟠 減弱</span></li><li>Consumer Staples<span>🔴 落後</span></li><li>Consumer Discretionary<span>🔴 落後</span></li><li>Communication Services<span>🔴 落後</span></li><li>Industrials<span>🔴 落後</span></li><li>Utilities<span>🔴 落後</span></li></ul></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💰 CAPITAL ACCELERATION<span class="n" title="Δflow_ratio vs 最近一次有 flow_ratio 欄位的歷史快照——不是有沒有流入，是流入速度在加快還是減速">流入速度變化</span></div>
+    <div class="card-b"><h4 style="margin:0 0 4px;">🔼 加速流入</h4><ul class="fpsignal"><li><b>金融</b><span class="dim">今日 +0.048 ← 2026-09-01 -0.016</span><span class="up">+0.064</span></li><li><b>非必需消費</b><span class="dim">今日 +0.129 ← 2026-09-01 +0.068</span><span class="up">+0.061</span></li><li><b>通訊服務</b><span class="dim">今日 +0.060 ← 2026-09-01 -0.000</span><span class="up">+0.060</span></li><li><b>醫療保健</b><span class="dim">今日 +0.093 ← 2026-09-01 +0.043</span><span class="up">+0.050</span></li><li><b>工業</b><span class="dim">今日 -0.017 ← 2026-09-01 -0.049</span><span class="up">+0.032</span></li><li><b>公用事業</b><span class="dim">今日 -0.159 ← 2026-09-01 -0.178</span><span class="up">+0.019</span></li></ul><h4 style="margin:12px 0 4px;">🔽 減速/流出</h4><ul class="fpsignal"><li><b>房地產</b><span class="dim">今日 -0.239 ← 2026-09-01 -0.222</span><span class="down">-0.017</span></li><li><b>資訊科技</b><span class="dim">今日 -0.185 ← 2026-09-01 -0.183</span><span class="down">-0.002</span></li><li><b>能源</b><span class="dim">今日 +0.246 ← 2026-09-01 +0.245</span><span class="down">+0.001</span></li><li><b>必需消費</b><span class="dim">今日 +0.123 ← 2026-09-01 +0.117</span><span class="down">+0.006</span></li><li><b>材料</b><span class="dim">今日 +0.061 ← 2026-09-01 +0.052</span><span class="down">+0.009</span></li></ul></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🎯 PRICE LAG · EARLY<span class="n" title="PriceLag = Z(SectorPoint, 跨sector) − Z(StockPoint, sector內)。只列 sector 本身已經 leading/improving、但這檔股票在 sector 內還沒漲上來的組合">sector 已確認、股票落後</span></div>
+    <div class="card-b"><ul class="fpsignal"><li><b>TPL</b> <span class="dim">Texas Pacific La</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.55</span><span class="up">3.21</span></li><li><b>EQT</b> <span class="dim">EQT Corporation</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.92</span><span class="up">2.58</span></li><li><b>KMI</b> <span class="dim">Kinder Morgan</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.82</span><span class="up">2.48</span></li><li><b>BKR</b> <span class="dim">Baker Hughes</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.79</span><span class="up">2.45</span></li><li><b>EXE</b> <span class="dim">Expand Energy</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.76</span><span class="up">2.42</span></li><li><b>WMB</b> <span class="dim">Williams Compani</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.64</span><span class="up">2.30</span></li><li><b>ZTS</b> <span class="dim">Zoetis</span><span class="dim">[Health Care]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.98</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.23</span><span class="up">2.21</span></li><li><b>HAL</b> <span class="dim">Halliburton</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.54</span><span class="up">2.20</span></li><li><b>BSX</b> <span class="dim">Boston Scientifi</span><span class="dim">[Health Care]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.98</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.16</span><span class="up">2.14</span></li><li><b>PODD</b> <span class="dim">Insulet Corporat</span><span class="dim">[Health Care]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.98</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.11</span><span class="up">2.09</span></li><li><b>XOM</b> <span class="dim">ExxonMobil</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.38</span><span class="up">2.04</span></li><li><b>ISRG</b> <span class="dim">Intuitive Surgic</span><span class="dim">[Health Care]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.98</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.03</span><span class="up">2.01</span></li><li><b>OXY</b> <span class="dim">Occidental Petro</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.27</span><span class="up">1.93</span></li><li><b>SLB</b> <span class="dim">Schlumberger</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.25</span><span class="up">1.91</span></li><li><b>FANG</b> <span class="dim">Diamondback Ener</span><span class="dim">[Energy]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=1.66</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-0.24</span><span class="up">1.90</span></li></ul></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🔥 OPPORTUNITY RADAR<span class="n" title="重用既有 S1-S5 感測器 + 矛盾扣分邏輯（classify_sensor_signals），只是把 TODAY/TRIGGER/AVOID 換成 CONFIRMED/EARLY/AVOID 顯示">CONFIRMED / EARLY / AVOID</span></div>
+    <div class="card-b"><h4 style="margin:10px 0 4px;">🚀 CONFIRMED<span class="dim">（4）</span></h4><ul class="fpsignal"><li><b>MRK</b> <span class="dim">Merck &amp; Co.</span><span class="dim">[Health Care]</span><span class="n">78</span></li><li><b>NWS</b> <span class="dim">News Corp (Class</span><span class="dim">[Communication Services]</span><span class="n">75</span></li><li><b>SJM</b> <span class="dim">J.M. Smucker Com</span><span class="dim">[Consumer Staples]</span><span class="n">65</span></li><li><b>PAYX</b> <span class="dim">Paychex</span><span class="dim">[Industrials]</span><span class="n">59</span></li></ul><h4 style="margin:10px 0 4px;">🎯 EARLY<span class="dim">（3）</span></h4><ul class="fpsignal"><li><b>NEM</b> <span class="dim">Newmont</span><span class="dim">[Materials]</span><span class="n">70</span></li><li><b>BG</b> <span class="dim">Bunge Global</span><span class="dim">[Consumer Staples]</span><span class="n">68</span></li><li><b>CEG</b> <span class="dim">Constellation En</span><span class="dim">[Utilities]</span><span class="n">62</span></li></ul><h4 style="margin:10px 0 4px;">⚠️ AVOID<span class="dim">（5）</span></h4><ul class="fpsignal"><li><b>AMD</b> <span class="dim">Advanced Micro D</span><span class="dim">[Information Technology]</span><span class="n">0</span></li><li><b>PANW</b> <span class="dim">Palo Alto Networ</span><span class="dim">[Information Technology]</span><span class="n">9</span></li><li><b>MRVL</b> <span class="dim">Marvell Technolo</span><span class="dim">[Information Technology]</span><span class="n">3</span></li><li><b>DELL</b> <span class="dim">Dell Technologie</span><span class="dim">[Information Technology]</span><span class="n">44</span></li><li><b>VLO</b> <span class="dim">Valero Energy</span><span class="dim">[Energy]</span><span class="n">43</span></li></ul></div>
+  </div>
+
+  <div class="foot">
+    產生時間 2026-09-05 14:11 UTC · Regime Gate 用 sector_scorecard.py 的 10 年回測 regime_stats ·
+    Price Lag / Capital Acceleration 是這版新算的 · Opportunity Radar 重用既有
+    S1-S5 感測器邏輯，未重新設計 ·
+    <a href="daily-latest.html">看原版美股報表</a>
+    <br><br>
+    <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
+  </div>
+
+</div>
+</body>
+</html>
