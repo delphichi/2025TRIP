@@ -107,6 +107,12 @@ def _json_safe(obj):
 
 OUTDIR = "data/sector_rotation"
 MANIFEST_PATH = os.path.join(OUTDIR, "scorecard_latest.json")
+# 歷史檔 glob：只認 "YYYYMMDD_scorecard.csv"（8 位數字開頭）· data/sector_rotation/
+# 底下同時放了台股 pipeline 的 tw_YYYYMMDD_scorecard.csv 跟 theme_scorecard.py 的
+# YYYYMMDD_theme_scorecard.csv，用 "*_scorecard.csv" 這種寬鬆萬用字元會誤抓到
+# 這兩種檔案（tw_ 開頭的 file_date 解析直接炸掉；theme 的雖然欄位長得像但語意
+# 不是同一組 sector，絕對不能混進 11 個 GICS sector 的歷史百分位/加速度計算）
+SECTOR_HIST_GLOB = "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_scorecard.csv"
 
 # 加速度 & 象限（Layer 1.5 · 借鑒付費研報四象限）
 # 讀最近 N 天歷史 scorecard 算 point 移動平均 · acceleration = today - avg
@@ -123,7 +129,7 @@ def add_historical_percentiles(df, as_of):
     """對每個 sector 算 point 在過去 30/90/365 天內的百分位（今天贏過多少比例的日子）
     · 資料不足時填 None + n_days_actual 表示樣本數"""
     import glob
-    files = sorted(glob.glob(os.path.join(OUTDIR, "*_scorecard.csv")))
+    files = sorted(glob.glob(os.path.join(OUTDIR, SECTOR_HIST_GLOB)))
     stamp_today = as_of.replace("-", "")
     files = [f for f in files if stamp_today not in os.path.basename(f)]
 
@@ -354,7 +360,7 @@ def add_sector_health_tag(df):
 def add_acceleration_and_quadrant(df, as_of):
     """讀過去 N 天的 scorecard CSV · 計算 point 5d 平均 → acceleration → quadrant"""
     import glob
-    files = sorted(glob.glob(os.path.join(OUTDIR, "*_scorecard.csv")))
+    files = sorted(glob.glob(os.path.join(OUTDIR, SECTOR_HIST_GLOB)))
     # 排除今天的（若已存在）
     stamp_today = as_of.replace("-", "")
     files = [f for f in files if stamp_today not in os.path.basename(f)]
@@ -410,7 +416,7 @@ def add_acceleration_and_quadrant(df, as_of):
 
     # === 新增 · 連續正天數（Trend Core 靈感 · 抓「動能持續」）===
     # 讀更長歷史（60 天）算連續正天數
-    all_files = sorted(glob.glob(os.path.join(OUTDIR, "*_scorecard.csv")))
+    all_files = sorted(glob.glob(os.path.join(OUTDIR, SECTOR_HIST_GLOB)))
     all_files = [f for f in all_files if stamp_today not in os.path.basename(f)]
     long_recent = all_files[-60:]
     # {sector: [(date, point), ...] 由舊到新}
