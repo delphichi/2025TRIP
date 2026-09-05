@@ -329,22 +329,70 @@ def regime_banner_html(regime):
   </div>'''
 
 
-def opportunity_radar_html(stage2, scorecard, exp_buckets):
+# ============================================================
+# 4b. Entry Permission Gate：Regime 是「Gate」不是「乘數」
+# ============================================================
+# 使用者原本提議 Opportunity = Regime × ...（乘數），後來自己修正：Risk-Off
+# 時把個股機會分數直接砍半沒有道理——「市場環境不好」不等於「這支股票的
+# 機會變差」，該做的是「這個環境下，這個機會允不允許進場／要不要加註警示」，
+# 也就是 EntryPermission = f(Regime, BucketType)，Opportunity 本身分數不變。
+#
+# BucketType 比 CONFIRMED/EARLY/AVOID 再細一級：CONFIRMED 桶裡如果是剛
+# explosive_verdict=🚀暴漲中（幾天內才噴出來的），風險輪廓其實更接近使用者
+# 說的「BREAKOUT」（新鮮突破，regime 轉弱時最先被打回）而不是一般的
+# CONFIRMED（已經穩定確認一段時間），所以額外拆出來獨立判斷。
+# AVOID 桶本身就是矛盾扣分的結果（結構已經有問題），不管 regime 好壞都不該
+# 放行，四個 regime 下都是 ❌，不是規則遺漏。
+#
+# CAUTION（🟠 警戒，使用者的三級表沒有這一級，我這裡用 4 級 regime）內插在
+# NEUTRAL 跟 RISK-OFF 之間：EARLY 還放行（早期訊號本來就該在轉弱前先卡位），
+# CONFIRMED 轉成警示（環境轉弱時，已經漲一段的訊號更該小心），BREAKOUT 直接
+# 不建議（新鮮突破在轉弱環境最容易是誘多）。
+ENTRY_PERMISSION_MATRIX = {
+    "RISK-ON":  {"EARLY": ("✅", ""), "CONFIRMED": ("✅", ""), "BREAKOUT": ("✅", ""), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
+    "NEUTRAL":  {"EARLY": ("✅", ""), "CONFIRMED": ("✅", ""), "BREAKOUT": ("⚠️", "環境中性，新鮮突破小心追高"), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
+    "CAUTION":  {"EARLY": ("✅", ""), "CONFIRMED": ("⚠️", "環境轉弱，已確認訊號留意獲利了結"), "BREAKOUT": ("❌", "環境轉弱，新鮮突破容易是誘多"), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
+    "RISK-OFF": {"EARLY": ("⚠️", "環境風險偏高，早期訊號縮小部位"), "CONFIRMED": ("⚠️", "環境風險偏高，已確認訊號留意獲利了結"), "BREAKOUT": ("❌", "Risk-Off 不建議追新鮮突破"), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
+    "UNKNOWN":  {"EARLY": ("—", ""), "CONFIRMED": ("—", ""), "BREAKOUT": ("—", ""), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
+}
+
+
+def entry_permission(regime_label, bucket_type):
+    row = ENTRY_PERMISSION_MATRIX.get(regime_label, ENTRY_PERMISSION_MATRIX["UNKNOWN"])
+    return row.get(bucket_type, ("—", ""))
+
+
+def opportunity_radar_html(stage2, scorecard, exp_buckets, regime):
     today, trigger, avoid = gdr.classify_sensor_signals(stage2, scorecard, exp_buckets)
     result = {"today": today, "trigger": trigger, "avoid": avoid}
+    regime_label = regime.get("label", "UNKNOWN") if regime else "UNKNOWN"
     sections = []
     for key in ("today", "trigger", "avoid"):
         icon, label = RADAR_LABELS[key]
         items = result.get(key) or []
-        lis = "".join(
-            f'<li><b>{escape(r.get("symbol",""))}</b> '
-            f'<span class="dim">{escape((r.get("name") or "")[:16])}</span>'
-            f'<span class="dim">[{escape(r.get("sector",""))}]</span>'
-            f'<span class="n">{sc.get("total","—")}</span></li>'
-            for r, sc in items
-        ) or '<li class="empty">今日無</li>'
+        lis_parts = []
+        for r, sc in items:
+            if key == "today":
+                bucket_type = "BREAKOUT" if "暴漲中" in (sc.get("explosive_verdict") or "") else "CONFIRMED"
+            elif key == "trigger":
+                bucket_type = "EARLY"
+            else:
+                bucket_type = "AVOID"
+            perm_icon, perm_note = entry_permission(regime_label, bucket_type)
+            perm_html = f'<span title="{escape(perm_note)}">{perm_icon}</span>' if perm_note else f'<span>{perm_icon}</span>'
+            lis_parts.append(
+                f'<li><b>{escape(r.get("symbol",""))}</b> '
+                f'<span class="dim">{escape((r.get("name") or "")[:16])}</span>'
+                f'<span class="dim">[{escape(r.get("sector",""))}]</span>'
+                f'<span class="dim" title="{bucket_type}">{sc.get("total","—")}</span>'
+                f'{perm_html}</li>'
+            )
+        lis = "".join(lis_parts) or '<li class="empty">今日無</li>'
         sections.append(f'<h4 style="margin:10px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>'
                          f'<ul class="fpsignal">{lis}</ul>')
+    sections.append(f'<p class="dim" style="margin:10px 0 0;">Entry Permission 是依今日 regime（{escape(regime_label)}）'
+                     f'標註的進場許可（✅可進場／⚠️留意／❌不建議），不改變 Opportunity 本身的分數——'
+                     f'股票好不好是一回事，這個環境下該不該進場是另一回事。</p>')
     return "".join(sections)
 
 
@@ -457,8 +505,8 @@ def render_v2(scorecard, stage2):
   </div>
 
   <div class="card">
-    <div class="card-h">🔥 OPPORTUNITY RADAR<span class="n" title="重用既有 S1-S5 感測器 + 矛盾扣分邏輯（classify_sensor_signals），只是把 TODAY/TRIGGER/AVOID 換成 CONFIRMED/EARLY/AVOID 顯示">CONFIRMED / EARLY / AVOID</span></div>
-    <div class="card-b">{opportunity_radar_html(stage2, scorecard, exp_buckets)}</div>
+    <div class="card-h">🔥 OPPORTUNITY RADAR<span class="n" title="重用既有 S1-S5 感測器 + 矛盾扣分邏輯（classify_sensor_signals），換成 CONFIRMED/EARLY/AVOID 顯示，並依今日 Regime 標 Entry Permission（✅/⚠️/❌）——Regime 是 Gate 不是乘數，不改變股票本身的 Opportunity 分數">CONFIRMED / EARLY / AVOID + Entry Permission</span></div>
+    <div class="card-b">{opportunity_radar_html(stage2, scorecard, exp_buckets, regime)}</div>
   </div>
 
   <div class="foot">
