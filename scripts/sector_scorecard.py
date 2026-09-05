@@ -113,6 +113,10 @@ MANIFEST_PATH = os.path.join(OUTDIR, "scorecard_latest.json")
 # 這兩種檔案（tw_ 開頭的 file_date 解析直接炸掉；theme 的雖然欄位長得像但語意
 # 不是同一組 sector，絕對不能混進 11 個 GICS sector 的歷史百分位/加速度計算）
 SECTOR_HIST_GLOB = "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_scorecard.csv"
+# 同一個道理：*_all.csv 也要排除台股 pipeline 的 tw_YYYYMMDD_all.csv，
+# 否則 add_sector_breadth() / add_30d_signal_breadth() 對 "tw" 做
+# pd.to_datetime(format="%Y%m%d") 一樣會崩潰
+ALL_CSV_HIST_GLOB = "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_all.csv"
 
 # 加速度 & 象限（Layer 1.5 · 借鑒付費研報四象限）
 # 讀最近 N 天歷史 scorecard 算 point 移動平均 · acceleration = today - avg
@@ -207,7 +211,7 @@ def add_sector_breadth(df, as_of):
         # fallback: 找 ≤ as_of 且不超過 14 天的最近 all.csv
         today_dt = pd.to_datetime(stamp, format="%Y%m%d")
         candidates = []
-        for fp in sorted(glob.glob(os.path.join(OUTDIR, "*_all.csv"))):
+        for fp in sorted(glob.glob(os.path.join(OUTDIR, ALL_CSV_HIST_GLOB))):
             d_str = os.path.basename(fp).split("_")[0]
             d_dt = pd.to_datetime(d_str, format="%Y%m%d")
             delta_days = (today_dt - d_dt).days
@@ -271,7 +275,7 @@ def add_30d_signal_breadth(df, as_of):
       < 45% 強勢下降 🔴
     """
     import glob
-    files = sorted(glob.glob(os.path.join(OUTDIR, "*_all.csv")))
+    files = sorted(glob.glob(os.path.join(OUTDIR, ALL_CSV_HIST_GLOB)))
     stamp_today = as_of.replace("-", "")
     today_dt = pd.to_datetime(stamp_today, format="%Y%m%d")
     cutoff = today_dt - pd.Timedelta(days=30)
