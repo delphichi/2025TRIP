@@ -483,6 +483,176 @@ def price_lag_html(lag_rows):
     return f'<ul class="deplist">{"".join(items)}</ul>'
 
 
+def pv_market_summary(all_rows, mapping_df):
+    """量漲價漲（P+V+）全市場總結：用 pv_state_4w 篩全股票池（不限 Phase 2 的
+    425 檔核心池，是整個 all_rows，Phase 1 的完整市場池），依官方 sector
+    （Phase 1 分類）聚合，並標出每個 sector 裡有多少檔落在 IndustryMappingTable
+    之外。這些「未映射」股票不是資料錯誤——是 Phase 2 供應鏈雷達刻意的策略性
+    子集（見「Phase 2 產業鏈研究池」卡片說明）造成的盲區，但 Phase 1 的量價
+    訊號（pv_state_4w）本來就對全市場生效，這張卡片就是要把這個盲區攤開來看，
+    不讓中小型股的訊號被 Phase 2 的子集選擇蓋掉。
+    """
+    if not all_rows:
+        return {"total": 0, "mapped": 0, "unmapped": 0, "by_sector": []}
+
+    mapped_tickers = set(mapping_df["ticker"]) if mapping_df is not None and not mapping_df.empty else set()
+
+    def _f(r, k):
+        try:
+            return float(r.get(k) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    pv_up = [r for r in all_rows if (r.get("pv_state_4w") or "").strip() == "P+V+"]
+
+    by_sector = {}
+    mapped_total = 0
+    for r in pv_up:
+        is_mapped = r.get("stock_id") in mapped_tickers
+        mapped_total += 1 if is_mapped else 0
+        sector = r.get("sector") or "（未分類）"
+        b = by_sector.setdefault(sector, {"sector": sector, "stock_count": 0, "point_sum": 0.0,
+                                            "ret4w_sum": 0.0, "mapped_count": 0})
+        b["stock_count"] += 1
+        b["point_sum"] += _f(r, "point")
+        b["ret4w_sum"] += _f(r, "cum_ret_4w")
+        b["mapped_count"] += 1 if is_mapped else 0
+
+    rows = []
+    for b in by_sector.values():
+        n = b["stock_count"]
+        unmapped = n - b["mapped_count"]
+        rows.append({
+            "sector": b["sector"], "stock_count": n,
+            "avg_point": round(b["point_sum"] / n, 2) if n else 0.0,
+            "avg_ret_4w": round(b["ret4w_sum"] / n, 2) if n else 0.0,
+            "mapped_count": b["mapped_count"], "unmapped_count": unmapped,
+            "unmapped_pct": round(100 * unmapped / n, 1) if n else 0.0,
+        })
+    rows.sort(key=lambda r: -r["stock_count"])
+
+    return {
+        "total": len(pv_up), "mapped": mapped_total, "unmapped": len(pv_up) - mapped_total,
+        "by_sector": rows,
+    }
+
+
+def pv_market_summary_html(summary):
+    total = summary.get("total", 0)
+    if total == 0:
+        return '<p class="empty">今日沒有量漲價漲（P+V+）股票，或今日股票池資料不存在</p>'
+
+    def _sector_row(r):
+        style = ' style="color:#b91c1c;font-weight:700;"' if r["unmapped_pct"] >= 50 else ""
+        return (
+            f'<tr><td>{escape(r["sector"])}</td>'
+            f'<td class="n">{r["stock_count"]}</td>'
+            f'<td class="n">{r["avg_point"]:.2f}</td>'
+            f'<td class="n">{r["avg_ret_4w"]:.2f}%</td>'
+            f'<td class="n">{r["mapped_count"]}</td>'
+            f'<td class="n">{r["unmapped_count"]}</td>'
+            f'<td class="n"{style}>{r["unmapped_pct"]:.0f}%</td></tr>'
+        )
+
+    rows_html = "".join(_sector_row(r) for r in summary["by_sector"])
+    note = (f'<p class="dim" style="margin:8px 18px 0;">全市場量漲價漲（P+V+，4 週價漲且量增）'
+            f'共 {total} 檔——{summary["mapped"]} 檔在 Phase 2 產業鏈研究池內、'
+            f'<b>{summary["unmapped"]} 檔在核心池之外</b>（多為中小型股，Phase 1 板塊層級已經'
+            f'確認訊號，但目前沒有供應鏈脈絡可查，不是資料缺失）。「未映射%」≥50% 標紅，'
+            f'代表該產業的量漲價漲訊號主要來自 Phase 2 尚未觸及的股票。</p>')
+    return f'''
+    <table>
+      <thead>
+        <tr><th>官方產業（Phase 1）</th><th class="n">量漲價漲檔數</th>
+            <th class="n">平均 Point</th><th class="n">平均 4W 報酬</th>
+            <th class="n" title="有進入 Phase 2 IndustryMappingTable 的檔數">Phase2 內</th>
+            <th class="n" title="不在 Phase 2 IndustryMappingTable 的檔數（中小型股機會）">Phase2 外</th>
+            <th class="n" title="這個產業的量漲價漲訊號，有多少比例落在 Phase 2 核心池之外">未映射%</th></tr>
+      </thead>
+      <tbody>{rows_html}</tbody>
+    </table>{note}'''
+
+
+def pv_chain_summary(all_rows, mapping_df):
+    """量漲價漲（P+V+）Phase 2 供應鏈總結：跟 pv_market_summary() 是同一份
+    all_rows/pv_state_4w 篩選，但分組維度換成 supply_chain（many-to-many，
+    一檔股票掛多條鏈就分別計入每一條，跟 aggregate_supply_chains() 的設計
+    一致），只涵蓋 Phase 2 IndustryMappingTable 已映射的股票——這是「量漲
+    價漲訊號集中在哪些供應鏈」的視角，跟 pv_market_summary() 的
+    「官方產業」視角互補，不是重複：官方產業是 Phase 1 全市場都適用的粗分類，
+    供應鏈是只對 Phase 2 核心池才有意義的細分類。
+    """
+    if not all_rows or mapping_df is None or mapping_df.empty:
+        return {"total_rows": 0, "stock_count": 0, "by_chain": []}
+
+    def _f(r, k):
+        try:
+            return float(r.get(k) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    pv_up_by_id = {r["stock_id"]: r for r in all_rows
+                   if (r.get("pv_state_4w") or "").strip() == "P+V+" and r.get("stock_id")}
+    if not pv_up_by_id:
+        return {"total_rows": 0, "stock_count": 0, "by_chain": []}
+
+    by_chain = {}
+    matched_tickers = set()
+    for _, m in mapping_df.iterrows():
+        ticker = m["ticker"]
+        r = pv_up_by_id.get(ticker)
+        if r is None:
+            continue
+        matched_tickers.add(ticker)
+        chain = m["supply_chain"]
+        b = by_chain.setdefault(chain, {"supply_chain": chain, "stock_count": 0,
+                                          "point_sum": 0.0, "ret4w_sum": 0.0})
+        b["stock_count"] += 1
+        b["point_sum"] += _f(r, "point")
+        b["ret4w_sum"] += _f(r, "cum_ret_4w")
+
+    rows = []
+    for b in by_chain.values():
+        n = b["stock_count"]
+        rows.append({
+            "supply_chain": b["supply_chain"], "stock_count": n,
+            "avg_point": round(b["point_sum"] / n, 2) if n else 0.0,
+            "avg_ret_4w": round(b["ret4w_sum"] / n, 2) if n else 0.0,
+        })
+    rows.sort(key=lambda r: -r["stock_count"])
+
+    return {
+        "total_rows": sum(r["stock_count"] for r in rows),
+        "stock_count": len(matched_tickers),
+        "by_chain": rows,
+    }
+
+
+def pv_chain_summary_html(summary):
+    if not summary.get("by_chain"):
+        return '<p class="empty">今日沒有量漲價漲股票落在任何 Phase 2 供應鏈上（或今日無資料）</p>'
+
+    rows_html = "".join(
+        f'<tr><td>{escape(r["supply_chain"])}</td>'
+        f'<td class="n">{r["stock_count"]}</td>'
+        f'<td class="n">{r["avg_point"]:.2f}</td>'
+        f'<td class="n">{r["avg_ret_4w"]:.2f}%</td></tr>'
+        for r in summary["by_chain"]
+    )
+    note = (f'<p class="dim" style="margin:8px 18px 0;">量漲價漲個股在 Phase 2 供應鏈的分佈'
+            f'（{summary["stock_count"]} 檔已映射股票、共 {summary["total_rows"]} 筆鏈歸屬——'
+            f'同一檔股票掛多條鏈會分別計入）。這是「訊號集中在哪條鏈」的視角，跟上面「Phase 1 '
+            f'全市場」卡片的官方產業視角互補。</p>')
+    return f'''
+    <table>
+      <thead>
+        <tr><th>Supply Chain（Phase 2）</th><th class="n">量漲價漲檔數</th>
+            <th class="n">平均 Point</th><th class="n">平均 4W 報酬</th></tr>
+      </thead>
+      <tbody>{rows_html}</tbody>
+    </table>{note}'''
+
+
 def explosive_pool_html(all_rows):
     buckets = {"🚀 暴漲中": [], "🎯 潛在暴漲": [], "🔥 追高風險": []}
     for r in all_rows:
@@ -726,6 +896,8 @@ def render(scorecard, stage2):
     chain_dep_rows = load_chain_dependency(as_of)
     chain_lag_rows = load_chain_price_lag(as_of)
     chain_coverage_note = ""
+    pv_summary = {"total": 0, "mapped": 0, "unmapped": 0, "by_sector": []}
+    pv_chain_summary_data = {"total_rows": 0, "stock_count": 0, "by_chain": []}
     if all_rows:
         try:
             mapping_df = tim.load_mapping()
@@ -734,6 +906,8 @@ def render(scorecard, stage2):
                                     f"{cov['universe_size']} 檔市場池。Phase 2 僅納入具產業鏈研究"
                                     f"價值與流動性的核心股票；其餘股票仍完整參與 Phase 1 市場／板塊／"
                                     f"個股感測，未納入不代表資料缺失。")
+            pv_summary = pv_market_summary(all_rows, mapping_df)
+            pv_chain_summary_data = pv_chain_summary(all_rows, mapping_df)
         except Exception:
             chain_coverage_note = ""
 
@@ -887,6 +1061,20 @@ def render(scorecard, stage2):
   </div>
 
   {inst_flow_leaderboard_html(all_rows)}
+
+  <div class="card">
+    <div class="card-h">📊 總結：Phase 1 全市場量漲價漲<span class="n" title="用 pv_state_4w=P+V+ 篩全股票池（不限 Phase 2 的 425 檔核心池），依官方產業聚合，標出每個產業有多少檔落在 IndustryMappingTable 之外——中小型股訊號不會被 Phase 2 的子集選擇蓋掉">全市場，非 Phase2 子集</span></div>
+    <div class="card-b" style="padding:0;">
+      {pv_market_summary_html(pv_summary)}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🔗 總結：Phase 2 供應鏈量漲價漲<span class="n" title="同樣的 P+V+ 篩選，只看已經進入 IndustryMappingTable 的股票，依 supply_chain 聚合——訊號集中在哪條鏈，跟上面官方產業視角互補">只含已映射股票</span></div>
+    <div class="card-b" style="padding:0;">
+      {pv_chain_summary_html(pv_chain_summary_data)}
+    </div>
+  </div>
 
   <div class="foot">
     產生時間 {gen_ts} · Phase 1（Layer 0-3，官方粗分類）· Layer 1.5 供應鏈次產業 + S1-S5 感測器留 Phase 2 ·
