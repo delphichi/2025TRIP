@@ -18,10 +18,14 @@ generate_daily_report_v2.py · 美股「機會雷達」決策儀表板（新版�
   3. Capital Acceleration：新算，Δflow_ratio vs 最近一次「有 flow_ratio
      欄位」的歷史快照（這個欄位是最近才加的，08/31 之前的舊快照沒有，
      不能無中生有算更早的 delta）。
-  4. Opportunity Radar：重用 generate_daily_report.py 的
-     classify_sensor_signals()（TODAY/TRIGGER/AVOID，S1-S5 感測器 + 矛盾
-     扣分邏輯早就驗證過），只是換個顯示名稱（CONFIRMED/EARLY/AVOID），
-     不重寫底層判定。
+  4. Opportunity Radar / Stock State：候選池沿用 generate_daily_report.py
+     的 build_sensor_pool() + compute_sensor_scores()（S1-S5 感測器 + 矛盾
+     扣分邏輯早就驗證過），但不用原本的 TODAY/TRIGGER/AVOID 三桶——AVOID
+     桶裡混了三種體質不同的矛盾（Dow 空頭轉空／Dow 頂部擴散或追高風險／
+     吃老本沒量能確認），拆開成 EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED
+     五態，一檔股票對應一個狀態，不重寫底層分數公式。
+  5. Entry Permission Gate：EntryPermission = f(Regime, StockState)，
+     Regime 是進場許可的 Gate，不是乘在 Opportunity 分數上的乘數。
 
 沒做的部分（跟使用者確認過，留待後續）：
   - Theme 層（Sector → Theme → Stock）：需要人工/半人工分類資料，
@@ -255,9 +259,72 @@ def compute_capital_acceleration(scorecard_rows, as_of):
 
 
 # ============================================================
-# 4. Opportunity Radar：重用既有 classify_sensor_signals()，只換顯示名稱
+# 4. Stock State：把 TODAY/TRIGGER/AVOID 三桶，收斂成「一檔股票一個狀態」
+#    的五態模型 EARLY → CONFIRMED → MATURE → OVERHEATED，REJECTED 是獨立
+#    的結構性否決態。全部沿用 gdr.compute_sensor_scores() 已經算好的欄位
+#    分類，不新發明分數公式——原本混在同一個 conflict_penalty>0（AVOID）
+#    判斷式裡的三種矛盾，其實是不同的風險輪廓，不該混在一起：
+#      · Dow 結構轉空（trend_state=空頭）→ 結構已經破壞，REJECTED
+#      · Dow 頂部擴散（trend_state=擴散）或已列「追高風險」→ 還沒破壞，
+#        但已經是高風險延伸，OVERHEATED
+#      · 「吃老本」且量能未確認 → 趨勢還在，只是新鮮度用完、量能沒跟上，
+#        MATURE（不是矛盾，是老化）
+#    拆開才對得起「一檔股票一個狀態」這句話，而不是把三種不同體質的股票
+#    都貼上同一張「AVOID」標籤。
 # ============================================================
-RADAR_LABELS = {"today": ("🚀", "CONFIRMED"), "trigger": ("🎯", "EARLY"), "avoid": ("⚠️", "AVOID")}
+STOCK_STATE_ORDER = ["EARLY", "CONFIRMED", "MATURE", "OVERHEATED", "REJECTED"]
+STATE_LABELS = {
+    "EARLY": ("🎯", "EARLY · 早期訊號"),
+    "CONFIRMED": ("🚀", "CONFIRMED · 已確認"),
+    "MATURE": ("🕰️", "MATURE · 走老未確認"),
+    "OVERHEATED": ("🔥", "OVERHEATED · 追高風險"),
+    "REJECTED": ("🚫", "REJECTED · 結構已破壞"),
+}
+
+
+def classify_stock_state(sc):
+    """單一狀態分類（輸入是 gdr.compute_sensor_scores() 的回傳值）。
+    優先序：結構性風險（REJECTED → OVERHEATED → MATURE，原本都被
+    compute_sensor_scores() 混在同一個 conflict_penalty>0 判斷式裡）先判斷，
+    排除掉之後才落到 EARLY/CONFIRMED——跟原本 classify_sensor_signals() 先
+    分出 conflicted 再分 today/trigger 的順序邏輯一致。"""
+    trend_state = sc.get("trend_state") or ""
+    pv_verdict = sc.get("pv_verdict") or ""
+    explosive_verdict = sc.get("explosive_verdict") or ""
+    conflict_label = sc.get("conflict_label") or ""
+
+    if trend_state == "空頭":
+        return "REJECTED"
+    if trend_state == "擴散" or "追高風險" in explosive_verdict:
+        return "OVERHEATED"
+    if "吃老本" in conflict_label:
+        return "MATURE"
+    if trend_state == "收斂" or pv_verdict in gdr.PV_EARLY:
+        return "EARLY"
+    if trend_state == "多頭" and pv_verdict in gdr.PV_CONFIRMED:
+        return "CONFIRMED"
+    return "EARLY"  # 灰色地帶（例如多頭但量能訊號普通）：還沒確認，保守歸類成 EARLY
+
+
+def build_stock_state_groups(stage2, scorecard, exp_buckets, top_n=5):
+    """把候選池（跟 classify_sensor_signals 同一個 build_sensor_pool）分成
+    五態，每態最多 top_n 檔。REJECTED/OVERHEATED 依風險嚴重度（矛盾扣分、
+    原始分）由重到輕排序，方便一眼看到最該提防的；其餘依 total 分數由高到
+    低排序。"""
+    sector_by_name = {r.get("sector_name_en"): r for r in (scorecard.get("rows") or [])}
+    pool = gdr.build_sensor_pool(stage2, exp_buckets)
+    scored = [(r, gdr.compute_sensor_scores(r, sector_by_name)) for r in pool]
+
+    groups = {state: [] for state in STOCK_STATE_ORDER}
+    for r, sc in scored:
+        groups[classify_stock_state(sc)].append((r, sc))
+
+    for state in ("REJECTED", "OVERHEATED"):
+        groups[state].sort(key=lambda x: (-x[1]["conflict_penalty"], -x[1]["raw_total"]))
+    for state in ("EARLY", "CONFIRMED", "MATURE"):
+        groups[state].sort(key=lambda x: -x[1]["total"])
+
+    return {state: items[:top_n] for state, items in groups.items()}
 
 
 def load_all_rows(as_of):
@@ -335,64 +402,81 @@ def regime_banner_html(regime):
 # 使用者原本提議 Opportunity = Regime × ...（乘數），後來自己修正：Risk-Off
 # 時把個股機會分數直接砍半沒有道理——「市場環境不好」不等於「這支股票的
 # 機會變差」，該做的是「這個環境下，這個機會允不允許進場／要不要加註警示」，
-# 也就是 EntryPermission = f(Regime, BucketType)，Opportunity 本身分數不變。
+# 也就是 EntryPermission = f(Regime, StockState)，Opportunity 本身分數不變。
 #
-# BucketType 比 CONFIRMED/EARLY/AVOID 再細一級：CONFIRMED 桶裡如果是剛
-# explosive_verdict=🚀暴漲中（幾天內才噴出來的），風險輪廓其實更接近使用者
-# 說的「BREAKOUT」（新鮮突破，regime 轉弱時最先被打回）而不是一般的
-# CONFIRMED（已經穩定確認一段時間），所以額外拆出來獨立判斷。
-# AVOID 桶本身就是矛盾扣分的結果（結構已經有問題），不管 regime 好壞都不該
-# 放行，四個 regime 下都是 ❌，不是規則遺漏。
-#
-# CAUTION（🟠 警戒，使用者的三級表沒有這一級，我這裡用 4 級 regime）內插在
-# NEUTRAL 跟 RISK-OFF 之間：EARLY 還放行（早期訊號本來就該在轉弱前先卡位），
-# CONFIRMED 轉成警示（環境轉弱時，已經漲一段的訊號更該小心），BREAKOUT 直接
-# 不建議（新鮮突破在轉弱環境最容易是誘多）。
+# 兩個維度分開看：StockState（EARLY→CONFIRMED→MATURE→OVERHEATED 是股票自己
+# 的生命週期位置，REJECTED 是結構性否決，跟 regime 無關）+ Regime（環境好壞）
+# 一起決定進場許可。矩陣裡兩條規律：
+#   · 同一個 regime 往右（EARLY→…→REJECTED）許可只會變嚴，不會變鬆——
+#     股票自己老化/過熱的風險不會因為環境好就消失。
+#   · 同一個 StockState 往下（RISK-ON→…→RISK-OFF）許可也只會變嚴——
+#     環境轉弱時，越不新鮮的訊號越先被收緊。
+# REJECTED 是結構已經破壞（Dow 空頭），不管 regime 好壞都不該放行，四個
+# regime 下都是 ❌，不是規則遺漏。
 ENTRY_PERMISSION_MATRIX = {
-    "RISK-ON":  {"EARLY": ("✅", ""), "CONFIRMED": ("✅", ""), "BREAKOUT": ("✅", ""), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
-    "NEUTRAL":  {"EARLY": ("✅", ""), "CONFIRMED": ("✅", ""), "BREAKOUT": ("⚠️", "環境中性，新鮮突破小心追高"), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
-    "CAUTION":  {"EARLY": ("✅", ""), "CONFIRMED": ("⚠️", "環境轉弱，已確認訊號留意獲利了結"), "BREAKOUT": ("❌", "環境轉弱，新鮮突破容易是誘多"), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
-    "RISK-OFF": {"EARLY": ("⚠️", "環境風險偏高，早期訊號縮小部位"), "CONFIRMED": ("⚠️", "環境風險偏高，已確認訊號留意獲利了結"), "BREAKOUT": ("❌", "Risk-Off 不建議追新鮮突破"), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
-    "UNKNOWN":  {"EARLY": ("—", ""), "CONFIRMED": ("—", ""), "BREAKOUT": ("—", ""), "AVOID": ("❌", "矛盾扣分，任何環境都不建議")},
+    "RISK-ON": {
+        "EARLY": ("✅", ""), "CONFIRMED": ("✅", ""),
+        "MATURE": ("⚠️", "已走老、量能未見進一步確認，適合持有觀察，不建議加碼新倉"),
+        "OVERHEATED": ("⚠️", "追高風險已現，僅適合已有部位者嚴設停利，不建議新倉"),
+        "REJECTED": ("❌", "Dow 結構已轉空，任何環境都不建議"),
+    },
+    "NEUTRAL": {
+        "EARLY": ("✅", ""), "CONFIRMED": ("✅", ""),
+        "MATURE": ("⚠️", "環境中性 + 走老訊號，新倉風險偏高"),
+        "OVERHEATED": ("❌", "環境中性 + 追高風險，不建議新倉"),
+        "REJECTED": ("❌", "Dow 結構已轉空，任何環境都不建議"),
+    },
+    "CAUTION": {
+        "EARLY": ("✅", ""),
+        "CONFIRMED": ("⚠️", "環境轉弱，已確認訊號留意獲利了結"),
+        "MATURE": ("❌", "環境轉弱 + 走老訊號，不建議新倉"),
+        "OVERHEATED": ("❌", "環境轉弱 + 追高風險，不建議新倉"),
+        "REJECTED": ("❌", "Dow 結構已轉空，任何環境都不建議"),
+    },
+    "RISK-OFF": {
+        "EARLY": ("⚠️", "環境風險偏高，早期訊號縮小部位"),
+        "CONFIRMED": ("⚠️", "環境風險偏高，已確認訊號留意獲利了結"),
+        "MATURE": ("❌", "Risk-Off 不建議持有走老訊號的新倉"),
+        "OVERHEATED": ("❌", "Risk-Off 不建議追高"),
+        "REJECTED": ("❌", "Dow 結構已轉空，任何環境都不建議"),
+    },
+    "UNKNOWN": {
+        "EARLY": ("—", ""), "CONFIRMED": ("—", ""), "MATURE": ("—", ""), "OVERHEATED": ("—", ""),
+        "REJECTED": ("❌", "Dow 結構已轉空，任何環境都不建議"),
+    },
 }
 
 
-def entry_permission(regime_label, bucket_type):
+def entry_permission(regime_label, state):
     row = ENTRY_PERMISSION_MATRIX.get(regime_label, ENTRY_PERMISSION_MATRIX["UNKNOWN"])
-    return row.get(bucket_type, ("—", ""))
+    return row.get(state, ("—", ""))
 
 
 def opportunity_radar_html(stage2, scorecard, exp_buckets, regime):
-    today, trigger, avoid = gdr.classify_sensor_signals(stage2, scorecard, exp_buckets)
-    result = {"today": today, "trigger": trigger, "avoid": avoid}
+    groups = build_stock_state_groups(stage2, scorecard, exp_buckets)
     regime_label = regime.get("label", "UNKNOWN") if regime else "UNKNOWN"
     sections = []
-    for key in ("today", "trigger", "avoid"):
-        icon, label = RADAR_LABELS[key]
-        items = result.get(key) or []
+    for state in STOCK_STATE_ORDER:
+        icon, label = STATE_LABELS[state]
+        items = groups.get(state) or []
         lis_parts = []
         for r, sc in items:
-            if key == "today":
-                bucket_type = "BREAKOUT" if "暴漲中" in (sc.get("explosive_verdict") or "") else "CONFIRMED"
-            elif key == "trigger":
-                bucket_type = "EARLY"
-            else:
-                bucket_type = "AVOID"
-            perm_icon, perm_note = entry_permission(regime_label, bucket_type)
+            perm_icon, perm_note = entry_permission(regime_label, state)
             perm_html = f'<span title="{escape(perm_note)}">{perm_icon}</span>' if perm_note else f'<span>{perm_icon}</span>'
             lis_parts.append(
                 f'<li><b>{escape(r.get("symbol",""))}</b> '
                 f'<span class="dim">{escape((r.get("name") or "")[:16])}</span>'
                 f'<span class="dim">[{escape(r.get("sector",""))}]</span>'
-                f'<span class="dim" title="{bucket_type}">{sc.get("total","—")}</span>'
+                f'<span class="dim" title="{state}">{sc.get("total","—")}</span>'
                 f'{perm_html}</li>'
             )
         lis = "".join(lis_parts) or '<li class="empty">今日無</li>'
         sections.append(f'<h4 style="margin:10px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>'
                          f'<ul class="fpsignal">{lis}</ul>')
-    sections.append(f'<p class="dim" style="margin:10px 0 0;">Entry Permission 是依今日 regime（{escape(regime_label)}）'
-                     f'標註的進場許可（✅可進場／⚠️留意／❌不建議），不改變 Opportunity 本身的分數——'
-                     f'股票好不好是一回事，這個環境下該不該進場是另一回事。</p>')
+    sections.append(f'<p class="dim" style="margin:10px 0 0;">五態（EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED）'
+                     f'沿用既有感測器欄位分類，不是新公式；Entry Permission 是依今日 regime（'
+                     f'{escape(regime_label)}）標註的進場許可（✅可進場／⚠️留意／❌不建議），不改變狀態分類本身——'
+                     f'股票處在哪個狀態是一回事，這個環境下該不該進場是另一回事。</p>')
     return "".join(sections)
 
 
@@ -505,7 +589,7 @@ def render_v2(scorecard, stage2):
   </div>
 
   <div class="card">
-    <div class="card-h">🔥 OPPORTUNITY RADAR<span class="n" title="重用既有 S1-S5 感測器 + 矛盾扣分邏輯（classify_sensor_signals），換成 CONFIRMED/EARLY/AVOID 顯示，並依今日 Regime 標 Entry Permission（✅/⚠️/❌）——Regime 是 Gate 不是乘數，不改變股票本身的 Opportunity 分數">CONFIRMED / EARLY / AVOID + Entry Permission</span></div>
+    <div class="card-h">🔥 OPPORTUNITY RADAR<span class="n" title="重用既有 S1-S5 感測器 + 矛盾扣分邏輯，拆成 EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED 一檔股票一個狀態，並依今日 Regime 標 Entry Permission（✅/⚠️/❌）——Regime 是 Gate 不是乘數，不改變股票本身的 Opportunity 分數">Stock State（5 態）+ Entry Permission</span></div>
     <div class="card-b">{opportunity_radar_html(stage2, scorecard, exp_buckets, regime)}</div>
   </div>
 
