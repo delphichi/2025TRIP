@@ -677,9 +677,10 @@ def render(scorecard, stage2):
         try:
             mapping_df = tim.load_mapping()
             cov = tim.coverage_report(mapping_df, [r.get("stock_id") for r in all_rows])
-            chain_coverage_note = (f"IndustryMappingTable 涵蓋率：股票池 {cov['universe_size']} 檔中 "
-                                    f"{cov['covered_in_universe']} 檔（{cov['coverage_pct']}%）有對到至少一條產業鏈"
-                                    f"——不是全覆蓋，未對到的股票不影響 Phase 1 板塊/個股資料。")
+            chain_coverage_note = (f"Phase 2 產業鏈研究池：{cov['covered_in_universe']} 檔／"
+                                    f"{cov['universe_size']} 檔市場池。Phase 2 僅納入具產業鏈研究"
+                                    f"價值與流動性的核心股票；其餘股票仍完整參與 Phase 1 市場／板塊／"
+                                    f"個股感測，未納入不代表資料缺失。")
         except Exception:
             chain_coverage_note = ""
 

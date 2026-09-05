@@ -120,9 +120,12 @@ def tickers_for_chain(mapping_df, supply_chain):
 
 
 def coverage_report(mapping_df, universe_tickers):
-    """涵蓋率報告：這份 mapping 對「今天實際股票池」覆蓋了多少檔、多少條鏈各
-    覆蓋幾檔——誠實反映「目前只有部分展示股票有對到產業鏈」，不誇大成
-    「300 檔全覆蓋」。universe_tickers 是股票代號的 iterable（字串）。
+    """Phase 2 產業鏈研究池報告：這份 mapping 對「今天實際股票池」覆蓋了多少檔、
+    多少條鏈各覆蓋幾檔。coverage_pct 不是「mapping 完成度」——Phase 1（市場/
+    板塊/個股感測）本來就對全部股票池 100% 生效，沒有對到 IndustryMappingTable
+    的股票不是資料缺失，是還沒被納入 Phase 2 產業鏈研究池（低流動性/非核心
+    產業/暫無明確供應鏈歸屬），不影響它們在 Phase 1 被完整分析。
+    universe_tickers 是股票代號的 iterable（字串）。
     """
     universe = {str(t) for t in universe_tickers}
     mapped_tickers = set(mapping_df["ticker"]) & universe
@@ -422,10 +425,10 @@ def _cli():
 
     universe_df = pd.read_csv(args.universe_csv, dtype=str)
     report = coverage_report(mapping_df, universe_df["stock_id"])
-    print(f"\n股票池 {report['universe_size']} 檔中，有 {report['covered_in_universe']} 檔"
-          f"（{report['coverage_pct']}%）能對到至少一條產業鏈——"
-          f"誠實地說，這代表還有 {len(report['unmapped_in_universe'])} 檔完全沒有映射，"
-          f"不是「300 檔全覆蓋」。")
+    print(f"\nPhase 2 產業鏈研究池：{report['covered_in_universe']} / "
+          f"{report['universe_size']} 檔市場池（{report['coverage_pct']}%）——"
+          f"其餘 {len(report['unmapped_in_universe'])} 檔尚未納入 Phase 2，"
+          f"仍完整參與 Phase 1 市場／板塊／個股感測，不是資料缺失。")
     print("\n各鏈在股票池內的涵蓋數：")
     for chain, n in report["stocks_per_chain_in_universe"].items():
         print(f"  {chain:42s} {n}")

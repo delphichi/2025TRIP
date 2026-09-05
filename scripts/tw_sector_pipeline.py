@@ -1099,8 +1099,8 @@ def main():
         log(f"⚠ 歷史回填失敗（不影響今天的主要輸出）: {e}")
 
     log("=" * 78)
-    log("Phase 2：產業鏈聚合（IndustryMappingTable，many-to-many，涵蓋率未達 100%——"
-        "只算今天股票池裡「有對到 mapping」的股票，見 tw_industry_mapping.py）")
+    log("Phase 2：產業鏈聚合（IndustryMappingTable，many-to-many，只納入 Phase 2 "
+        "產業鏈研究池——有明確供應鏈歸屬的股票，非全市場池，見 tw_industry_mapping.py）")
     log("=" * 78)
     try:
         import tw_industry_mapping as tim
@@ -1117,8 +1117,9 @@ def main():
                                               glob_pattern="tw_*_chains.csv")
             chain_path = tim.save_chain_scorecard(chain_df, as_of)
             cov = tim.coverage_report(mapping_df, all_df["stock_id"])
-            log(f"  📊 {len(chain_df)} 條產業鏈有資料 · 股票池涵蓋 {cov['covered_in_universe']}/"
-                f"{cov['universe_size']} 檔（{cov['coverage_pct']}%）· 存至 {chain_path}")
+            log(f"  📊 {len(chain_df)} 條產業鏈有資料 · Phase 2 產業鏈研究池 "
+                f"{cov['covered_in_universe']}/{cov['universe_size']} 檔（{cov['coverage_pct']}%，"
+                f"其餘股票仍完整參與 Phase 1）· 存至 {chain_path}")
             for _, r in chain_df.head(10).iterrows():
                 res = f"{r['resonance_pct']}%" if r.get("resonance_pct") is not None else "—"
                 dir_icon = TRANSITION_DIR_ICON.get(r.get("transition_dir"), "·")
