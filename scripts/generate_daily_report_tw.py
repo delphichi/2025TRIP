@@ -398,35 +398,43 @@ def load_chain_dependency(as_of):
 
 
 def chain_dependency_html(dep_rows):
-    """供應鏈同步度卡片：upstream_confirmed_pct 低的鏈排最前面——這些是「自己價格/
-    資金很強，但依賴的上游鏈今天大多還沒同步確認」的鏈，可能是價格面單獨噴出，
-    供應鏈基本面還沒跟上（跟 CPD 象限的邏輯互補，不是重複）。這張表是分析模型
-    （industry_chain_edges.csv 不是官方跨鏈依賴資料），只列出有依賴圖資料可查的
-    鏈，不是全部 24 條都會出現。
+    """供應鏈同步度卡片：upstream_coherence_pct（用 industry_chain_edges.csv
+    的 weight 加權）低的鏈排最前面——這些是「自己價格/資金很強，但依賴的上游鏈
+    今天大多還沒同步確認」的鏈，可能是價格面單獨噴出，供應鏈基本面還沒跟上
+    （跟 CPD 象限的邏輯互補，不是重複）。用加權版本而不是原始 confirmed/total
+    比例，是因為 1/1（單一低權重依賴）跟 8/8（八條高權重依賴）用未加權比例看
+    都是 100%，但可信度完全不同——加權才能反映「這條依賴關係本身有多重要」。
+    畫面上仍會顯示原始 X/Y 計數 + 總權重，給讀者看到分母跟權重來源，不是只
+    丟一個加權後的數字讓人看不出來怎麼算的。這張表是分析模型
+    （industry_chain_edges.csv 不是官方跨鏈依賴資料，weight 也是分析師主觀
+    判斷），只列出有依賴圖資料可查的鏈，不是全部都會出現。
     """
     if not dep_rows:
         return '<p class="empty">今日沒有供應鏈依賴資料（industry_chain_edges.csv 涵蓋的鏈可能跟今天有資料的鏈沒有交集）</p>'
 
-    def _pct(r):
+    def _num(r, key):
         try:
-            return float(r.get("upstream_confirmed_pct") or 0)
+            return float(r.get(key) or 0)
         except (TypeError, ValueError):
             return 0.0
 
-    rows_sorted = sorted(dep_rows, key=_pct)
+    rows_sorted = sorted(dep_rows, key=lambda r: _num(r, "upstream_coherence_pct"))
     items = []
     for r in rows_sorted:
         chain = escape(r.get("chain", ""))
         state_raw = r.get("chain_state") or "—"
-        pct = _pct(r)
+        pct = _num(r, "upstream_coherence_pct")
         cls = "down" if pct < 30 else ("flat" if pct < 60 else "up")
         cnt = f"{r.get('upstream_confirmed','—')}/{r.get('upstream_count','—')}"
-        warn = (' <span class="alert" title="這條鏈本身強勢，但依賴的上游鏈大多還沒確認，'
+        total_weight = _num(r, "upstream_total_weight")
+        warn = (' <span class="alert" title="這條鏈本身強勢，但依賴的上游鏈（加權後）大多還沒確認，'
                 '可能是價格面單獨噴出">⚠️ 上游未確認</span>') if pct < 30 and state_raw in (
                     "🚀 Confirmed", "💰 Capital Leading") else ""
         items.append(
             f'<li><b>{chain}</b> <span class="dim">{escape(state_raw)}</span>{warn}'
-            f'<span class="{cls}">{pct:.0f}%</span> <span class="dim">({cnt} 上游確認)</span></li>'
+            f'<span class="{cls}">{pct:.0f}%</span> '
+            f'<span class="dim" title="原始未加權：{cnt} 上游確認・依賴權重總和 {total_weight:.2f}">'
+            f'({cnt} 上游確認・權重 {total_weight:.2f})</span></li>'
         )
     return f'<ul class="deplist">{"".join(items)}</ul>'
 

@@ -453,13 +453,21 @@ def load_chain_edges(path=EDGES_PATH):
 
 
 def chain_dependency_check(chain_df, edges_df):
-    """對每條「有登記上游依賴」的鏈，算 upstream_confirmed_pct：它的上游鏈裡，
-    今天有幾成也是 🚀 Confirmed 或 💰 Capital Leading（見 _CONFIRMED_STATES）。
+    """對每條「有登記上游依賴」的鏈，算兩種確認度：
+    - upstream_confirmed_pct：原始「幾條上游鏈確認 / 總共幾條」（未加權）。保留
+      是因為分母本身（upstream_count）就是有意義的資訊——1 條依賴跟 8 條依賴
+      的可信度不一樣，這個數字讓使用者自己看得到分母。
+    - upstream_coherence_pct：用 industry_chain_edges.csv 的 weight 欄位加權
+      （WeightedCoherence = Σ確認邊的 weight / Σ全部邊的 weight）。這是主要
+      判定依據——1/1（weight 也許只有 0.5）不該跟 8/8（每條 weight 都接近 1）
+      被當成同等強度的「100% 確認」，未加權版本會把兩者都顯示成 100%，掩蓋了
+      「這條依賴關係本身有多重要」的差異。
 
     用途：一條鏈自己 point 很高、CPD 很強，不代表這個強勢有供應鏈基本面支撐——
     如果它依賴的上游鏈今天大多是 ❄️ Weak，這條鏈的強勢可能只是價格面單獨噴出，
     供應鏈資金還沒真的跟上。這是分析模型（industry_chain_edges.csv 裡沒有
-    「requires」以外真正官方依據），不是嚴謹的供需模型。
+    「requires」以外真正官方依據，weight 也是分析師主觀判斷，不是官方權重），
+    不是嚴謹的供需模型。
 
     chain_df 沒有任何一條邊涉及的鏈，或 edges_df 是空的，回傳空 df（不是缺陷，
     純粹是還沒有依賴圖資料可用）。
@@ -478,23 +486,34 @@ def chain_dependency_check(chain_df, edges_df):
     rows = []
     for source, g in edges_df.groupby("source_chain"):
         upstream_states = {}
-        for target in g["target_chain"]:
+        upstream_weights = {}
+        for target, weight in zip(g["target_chain"], g["weight"]):
             if target in state_by_chain:
                 upstream_states[target] = state_by_chain[target]
+                try:
+                    upstream_weights[target] = float(weight)
+                except (TypeError, ValueError):
+                    upstream_weights[target] = 1.0
         if not upstream_states:
             continue
         confirmed = sum(1 for s in upstream_states.values() if s in _CONFIRMED_STATES)
+        total_weight = sum(upstream_weights.values())
+        confirmed_weight = sum(w for t, w in upstream_weights.items()
+                                if upstream_states[t] in _CONFIRMED_STATES)
         rows.append({
             "chain": source,
             "chain_state": state_by_chain.get(source),
             "upstream_count": len(upstream_states),
             "upstream_confirmed": confirmed,
             "upstream_confirmed_pct": round(100 * confirmed / len(upstream_states), 1),
+            "upstream_total_weight": round(total_weight, 2),
+            "upstream_confirmed_weight": round(confirmed_weight, 2),
+            "upstream_coherence_pct": round(100 * confirmed_weight / total_weight, 1) if total_weight else 0.0,
             "upstream_states": upstream_states,
         })
     if not rows:
         return pd.DataFrame()
-    return pd.DataFrame(rows).sort_values("upstream_confirmed_pct", ascending=False).reset_index(drop=True)
+    return pd.DataFrame(rows).sort_values("upstream_coherence_pct", ascending=False).reset_index(drop=True)
 
 
 def _cli():
