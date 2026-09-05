@@ -1138,6 +1138,19 @@ def main():
                     log(f"    {r['chain']:38s} state={r['chain_state']}  "
                         f"upstream_confirmed={r['upstream_confirmed']}/{r['upstream_count']}"
                         f"（{r['upstream_confirmed_pct']}%）")
+
+            lag_df = tim.compute_chain_price_lag(all_df, mapping_df, chain_df, as_of)
+            if lag_df.empty:
+                log("  🎯 Price Lag：沒有鏈達到最小股票數門檻（PRICE_LAG_MIN_CHAIN_SIZE），跳過")
+            else:
+                lag_path = tim.save_chain_price_lag(lag_df, as_of)
+                early = lag_df[lag_df["early_flag"] != ""]
+                log(f"  🎯 Price Lag：{len(lag_df)} 檔（{lag_df['supply_chain'].nunique()} 條鏈）"
+                    f"有算，{len(early)} 檔標記 EARLY（鏈已確認、股票仍落後）· 存至 {lag_path}")
+                for _, r in early.head(10).iterrows():
+                    log(f"    {r['early_flag']} {r['ticker']} {r['stock_name']:8s} "
+                        f"[{r['supply_chain']}] price_lag={r['price_lag']:6.2f}  "
+                        f"chain_z={r['chain_z_point']:5.2f}  stock_z_in_chain={r['stock_z_in_chain']:6.2f}")
     except Exception as e:
         log(f"⚠ 產業鏈聚合失敗（不影響 Phase 1 主要輸出）: {e}")
 

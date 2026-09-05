@@ -215,6 +215,99 @@ def aggregate_supply_chains(all_df, mapping_df, as_of):
     return add_sector_cpd(chain_df)
 
 
+# Price Lag 鏈內 Z-score 的參考母體太小（<3 檔）沒有統計意義，整條鏈跳過。
+PRICE_LAG_MIN_CHAIN_SIZE = 3
+
+
+def compute_chain_price_lag(all_df, mapping_df, chain_df, as_of):
+    """Price Lag = Z(ChainStrength) - Z(StockStrength)：在「鏈已經確認」的
+    前提下，找鏈內還沒漲上來的個股——「這條鏈的資金/價格論點還在，這檔股票
+    還沒反映」的早期機會候選，不是「已經噴出的強勢股」篩選器。
+
+    ChainStrength：chain_df 裡 add_sector_cpd() 已經算好的 z_point——這條鏈
+    的 point 相對「今天所有其他 supply_chain」的橫斷面 Z-score（母體通常
+    20-25 條鏈）。
+    StockStrength：同一檔股票的 point，相對「同一條鏈裡今天其他股票」的
+    橫斷面 Z-score（母體是這條鏈今天股票池的股票，不是全市場排名）。同一檔
+    股票掛多條鏈時（many-to-many），每條鏈分別算一次 StockStrength，跟
+    aggregate_supply_chains() 的「各鏈分別計入」設計一致。
+
+    PriceLag 越正：鏈整體越強（vs. 其他鏈）、這檔股票在鏈內相對越弱（vs.
+    鏈內其他股票）——鏈強股弱的組合正是「還沒反映」的訊號。early_flag 只在
+    鏈本身已經是 🚀 Confirmed／💰 Capital Leading（真的有資金確認，不是鏈
+    本身就弱、隨便一檔股票都會顯得「相對弱」的雜訊）且這檔股票 stock_z_in_
+    chain < 0（低於鏈內平均）才標記，避免鏈本身疲弱時被誤判成機會。
+
+    鏈內股票數 < PRICE_LAG_MIN_CHAIN_SIZE（預設 3）時，鏈內 Z-score 母體
+    太小沒有意義，整條鏈跳過（不硬算），不會出現在回傳結果裡。
+    """
+    need_cols = {"stock_id", "point"}
+    missing = need_cols - set(all_df.columns)
+    if missing:
+        raise ValueError(f"all_df 缺少必要欄位：{missing}")
+    if chain_df is None or chain_df.empty or "z_point" not in chain_df.columns:
+        return pd.DataFrame()
+
+    stock_df = all_df.copy()
+    stock_df["stock_id"] = stock_df["stock_id"].astype(str)
+    m = mapping_df.copy()
+    m["ticker"] = m["ticker"].astype(str)
+
+    merged = m.merge(stock_df, left_on="ticker", right_on="stock_id", how="inner")
+    if merged.empty:
+        return pd.DataFrame()
+
+    state_col = "market_state" if "market_state" in chain_df.columns else "cpd_quadrant"
+    chain_lookup = chain_df.set_index("supply_chain")[["z_point", "point", state_col]]
+
+    rows = []
+    for chain, g in merged.groupby("supply_chain"):
+        if chain not in chain_lookup.index or len(g) < PRICE_LAG_MIN_CHAIN_SIZE:
+            continue
+        pts = g["point"].astype(float)
+        std = pts.std()
+        if not std or std != std or std == 0:
+            continue
+        chain_z = float(chain_lookup.loc[chain, "z_point"])
+        chain_point = float(chain_lookup.loc[chain, "point"])
+        chain_state = chain_lookup.loc[chain, state_col]
+        stock_z = (pts - pts.mean()) / std
+        for (_, row), sz in zip(g.iterrows(), stock_z):
+            # 用四捨五入後的值判斷 early_flag（不是未捨入的原始值）：sz 極接近 0
+            # 時（例如 -0.001）round() 後會顯示 -0.0，若拿原始值判斷會標成
+            # EARLY，但畫面上看起來明明是「跟鏈內平均打平」，不是「落後」，
+            # 兩者不一致會讓人誤解。捨入後再判斷，同時用 `or 0.0` 把 -0.0
+            # 正規化成 0.0（-0.0 < 0 是 False，但顯示成 "-0.0" 仍會讓人困惑）。
+            sz_rounded = round(float(sz), 2) or 0.0
+            rows.append({
+                "ticker": row["ticker"], "stock_name": row.get("stock_name", ""),
+                "supply_chain": chain, "as_of_date": as_of,
+                "chain_point": round(chain_point, 2), "chain_z_point": round(chain_z, 2),
+                "chain_state": chain_state,
+                "stock_point": round(float(row["point"]), 2), "stock_z_in_chain": sz_rounded,
+                "chain_size": len(g),
+                "price_lag": round(chain_z - sz_rounded, 2),
+                "early_flag": "🎯 EARLY" if (chain_state in _CONFIRMED_STATES and sz_rounded < 0) else "",
+            })
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).sort_values("price_lag", ascending=False).reset_index(drop=True)
+
+
+def save_chain_price_lag(lag_df, as_of, outdir=OUTDIR):
+    """存 tw_{date}_price_lag.csv。lag_df 為空（沒有任何鏈達到最小股票數門檻）
+    就不寫檔，回傳 None，跟其餘 save_* 函式同樣的「空就跳過不是錯誤」慣例。
+    """
+    if lag_df is None or lag_df.empty:
+        return None
+    os.makedirs(outdir, exist_ok=True)
+    stamp = as_of.replace("-", "")
+    path = os.path.join(outdir, f"tw_{stamp}_price_lag.csv")
+    lag_df.to_csv(path, index=False)
+    return path
+
+
 def save_chain_scorecard(chain_df, as_of, outdir=OUTDIR):
     """存 tw_{date}_chains.csv，跟 tw_sector_pipeline.py 的 tw_{date}_scorecard.csv
     同精神，只是分組維度是 supply_chain 不是官方 sector。chain_df 為空（今天股票池

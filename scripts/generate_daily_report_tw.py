@@ -431,6 +431,58 @@ def chain_dependency_html(dep_rows):
     return f'<ul class="deplist">{"".join(items)}</ul>'
 
 
+def load_chain_price_lag(as_of):
+    """讀當日 tw_{date}_price_lag.csv（tw_industry_mapping.compute_chain_price_lag()
+    的輸出）。跟其餘 load_chain_* 一樣，檔案不一定存在（今天沒有鏈達到最小股票數
+    門檻），回傳空 list，不是錯誤。"""
+    if not as_of:
+        return []
+    stamp = as_of.replace("-", "")
+    path = os.path.join(DATA_DIR, f"tw_{stamp}_price_lag.csv")
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def price_lag_html(lag_rows):
+    """🎯 早期機會（Price Lag）卡片：只列 early_flag 有標記的列——鏈本身已經
+    🚀 Confirmed／💰 Capital Leading（資金/價格雙重或至少資金面確認），但這檔
+    股票在鏈內相對同儕還沒漲上來（stock_z_in_chain < 0）。PriceLag = 鏈的
+    橫斷面 Z-score（vs. 其他鏈）減掉股票的鏈內橫斷面 Z-score（vs. 鏈內同儕），
+    越高代表「鏈越強、這檔股票在鏈內越落後」，是候選觀察名單，不是買賣建議。
+    """
+    early_rows = [r for r in lag_rows if (r.get("early_flag") or "").strip()]
+    if not lag_rows:
+        return '<p class="empty">今日沒有 Price Lag 資料（沒有鏈達到最小股票數門檻，或今天股票池跟 IndustryMappingTable 沒有交集）</p>'
+    if not early_rows:
+        return '<p class="empty">今日沒有標記為 EARLY 的候選（有算 Price Lag 的鏈裡，沒有「鏈已確認、股票仍落後」的組合）</p>'
+
+    def _lag(r):
+        try:
+            return float(r.get("price_lag") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    rows_sorted = sorted(early_rows, key=_lag, reverse=True)[:15]
+    items = []
+    for r in rows_sorted:
+        ticker = escape(r.get("ticker", ""))
+        name = escape(r.get("stock_name", ""))
+        chain = escape(r.get("supply_chain", ""))
+        lag = _lag(r)
+        cls = "up" if lag >= 2 else "flat"
+        items.append(
+            f'<li><b>{ticker} {name}</b> <span class="dim">[{chain}]</span>'
+            f'<span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">'
+            f'鏈z={escape(r.get("chain_z_point","—"))}</span>'
+            f'<span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">'
+            f'股z={escape(r.get("stock_z_in_chain","—"))}</span>'
+            f'<span class="{cls}">{lag:.2f}</span></li>'
+        )
+    return f'<ul class="deplist">{"".join(items)}</ul>'
+
+
 def explosive_pool_html(all_rows):
     buckets = {"🚀 暴漲中": [], "🎯 潛在暴漲": [], "🔥 追高風險": []}
     for r in all_rows:
@@ -672,6 +724,7 @@ def render(scorecard, stage2):
     chain_rows = load_chain_scorecard(as_of)
     chain_rows_sorted = sorted(chain_rows, key=lambda r: -(float(r.get("point") or 0)))
     chain_dep_rows = load_chain_dependency(as_of)
+    chain_lag_rows = load_chain_price_lag(as_of)
     chain_coverage_note = ""
     if all_rows:
         try:
@@ -801,6 +854,13 @@ def render(scorecard, stage2):
     <div class="card-h">🧬 供應鏈同步度<span class="n" title="這條鏈依賴的上游鏈，今天有幾成也在 Confirmed/Capital Leading——低比例代表可能是價格面單獨噴出，供應鏈基本面還沒跟上。industry_chain_edges.csv 是分析模型，不是官方跨鏈依賴資料">分析模型，非官方資料</span></div>
     <div class="card-b">
       {chain_dependency_html(chain_dep_rows)}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🎯 早期機會（Price Lag）<span class="n" title="PriceLag = Z(鏈強度，vs. 其他鏈) − Z(股票鏈內強度，vs. 鏈內同儕)。只列鏈本身已經 🚀 Confirmed／💰 Capital Leading、但這檔股票在鏈內還沒漲上來的組合——鏈的論點還在，股票還沒反映，不是買賣建議">Phase 2.1</span></div>
+    <div class="card-b">
+      {price_lag_html(chain_lag_rows)}
     </div>
   </div>
 
