@@ -182,6 +182,87 @@ def load_all_csv_stock_flow_by_sector(as_of, per_sector=3):
     return by_sec
 
 
+def load_all_csv_spmo_momentum(as_of, top_n=10):
+    """讀 all.csv · SPMO（Invesco S&P 500 Momentum ETF）官方選股邏輯：
+    風險調整動能 = 12個月報酬（排除最近1個月）÷ 過去1年週報酬年化波動度，
+    由 sector_rotation_screener.py 的 fetch_weekly_returns() 算好存在
+    mom_12m_1m / weekly_vol_ann / spmo_score 三個欄位，這裡只排序取 Top N，
+    不重算。資料不夠深的次新股欄位是空字串，過濾掉，不硬湊分數。
+    """
+    if not as_of:
+        return []
+    stamp = as_of.replace("-", "")
+    path = os.path.join(DATA_DIR, f"{stamp}_all.csv")
+    if not os.path.exists(path):
+        return []
+    stocks = []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                try:
+                    score_str = str(r.get("spmo_score") or "").strip()
+                    if score_str == "":
+                        continue
+                    r["_spmo_score"] = float(score_str)
+                    r["_mom_12m_1m"] = float(r.get("mom_12m_1m") or 0)
+                    r["_weekly_vol_ann"] = float(r.get("weekly_vol_ann") or 0)
+                    r["_t_price"] = float(r.get("t_price") or 0)
+                    stocks.append(r)
+                except Exception:
+                    continue
+    except Exception:
+        return []
+    stocks.sort(key=lambda s: -s["_spmo_score"])
+    return stocks[:top_n]
+
+
+def spmo_momentum_html(rows):
+    """SPMO 選股邏輯 Top N 表格 · rows 來自 load_all_csv_spmo_momentum()"""
+    if not rows:
+        return '<p class="empty">今日無足夠歷史資料算 SPMO 動能分數（需要 253+ 個交易日）</p>'
+
+    def _row(i, s):
+        sym = escape(str(s.get("symbol", "")))
+        name = escape(str(s.get("stock_name") or s.get("name") or ""))
+        sec = escape(str(s.get("sector") or ""))
+        score = s["_spmo_score"]
+        mom = s["_mom_12m_1m"]
+        vol = s["_weekly_vol_ann"]
+        price = s["_t_price"]
+        mom_cls = "up" if mom > 0 else ("down" if mom < 0 else "flat")
+        return (
+            f'<tr>'
+            f'<td class="n dim">{i}</td>'
+            f'<td><b>{sym}</b> <span class="dim">{name}</span></td>'
+            f'<td class="dim">{sec}</td>'
+            f'<td class="n">{price:.2f}</td>'
+            f'<td class="n {mom_cls}">{mom:+.1f}%</td>'
+            f'<td class="n">{vol:.1f}%</td>'
+            f'<td class="n"><b>{score:.2f}</b></td>'
+            f'</tr>'
+        )
+
+    body = "".join(_row(i, s) for i, s in enumerate(rows, 1))
+    return f'''
+    <table style="font-size:12px;">
+      <thead><tr>
+        <th>#</th><th>Symbol</th><th>Sector</th><th class="n">價</th>
+        <th class="n" title="12個月報酬，排除最近1個月">12-1 動能</th>
+        <th class="n" title="過去1年週報酬年化標準差">年化波動</th>
+        <th class="n" title="12-1動能 ÷ 年化波動 · SPMO 官方選股排序依據">SPMO Score</th>
+      </tr></thead>
+      <tbody>{body}</tbody>
+    </table>
+    <div class="dim" style="font-size:11px;margin-top:10px;line-height:1.6;">
+      <b>SPMO 選股邏輯</b>（Invesco S&amp;P 500 Momentum ETF 官方方法論）：
+      風險調整動能分數 = 12個月報酬（排除最近1個月，避免短期反轉雜訊）÷ 過去1年
+      週報酬年化波動度。分數越高代表「漲得又穩又久」，不是單純漲最多——這是
+      Top {len(rows)}，示意排序清單，不是真正 SPMO 基金的完整持股或權重。
+    </div>
+    '''
+
+
 def bucket_by(rows, key):
     out = {}
     for r in rows:
@@ -987,6 +1068,14 @@ def render(scorecard, stage2, pattern):
       </table>
       <div class="dim" style="padding:8px 14px;font-size:11px;">🟢 ≥+15% 強力吸金 · ▲ ≥+5% 溫和流入 · ▪ 中性 · ▼ ≤-5% 流出 · 🔴 ≤-15% 強力賣壓</div>
     </div>
+  </div>'''
+
+    # SPMO 選股邏輯 Top 10（12-1 動能 ÷ 年化波動度，Invesco S&P 500 Momentum ETF 方法論）
+    spmo_rows = load_all_csv_spmo_momentum(as_of, top_n=10)
+    spmo_html = f'''
+  <div class="card">
+    <div class="card-h">📐 SPMO 動能選股 <span class="n" title="Invesco S&P 500 Momentum ETF 官方選股邏輯：12個月報酬（排除最近1個月）÷ 過去1年週報酬年化波動度">風險調整動能 Top {len(spmo_rows)}</span></div>
+    <div class="card-b">{spmo_momentum_html(spmo_rows)}</div>
   </div>'''
 
     # 【新 v2】個股層 20 日資金流向 Top 榜（用 ud_ratio 當 proxy）
@@ -1890,6 +1979,8 @@ def render(scorecard, stage2, pattern):
   {etf_map_html}
 
   {flow_html}
+
+  {spmo_html}
 
   {stock_flow_html}
 

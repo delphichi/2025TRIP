@@ -686,6 +686,7 @@ def render_v2(scorecard, stage2):
     lag_by_symbol = {r["symbol"]: r["price_lag"] for r in lag_rows}
     prior_date, accel_rows = compute_capital_acceleration(scorecard_rows, as_of)
     theme_rows = load_theme_scorecard()
+    spmo_rows = gdr.load_all_csv_spmo_momentum(as_of, top_n=10)
 
     gen_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -736,6 +737,11 @@ def render_v2(scorecard, stage2):
   <div class="card">
     <div class="card-h">🔥 OPPORTUNITY RADAR<span class="n" title="重用既有 S1-S5 感測器 + 矛盾扣分邏輯，拆成 EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED 一檔股票一個狀態，並依今日 Regime 標 Entry Permission（✅/⚠️/❌）——Regime 是 Gate 不是乘數，不改變股票本身的 Opportunity 分數">Stock State（5 態）+ Entry Permission</span></div>
     <div class="card-b">{opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol)}</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📐 SPMO 動能選股<span class="n" title="Invesco S&P 500 Momentum ETF 官方選股邏輯：12個月報酬（排除最近1個月）÷ 過去1年週報酬年化波動度。跟上面 Point/S1-S5 是完全獨立的另一套排序邏輯，重用同一份 all.csv，沒有重抓資料">風險調整動能 Top {len(spmo_rows)}</span></div>
+    <div class="card-b">{gdr.spmo_momentum_html(spmo_rows)}</div>
   </div>
 
   <div class="foot">

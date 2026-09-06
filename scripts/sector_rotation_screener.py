@@ -471,6 +471,25 @@ def fetch_weekly_returns(tickers):
         # di = 三週期正報酬指標
         di = ((1 if r4 > 0 else 0) + (1 if r13 > 0 else 0) + (1 if r26 > 0 else 0)) / 3.0
 
+        # ==== SPMO 選股邏輯（Invesco S&P 500 Momentum ETF 官方方法論）====
+        # 風險調整動能 = 12個月報酬（排除最近1個月，避免短期反轉雜訊）
+        #              ÷ 過去1年週報酬年化波動度
+        # 需要 253 根 close 才能取到 iloc[-252]（12個月前）跟 iloc[-21]（1個月前）；
+        # 資料不夠深（新股/次新股）就誠實留 None，不硬湊。
+        mom_12m_1m = weekly_vol_ann = spmo_score = None
+        if len(series) >= 253:
+            price_1m_ago = series.iloc[-21]
+            price_12m_ago = series.iloc[-252]
+            mom_12m_1m = (price_1m_ago / price_12m_ago - 1) * 100
+            # 週報酬：trailing ~260 個交易日內每 5 個交易日取一次收盤，模擬週線
+            weekly_prices = series.iloc[-260:].iloc[::5]
+            weekly_rets = weekly_prices.pct_change().dropna()
+            if len(weekly_rets) >= 20:
+                vol = float(weekly_rets.std()) * (52 ** 0.5) * 100
+                if vol > 0:
+                    weekly_vol_ann = vol
+                    spmo_score = mom_12m_1m / vol
+
         # ==== v5 · 量能變化 + 量價象限 ====
         # 用同一 index 對齊的 volume series · 缺一則 None
         avg_v_4w = avg_v_13w = avg_v_26w = None
@@ -529,6 +548,10 @@ def fetch_weekly_returns(tickers):
             "pv_state_13w": pv13,
             "pv_state_26w": pv26,
             "pv_verdict": pv_verdict,
+            # SPMO 選股邏輯（12-1 動能 ÷ 年化週報酬波動度）
+            "mom_12m_1m": round(mom_12m_1m, 2) if mom_12m_1m is not None else None,
+            "weekly_vol_ann": round(weekly_vol_ann, 2) if weekly_vol_ann is not None else None,
+            "spmo_score": round(spmo_score, 3) if spmo_score is not None else None,
         })
     out = pd.DataFrame(rows)
     log(f"  → {len(out)} tickers with 131+ trading days of data")
