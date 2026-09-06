@@ -912,6 +912,60 @@ def compute_metrics(ticker, name_zh, name_en, daily_bulk, weekly_bulk):
     }
 
 
+def compute_point_history_for_ticker(daily_bulk, ticker, lookback_days=20):
+    """輪動雷達用：把 fetch_data() 已經抓好、compute_metrics() 只挑「今天」用一次
+    就丟掉的同一份 daily 價量矩陣，重複拿來算最近 lookback_days 個交易日 *每一天*
+    的 point / flow_ratio，不是只算今天這一天。
+
+    這是刻意的設計選擇（使用者提出）：與其每天存一筆、等 lookback_days 天才湊出
+    歷史（bootstrap 期間雷達完全沒訊號），不如直接在同一次已經抓到 ~10 個月價量
+    資料的執行裡，把整段歷史一次算完——反正 130 交易日回看窗 + lookback_days 的
+    margin，10 個月的抓取範圍本來就綽綽有餘，不用多打一次 API。
+
+    回傳 list[{date, point, flow_ratio}]，由舊到新排序；資料不夠時該天直接跳過
+    （不是回傳 None 湊數，讓呼叫端知道那天沒有值）。
+    """
+    dly = extract_ohlcv(daily_bulk, ticker)
+    if dly is None or len(dly) < 131:
+        return []
+
+    n = len(dly)
+    rows = []
+    # offset=0 是最新一天，offset=lookback_days-1 是最舊一天；由舊到新回傳
+    for offset in range(lookback_days - 1, -1, -1):
+        end = n - offset
+        if end < 131:
+            continue
+        window = dly.iloc[:end]
+        close_d = window["Close"].dropna()
+        if len(close_d) < 131:
+            continue
+        as_of = close_d.index[-1].strftime("%Y-%m-%d")
+        t_price = float(close_d.iloc[-1])
+        p4w = float(close_d.iloc[-20])
+        p13w = float(close_d.iloc[-65])
+        p26w = float(close_d.iloc[-130])
+        ret_4w = (t_price / p4w - 1) * 100
+        ret_13w = (t_price / p13w - 1) * 100
+        ret_26w = (t_price / p26w - 1) * 100
+        point = round(ret_4w * 0.25 + ret_13w * 0.25 + ret_26w * 0.50, 2)
+
+        flow_ratio = None
+        if len(window) >= 31:
+            last31 = window.tail(31).copy()
+            last31["dv"] = last31["Close"] * last31["Volume"]
+            _diffs = last31["Close"].diff()
+            _signs = _diffs.apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
+            _signed = last31["dv"] * _signs
+            flow_30d_net = float(_signed.iloc[1:].sum())
+            flow_30d_gross = float(last31["dv"].iloc[1:].sum())
+            flow_ratio = round((flow_30d_net / flow_30d_gross), 3) if flow_30d_gross > 0 else 0.0
+
+        rows.append({"date": as_of, "point": point, "flow_ratio": flow_ratio})
+
+    return rows
+
+
 def compute_vp_score(ret_20d_pct, ret_5d_pct, vp, ud):
     """
     量價絕對評分（0-100）· 用使用者規格：
@@ -979,6 +1033,24 @@ def add_ranks_and_composite(df):
     df["gap_alert"] = df.apply(alert, axis=1)
 
     return df.sort_values("composite_rank").reset_index(drop=True)
+
+
+SECTOR_POINT_HISTORY_PATH = os.path.join(OUTDIR, "sector_point_history_latest.json")
+
+
+def save_sector_point_history(point_history):
+    """輪動雷達的原始資料：{sector_ticker: [{date, point, flow_ratio}, ...]}，
+    由 compute_point_history_for_ticker() 算出，直接覆寫（不是 append）——
+    每次執行都用當下抓到的完整 20 天窗重算一次，不會因為漏跑一天就缺一格。"""
+    manifest = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "note": "每個 sector 最近 20 個交易日的 point/flow_ratio，重用 fetch_data() "
+                "已經抓好的價量矩陣算出來，不是另外累積的每日快照。",
+        "sectors": point_history,
+    }
+    with open(SECTOR_POINT_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(_json_safe(manifest), f, ensure_ascii=False, indent=2, allow_nan=False)
+    log(f"  saved {SECTOR_POINT_HISTORY_PATH}（{len(point_history)} sectors）")
 
 
 # ============================================================
@@ -1069,6 +1141,20 @@ def main():
 
     if not rows:
         sys.exit("❌ 沒抓到任何 sector 資料")
+
+    # 輪動雷達：重用同一份剛抓好的 daily 價量矩陣，一次把最近 20 個交易日
+    # 每一天的 point/flow_ratio 都算出來，不是只算「今天」——不用多打一次
+    # API、也不用等未來每天 CI 慢慢累積歷史（使用者提出的設計）。
+    try:
+        point_history = {}
+        for ticker, name_zh, name_en in SECTORS:
+            hist = compute_point_history_for_ticker(daily, ticker, lookback_days=20)
+            if hist:
+                point_history[ticker] = hist
+        if point_history:
+            save_sector_point_history(point_history)
+    except Exception as e:
+        log(f"⚠ 輪動雷達 point history 計算失敗（不影響 sector 評分）: {e}")
 
     df = pd.DataFrame(rows)
     df = add_ranks_and_composite(df)
