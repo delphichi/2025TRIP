@@ -61,7 +61,25 @@
 
   <div class="card">
     <div class="card-h">🧭 ROTATION RADAR<span class="n" title="V1（方向,10天point趨勢）× V2（資金,10天flow_ratio趨勢）× SPMO（成熟度,滲透率）三層交叉,找方向已轉強、資金沒撤退、但SPMO還不擁擠的候選">下一輪動候選</span></div>
-    <div class="card-b"><p class="empty">sector_point_history_latest.json 還沒有足夠歷史（需要至少 2 個交易日），先跑幾天 CI 累積資料</p></div>
+    <div class="card-b">
+    <table style="font-size:12px;">
+      <thead><tr>
+        <th>Sector</th><th>狀態</th>
+        <th class="n" title="最近 10 個交易日 point 趨勢，不是今天 vs 昨天">方向</th>
+        <th class="n" title="最近 10 個交易日 flow_ratio 趨勢">資金</th>
+        <th class="n" title="SPMO score&gt;1 的個股佔比">滲透率</th>
+        <th class="n">滲透率趨勢</th>
+      </tr></thead>
+      <tbody><tr><td>🔴 <b>Information Technology</b> <span class="dim">資訊科技</span></td><td title="持續領先 + SPMO 滲透率已經很高">已成熟</td><td class="n">轉強</td><td class="n">轉強</td><td class="n">45.8%</td><td class="n">上升</td></tr><tr><td>⚫ <b>Energy</b> <span class="dim">能源</span></td><td title="SPMO 滲透率不低，但資金流向在走弱">資金撤退</td><td class="n">轉弱</td><td class="n">轉弱</td><td class="n">66.7%</td><td class="n">上升</td></tr><tr><td>⚫ <b>Financials</b> <span class="dim">金融</span></td><td title="SPMO 滲透率不低，但資金流向在走弱">資金撤退</td><td class="n">轉強</td><td class="n">轉弱</td><td class="n">34.2%</td><td class="n">持平</td></tr><tr><td>⚫ <b>Industrials</b> <span class="dim">工業</span></td><td title="SPMO 滲透率不低，但資金流向在走弱">資金撤退</td><td class="n">轉弱</td><td class="n">轉弱</td><td class="n">40.7%</td><td class="n">持平</td></tr><tr><td>⚪ <b>Health Care</b> <span class="dim">醫療保健</span></td><td title="方向在觀察窗內反覆翻轉，暫不下判斷">訊號不穩定</td><td class="n">轉弱</td><td class="n">轉弱</td><td class="n">28.8%</td><td class="n">持平</td></tr><tr><td>⚪ <b>Consumer Staples</b> <span class="dim">必需消費</span></td><td title="方向在觀察窗內反覆翻轉，暫不下判斷">訊號不穩定</td><td class="n">不穩定</td><td class="n">不穩定</td><td class="n">11.8%</td><td class="n">下降</td></tr><tr><td>⚪ <b>Materials</b> <span class="dim">材料</span></td><td title="方向在觀察窗內反覆翻轉，暫不下判斷">訊號不穩定</td><td class="n">轉弱</td><td class="n">轉弱</td><td class="n">24.0%</td><td class="n">上升</td></tr><tr><td>⚪ <b>Utilities</b> <span class="dim">公用事業</span></td><td title="方向在觀察窗內反覆翻轉，暫不下判斷">訊號不穩定</td><td class="n">不穩定</td><td class="n">轉強</td><td class="n">16.1%</td><td class="n">下降</td></tr><tr><td>⚪ <b>Consumer Discretionary</b> <span class="dim">非必需消費</span></td><td title="方向在觀察窗內反覆翻轉，暫不下判斷">訊號不穩定</td><td class="n">轉弱</td><td class="n">轉強</td><td class="n">10.6%</td><td class="n">持平</td></tr><tr><td>⚪ <b>Communication Services</b> <span class="dim">通訊服務</span></td><td title="方向在觀察窗內反覆翻轉，暫不下判斷">訊號不穩定</td><td class="n">轉弱</td><td class="n">轉強</td><td class="n">12.5%</td><td class="n">下降</td></tr><tr><td>⚪ <b>Real Estate</b> <span class="dim">房地產</span></td><td title="方向在觀察窗內反覆翻轉，暫不下判斷">訊號不穩定</td><td class="n">轉弱</td><td class="n">轉弱</td><td class="n">23.3%</td><td class="n">下降</td></tr></tbody>
+    </table>
+    <div class="dim" style="font-size:11px;margin-top:10px;line-height:1.6;">
+      <b>Rotation Radar</b>：V1（方向，最近 10 天 point 趨勢，不是單日 quadrant）×
+      V2（資金，最近 10 天 flow_ratio 趨勢）× SPMO（成熟度，score&gt;1 個股佔比）三層交叉。
+      🟢 潛力候選 = 方向轉強 + 資金沒在撤退 + SPMO 還不擁擠；🟠 確認中 = 滲透率開始爬升；
+      🔴 已成熟 = 滲透率已經很高；⚫ 資金撤退 = 滲透率高但資金在走弱；
+      ⚪ 訊號不穩定 = 觀察窗內方向反覆翻轉，暫不下判斷。
+    </div>
+    </div>
   </div>
 
   <div class="card">
@@ -111,7 +129,7 @@
   </div>
 
   <div class="foot">
-    產生時間 2026-09-06 21:42 UTC · Regime Gate 用 sector_scorecard.py 的 10 年回測 regime_stats ·
+    產生時間 2026-09-06 22:26 UTC · Regime Gate 用 sector_scorecard.py 的 10 年回測 regime_stats ·
     Price Lag / Capital Acceleration 是這版新算的 · Opportunity Radar 重用既有
     S1-S5 感測器邏輯，未重新設計 ·
     <a href="daily-latest.html">看原版美股報表</a>
