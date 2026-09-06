@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-06T17:14:03.237730+00:00",
+  "generated_at": "2026-09-06T19:19:02.975334+00:00",
   "as_of_date": "2026-09-04",
   "as_of_date_note": "基準日 = 該週最後一根 daily close 的實際日期（週線 Monday label + 校正）· 例：2026-08-21 表示週 Aug 17-21 的 Fri close",
   "counts": {
@@ -14591,7 +14591,7 @@
   ],
   "surprise_source": "yfinance (earnings_dates)",
   "forward_returns_meta": {
-    "generated_at": "2026-09-06T17:14:05.896495+00:00",
+    "generated_at": "2026-09-06T19:19:05.749622+00:00",
     "as_of_date": "2026-09-04",
     "days_since_as_of": 2,
     "fillable_checkpoints": [],

@@ -6,7 +6,7 @@
       "point_rank": 7,
       "vp_score_rank": 5,
       "vol_rank": 1,
-      "added_at": "2026-09-06T17:14:06.046350+00:00"
+      "added_at": "2026-09-06T19:19:05.886218+00:00"
     },
     {
       "sector": "XLB",
@@ -14,7 +14,7 @@
       "point_rank": 5,
       "vp_score_rank": 8,
       "vol_rank": 3,
-      "added_at": "2026-09-06T17:14:06.046350+00:00"
+      "added_at": "2026-09-06T19:19:05.886218+00:00"
     }
   ],
   "history": [
@@ -311,6 +311,38 @@
           "vp_score_rank": 8,
           "vol_rank": 3,
           "added_at": "2026-09-06T17:14:06.046350+00:00"
+        }
+      ]
+    },
+    {
+      "as_of": "2026-09-06T19:19:05.886218+00:00",
+      "promoted": [
+        {
+          "sector": "XLP",
+          "sector_name": "必需消費",
+          "point_rank": 7,
+          "vp_score_rank": 5,
+          "vol_rank": 1,
+          "added_at": "2026-09-06T17:14:06.046350+00:00",
+          "_status": "promoted"
+        }
+      ],
+      "new": [
+        {
+          "sector": "XLP",
+          "sector_name": "必需消費",
+          "point_rank": 7,
+          "vp_score_rank": 5,
+          "vol_rank": 1,
+          "added_at": "2026-09-06T19:19:05.886218+00:00"
+        },
+        {
+          "sector": "XLB",
+          "sector_name": "材料",
+          "point_rank": 5,
+          "vp_score_rank": 8,
+          "vol_rank": 3,
+          "added_at": "2026-09-06T19:19:05.886218+00:00"
         }
       ]
     }

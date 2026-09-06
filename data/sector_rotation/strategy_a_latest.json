@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-06T17:14:06.046979+00:00",
+  "generated_at": "2026-09-06T19:19:05.886855+00:00",
   "as_of_date": "2026-09-04",
   "market_context": {
     "as_of_date": "2026-09-04",
@@ -301,7 +301,13 @@
       "vol_rank": 3
     }
   ],
-  "watchlist_promoted": [],
+  "watchlist_promoted": [
+    {
+      "sector": "XLP",
+      "sector_name": "必需消費",
+      "added_at": "2026-09-06T17:14:06.046350+00:00"
+    }
+  ],
   "notes": [
     "策略 A 九步驟輸出 · 每檔 weight_pct = 該 tier 配置上限 / 該 tier 檔數",
     "hold_earnings：暫緩（財報 14 天內），等財報後再評估",
