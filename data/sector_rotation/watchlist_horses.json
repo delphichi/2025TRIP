@@ -1,12 +1,20 @@
 {
   "horses": [
     {
-      "sector": "XLRE",
-      "sector_name": "房地產",
-      "point_rank": 5,
-      "vp_score_rank": 7,
+      "sector": "XLP",
+      "sector_name": "必需消費",
+      "point_rank": 7,
+      "vp_score_rank": 5,
       "vol_rank": 1,
-      "added_at": "2026-09-06T14:25:45.467874+00:00"
+      "added_at": "2026-09-06T14:35:26.267784+00:00"
+    },
+    {
+      "sector": "XLB",
+      "sector_name": "材料",
+      "point_rank": 5,
+      "vp_score_rank": 8,
+      "vol_rank": 3,
+      "added_at": "2026-09-06T14:35:26.267784+00:00"
     }
   ],
   "history": [
@@ -244,6 +252,28 @@
           "vp_score_rank": 7,
           "vol_rank": 1,
           "added_at": "2026-09-06T14:25:45.467874+00:00"
+        }
+      ]
+    },
+    {
+      "as_of": "2026-09-06T14:35:26.267784+00:00",
+      "promoted": [],
+      "new": [
+        {
+          "sector": "XLP",
+          "sector_name": "必需消費",
+          "point_rank": 7,
+          "vp_score_rank": 5,
+          "vol_rank": 1,
+          "added_at": "2026-09-06T14:35:26.267784+00:00"
+        },
+        {
+          "sector": "XLB",
+          "sector_name": "材料",
+          "point_rank": 5,
+          "vp_score_rank": 8,
+          "vol_rank": 3,
+          "added_at": "2026-09-06T14:35:26.267784+00:00"
         }
       ]
     }
