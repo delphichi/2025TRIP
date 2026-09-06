@@ -887,6 +887,38 @@ def fetch_taiex_official(start_date, end_date, limit=500):
             .reset_index(drop=True))
 
 
+def fetch_taiex_history_paginated(end_date, target_days, max_requests=30):
+    """串接 fetch_taiex_official() 湊出長期歷史 · TW Market Data 的 market-index
+    對 limit 有硬性上限（實測 limit > 500 直接 422 validation_error：'limit: Input
+    should be less than or equal to 500'），15 年回測不能一次要 6000 筆，只能用
+    end_date 往回位移分頁、每次抓 500 筆再串接（跟 start_date 無關——同一個
+    end_date 底下即使 start_date 設 15 年前，也只回傳最近 500 筆）。
+    """
+    chunks = []
+    seen_dates = set()
+    cursor_end = end_date
+    for _ in range(max_requests):
+        df = fetch_taiex_official(start_date="2000-01-01", end_date=cursor_end, limit=500)
+        if df is None or df.empty:
+            break
+        new_rows = df[~df["date"].isin(seen_dates)]
+        if new_rows.empty:
+            break
+        chunks.append(new_rows)
+        seen_dates.update(new_rows["date"])
+        oldest = new_rows["date"].min()
+        total = sum(len(c) for c in chunks)
+        if len(new_rows) < 500 or total >= target_days:
+            break
+        cursor_end = (datetime.strptime(oldest, "%Y-%m-%d").date() - timedelta(days=1)).strftime("%Y-%m-%d")
+    if not chunks:
+        return None
+    return (pd.concat(chunks)
+            .drop_duplicates(subset="date")
+            .sort_values("date")
+            .reset_index(drop=True))
+
+
 def fetch_market_snapshot(start_date, end_date):
     try:
         df = fetch_taiex_official(start_date, end_date)
@@ -946,22 +978,24 @@ def compute_regime_stats_tw(as_of=None, history_years=15):
     3 條件：> 60 日前價 · 50MA 向上 · 200MA 向上，3 個條件都成立 = 🟢 多頭，
     以此類推——同一個思考語法套用在 TAIEX，不是另外設計一套規則。
 
-    資料源優先用 fetch_taiex_official()（TW Market Data，跟 FinMind 額度無關，
-    1 次 request），這是刻意的選擇：FinMind 免費 tier 額度已經被 Layer 3
-    法人資料用到接近上限（300 次/小時 vs 預設 300 檔股票池 ≈ 301 次），
-    Regime 歷史回測需要一次抓長達 10-15 年的資料，不該再去擠 FinMind 的
-    額度、傷到 V1 每天在用的法人資料。TW Market Data 沒設金鑰或歷史長度
-    不夠（< 400 個交易日）就誠實回傳 None，不退回 FinMind 湊數。
+    資料源優先用 fetch_taiex_official()（TW Market Data，跟 FinMind 額度無關），
+    這是刻意的選擇：FinMind 免費 tier 額度已經被 Layer 3 法人資料用到接近上限
+    （300 次/小時 vs 預設 300 檔股票池 ≈ 301 次），Regime 歷史回測需要長達
+    10-15 年的資料，不該再去擠 FinMind 的額度、傷到 V1 每天在用的法人資料。
+    market-index 對單次 limit 有硬性上限（實測 > 500 直接 422 validation_error），
+    所以用 fetch_taiex_history_paginated() 分頁串接湊出長期歷史，不是一次要
+    6000 筆。TW Market Data 沒設金鑰或歷史長度不夠（< 400 個交易日）就誠實
+    回傳 None，不退回 FinMind 湊數。
     """
     end_date = as_of or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
-    start_date = (end_dt - timedelta(days=int(history_years * 365.25))).strftime("%Y-%m-%d")
+    target_days = int(history_years * 252)
 
     if not TWMD_API_KEY:
         log("⚠ Regime 回測需要 TWMARKETDATA_API_KEY（TW Market Data）· 沒設金鑰 · 跳過")
         return None
     try:
-        df = fetch_taiex_official(start_date, end_date, limit=6000)
+        df = fetch_taiex_history_paginated(end_date, target_days)
     except Exception as e:
         log(f"⚠ TAIEX 歷史抓取失敗（{e}）· Regime 回測跳過")
         return None

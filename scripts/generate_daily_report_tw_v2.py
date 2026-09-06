@@ -65,7 +65,9 @@ Regime Gate（使用者第三輪反饋）：
   接近上限（300 次/小時 vs 預設 300 檔股票池 ≈ 301 次），Regime 回測
   需要一次抓長歷史，不該再去擠這個額度、傷到 V1 每天在用的法人資料。
   改用 TW Market Data（TWMARKETDATA_API_KEY，跟 FinMind 完全獨立的另一組
-  配額，1 次 request/次執行）——沒設金鑰或歷史深度不夠時，
+  配額）。market-index 對單次 limit 有硬性上限（實測 > 500 直接 422），
+  fetch_taiex_history_paginated() 用 end_date 往回位移分頁串接約 8-10 次
+  request 湊出 15 年歷史——沒設金鑰或歷史深度不夠時，
   compute_regime_stats_tw() 誠實回 None，這裡的 regime_gate_tw() 顯示
   UNKNOWN，不假裝算出東西。新增 scripts/tw_regime_snapshot.py 當獨立的
   CLI 進入點（不進 tw_sector_pipeline.py 的 main() 主線，V1 完全不受

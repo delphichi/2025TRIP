@@ -87,42 +87,12 @@ jobs:
           set -o pipefail
           python scripts/generate_daily_report_tw.py 2>&1 | tee /tmp/tw_report.log
 
-      # 暫時性診斷 step：compute_regime_stats_tw() 15 年期請求打 TW Market Data
-      # market-index 收到 HTTP 422，先探測是 limit 太大還是 start_date 太久遠
-      # 觸發驗證錯誤，找到真正原因後這個 step 會移除。
-      - name: TEMP diagnose TAIEX API constraints
-        if: ${{ !inputs.report_only }}
-        continue-on-error: true
-        shell: bash
-        env:
-          TWMARKETDATA_API_KEY: ${{ secrets.TWMARKETDATA_API_KEY }}
-        run: |
-          cat > /tmp/diag_taiex.py <<'PYEOF'
-          import requests, os
-          from datetime import datetime, timedelta, timezone
-          key = os.environ["TWMARKETDATA_API_KEY"]
-          base = "https://api.twmarketdata.com/v2/datasets/market-index"
-          end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-          cases = [
-              ("A limit=6000 15y", 6000, 15 * 365),
-              ("B limit=500 15y", 500, 15 * 365),
-              ("C limit=6000 1y", 6000, 365),
-              ("D limit=1000 5y", 1000, 5 * 365),
-          ]
-          for label, limit, days_back in cases:
-              start = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
-              res = requests.get(base, params={"index_code": "TWSE_TAIEX", "market": "TWSE",
-                                                "start_date": start, "end_date": end, "limit": limit},
-                                  headers={"X-API-Key": key}, timeout=30)
-              print(f"--- {label} (start={start} end={end} limit={limit}) -> HTTP {res.status_code}")
-              print(res.text[:500])
-          PYEOF
-          python3 -c "import textwrap,sys; src=open('/tmp/diag_taiex.py').read(); exec(compile(textwrap.dedent(src), 'diag', 'exec'))"
-
       # 台股 v2（Capital × Price-Volume Cross Radar）的 Regime Gate：TAIEX 10-15 年
-      # 歷史回測，走 TW Market Data（跟 FinMind 額度完全獨立，1 次 request/次執行），
-      # 不吃 Layer 3 法人資料的額度。沒設 TWMARKETDATA_API_KEY 或歷史深度不夠時，
-      # 腳本會誠實不產生檔案，v2 報表對應顯示「還沒有資料」，不影響其他步驟。
+      # 歷史回測，走 TW Market Data（跟 FinMind 額度完全獨立）。market-index 對
+      # 單次 limit 有硬性上限（> 500 直接 422），改用分頁串接約 8-10 次 request
+      # 湊出長期歷史，不吃 Layer 3 法人資料的額度。沒設 TWMARKETDATA_API_KEY 或
+      # 歷史深度不夠時，腳本會誠實不產生檔案，v2 報表對應顯示「還沒有資料」，
+      # 不影響其他步驟。
       - name: Run TW regime gate snapshot (TAIEX 歷史回測 · TW Market Data)
         if: ${{ !inputs.report_only }}
         continue-on-error: true

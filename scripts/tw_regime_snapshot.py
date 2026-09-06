@@ -11,12 +11,14 @@ TAIEX，不是另外設計一套規則。
 
 刻意不用 FinMind：FinMind 免費 tier 額度已經被 tw_sector_pipeline.py
 的 Layer 3 法人資料用到接近上限（300 次/小時 vs 預設 300 檔股票池 ≈
-301 次），Regime 回測需要一次抓 10-15 年歷史，不該再去擠這個額度、
-傷到 V1 每天在用的法人資料。改用 TW Market Data（TWMARKETDATA_API_KEY，
-跟 FinMind 完全獨立的另一組配額，1 次 request/次執行）。沒設金鑰或
-歷史深度不夠時，compute_regime_stats_tw() 會誠實回傳 None，這支腳本
-就不產生輸出檔——generate_daily_report_tw_v2.py 讀不到檔案時 Regime
-Gate 顯示「還沒有資料」，不會假裝算出東西。
+301 次），Regime 回測需要抓 10-15 年歷史，不該再去擠這個額度、傷到
+V1 每天在用的法人資料。改用 TW Market Data（TWMARKETDATA_API_KEY，
+跟 FinMind 完全獨立的另一組配額）。market-index 對單次 limit 有硬性
+上限（實測 > 500 直接 422），fetch_taiex_history_paginated() 用
+end_date 往回位移分頁串接，約 8-10 次 request 湊出 15 年歷史。沒設
+金鑰或歷史深度不夠時，compute_regime_stats_tw() 會誠實回傳 None，
+這支腳本就不產生輸出檔——generate_daily_report_tw_v2.py 讀不到檔案
+時 Regime Gate 顯示「還沒有資料」，不會假裝算出東西。
 
 重用（不重寫）tw_sector_pipeline.py 的 compute_regime_stats_tw()。
 
