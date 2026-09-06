@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-09-06T12:08:50.329169+00:00",
-  "as_of_date": "2026-09-04",
+  "generated_at": "2026-09-06T14:25:45.468718+00:00",
+  "as_of_date": "2026-08-03",
   "market_context": {
-    "as_of_date": "2026-09-04",
+    "as_of_date": "2026-08-03",
     "voo": {
-      "price": 708.01,
-      "vs_60d_pct": 6.45,
-      "ma50": 695.71,
-      "vs_50ma_pct": 1.77
+      "price": 696.4,
+      "vs_60d_pct": 3.52,
+      "ma50": 684.35,
+      "vs_50ma_pct": 1.76
     },
     "vix": {
-      "value": 14.53
+      "value": 15.86
     },
     "tnx": {
-      "value": 4.78,
-      "raw": 4.78
+      "value": 4.69,
+      "raw": 4.69
     },
     "trend_label": "🟢",
     "vs_50ma_label": "🟡",
@@ -37,7 +37,7 @@
       "XLU"
     ],
     "notes": [
-      "📈 TNX=4.78% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "📈 TNX=4.69% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ],
     "regime_stats": {
       "historical": {
@@ -120,33 +120,27 @@
       "sector_name": "能源",
       "composite_rank": 1,
       "point_rank": 2,
-      "cms_a": 1.8,
+      "cms_a": 3.6,
       "tnx_flag": "boost"
     },
     {
-      "sector": "XLV",
-      "sector_name": "醫療保健",
-      "composite_rank": 2,
+      "sector": "XLI",
+      "sector_name": "工業",
+      "composite_rank": 1,
       "point_rank": 4,
-      "cms_a": 2.1,
-      "tnx_flag": "boost"
+      "cms_a": 4.3,
+      "tnx_flag": null
     },
     {
       "sector": "XLF",
       "sector_name": "金融",
       "composite_rank": 3,
       "point_rank": 3,
-      "cms_a": 3.2,
+      "cms_a": 2.9,
       "tnx_flag": "boost"
     }
   ],
-  "demoted_sectors": [
-    {
-      "sector": "XLK",
-      "sector_name": "資訊科技",
-      "reason": "TNX 濾網降級"
-    }
-  ],
+  "demoted_sectors": [],
   "allocation": {
     "core": 30,
     "momentum": 25,
@@ -157,148 +151,132 @@
     "core": [],
     "momentum": [
       {
-        "symbol": "MPC",
-        "name": "Marathon Petroleum",
+        "symbol": "VLO",
+        "name": "Valero Energy",
         "sector": "Energy",
         "sector_etf": "XLE",
-        "point": 59.27,
-        "cms_a": 1.0,
+        "point": 45.01,
+        "cms_a": 1.5,
         "di": 1.0,
-        "cum_ret_4w": 21.74,
-        "cum_ret_13w": 46.03,
-        "cum_ret_26w": 84.67,
+        "cum_ret_4w": 15.97,
+        "cum_ret_13w": 22.81,
+        "cum_ret_26w": 70.63,
         "vcp": false,
-        "vp_ratio_stock": 1.068,
-        "pct_from_high": -2.41,
-        "high_52w": 398.52,
-        "surprise_l1": 27.08,
-        "surprise_l2": 120.63,
+        "vp_ratio_stock": 1.044,
+        "pct_from_high": -3.59,
+        "high_52w": 319.01,
+        "surprise_l1": 23.84,
+        "surprise_l2": 33.47,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.07 + 4W +21.7%",
-        "weight_pct": 6.25
-      },
-      {
-        "symbol": "MRNA",
-        "name": "Moderna",
-        "sector": "Health Care",
-        "sector_etf": "XLV",
-        "point": 177.42,
-        "cms_a": 1.0,
-        "di": 1.0,
-        "cum_ret_4w": 143.35,
-        "cum_ret_13w": 182.13,
-        "cum_ret_26w": 192.09,
-        "vcp": false,
-        "vp_ratio_stock": 1.855,
-        "pct_from_high": -17.61,
-        "high_52w": 176.66,
-        "surprise_l1": 4.33,
-        "surprise_l2": 12.37,
-        "pre_earnings_14d": false,
-        "tier": "momentum",
-        "reason": "TNX順風 + VP 1.85 + 4W +143.3%",
-        "weight_pct": 6.25
+        "reason": "TNX順風 + VP 1.04 + 4W +16.0%",
+        "weight_pct": 8.33
       },
       {
         "symbol": "PSX",
         "name": "Phillips 66",
         "sector": "Energy",
         "sector_etf": "XLE",
-        "point": 45.4,
+        "point": 32.58,
         "cms_a": 2.5,
         "di": 1.0,
-        "cum_ret_4w": 18.99,
-        "cum_ret_13w": 39.27,
-        "cum_ret_26w": 61.66,
+        "cum_ret_4w": 15.29,
+        "cum_ret_13w": 15.93,
+        "cum_ret_26w": 49.56,
         "vcp": false,
-        "vp_ratio_stock": 1.087,
-        "pct_from_high": -2.14,
-        "high_52w": 260.68,
-        "surprise_l1": 25.45,
-        "surprise_l2": 225.68,
+        "vp_ratio_stock": 1.039,
+        "pct_from_high": -4.58,
+        "high_52w": 214.94,
+        "surprise_l1": 225.68,
+        "surprise_l2": 14.7,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.09 + 4W +19.0%",
-        "weight_pct": 6.25
+        "reason": "TNX順風 + VP 1.04 + 4W +15.3%",
+        "weight_pct": 8.33
       },
       {
-        "symbol": "VLO",
-        "name": "Valero Energy",
-        "sector": "Energy",
-        "sector_etf": "XLE",
-        "point": 51.25,
-        "cms_a": 2.5,
+        "symbol": "TRV",
+        "name": "Travelers Companies (The)",
+        "sector": "Financials",
+        "sector_etf": "XLF",
+        "point": 24.92,
+        "cms_a": 10.0,
         "di": 1.0,
-        "cum_ret_4w": 17.71,
-        "cum_ret_13w": 43.77,
-        "cum_ret_26w": 71.75,
+        "cum_ret_4w": 8.75,
+        "cum_ret_13w": 23.02,
+        "cum_ret_26w": 33.95,
         "vcp": false,
-        "vp_ratio_stock": 1.226,
-        "pct_from_high": -1.17,
-        "high_52w": 375.11,
-        "surprise_l1": 23.84,
-        "surprise_l2": 33.47,
+        "vp_ratio_stock": 1.042,
+        "pct_from_high": -6.24,
+        "high_52w": 398.7,
+        "surprise_l1": 86.12,
+        "surprise_l2": 8.93,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.23 + 4W +17.7%",
-        "weight_pct": 6.25
+        "reason": "TNX順風 + VP 1.04 + 4W +8.8%",
+        "weight_pct": 8.33
       }
     ],
     "sprint": [
       {
-        "symbol": "HOOD",
-        "name": "Robinhood Markets",
-        "sector": "Financials",
-        "sector_etf": "XLF",
-        "point": 47.12,
-        "cms_a": 1.0,
+        "symbol": "MPC",
+        "name": "Marathon Petroleum",
+        "sector": "Energy",
+        "sector_etf": "XLE",
+        "point": 50.01,
+        "cms_a": 2.0,
         "di": 1.0,
-        "cum_ret_4w": 29.19,
-        "cum_ret_13w": 38.24,
-        "cum_ret_26w": 60.52,
+        "cum_ret_4w": 15.28,
+        "cum_ret_13w": 24.13,
+        "cum_ret_26w": 80.31,
         "vcp": false,
-        "vp_ratio_stock": 1.266,
-        "pct_from_high": -20.64,
-        "high_52w": 153.86,
-        "surprise_l1": 43.71,
-        "surprise_l2": -1.98,
+        "vp_ratio_stock": 0.935,
+        "pct_from_high": -6.08,
+        "high_52w": 326.03,
+        "surprise_l1": 120.63,
+        "surprise_l2": 50.13,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "距高點 -20.6% 深度反彈 · 只能衝刺"
+        "reason": "CMS_A=2.0 靠前但缺 VCP 或非 TNX 順風"
+      },
+      {
+        "symbol": "DELL",
+        "name": "Dell Technologies",
+        "sector": "Information Technology",
+        "sector_etf": "XLK",
+        "point": 165.13,
+        "cms_a": 19.3,
+        "di": 1.0,
+        "cum_ret_4w": 2.98,
+        "cum_ret_13w": 105.66,
+        "cum_ret_26w": 275.95,
+        "vcp": false,
+        "vp_ratio_stock": 1.05,
+        "pct_from_high": -8.47,
+        "high_52w": 468.7,
+        "surprise_l1": 63.99,
+        "surprise_l2": 10.74,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "破格 · 全場 Point 最高(165.1)且領先池內第 3 名 50%+"
       }
     ],
     "hold_earnings": []
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 4,
-    "sprint_count": 1,
+    "momentum_count": 3,
+    "sprint_count": 2,
     "hold_count": 0
   },
-  "correlation_warnings": [
-    {
-      "kind": "low_corr_ok",
-      "sectors": [
-        "XLV"
-      ],
-      "msg": "✅ XLV 與多數板塊低相關 · 分散配置佳"
-    }
-  ],
+  "correlation_warnings": [],
   "dark_horses": [
     {
-      "sector": "XLP",
-      "sector_name": "必需消費",
-      "point_rank": 7,
-      "vp_score_rank": 5,
-      "vol_rank": 1
-    },
-    {
-      "sector": "XLB",
-      "sector_name": "材料",
+      "sector": "XLRE",
+      "sector_name": "房地產",
       "point_rank": 5,
-      "vp_score_rank": 8,
-      "vol_rank": 3
+      "vp_score_rank": 7,
+      "vol_rank": 1
     }
   ],
   "watchlist_promoted": [],

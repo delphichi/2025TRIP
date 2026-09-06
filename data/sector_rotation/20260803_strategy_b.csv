@@ -1,0 +1,2 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+MAR,Marriott International,Consumer Discretionary,2026-08-03,346.13,372.07,-6.97,377.69,333.94,True,True,39.4,4419300,1385520,3.19

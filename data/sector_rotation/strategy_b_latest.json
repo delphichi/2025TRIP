@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-06T12:09:21.131128+00:00",
-  "as_of_date": "2026-09-06",
+  "generated_at": "2026-09-06T14:26:12.313673+00:00",
+  "as_of_date": "2026-08-03",
   "as_of_date_note": "T-1 · 抓到的最後一根 close 的日期（非腳本執行當日）",
   "scanned_count": 503,
-  "hits_count": 0,
+  "hits_count": 1,
   "conditions": {
     "daily_drop_pct": "< -5.0% （當日跌 > 5%）",
     "ma50_up": "50MA 向上（今日 MA > 6 天前 MA）",
@@ -16,6 +16,24 @@
     "不是進場當天立刻買 · 建議等大跌後量縮 · 量縮後放量再進場（策略 B 進場時機）",
     "trigger 訊號 · 不代表 all-in · 位置管理仍需搭配策略 A 的配置上限"
   ],
-  "hits": [],
-  "csv": null
+  "hits": [
+    {
+      "symbol": "MAR",
+      "name": "Marriott International",
+      "sector": "Consumer Discretionary",
+      "as_of_date": "2026-08-03",
+      "t_price": 346.13,
+      "prev_price": 372.07,
+      "daily_drop_pct": -6.97,
+      "ma50": 377.69,
+      "ma200": 333.94,
+      "ma50_up": true,
+      "ma200_up": true,
+      "rsi_14": 39.4,
+      "vol_today": 4419300,
+      "vol_20d_avg": 1385520,
+      "vol_ratio_vs_20d": 3.19
+    }
+  ],
+  "csv": "20260803_strategy_b.csv"
 }
