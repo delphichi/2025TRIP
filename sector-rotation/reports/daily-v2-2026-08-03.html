@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>美股機會雷達 · 2026-08-03</title>
+<style>
+  .fpgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  @media(max-width:800px) { .fpgrid { grid-template-columns:1fr; } }
+  .fpsignal { margin:0; padding:0; list-style:none; font-size:13px; }
+  .fpsignal li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .fpsignal li:last-child { border-bottom:none; }
+  .fpsignal li > b { flex:1; }
+  .fpnames { margin:0; padding:0; list-style:none; font-size:13px; columns:2; column-gap:16px; }
+  .fpnames li { padding:4px 0; display:flex; align-items:center; justify-content:space-between; gap:8px; break-inside:avoid; }
+  @media(max-width:500px) { .fpnames { columns:1; } }
+  .regime-banner {
+    padding:16px 22px; border-radius:10px; margin-bottom:14px; font-size:15px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .regime-on { background:linear-gradient(90deg,#0f3d1f,#1e8449); color:#fff; }
+  .regime-neutral { background:linear-gradient(90deg,#4a3c0f,#8a6d1a); color:#fff; }
+  .regime-caution { background:linear-gradient(90deg,#5a2f0f,#b45309); color:#fff; }
+  .regime-off { background:linear-gradient(90deg,#4a0f0f,#991b1b); color:#fff; }
+  .regime-unknown { background:var(--muted); color:#fff; }
+  .regime-banner b { font-size:20px; }
+  .regime-banner .sub { font-size:12px; opacity:.85; }
+  details.card { padding:0; }
+  details.card > summary {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer; list-style:none; display:flex; align-items:center;
+    justify-content:space-between; gap:8px;
+  }
+  details.card > summary::-webkit-details-marker { display:none; }
+  details.card > summary::after { content:"點擊展開 ▾"; font-size:11px; font-weight:400; opacity:.75; }
+  details.card[open] > summary::after { content:"收合 ▴"; }
+  details.card > summary .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  details.card > .card-b { padding:14px 18px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">US</div>
+    <div class="htitle">
+      <span class="tag">V2 · BETA</span>
+      <h1>🇺🇸 美股機會雷達 · 2026-08-03</h1>
+      <p>Regime → Sector → Capital → Stock → Entry。這是新增的第二版報表，
+         跟現有 daily-latest.html 並存，不取代它——資料源完全相同
+         （scorecard_latest.json / latest.json），沒有重抓任何資料。</p>
+    </div>
+  </div>
+
+  
+  <div class="regime-banner regime-unknown">
+    <div>⚪ <b>UNKNOWN</b></div>
+    <div class="sub">regime_stats 不存在或今日資料不足，無法分類</div>
+    <div class="sub">VIX None · 10Y None%</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 SECTOR MAP<span class="n">11 sectors</span></div>
+    <div class="card-b"><ul class="fpnames"><li>Information Technology<span>🟠 減弱</span></li><li>Energy<span>🟠 減弱</span></li><li>Financials<span>🟠 減弱</span></li><li>Industrials<span>🟢 領先</span></li><li>Real Estate<span>🟢 領先</span></li><li>Health Care<span>🟠 減弱</span></li><li>Consumer Staples<span>🔵 改善</span></li><li>Materials<span>🔵 改善</span></li><li>Utilities<span>🔵 改善</span></li><li>Consumer Discretionary<span>🔴 落後</span></li><li>Communication Services<span>🔴 落後</span></li></ul></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧬 THEME ETF PROXY<span class="n" title="不建個股↔主題對照表，直接對 SMH/IGV/CIBR/XBI/ITA/XOP/KRE/JETS 等主題 ETF 套用跟 Sector 一樣的量價評分方法論。沒有 breadth_pct（沒有個股對照表可算），資料完整度比 Sector 層低——這是 Proxy，不是完整 Theme">8 theme ETFs</span></div>
+    <div class="card-b"><ul class="fpnames"><li>網路資安（CIBR）<span>🟢 領先</span></li><li>半導體（SMH）<span>🟢 領先</span></li><li>油氣探勘生產（XOP）<span>🟢 領先</span></li><li>航空（JETS）<span>🟢 領先</span></li><li>區域銀行（KRE）<span>🔵 改善</span></li><li>生技（XBI）<span>🔴 落後</span></li><li>國防航太（ITA）<span>🔵 改善</span></li><li>軟體（IGV）<span>🔴 落後</span></li></ul></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💰 CAPITAL ACCELERATION<span class="n" title="Δflow_ratio vs 最近一次有 flow_ratio 欄位的歷史快照——不是有沒有流入，是流入速度在加快還是減速">流入速度變化</span></div>
+    <div class="card-b"><p class="empty">找不到有 flow_ratio 欄位的歷史快照可比對（flow_ratio 是最近才加的欄位），無法算加速度</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🎯 PRICE LAG · EARLY<span class="n" title="PriceLag = Z(SectorPoint, 跨sector) − Z(StockPoint, sector內)。只列 sector 本身已經 leading/improving、但這檔股票在 sector 內還沒漲上來的組合">sector 已確認、股票落後</span></div>
+    <div class="card-b"><ul class="fpsignal"><li><b>CSGP</b> <span class="dim">CoStar Group</span><span class="dim">[Real Estate]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.38</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-3.43</span><span class="up">3.81</span></li><li><b>ROL</b> <span class="dim">Rollins, Inc.</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-2.83</span><span class="up">3.36</span></li><li><b>PNR</b> <span class="dim">Pentair</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-2.4</span><span class="up">2.93</span></li><li><b>BLDR</b> <span class="dim">Builders FirstSo</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-2.22</span><span class="up">2.75</span></li><li><b>LDOS</b> <span class="dim">Leidos</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-2.04</span><span class="up">2.57</span></li><li><b>CHRW</b> <span class="dim">C.H. Robinson</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.93</span><span class="up">2.46</span></li><li><b>CPRT</b> <span class="dim">Copart</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.69</span><span class="up">2.22</span></li><li><b>LII</b> <span class="dim">Lennox Internati</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.68</span><span class="up">2.21</span></li><li><b>LHX</b> <span class="dim">L3Harris</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.65</span><span class="up">2.18</span></li><li><b>OTIS</b> <span class="dim">Otis Worldwide</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.32</span><span class="up">1.85</span></li><li><b>ALB</b> <span class="dim">Albemarle Corpor</span><span class="dim">[Materials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=-0.68</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-2.48</span><span class="up">1.80</span></li><li><b>HII</b> <span class="dim">Huntington Ingal</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.22</span><span class="up">1.75</span></li><li><b>NOC</b> <span class="dim">Northrop Grumman</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.22</span><span class="up">1.75</span></li><li><b>CCI</b> <span class="dim">Crown Castle</span><span class="dim">[Real Estate]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.38</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.36</span><span class="up">1.74</span></li><li><b>BR</b> <span class="dim">Broadridge Finan</span><span class="dim">[Industrials]</span><span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z=0.53</span><span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z=-1.12</span><span class="up">1.65</span></li></ul><p class="dim" style="margin:10px 0 0;">已知限制：Sector 是市值加權 ETF，重倉成分股（例如 XLK 裡的 AAPL/MSFT/NVDA）自己的價格變化本來就是 ETF 報酬的一大塊，這是所有「拿 cap-weighted ETF 當板塊基準」的方法共通的限制（不是這個公式獨有），對這幾檔重倉股的 Price Lag 解讀要打折扣。</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🔥 OPPORTUNITY RADAR<span class="n" title="重用既有 S1-S5 感測器 + 矛盾扣分邏輯，拆成 EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED 一檔股票一個狀態，並依今日 Regime 標 Entry Permission（✅/⚠️/❌）——Regime 是 Gate 不是乘數，不改變股票本身的 Opportunity 分數">Stock State（5 態）+ Entry Permission</span></div>
+    <div class="card-b"><h4 style="margin:10px 0 4px;">🎯 EARLY · 早期訊號<span class="dim">（5）</span></h4><ul class="fpsignal"><li><b>BAX</b> <span class="dim">Baxter Internati</span><span class="dim">[Health Care]</span><span class="dim" title="EARLY">70</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">RS↑ + Trend↑</span></li><li><b>BMY</b> <span class="dim">Bristol Myers Sq</span><span class="dim">[Health Care]</span><span class="dim" title="EARLY">68</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Trend↑ + Room to run</span></li><li><b>PCG</b> <span class="dim">PG&amp;E Corporation</span><span class="dim">[Utilities]</span><span class="dim" title="EARLY">67</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">RS↑ + Room to run</span></li><li><b>DXCM</b> <span class="dim">Dexcom</span><span class="dim">[Health Care]</span><span class="dim" title="EARLY">64</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Trend↑ + RS↑</span></li><li><b>TGT</b> <span class="dim">Target Corporati</span><span class="dim">[Consumer Staples]</span><span class="dim" title="EARLY">63</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">RS↑ + Trend↑</span></li></ul><h4 style="margin:10px 0 4px;">🚀 CONFIRMED · 已確認<span class="dim">（0）</span></h4><ul class="fpsignal"><li class="empty">今日無</li></ul><h4 style="margin:10px 0 4px;">🕰️ MATURE · 走老未確認<span class="dim">（0）</span></h4><ul class="fpsignal"><li class="empty">今日無</li></ul><h4 style="margin:10px 0 4px;">🔥 OVERHEATED · 追高風險<span class="dim">（5）</span></h4><ul class="fpsignal"><li><b>MRVL</b> <span class="dim">Marvell Technolo</span><span class="dim">[Information Technology]</span><span class="dim" title="OVERHEATED">5</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Sector Capital↑ + Volume↑ + Price Lag↑</span></li><li><b>INTC</b> <span class="dim">Intel</span><span class="dim">[Information Technology]</span><span class="dim" title="OVERHEATED">2</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Sector Capital↑ + Volume↑ + Price Lag↑</span></li><li><b>DVA</b> <span class="dim">DaVita</span><span class="dim">[Health Care]</span><span class="dim" title="OVERHEATED">34</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Trend↑ + Sector Capital↑</span></li><li><b>HPE</b> <span class="dim">Hewlett Packard </span><span class="dim">[Information Technology]</span><span class="dim" title="OVERHEATED">48</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">RS↑ + Trend↑</span></li><li><b>NUE</b> <span class="dim">Nucor</span><span class="dim">[Materials]</span><span class="dim" title="OVERHEATED">51</span><span>—</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">RS↑ + Room to run</span></li></ul><h4 style="margin:10px 0 4px;">🚫 REJECTED · 結構已破壞<span class="dim">（5）</span></h4><ul class="fpsignal"><li><b>DELL</b> <span class="dim">Dell Technologie</span><span class="dim">[Information Technology]</span><span class="dim" title="REJECTED">0</span><span title="Dow 結構已轉空，任何環境都不建議">❌</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Sector Capital↑ + RS↑</span></li><li><b>WDC</b> <span class="dim">Western Digital</span><span class="dim">[Information Technology]</span><span class="dim" title="REJECTED">0</span><span title="Dow 結構已轉空，任何環境都不建議">❌</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Sector Capital↑ + Volume↑ + Price Lag↑</span></li><li><b>MU</b> <span class="dim">Micron Technolog</span><span class="dim">[Information Technology]</span><span class="dim" title="REJECTED">0</span><span title="Dow 結構已轉空，任何環境都不建議">❌</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Sector Capital↑ + Volume↑ + Price Lag↑</span></li><li><b>SNDK</b> <span class="dim">Sandisk</span><span class="dim">[Information Technology]</span><span class="dim" title="REJECTED">0</span><span title="Dow 結構已轉空，任何環境都不建議">❌</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Sector Capital↑ + RS↑</span></li><li><b>STX</b> <span class="dim">Seagate Technolo</span><span class="dim">[Information Technology]</span><span class="dim" title="REJECTED">14</span><span title="Dow 結構已轉空，任何環境都不建議">❌</span><span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">Volume↑ + RS↑ + Price Lag↑</span></li></ul><p class="dim" style="margin:10px 0 0;">五態（EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED）沿用既有感測器欄位分類，不是新公式；Entry Permission 是依今日 regime（UNKNOWN）標註的進場許可（✅可進場／⚠️留意／❌不建議），不改變狀態分類本身——股票處在哪個狀態是一回事，這個環境下該不該進場是另一回事。最後一欄的短標籤是從 S1-S5 挑最高的兩個子分數轉成的「為什麼」，Price Lag 有資料時額外附加。</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📐 SPMO 動能選股<span class="n" title="Invesco S&P 500 Momentum ETF 官方選股邏輯：12個月報酬（排除最近1個月）÷ 過去1年週報酬年化波動度。跟上面 Point/S1-S5 是完全獨立的另一套排序邏輯，重用同一份 all.csv，沒有重抓資料">風險調整動能 Top 10</span></div>
+    <div class="card-b">
+    <table style="font-size:12px;">
+      <thead><tr>
+        <th>#</th><th>Symbol</th><th>Sector</th><th class="n">價</th>
+        <th class="n" title="12個月報酬，排除最近1個月">12-1 動能</th>
+        <th class="n" title="過去1年週報酬年化標準差">年化波動</th>
+        <th class="n" title="12-1動能 ÷ 年化波動 · SPMO 官方選股排序依據">SPMO Score</th>
+      </tr></thead>
+      <tbody><tr><td class="n dim">1</td><td><b>SNDK</b> <span class="dim">Sandisk</span></td><td class="dim">Information Technology</td><td class="n">1288.03</td><td class="n up">+4120.7%</td><td class="n">116.4%</td><td class="n"><b>35.41</b></td></tr><tr><td class="n dim">2</td><td><b>MU</b> <span class="dim">Micron Technology</span></td><td class="dim">Information Technology</td><td class="n">829.50</td><td class="n up">+840.4%</td><td class="n">76.1%</td><td class="n"><b>11.04</b></td></tr><tr><td class="n dim">3</td><td><b>WDC</b> <span class="dim">Western Digital</span></td><td class="dim">Information Technology</td><td class="n">527.22</td><td class="n up">+656.4%</td><td class="n">66.6%</td><td class="n"><b>9.85</b></td></tr><tr><td class="n dim">4</td><td><b>LITE</b> <span class="dim">Lumentum</span></td><td class="dim">Information Technology</td><td class="n">779.89</td><td class="n up">+585.5%</td><td class="n">79.8%</td><td class="n"><b>7.33</b></td></tr><tr><td class="n dim">5</td><td><b>STX</b> <span class="dim">Seagate Technology</span></td><td class="dim">Information Technology</td><td class="n">831.06</td><td class="n up">+465.5%</td><td class="n">65.2%</td><td class="n"><b>7.14</b></td></tr><tr><td class="n dim">6</td><td><b>INTC</b> <span class="dim">Intel</span></td><td class="dim">Information Technology</td><td class="n">91.00</td><td class="n up">+532.8%</td><td class="n">83.1%</td><td class="n"><b>6.42</b></td></tr><tr><td class="n dim">7</td><td><b>CIEN</b> <span class="dim">Ciena</span></td><td class="dim">Information Technology</td><td class="n">390.76</td><td class="n up">+389.5%</td><td class="n">69.7%</td><td class="n"><b>5.59</b></td></tr><tr><td class="n dim">8</td><td><b>LRCX</b> <span class="dim">Lam Research</span></td><td class="dim">Information Technology</td><td class="n">294.61</td><td class="n up">+265.4%</td><td class="n">56.7%</td><td class="n"><b>4.68</b></td></tr><tr><td class="n dim">9</td><td><b>AMAT</b> <span class="dim">Applied Materials</span></td><td class="dim">Information Technology</td><td class="n">517.66</td><td class="n up">+231.8%</td><td class="n">56.4%</td><td class="n"><b>4.11</b></td></tr><tr><td class="n dim">10</td><td><b>TER</b> <span class="dim">Teradyne</span></td><td class="dim">Information Technology</td><td class="n">365.66</td><td class="n up">+265.3%</td><td class="n">65.0%</td><td class="n"><b>4.08</b></td></tr></tbody>
+    </table>
+    <div class="dim" style="font-size:11px;margin-top:10px;line-height:1.6;">
+      <b>SPMO 選股邏輯</b>（Invesco S&amp;P 500 Momentum ETF 官方方法論）：
+      風險調整動能分數 = 12個月報酬（排除最近1個月，避免短期反轉雜訊）÷ 過去1年
+      週報酬年化波動度。分數越高代表「漲得又穩又久」，不是單純漲最多——這是
+      Top 10，示意排序清單，不是真正 SPMO 基金的完整持股或權重。
+    </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    產生時間 2026-09-06 14:52 UTC · Regime Gate 用 sector_scorecard.py 的 10 年回測 regime_stats ·
+    Price Lag / Capital Acceleration 是這版新算的 · Opportunity Radar 重用既有
+    S1-S5 感測器邏輯，未重新設計 ·
+    <a href="daily-latest.html">看原版美股報表</a>
+    <br><br>
+    <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
+  </div>
+
+</div>
+</body>
+</html>
