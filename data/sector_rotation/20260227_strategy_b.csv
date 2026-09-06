@@ -1,0 +1,6 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+CFG,Citizens Financial Group,Financials,2026-02-27,59.37,62.99,-5.75,61.23,50.91,True,True,23.3,9710000,5242280,1.85
+RF,Regions Financial Corporation,Financials,2026-02-27,27.03,28.52,-5.21,27.82,24.76,True,True,26.7,21072100,14476730,1.46
+KEY,KeyCorp,Financials,2026-02-27,20.14,21.23,-5.12,20.87,18.03,True,True,27.6,27546900,16788350,1.64
+C,Citigroup,Financials,2026-02-27,109.12,115.06,-5.16,114.89,97.19,True,True,34.2,29106900,14077875,2.07
+GS,Goldman Sachs,Financials,2026-02-27,847.17,915.6,-7.47,908.47,767.4,True,True,36.3,5552300,2403195,2.31
