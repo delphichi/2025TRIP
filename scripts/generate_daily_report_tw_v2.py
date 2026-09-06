@@ -40,6 +40,23 @@ generate_daily_report_tw.py / daily-tw-latest.html。
   explosive_verdict == 🔥 追高風險 → OVERHEATED（已經追高，矩陣算出來的
     CONFIRMED/EARLY 都不該蓋過這個風險旗標）
 
+V1 Context 接回來（使用者第二輪反饋）：
+  單獨一個 Stock State（例如 EARLY）不夠——「有錢在進但股價還沒確認」，
+  不知道這筆錢在哪裡。使用者的框架：V1 負責「找戰場」（Market→Sector→
+  Chain→資金方向），V2 負責「找戰場裡真正發生共振的股票」（Capital×PV→
+  Stock State）。兩者不合併成一份報表，而是讓 V2 的每一列都帶出它的
+  V1 Context（Sector / Chain / Chain State），形成 1066 檔市場股票 →
+  25 條 Chain → 612 檔法人池 → 最終機會股 的可解釋證據鏈。
+
+  Chain：重用 generate_daily_report_tw.py 的 _chain_for_ticker()（查
+  IndustryMappingTable，many-to-many 取第一條，跟既有「機會清單」卡片
+  同一個查法，不重寫）。查不到映射的股票（IndustryMappingTable 還沒
+  覆蓋到）Chain 顯示「—」，不假裝有鏈。
+  Chain State：重用 tw_industry_mapping.aggregate_supply_chains() 已經
+  算好的 market_state（tw_{date}_chains.csv 裡的欄位，是 CPD quadrant
+  再疊加健康度標籤後的精煉版，跟使用者範例表「Thermal → Overheated」
+  用的是同一個欄位）。
+
 沒做的部分（跟使用者確認過，留待後續）：
   - Regime Gate（TAIEX/0050 10 年歷史回測 + Regime Edge）：需要另外抓
     0050 20 年歷史（FinMind 可以抓到，但跟 Cross Matrix 用的每日 all.csv
@@ -62,7 +79,8 @@ from datetime import datetime, timezone
 from html import escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import generate_daily_report_tw as gdrtw  # noqa: E402  重用 load_json/load_all_stocks/CSS
+import generate_daily_report_tw as gdrtw  # noqa: E402  重用 load_json/load_all_stocks/CSS/_chain_for_ticker
+import tw_industry_mapping as tim  # noqa: E402  重用 load_mapping()，查股票所屬 supply_chain
 from generate_daily_report import PV_SCORE_MAP  # noqa: E402  重用既有量價評分，不重新設計
 
 DATA_DIR = gdrtw.DATA_DIR
@@ -169,6 +187,31 @@ def classify_cross_state(capital_icon, pv_icon, trend_state, explosive_verdict):
     return CROSS_MATRIX.get((capital_icon, weak_or_strong), "WAIT")
 
 
+# ============================================================
+# 3b. V1 Context：把 Sector / Chain / Chain State 接回每一列
+# ============================================================
+def load_v1_context(as_of):
+    """讀 V1 已經算好的 IndustryMappingTable + 當日 Chain Scorecard，回傳
+    (mapping_df, chain_state_by_name) 給 attach_v1_context() 查表用。
+    兩者任一缺失都回傳空值，呼叫端會誠實顯示「—」，不是報錯。"""
+    mapping_df = tim.load_mapping()
+    chain_rows = gdrtw.load_chain_scorecard(as_of)
+    chain_state_by_name = {r["supply_chain"]: r.get("market_state") for r in chain_rows}
+    return mapping_df, chain_state_by_name
+
+
+def attach_v1_context(cross_rows, mapping_df, chain_state_by_name):
+    """幫每一列 Cross Matrix 結果接上 V1 的 Sector/Chain/Chain State——
+    使用者的重點：單獨一個 EARLY 不夠，要知道「這筆錢在哪個戰場」。
+    Chain 查不到映射、或查到的鏈今天沒有 Chain Scorecard（例如鏈裡股票
+    池今天沒交集）時，兩個欄位都顯示「—」，不是空白也不是假資料。"""
+    for r in cross_rows:
+        chain = gdrtw._chain_for_ticker(r["stock_id"], mapping_df)
+        r["chain"] = chain or "—"
+        r["chain_state"] = (chain_state_by_name.get(chain) if chain else None) or "—"
+    return cross_rows
+
+
 def compute_capital_pv_cross(all_rows):
     """對當日全市場股票池算資金 Z-score + 量價分級 + 交叉狀態。
     inst_total_net_20d_est_NTD_M 缺值（法人資料抓取失敗的個股）直接跳過，
@@ -235,24 +278,42 @@ FRONT_CSS_EXTRA = '''
 '''
 
 
+def _v1_context_row(r, state_icon):
+    """使用者的重點表格列：股票 / Sector / Chain / Chain 狀態 / Capital / PV / 結論。
+    Chain 查不到映射時顯示「—」，不是空白也不是假資料。"""
+    return (
+        f'<tr>'
+        f'<td><b>{escape(r["symbol"])}</b> <span class="dim">{escape((r["name"] or "")[:10])}</span></td>'
+        f'<td>{escape(r["sector"])}</td>'
+        f'<td>{escape(r["chain"])}</td>'
+        f'<td>{escape(r["chain_state"])}</td>'
+        f'<td class="n" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">{escape(r["capital_icon"])} '
+        f'<span class="dim">z={r["capital_z"]:+.2f}</span></td>'
+        f'<td title="{escape(r["pv_verdict"])}">{escape(r["pv_icon"])} <span class="dim">{escape(r["pv_label"])}</span></td>'
+        f'<td class="tag">{state_icon}</td>'
+        f'</tr>'
+    )
+
+
 def cross_state_html(groups):
     sections = []
     for state in STATE_ORDER:
         icon, label = STATE_LABELS[state]
         items = groups.get(state) or []
-        lis = "".join(
-            f'<li><b>{escape(r["symbol"])}</b> <span class="dim">{escape((r["name"] or "")[:12])}</span>'
-            f'<span class="dim">[{escape(r["sector"])}]</span>'
-            f'<span class="dim" title="法人 20d 淨買估計金額 (NTD M) 的橫斷面 Z-score">資金 z={r["capital_z"]:+.2f}</span>'
-            f'<span class="dim" title="{escape(r["pv_verdict"])}">量價 {escape(r["pv_label"])}</span></li>'
-            for r in items
-        ) or '<li class="empty">今日無</li>'
-        sections.append(f'<h4 style="margin:10px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>'
-                         f'<ul class="fpsignal">{lis}</ul>')
+        if items:
+            rows_html = "".join(_v1_context_row(r, icon) for r in items)
+            table = (f'<table><thead><tr>'
+                     f'<th>股票</th><th>Sector</th><th>Chain</th><th>Chain 狀態</th>'
+                     f'<th class="n">Capital</th><th>PV</th><th>結論</th>'
+                     f'</tr></thead><tbody>{rows_html}</tbody></table>')
+        else:
+            table = '<p class="empty">今日無</p>'
+        sections.append(f'<h4 style="margin:14px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>{table}')
     sections.append('<p class="dim" style="margin:10px 0 0;">資金鏡頭 × 量價鏡頭交叉出的狀態，'
                      '不是加權分數；REJECT（Dow 結構空頭）跟 OVERHEATED（追高風險）是結構性否決，'
-                     '不進矩陣排列。Regime Gate（市場能不能做）跟 Capital Acceleration（資金變化速度）'
-                     '下一階段才加，這版只驗證 Cross Matrix 本身。</p>')
+                     '不進矩陣排列。Chain / Chain 狀態是接回來的 V1 Context——V1 負責找戰場'
+                     '（Sector/Chain 資金方向），V2 負責找戰場裡真正發生共振的股票，兩者不合併成一份報表，'
+                     '只是讓每一列都帶出它的戰場脈絡。Regime Gate 跟 Capital Acceleration 下一階段才加。</p>')
     return "".join(sections)
 
 
@@ -260,6 +321,8 @@ def render_v2(scorecard, stage2):
     as_of = (scorecard or {}).get("as_of_date") or (stage2 or {}).get("as_of_date")
     all_rows = gdrtw.load_all_stocks(as_of)
     cross_rows = compute_capital_pv_cross(all_rows)
+    mapping_df, chain_state_by_name = load_v1_context(as_of)
+    cross_rows = attach_v1_context(cross_rows, mapping_df, chain_state_by_name)
     groups = group_by_state(cross_rows)
 
     gen_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -290,7 +353,7 @@ def render_v2(scorecard, stage2):
   </div>
 
   <div class="card">
-    <div class="card-h">🧭 CAPITAL × PRICE-VOLUME CROSS<span class="n">{universe_note}</span></div>
+    <div class="card-h">🧭 CAPITAL × PRICE-VOLUME CROSS<span class="n" title="每一列都帶出 V1 Context（Sector/Chain/Chain 狀態）——V1 找戰場，V2 找戰場裡真正共振的股票">{universe_note} · 含 V1 Context</span></div>
     <div class="card-b">{cross_state_html(groups)}</div>
   </div>
 
