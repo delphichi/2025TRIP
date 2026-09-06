@@ -934,6 +934,112 @@ def fetch_market_snapshot(start_date, end_date):
     }
 
 
+# ============================================================
+# Layer 0b · Regime Gate 歷史回測（給 tw_regime_snapshot.py 用，不進 main() 主線）
+# ============================================================
+REGIME_LABELS_TW = {3: "🟢 多頭", 2: "🟡 中性", 1: "🟠 警戒", 0: "🔴 空頭"}
+
+
+def compute_regime_stats_tw(as_of=None, history_years=15):
+    """對 TAIEX 全歷史 · 逐日標 4 級市況 · 計算後 20 交易日表現。
+    跟 sector_scorecard.py 的 compute_regime_stats()（SPY 版）同一套方法論——
+    3 條件：> 60 日前價 · 50MA 向上 · 200MA 向上，3 個條件都成立 = 🟢 多頭，
+    以此類推——同一個思考語法套用在 TAIEX，不是另外設計一套規則。
+
+    資料源優先用 fetch_taiex_official()（TW Market Data，跟 FinMind 額度無關，
+    1 次 request），這是刻意的選擇：FinMind 免費 tier 額度已經被 Layer 3
+    法人資料用到接近上限（300 次/小時 vs 預設 300 檔股票池 ≈ 301 次），
+    Regime 歷史回測需要一次抓長達 10-15 年的資料，不該再去擠 FinMind 的
+    額度、傷到 V1 每天在用的法人資料。TW Market Data 沒設金鑰或歷史長度
+    不夠（< 400 個交易日）就誠實回傳 None，不退回 FinMind 湊數。
+    """
+    end_date = as_of or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+    start_date = (end_dt - timedelta(days=int(history_years * 365.25))).strftime("%Y-%m-%d")
+
+    if not TWMD_API_KEY:
+        log("⚠ Regime 回測需要 TWMARKETDATA_API_KEY（TW Market Data）· 沒設金鑰 · 跳過")
+        return None
+    try:
+        df = fetch_taiex_official(start_date, end_date, limit=6000)
+    except Exception as e:
+        log(f"⚠ TAIEX 歷史抓取失敗（{e}）· Regime 回測跳過")
+        return None
+    if df is None or len(df) < 400:
+        n = 0 if df is None else len(df)
+        log(f"⚠ TAIEX 歷史只有 {n} 個交易日（< 400）· TW Market Data 歷史深度不夠 · Regime 回測跳過")
+        return None
+
+    close = df["close"].reset_index(drop=True)
+    ma50 = close.rolling(50).mean()
+    ma200 = close.rolling(200).mean()
+    n = len(close)
+    stats = {label: [] for label in REGIME_LABELS_TW.values()}
+    all_rets = []
+
+    def _regime(price, price60d, m50, m50prev, m200, m200prev):
+        up = int(price > price60d) + int(m50 > m50prev) + int(m200 > m200prev)
+        return REGIME_LABELS_TW[up], up
+
+    for i in range(210, n - 20):
+        price = float(close.iloc[i])
+        price60d = float(close.iloc[i - 60])
+        m50, m50prev = float(ma50.iloc[i]), float(ma50.iloc[i - 1])
+        m200, m200prev = float(ma200.iloc[i]), float(ma200.iloc[i - 1])
+        if any(pd.isna([m50, m50prev, m200, m200prev])):
+            continue
+        regime, _ = _regime(price, price60d, m50, m50prev, m200, m200prev)
+        fwd_20d = (float(close.iloc[i + 20]) - price) / price * 100
+        stats[regime].append(fwd_20d)
+        all_rets.append(fwd_20d)
+
+    def _stats_dict(rets):
+        if not rets:
+            return None
+        import numpy as np
+        arr = np.array(rets)
+        return {
+            "n": len(arr), "mean": round(float(arr.mean()), 2),
+            "win_rate": round(float((arr > 0).mean() * 100), 1),
+            "p25": round(float(np.percentile(arr, 25)), 2),
+            "p50": round(float(np.percentile(arr, 50)), 2),
+            "p75": round(float(np.percentile(arr, 75)), 2),
+            "worst": round(float(arr.min()), 2), "best": round(float(arr.max()), 2),
+        }
+
+    hist = {label: _stats_dict(rets) for label, rets in stats.items()}
+    unconditional = _stats_dict(all_rets)
+    for label, d in hist.items():
+        if d:
+            log(f"  · {label} · n={d['n']:4d} · 20d 均 {d['mean']:+.2f}% · 勝率 {d['win_rate']:.1f}%")
+    if unconditional:
+        log(f"  · Baseline（不分 regime）· n={unconditional['n']:4d} · "
+            f"20d 均 {unconditional['mean']:+.2f}% · 勝率 {unconditional['win_rate']:.1f}%")
+
+    i_last = n - 1
+    price = float(close.iloc[i_last])
+    price60d = float(close.iloc[i_last - 60])
+    m50, m50prev = float(ma50.iloc[i_last]), float(ma50.iloc[i_last - 1])
+    m200, m200prev = float(ma200.iloc[i_last]), float(ma200.iloc[i_last - 1])
+    current_regime, up = _regime(price, price60d, m50, m50prev, m200, m200prev)
+    log(f"  · 今日 TAIEX regime: {current_regime} (up_count={up})")
+
+    return {
+        "as_of_date": str(df["date"].iloc[-1]),
+        "history_days": n,
+        "historical": hist,
+        "current_regime": current_regime,
+        "current_conditions": {
+            "taiex_price": round(price, 2), "taiex_60d_ago": round(price60d, 2),
+            "price_up_60d": price > price60d,
+            "ma50": round(m50, 2), "ma50_up": m50 > m50prev,
+            "ma200": round(m200, 2), "ma200_up": m200 > m200prev,
+        },
+        "current": hist.get(current_regime),
+        "unconditional": unconditional,
+    }
+
+
 def select_top3_per_sector(all_df):
     """各板塊 Top 3 候選池：先排除「🔥 追高風險」（explosive_verdict 判定為追高，
     通常已經漲多、追價風險高，不該被推薦為「這個板塊裡最值得看的」），再依

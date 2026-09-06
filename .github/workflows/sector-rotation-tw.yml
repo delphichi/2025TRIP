@@ -87,6 +87,29 @@ jobs:
           set -o pipefail
           python scripts/generate_daily_report_tw.py 2>&1 | tee /tmp/tw_report.log
 
+      # 台股 v2（Capital × Price-Volume Cross Radar）的 Regime Gate：TAIEX 10-15 年
+      # 歷史回測，走 TW Market Data（跟 FinMind 額度完全獨立，1 次 request/次執行），
+      # 不吃 Layer 3 法人資料的額度。沒設 TWMARKETDATA_API_KEY 或歷史深度不夠時，
+      # 腳本會誠實不產生檔案，v2 報表對應顯示「還沒有資料」，不影響其他步驟。
+      - name: Run TW regime gate snapshot (TAIEX 歷史回測 · TW Market Data)
+        if: ${{ !inputs.report_only }}
+        continue-on-error: true
+        shell: bash
+        env:
+          TWMARKETDATA_API_KEY: ${{ secrets.TWMARKETDATA_API_KEY }}
+          AS_OF: ${{ inputs.as_of_date }}
+        run: |
+          set -o pipefail
+          ARGS=""
+          if [ -n "$AS_OF" ]; then ARGS="$ARGS --as-of $AS_OF"; fi
+          python scripts/tw_regime_snapshot.py $ARGS 2>&1 | tee /tmp/tw_regime.log
+
+      - name: Generate TW v2 report (Capital × Price-Volume Cross Radar)
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/generate_daily_report_tw_v2.py 2>&1 | tee /tmp/tw_report_v2.log
+
       # 獨立於 Layer 0-3、不影響上面兩步：累積 TWSE OpenAPI MI_INDEX（官方類股指數）
       # + STOCK_DAY_ALL（全上市個股官方 OHLCV）每日快照，供未來接進 Layer 1/2 用。
       # 兩個 endpoint 都只回傳「當下最新交易日」，累積夠歷史前先純存檔；continue-on-error

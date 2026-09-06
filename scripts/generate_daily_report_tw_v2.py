@@ -57,10 +57,21 @@ V1 Context 接回來（使用者第二輪反饋）：
   再疊加健康度標籤後的精煉版，跟使用者範例表「Thermal → Overheated」
   用的是同一個欄位）。
 
+Regime Gate（使用者第三輪反饋）：
+  TAIEX 10-15 年歷史回測 + 今日 regime 分類 + Regime Edge，完全比照美股
+  sector_scorecard.py 的 compute_regime_stats()（3 條件：>60日前價/50MA
+  向上/200MA向上），同一個思考語法。刻意不用 FinMind 抓歷史——FinMind
+  免費 tier 額度已經被 tw_sector_pipeline.py 的 Layer 3 法人資料用到
+  接近上限（300 次/小時 vs 預設 300 檔股票池 ≈ 301 次），Regime 回測
+  需要一次抓長歷史，不該再去擠這個額度、傷到 V1 每天在用的法人資料。
+  改用 TW Market Data（TWMARKETDATA_API_KEY，跟 FinMind 完全獨立的另一組
+  配額，1 次 request/次執行）——沒設金鑰或歷史深度不夠時，
+  compute_regime_stats_tw() 誠實回 None，這裡的 regime_gate_tw() 顯示
+  UNKNOWN，不假裝算出東西。新增 scripts/tw_regime_snapshot.py 當獨立的
+  CLI 進入點（不進 tw_sector_pipeline.py 的 main() 主線，V1 完全不受
+  影響），輸出 tw_regime_stats_latest.json。
+
 沒做的部分（跟使用者確認過，留待後續）：
-  - Regime Gate（TAIEX/0050 10 年歷史回測 + Regime Edge）：需要另外抓
-    0050 20 年歷史（FinMind 可以抓到，但跟 Cross Matrix 用的每日 all.csv
-    是不同規模的資料工程），下一階段做
   - Capital Acceleration（Δ 資金狀態 vs 前一交易日快照）：下一階段做
   - Sector Lag / Chain Lag 雙層比較：Chain Price Lag 已經在
     tw_industry_mapping.py 裡（compute_chain_price_lag），這版沒有把它
@@ -87,6 +98,79 @@ DATA_DIR = gdrtw.DATA_DIR
 REPORTS_DIR = gdrtw.REPORTS_DIR
 SCORECARD = gdrtw.SCORECARD
 STAGE2 = gdrtw.STAGE2
+REGIME_STATS_PATH = os.path.join(DATA_DIR, "tw_regime_stats_latest.json")  # scripts/tw_regime_snapshot.py 的輸出
+
+
+# ============================================================
+# 0. Regime Gate：TAIEX 10-15 年回測，跟美股同一套方法論（3 條件 4 級 +
+#    Regime Edge），不是新規則。TAIEX 沒有 VIX 對應物，這版沒有 override。
+# ============================================================
+REGIME_RISK_LABEL_TW = {
+    "🟢 多頭": ("🟢", "RISK-ON"),
+    "🟡 中性": ("🟡", "NEUTRAL"),
+    "🟠 警戒": ("🟠", "CAUTION"),
+    "🔴 空頭": ("🔴", "RISK-OFF"),
+}
+
+
+def load_regime_stats_tw():
+    return gdrtw.load_json(REGIME_STATS_PATH)
+
+
+def regime_gate_tw(regime_stats):
+    """把 tw_regime_snapshot.py 算好的 TAIEX regime_stats 包裝成 Risk-On/
+    Neutral/Caution/Risk-Off，跟美股 generate_daily_report_v2.py 的
+    regime_gate() 同一套邏輯（Regime 是 Gate 不是乘數）。regime_stats 是
+    None（還沒跑過 tw_regime_snapshot.py，或 TW Market Data 沒設金鑰/
+    歷史深度不夠）時誠實回 UNKNOWN，不假裝算出東西。"""
+    regime_stats = regime_stats or {}
+    current_regime = regime_stats.get("current_regime")
+    current_stats = regime_stats.get("current") or {}
+    unconditional_stats = regime_stats.get("unconditional") or {}
+
+    if current_regime in REGIME_RISK_LABEL_TW:
+        icon, label = REGIME_RISK_LABEL_TW[current_regime]
+        note = f"TAIEX regime={current_regime}（3 條件：>60日前價/50MA向上/200MA向上）"
+    else:
+        icon, label = "⚪", "UNKNOWN"
+        note = "tw_regime_stats_latest.json 還沒有資料（TW Market Data 未設金鑰，或歷史深度不夠）"
+
+    edge_mean = edge_win_rate = None
+    if current_stats.get("mean") is not None and unconditional_stats.get("mean") is not None:
+        edge_mean = round(current_stats["mean"] - unconditional_stats["mean"], 2)
+    if current_stats.get("win_rate") is not None and unconditional_stats.get("win_rate") is not None:
+        edge_win_rate = round(current_stats["win_rate"] - unconditional_stats["win_rate"], 1)
+
+    return {
+        "icon": icon, "label": label, "current_regime": current_regime, "note": note,
+        "historical_n": current_stats.get("n"), "historical_mean": current_stats.get("mean"),
+        "historical_win_rate": current_stats.get("win_rate"),
+        "baseline_n": unconditional_stats.get("n"), "baseline_mean": unconditional_stats.get("mean"),
+        "baseline_win_rate": unconditional_stats.get("win_rate"),
+        "edge_mean": edge_mean, "edge_win_rate": edge_win_rate,
+    }
+
+
+def regime_banner_html(regime):
+    cls = {"RISK-ON": "regime-on", "NEUTRAL": "regime-neutral", "CAUTION": "regime-caution",
+           "RISK-OFF": "regime-off"}.get(regime["label"], "regime-unknown")
+    hist = ""
+    if regime.get("historical_n"):
+        hist = (f' · 歷史同 regime 出現 {regime["historical_n"]} 次，20 日後平均 '
+                f'{regime["historical_mean"]:+.2f}%，勝率 {regime["historical_win_rate"]:.1f}%')
+    edge = ""
+    if regime.get("edge_mean") is not None:
+        edge = (f' <span title="Baseline：不分 regime、全樣本 n={regime.get("baseline_n","—")} '
+                f'的 20 日後平均 {regime.get("baseline_mean",0):+.2f}%，勝率 '
+                f'{regime.get("baseline_win_rate",0):.1f}%">· Regime Edge '
+                f'{regime["edge_mean"]:+.2f}pp'
+                + (f' / 勝率 {regime["edge_win_rate"]:+.1f}pp' if regime.get("edge_win_rate") is not None else "")
+                + '</span>')
+    return f'''
+  <div class="regime-banner {cls}">
+    <div>{regime["icon"]} <b>{escape(regime["label"])}</b></div>
+    <div class="sub">{escape(regime.get("note") or "")}{hist}{edge}</div>
+  </div>'''
 
 
 # ============================================================
@@ -275,6 +359,17 @@ FRONT_CSS_EXTRA = '''
   .fpsignal li:last-child { border-bottom:none; }
   .fpsignal li > b { flex:1; }
   .fpsignal .empty { color:var(--muted); font-style:italic; padding:6px 0; }
+  .regime-banner {
+    padding:16px 22px; border-radius:10px; margin-bottom:14px; font-size:15px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .regime-on { background:linear-gradient(90deg,#0f3d1f,#1e8449); color:#fff; }
+  .regime-neutral { background:linear-gradient(90deg,#4a3c0f,#8a6d1a); color:#fff; }
+  .regime-caution { background:linear-gradient(90deg,#5a2f0f,#b45309); color:#fff; }
+  .regime-off { background:linear-gradient(90deg,#4a0f0f,#991b1b); color:#fff; }
+  .regime-unknown { background:var(--muted); color:#fff; }
+  .regime-banner b { font-size:20px; }
+  .regime-banner .sub { font-size:12px; opacity:.85; }
 '''
 
 
@@ -324,6 +419,7 @@ def render_v2(scorecard, stage2):
     mapping_df, chain_state_by_name = load_v1_context(as_of)
     cross_rows = attach_v1_context(cross_rows, mapping_df, chain_state_by_name)
     groups = group_by_state(cross_rows)
+    regime = regime_gate_tw(load_regime_stats_tw())
 
     gen_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     universe_note = (f'{len(cross_rows)} 檔有法人資料（全池 {len(all_rows)} 檔）'
@@ -351,6 +447,8 @@ def render_v2(scorecard, stage2):
          沒有重抓任何資料。</p>
     </div>
   </div>
+
+  {regime_banner_html(regime)}
 
   <div class="card">
     <div class="card-h">🧭 CAPITAL × PRICE-VOLUME CROSS<span class="n" title="每一列都帶出 V1 Context（Sector/Chain/Chain 狀態）——V1 找戰場，V2 找戰場裡真正共振的股票">{universe_note} · 含 V1 Context</span></div>
