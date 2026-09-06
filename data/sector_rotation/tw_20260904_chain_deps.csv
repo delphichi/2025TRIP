@@ -1,0 +1,12 @@
+chain,chain_state,upstream_count,upstream_confirmed,upstream_confirmed_pct,upstream_total_weight,upstream_confirmed_weight,upstream_coherence_pct,upstream_states
+PCB / HDI / IC Substrate,🔥 Overheated,1,1,100.0,1.0,1.0,100.0,"{""CCL / High-Speed Materials"": ""🚀 Confirmed""}"
+Robotics / Automation,💰 Capital Leading,2,1,50.0,1.2,0.7,58.3,"{""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Semiconductor Equipment & Materials"": ""❄️ Weak""}"
+Cloud / Data Center / Cybersecurity,❄️ Weak,2,1,50.0,1.8,1.0,55.6,"{""AI Server / ODM"": ""🚀 Confirmed"", ""Optical Communication / AI Networking"": ""❄️ Weak""}"
+Smart Grid / Transformer,💰 Capital Leading,2,1,50.0,1.1,0.6,54.5,"{""Passive Components"": ""⚠️ Price Leading"", ""Steel"": ""💰 Capital Leading""}"
+AI Server / ODM,🚀 Confirmed,9,3,33.3,8.6,3.0,34.9,"{""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Memory / HBM"": ""🔥 Overheated"", ""Advanced Packaging"": ""🔥 Overheated"", ""PCB / HDI / IC Substrate"": ""🔥 Overheated"", ""CCL / High-Speed Materials"": ""🚀 Confirmed"", ""Thermal / Liquid Cooling"": ""🚀 Confirmed"", ""Data Center Power / PSU"": ""❄️ Weak"", ""Optical Communication / AI Networking"": ""❄️ Weak"", ""Passive Components"": ""⚠️ Price Leading""}"
+EV / Auto Electronics,❄️ Weak,3,1,33.3,2.2,0.6,27.3,"{""Energy Storage / Battery"": ""⚠️ Price Leading"", ""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Passive Components"": ""⚠️ Price Leading""}"
+AI / HPC Semiconductor,🚀 Confirmed,2,0,0.0,1.8,0.0,0.0,"{""Semiconductor Equipment & Materials"": ""❄️ Weak"", ""Advanced Packaging"": ""🔥 Overheated""}"
+Advanced Packaging,🔥 Overheated,2,0,0.0,1.7,0.0,0.0,"{""Semiconductor Equipment & Materials"": ""❄️ Weak"", ""PCB / HDI / IC Substrate"": ""🔥 Overheated""}"
+Data Center Power / PSU,❄️ Weak,1,0,0.0,0.7,0.0,0.0,"{""Passive Components"": ""⚠️ Price Leading""}"
+Display & Optical,🚀 Confirmed,1,0,0.0,0.6,0.0,0.0,"{""Semiconductor Equipment & Materials"": ""❄️ Weak""}"
+Memory / HBM,🔥 Overheated,2,0,0.0,1.8,0.0,0.0,"{""Semiconductor Equipment & Materials"": ""❄️ Weak"", ""Advanced Packaging"": ""🔥 Overheated""}"
