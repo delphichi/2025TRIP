@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>市值加權動能比較 · 2026-09-04</title>
+<style>
+  .empty { text-align:center; padding:16px; color:var(--muted,#6b7280); font-style:italic; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; padding:6px 8px; background:#f9fafb; font-size:10.5px; text-transform:uppercase;
+       color:var(--muted,#6b7280); border-bottom:2px solid var(--line,#e2e5ea); }
+  td { padding:5px 8px; border-bottom:1px solid var(--line,#e2e5ea); }
+  td.n { text-align:right; font-variant-numeric:tabular-nums; }
+  .dim { color:var(--muted,#6b7280); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">US</div>
+    <div class="htitle">
+      <span class="tag">加權 vs 不加權 · 實驗版</span>
+      <h1>⚖️ 市值加權動能比較 · 2026-09-04</h1>
+      <p>9/6 用 2026-02-27 資料回測真實 SPMO 3 月調倉發現：我們的分數排名能抓到「誰該入選」（MU/GOOGL/JNJ
+         都命中），但抓不到「誰的權重該最大」（真實權重最大的 NVDA/AVGO 分數只排 #64/#69）——因為真實指數
+         權重 = 動能分數 × 市值，不是純分數排名。這份報表把兩種排法並排比較，SPMO 分數（原本就有）跟
+         V1 的 point 分數（既有 daily-latest.html 用的動能分數）各做一次，回答「V1 加權後是不是也不同」。
+         獨立新報表，不影響 daily-latest.html / daily-v2-latest.html 原本的排名。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">市值資料狀態<span class="n">30 檔有市值資料</span></div>
+    <div class="card-b"><p class="dim" style="font-size:12px;margin:0;">
+      市值來自 scripts/market_cap_snapshot.py 抓「現在」的快照，不是任何歷史日期當天的真實市值——
+      市值變化比動能分數慢很多（除非增減資/股票分割），拿現在市值近似歷史日期是可接受的簡化，不是精確值。
+      這版加權也沒有真實 SPMO 的單一持股 5% 上限、換股緩衝規則、float-adjusted market cap，
+      是簡化版，用來回答「市值這個變數本身會不會讓排名不同」，不是要重現真實基金的精確持股。
+    </p></div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">📐 SPMO Score（12-1 動能 ÷ 年化波動）<span class="n">Top 10</span></div>
+    <div class="card-b">
+      <p class="dim" style="font-size:12px;margin:0 0 12px;">9/6 用 2026-02-27 資料回測真實 SPMO 3 月調倉驗證過這裡的落差：MU/GOOGL/JNJ 分數排名高、會進榜；但真實權重最大的 NVDA/AVGO 分數只排 #64/#69——市值夠大，加權後權重照樣衝到最前面。</p>
+      
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <h4 style="margin:0 0 8px;font-size:13px;">不加權（純 📐 SPMO Score 排名）</h4>
+        <table style="font-size:12px;">
+          <thead><tr><th>#</th><th>Symbol</th><th>Sector</th><th class="n">Score</th></tr></thead>
+          <tbody><tr><td class="n dim">1</td><td><b>SNDK</b></td><td class="dim">Information Technolo</td><td class="n">14.47</td></tr><tr><td class="n dim">2</td><td><b>MU</b></td><td class="dim">Information Technolo</td><td class="n">7.22</td></tr><tr><td class="n dim">3</td><td><b>LITE</b></td><td class="dim">Information Technolo</td><td class="n">5.41</td></tr><tr><td class="n dim">4</td><td><b>AMAT</b></td><td class="dim">Information Technolo</td><td class="n">5.22</td></tr><tr><td class="n dim">5</td><td><b>STX</b></td><td class="dim">Information Technolo</td><td class="n">4.52</td></tr><tr><td class="n dim">6</td><td><b>WDC</b></td><td class="dim">Information Technolo</td><td class="n">4.42</td></tr><tr><td class="n dim">7</td><td><b>DELL</b></td><td class="dim">Information Technolo</td><td class="n">3.85</td></tr><tr><td class="n dim">8</td><td><b>LRCX</b></td><td class="dim">Information Technolo</td><td class="n">3.81</td></tr><tr><td class="n dim">9</td><td><b>INTC</b></td><td class="dim">Information Technolo</td><td class="n">3.78</td></tr><tr><td class="n dim">10</td><td><b>COHR</b></td><td class="dim">Information Technolo</td><td class="n">3.75</td></tr></tbody>
+        </table>
+      </div>
+      <div>
+        <h4 style="margin:0 0 8px;font-size:13px;">市值加權（score × market cap，入選池前 100 檔內再排）</h4>
+        <table style="font-size:12px;">
+          <thead><tr><th>#</th><th>Symbol</th><th>Sector</th><th class="n">權重</th><th></th></tr></thead>
+          <tbody><tr><td class="n dim">1</td><td><b>WBD</b></td><td class="dim">Communication Servic</td><td class="n">100.00%</td><td class="dim" style="font-size:11px;">（分數排名 #39）</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="dim" style="font-size:11px;margin-top:10px;">入選池：純分數前 100 檔（模擬真實指數的選股步驟） · 入選池 100 檔中有 99 檔沒有市值資料，已排除</div>
+    
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h">📊 Point（4W/13W/26W 綜合動能，V1 既有分數）<span class="n">Top 10</span></div>
+    <div class="card-b">
+      <p class="dim" style="font-size:12px;margin:0 0 12px;">V1 的 point 分數本身沒有市值變數，這裡套用同一套「先選股、再用分數×市值算權重」的邏輯，驗證使用者的問題：V1 的排名如果考慮市值，是不是也會不一樣。</p>
+      
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <h4 style="margin:0 0 8px;font-size:13px;">不加權（純 📊 Point 排名）</h4>
+        <table style="font-size:12px;">
+          <thead><tr><th>#</th><th>Symbol</th><th>Sector</th><th class="n">Score</th></tr></thead>
+          <tbody><tr><td class="n dim">1</td><td><b>MRNA</b></td><td class="dim">Health Care</td><td class="n">177.42</td></tr><tr><td class="n dim">2</td><td><b>DELL</b></td><td class="dim">Information Technolo</td><td class="n">141.09</td></tr><tr><td class="n dim">3</td><td><b>SNDK</b></td><td class="dim">Information Technolo</td><td class="n">113.73</td></tr><tr><td class="n dim">4</td><td><b>MU</b></td><td class="dim">Information Technolo</td><td class="n">88.99</td></tr><tr><td class="n dim">5</td><td><b>MRVL</b></td><td class="dim">Information Technolo</td><td class="n">88.78</td></tr><tr><td class="n dim">6</td><td><b>AMD</b></td><td class="dim">Information Technolo</td><td class="n">73.30</td></tr><tr><td class="n dim">7</td><td><b>HPE</b></td><td class="dim">Information Technolo</td><td class="n">69.33</td></tr><tr><td class="n dim">8</td><td><b>STX</b></td><td class="dim">Information Technolo</td><td class="n">68.49</td></tr><tr><td class="n dim">9</td><td><b>HUM</b></td><td class="dim">Health Care</td><td class="n">66.18</td></tr><tr><td class="n dim">10</td><td><b>CRWD</b></td><td class="dim">Information Technolo</td><td class="n">62.18</td></tr></tbody>
+        </table>
+      </div>
+      <div>
+        <h4 style="margin:0 0 8px;font-size:13px;">市值加權（score × market cap，入選池前 100 檔內再排）</h4>
+        <table style="font-size:12px;">
+          <thead><tr><th>#</th><th>Symbol</th><th>Sector</th><th class="n">權重</th><th></th></tr></thead>
+          <tbody><tr><td class="n dim">1</td><td><b>BBY</b></td><td class="dim">Consumer Discretiona</td><td class="n">22.14%</td><td class="dim" style="font-size:11px;">（分數排名 #29）</td></tr><tr><td class="n dim">2</td><td><b>EXPE</b></td><td class="dim">Consumer Discretiona</td><td class="n">20.94%</td><td class="dim" style="font-size:11px;">（分數排名 #36）</td></tr><tr><td class="n dim">3</td><td><b>ABNB</b></td><td class="dim">Consumer Discretiona</td><td class="n">20.74%</td><td class="dim" style="font-size:11px;">（分數排名 #34）</td></tr><tr><td class="n dim">4</td><td><b>GPC</b></td><td class="dim">Consumer Discretiona</td><td class="n">18.58%</td><td class="dim" style="font-size:11px;">（分數排名 #46）</td></tr><tr><td class="n dim">5</td><td><b>DASH</b></td><td class="dim">Consumer Discretiona</td><td class="n">15.95%</td><td class="dim" style="font-size:11px;">（分數排名 #65）</td></tr><tr><td class="n dim">6</td><td><b>NWS</b></td><td class="dim">Communication Servic</td><td class="n">1.09%</td><td class="dim" style="font-size:11px;">（分數排名 #66）</td></tr><tr><td class="n dim">7</td><td><b>NWSA</b></td><td class="dim">Communication Servic</td><td class="n">0.56%</td><td class="dim" style="font-size:11px;">（分數排名 #59）</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="dim" style="font-size:11px;margin-top:10px;">入選池：純分數前 100 檔（模擬真實指數的選股步驟） · 入選池 100 檔中有 93 檔沒有市值資料，已排除</div>
+    
+    </div>
+  </div>
+
+  <div class="foot">
+    產生時間 2026-09-06 19:15 UTC ·
+    <a href="daily-latest.html">看美股報表</a> · <a href="daily-v2-latest.html">看美股 V2 報表</a>
+    <br><br>
+    <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
+  </div>
+
+</div>
+</body>
+</html>

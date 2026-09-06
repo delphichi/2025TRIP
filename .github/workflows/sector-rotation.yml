@@ -143,6 +143,28 @@ jobs:
           if [ -n "$AS_OF" ]; then ARGS="--as-of $AS_OF"; fi
           python scripts/strategy_b_scanner.py $ARGS 2>&1 | tee /tmp/strategy_b.log
 
+      # 市值快照（供加權動能報表用）+ 加權動能比較報表 · 跟 stage 2 同一個 gate
+      # （spmo_score 是 stage 2 產物，沒跑 stage 2 就沒東西可加權）。市值本身
+      # 是「現在」的快照、不隨 as_of 回放而變（cap 變化比動能分數慢很多），
+      # 失敗不擋主線（continue-on-error）。
+      - name: Run market cap snapshot (for weighted momentum report)
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+        continue-on-error: true
+        shell: bash
+        run: |
+          python scripts/market_cap_snapshot.py 2>&1 | tee /tmp/market_cap.log
+
+      - name: Generate weighted momentum comparison report
+        if: |
+          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+        continue-on-error: true
+        shell: bash
+        run: |
+          python scripts/generate_weighted_report.py 2>&1 | tee /tmp/weighted_report.log
+
       # Enrich · pool 個股近 90 天 SEC Form 4 內部人交易（yfinance）
       # 只 enrich pool（ud≥1.5 + 上漲天≥12） · 通常 30-80 支 · 每支 <1s
       - name: Enrich insider activity
