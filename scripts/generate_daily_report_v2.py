@@ -674,6 +674,160 @@ def theme_map_html(theme_rows):
     return f'<ul class="fpnames">{"".join(items)}</ul>'
 
 
+# ============================================================
+# 4d. Rotation Radar：V1（方向）+ V2（資金）+ SPMO（成熟度）三層交叉
+#     這次跟使用者反覆驗證出來的框架：單日 quadrant 標籤會抖動（Health
+#     Care / Communication Services 都曾經隔一天就翻回去），所以方向訊號
+#     改用 sector_point_history_latest.json 裡至少 10 個交易日的 point
+#     趨勢（不是今天 vs 昨天），而不是直接讀當天的 quadrant 欄位。
+#     滲透率讀 spmo_penetration_history_latest.json（sector_rotation_
+#     screener.py 用同一份已經抓好的價量矩陣算出來，不是另外累積的）。
+# ============================================================
+SECTOR_POINT_HISTORY_PATH = os.path.join(DATA_DIR, "sector_point_history_latest.json")
+SPMO_PENETRATION_HISTORY_PATH = os.path.join(DATA_DIR, "spmo_penetration_history_latest.json")
+
+ROTATION_STATE_META = {
+    "EMERGING":     ("🟢", "潛力候選",  "方向轉強 + 資金加速 + SPMO 還不擁擠"),
+    "CONFIRMING":   ("🟠", "確認中",    "方向轉強 + SPMO 滲透率正在爬升"),
+    "MATURE":       ("🔴", "已成熟",    "持續領先 + SPMO 滲透率已經很高"),
+    "DISTRIBUTION": ("⚫", "資金撤退",  "SPMO 滲透率不低，但資金流向在走弱"),
+    "WATCH":        ("⚪", "訊號不穩定", "方向在觀察窗內反覆翻轉，暫不下判斷"),
+}
+
+
+def load_sector_point_history():
+    return (gdr.load_json(SECTOR_POINT_HISTORY_PATH) or {}).get("sectors") or {}
+
+
+def load_spmo_penetration_history():
+    return (gdr.load_json(SPMO_PENETRATION_HISTORY_PATH) or {}).get("sectors") or {}
+
+
+def _trend_direction(values, lookback=10):
+    """values 由舊到新；至少要有 2 個點才能判斷。回傳 ("轉強"/"轉弱"/"不穩定", None)
+    或資料不足時回傳 (None, reason)。判斷同時看「首尾比較」跟「多數天數是否同向」，
+    不是只比較頭尾兩天——這是這次跟使用者對過的重點：避免單日雜訊被誤判成趨勢。"""
+    if len(values) < 2:
+        return None, "歷史不足"
+    window = values[-lookback:] if len(values) >= lookback else values
+    if len(window) < 2:
+        return None, "歷史不足"
+    diffs = [window[i] - window[i - 1] for i in range(1, len(window))]
+    up_days = sum(1 for d in diffs if d > 0)
+    down_days = sum(1 for d in diffs if d < 0)
+    trend_up = window[-1] > window[0]
+    trend_down = window[-1] < window[0]
+    if trend_up and up_days >= down_days:
+        return "轉強", None
+    if trend_down and down_days >= up_days:
+        return "轉弱", None
+    return "不穩定", None
+
+
+def classify_rotation_state(point_hist, flow_hist, penetration_hist, lookback=10,
+                             penetration_low=15.0, penetration_high=30.0):
+    """point_hist / flow_hist：由舊到新的數字 list（來自 sector_point_history）。
+    penetration_hist：由舊到新的數字 list（來自 spmo_penetration_history）。
+    回傳 dict：state / direction / capital_trend / penetration_now / penetration_trend / reason。
+    任何一段歷史不足時誠實回 WATCH + 理由，不用其他數字硬湊判斷。"""
+    direction, reason = _trend_direction(point_hist, lookback)
+    if direction is None:
+        return {"state": "WATCH", "direction": None, "capital_trend": None,
+                "penetration_now": None, "penetration_trend": None, "reason": reason}
+
+    capital_trend, _ = _trend_direction(flow_hist, lookback) if flow_hist else (None, None)
+
+    penetration_now = penetration_hist[-1] if penetration_hist else None
+    penetration_trend = None
+    if penetration_hist and len(penetration_hist) >= 2:
+        window = penetration_hist[-lookback:] if len(penetration_hist) >= lookback else penetration_hist
+        if window[-1] > window[0] + 2:
+            penetration_trend = "上升"
+        elif window[-1] < window[0] - 2:
+            penetration_trend = "下降"
+        else:
+            penetration_trend = "持平"
+
+    if direction == "不穩定":
+        state = "WATCH"
+    elif penetration_now is not None and penetration_now >= penetration_high:
+        # 滲透率已經很高：資金還在加速 = 成熟主線；資金在退 = 撤退訊號
+        state = "DISTRIBUTION" if capital_trend == "轉弱" else "MATURE"
+    elif direction == "轉強" and penetration_trend == "上升":
+        state = "CONFIRMING"
+    elif direction == "轉強" and (penetration_now is None or penetration_now < penetration_low):
+        state = "EMERGING" if capital_trend != "轉弱" else "WATCH"
+    else:
+        state = "WATCH"
+
+    return {"state": state, "direction": direction, "capital_trend": capital_trend,
+            "penetration_now": penetration_now, "penetration_trend": penetration_trend, "reason": None}
+
+
+def compute_rotation_radar(scorecard_rows, lookback=10):
+    """回傳 list[dict]，每個 sector 一筆，依 state 優先序排（EMERGING 最前面，
+    WATCH 最後面）——EMERGING/CONFIRMING 是使用者最想看到的「下一棒候選」。"""
+    point_history = load_sector_point_history()
+    penetration_history = load_spmo_penetration_history()
+    order = {"EMERGING": 0, "CONFIRMING": 1, "MATURE": 2, "DISTRIBUTION": 3, "WATCH": 4}
+    rows = []
+    for r in scorecard_rows:
+        ticker = r.get("sector")
+        name_en = r.get("sector_name_en")
+        name_zh = r.get("sector_name")
+        point_hist = point_history.get(ticker) or []
+        flow_hist = [h["flow_ratio"] for h in point_hist if h.get("flow_ratio") is not None]
+        point_vals = [h["point"] for h in point_hist]
+        pen_hist = penetration_history.get(name_en) or []
+        pen_vals = [h["penetration_pct"] for h in pen_hist if h.get("penetration_pct") is not None]
+        result = classify_rotation_state(point_vals, flow_hist, pen_vals, lookback=lookback)
+        rows.append({"ticker": ticker, "name_zh": name_zh, "name_en": name_en, **result})
+    rows.sort(key=lambda r: order.get(r["state"], 9))
+    return rows
+
+
+def rotation_radar_html(radar_rows):
+    if not radar_rows:
+        return '<p class="empty">今日無板塊資料</p>'
+    if all(r["state"] == "WATCH" and r["reason"] for r in radar_rows):
+        return ('<p class="empty">sector_point_history_latest.json 還沒有足夠歷史'
+                '（需要至少 2 個交易日），先跑幾天 CI 累積資料</p>')
+
+    def _row(r):
+        icon, zh, desc = ROTATION_STATE_META[r["state"]]
+        direction = r["direction"] or "—"
+        capital = r["capital_trend"] or "—"
+        pen_now = f'{r["penetration_now"]:.1f}%' if r["penetration_now"] is not None else "—"
+        pen_trend = r["penetration_trend"] or "—"
+        reason = escape(r["reason"]) if r["reason"] else ""
+        note = f'<span class="dim" style="font-size:11px;">{reason}</span>' if reason else ""
+        return (f'<tr><td>{icon} <b>{escape(r["name_en"])}</b> <span class="dim">{escape(r["name_zh"])}</span></td>'
+                f'<td title="{desc}">{zh}{note}</td>'
+                f'<td class="n">{direction}</td><td class="n">{capital}</td>'
+                f'<td class="n">{pen_now}</td><td class="n">{pen_trend}</td></tr>')
+
+    body = "".join(_row(r) for r in radar_rows)
+    return f'''
+    <table style="font-size:12px;">
+      <thead><tr>
+        <th>Sector</th><th>狀態</th>
+        <th class="n" title="最近 10 個交易日 point 趨勢，不是今天 vs 昨天">方向</th>
+        <th class="n" title="最近 10 個交易日 flow_ratio 趨勢">資金</th>
+        <th class="n" title="SPMO score&gt;1 的個股佔比">滲透率</th>
+        <th class="n">滲透率趨勢</th>
+      </tr></thead>
+      <tbody>{body}</tbody>
+    </table>
+    <div class="dim" style="font-size:11px;margin-top:10px;line-height:1.6;">
+      <b>Rotation Radar</b>：V1（方向，最近 10 天 point 趨勢，不是單日 quadrant）×
+      V2（資金，最近 10 天 flow_ratio 趨勢）× SPMO（成熟度，score&gt;1 個股佔比）三層交叉。
+      🟢 潛力候選 = 方向轉強 + 資金沒在撤退 + SPMO 還不擁擠；🟠 確認中 = 滲透率開始爬升；
+      🔴 已成熟 = 滲透率已經很高；⚫ 資金撤退 = 滲透率高但資金在走弱；
+      ⚪ 訊號不穩定 = 觀察窗內方向反覆翻轉，暫不下判斷。
+    </div>
+    '''
+
+
 def render_v2(scorecard, stage2):
     as_of = scorecard.get("as_of_date")
     scorecard_rows = scorecard.get("rows") or []
@@ -687,6 +841,7 @@ def render_v2(scorecard, stage2):
     prior_date, accel_rows = compute_capital_acceleration(scorecard_rows, as_of)
     theme_rows = load_theme_scorecard()
     spmo_rows = gdr.load_all_csv_spmo_momentum(as_of, top_n=10)
+    radar_rows = compute_rotation_radar(scorecard_rows)
 
     gen_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -713,6 +868,11 @@ def render_v2(scorecard, stage2):
   </div>
 
   {regime_banner_html(regime)}
+
+  <div class="card">
+    <div class="card-h">🧭 ROTATION RADAR<span class="n" title="V1（方向,10天point趨勢）× V2（資金,10天flow_ratio趨勢）× SPMO（成熟度,滲透率）三層交叉,找方向已轉強、資金沒撤退、但SPMO還不擁擠的候選">下一輪動候選</span></div>
+    <div class="card-b">{rotation_radar_html(radar_rows)}</div>
+  </div>
 
   <div class="card">
     <div class="card-h">🧭 SECTOR MAP<span class="n">{len(scorecard_rows)} sectors</span></div>
