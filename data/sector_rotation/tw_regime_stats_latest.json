@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-09-06T11:51:33.028851+00:00",
+  "as_of_date": "2026-09-04",
+  "history_days": 431,
+  "historical": {
+    "🟢 多頭": {
+      "n": 201,
+      "mean": 7.62,
+      "win_rate": 84.1,
+      "p25": 1.53,
+      "p50": 4.77,
+      "p75": 9.34,
+      "worst": -15.07,
+      "best": 38.73
+    },
+    "🟡 中性": null,
+    "🟠 警戒": null,
+    "🔴 空頭": null
+  },
+  "current_regime": "🟢 多頭",
+  "current_conditions": {
+    "taiex_price": 46551.13,
+    "taiex_60d_ago": 44704.44,
+    "price_up_60d": true,
+    "ma50": 44902.72,
+    "ma50_up": true,
+    "ma200": 34155.21,
+    "ma200_up": true
+  },
+  "current": {
+    "n": 201,
+    "mean": 7.62,
+    "win_rate": 84.1,
+    "p25": 1.53,
+    "p50": 4.77,
+    "p75": 9.34,
+    "worst": -15.07,
+    "best": 38.73
+  },
+  "unconditional": {
+    "n": 201,
+    "mean": 7.62,
+    "win_rate": 84.1,
+    "p25": 1.53,
+    "p50": 4.77,
+    "p75": 9.34,
+    "worst": -15.07,
+    "best": 38.73
+  }
+}

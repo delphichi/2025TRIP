@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-06T00:44:20.814516+00:00",
+  "generated_at": "2026-09-06T11:51:31.190307+00:00",
   "as_of_date": "2026-09-04",
   "phase": 1,
   "phase_note": "Phase 1：Layer 0-3 用官方 industry_category 粗分類，沒有供應鏈次產業細分（Layer 1.5）跟 S1-S5 感測器（留 Phase 2）",
