@@ -373,7 +373,77 @@ def _pv_verdict(pv4, pv13, pv26):
     return "➡️ 中性"
 
 
-def fetch_weekly_returns(tickers):
+# 輪動雷達用：fetch_weekly_returns() 算完「今天」就把 all_close 丟掉，
+# compute_spmo_history=True 時把同一份矩陣算出的 SPMO 歷史暫存在這裡，
+# main() 用完就讀走——跟 sector_scorecard.py 的 point history 同一個
+# 設計理由：不多打一次 API，重用已經在記憶體裡的資料。輕量版呼叫端
+# （stock_points_snapshot.py）不傳這個參數，行為完全不變。
+SPMO_SCORE_HISTORY = {}
+
+
+def compute_spmo_score_history_matrix(all_close, lookback_days=20):
+    """回傳 dict[symbol -> list[{date, spmo_score}]]（由舊到新），重用
+    fetch_weekly_returns() 已經抓好的 all_close 矩陣，對最近 lookback_days
+    個交易日 *每一天* 重算 SPMO 分數（12-1 動能 ÷ 年化週報酬波動度，跟
+    fetch_weekly_returns() 算「今天」用的是同一個公式），不是只算今天。
+    需要 253 根 close 才能算，資料不夠的股票/天數就沒有那一天的值，
+    不硬湊。
+    """
+    n = len(all_close)
+    history = {sym: [] for sym in all_close.columns}
+    for offset in range(lookback_days - 1, -1, -1):
+        end = n - offset
+        if end < 253:
+            continue
+        window = all_close.iloc[:end]
+        as_of = window.index[-1].strftime("%Y-%m-%d")
+        for sym in all_close.columns:
+            series = window[sym].dropna()
+            if len(series) < 253 or series.index[-1] != window.index[-1]:
+                continue
+            price_1m_ago = series.iloc[-21]
+            price_12m_ago = series.iloc[-252]
+            mom = (price_1m_ago / price_12m_ago - 1) * 100
+            weekly_prices = series.iloc[-260:].iloc[::5]
+            weekly_rets = weekly_prices.pct_change().dropna()
+            if len(weekly_rets) < 20:
+                continue
+            vol = float(weekly_rets.std()) * (52 ** 0.5) * 100
+            if vol <= 0:
+                continue
+            history[sym].append({"date": as_of, "spmo_score": round(mom / vol, 3)})
+    return {sym: h for sym, h in history.items() if h}
+
+
+def aggregate_spmo_penetration_by_sector(spmo_history, symbol_to_sector, threshold=1.0):
+    """個股 SPMO 分數歷史 → 依 sector 聚合成每日滲透率（score > threshold
+    的比例，沿用這次 session 手動驗證 Financials/Health Care/Energy 用的
+    同一個定義，不是新公式）。回傳 dict[sector -> list[{date,
+    penetration_pct, n_scored}]]（由舊到新）。"""
+    by_sector_date = {}
+    for sym, hist in spmo_history.items():
+        sector = symbol_to_sector.get(sym)
+        if not sector:
+            continue
+        for h in hist:
+            by_sector_date.setdefault(sector, {}).setdefault(h["date"], []).append(h["spmo_score"])
+    result = {}
+    for sector, date_scores in by_sector_date.items():
+        rows = []
+        for d in sorted(date_scores):
+            scores = date_scores[d]
+            n = len(scores)
+            above = sum(1 for s in scores if s > threshold)
+            rows.append({
+                "date": d,
+                "penetration_pct": round(above / n * 100, 1) if n else None,
+                "n_scored": n,
+            })
+        result[sector] = rows
+    return result
+
+
+def fetch_weekly_returns(tickers, compute_spmo_history=False):
     """
     yfinance 批次抓 daily 收盤 · 回傳 DataFrame[symbol, cum_ret_4w, cum_ret_13w, cum_ret_26w]
 
@@ -382,6 +452,11 @@ def fetch_weekly_returns(tickers):
       4W%    = (指定日 close / 20 交易日前 close - 1) × 100
       13W%   = (指定日 close / 65 交易日前 close - 1) × 100
       26W%   = (指定日 close / 130 交易日前 close - 1) × 100
+
+    compute_spmo_history=True 時，額外把 SPMO 分數的 20 天歷史算好存進
+    SPMO_SCORE_HISTORY（模組全域變數，main() 用完就讀走）——只有主 pipeline
+    傳 True，stock_points_snapshot.py 這種輕量呼叫端不傳，行為不變、
+    不會意外變重。
     """
     try:
         import yfinance as yf
@@ -438,6 +513,15 @@ def fetch_weekly_returns(tickers):
         all_vol = all_vol.loc[keep]
 
     log(f"  → close matrix: {all_close.shape[0]} trading days × {all_close.shape[1]} tickers")
+
+    global SPMO_SCORE_HISTORY
+    if compute_spmo_history:
+        try:
+            SPMO_SCORE_HISTORY = compute_spmo_score_history_matrix(all_close, lookback_days=20)
+            log(f"  → SPMO 歷史：{len(SPMO_SCORE_HISTORY)} 檔有分數序列")
+        except Exception as e:
+            log(f"  ⚠ SPMO 歷史計算失敗（不影響主流程）: {e}")
+            SPMO_SCORE_HISTORY = {}
 
     # as_of_date = 最後一根 daily close 的實際日期
     last_bar_ts = all_close.index[-1]
@@ -1117,6 +1201,24 @@ def add_sector_stock_composite_ranks(df):
     return df
 
 
+SPMO_PENETRATION_HISTORY_PATH = os.path.join(OUTDIR, "spmo_penetration_history_latest.json")
+
+
+def save_spmo_penetration_history(penetration):
+    """輪動雷達的第二個原始資料來源：{sector: [{date, penetration_pct,
+    n_scored}, ...]}，由 aggregate_spmo_penetration_by_sector() 算出，
+    直接覆寫（每次執行都用當下抓到的完整 20 天窗重算，不是 append）。"""
+    manifest = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "note": "每個 sector 最近 20 個交易日、SPMO score > 1 的個股佔比（滲透率），"
+                "重用 fetch_weekly_returns() 已經抓好的價量矩陣算出來，不是另外累積的每日快照。",
+        "sectors": penetration,
+    }
+    with open(SPMO_PENETRATION_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+    log(f"  saved {SPMO_PENETRATION_HISTORY_PATH}（{len(penetration)} sectors）")
+
+
 # ============================================================
 # 5. 輸出
 # ============================================================
@@ -1218,12 +1320,22 @@ def main():
     universe = fetch_sp500_constituents()
 
     # (2) 價格動能（附 Point / di）
-    ret_df = fetch_weekly_returns(universe["symbol"].tolist())
+    ret_df = fetch_weekly_returns(universe["symbol"].tolist(), compute_spmo_history=True)
     price_df = universe.merge(ret_df, on="symbol", how="inner")
 
     # 從 fetch_weekly_returns 拿權威 as_of_date · 稍後傳給 stage 2b 保證日期一致
     authoritative_as_of = ret_df["as_of_date"].iloc[0] if len(ret_df) else None
     log(f"權威 as_of_date = {authoritative_as_of} · 將傳給 stage 2b daily fetch")
+
+    # 輪動雷達：把剛才 fetch_weekly_returns() 順便算好的 SPMO 歷史，
+    # 用 universe 的 symbol→sector 對照聚合成每個 sector 的每日滲透率
+    try:
+        if SPMO_SCORE_HISTORY:
+            symbol_to_sector = dict(zip(universe["symbol"], universe["sector"]))
+            penetration = aggregate_spmo_penetration_by_sector(SPMO_SCORE_HISTORY, symbol_to_sector)
+            save_spmo_penetration_history(penetration)
+    except Exception as e:
+        log(f"⚠ SPMO 滲透率聚合失敗（不影響主流程）: {e}")
 
     # (2b) 板塊內排名 + CMS_A
     price_df = add_sector_internal_ranks(price_df)
