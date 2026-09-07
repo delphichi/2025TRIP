@@ -385,10 +385,6 @@ CSS = gdr.CSS if hasattr(gdr, "CSS") else ""
 FRONT_CSS_EXTRA = '''
   .fpgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
   @media(max-width:800px) { .fpgrid { grid-template-columns:1fr; } }
-  .fpsignal { margin:0; padding:0; list-style:none; font-size:13px; }
-  .fpsignal li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
-  .fpsignal li:last-child { border-bottom:none; }
-  .fpsignal li > b { flex:1; }
   .fpnames { margin:0; padding:0; list-style:none; font-size:13px; columns:2; column-gap:16px; }
   .fpnames li { padding:4px 0; display:flex; align-items:center; justify-content:space-between; gap:8px; break-inside:avoid; }
   @media(max-width:500px) { .fpnames { columns:1; } }
@@ -524,17 +520,17 @@ def opportunity_reason(sc, price_lag=None, top_n=2):
     return " + ".join(tags) if tags else "—"
 
 
-def _fwd_inline(fwd):
-    """4W/13W/52W 後實際報酬（回測驗證用）· 沒資料或未滿週期誠實顯示 —，不是 0%"""
-    if not fwd:
-        return "回測：4W — · 13W — · 52W —"
-
-    def _v(label):
-        cp = fwd.get(label) or {}
+def _fwd_cells(fwd):
+    """4W/13W/52W 後實際報酬（回測驗證用）· 沒資料或未滿週期誠實顯示 —，不是 0%
+    · 回傳三個 <td>，跟 V1 Playbook / 感測器投資建議的欄位呈現方式一致"""
+    def _cell(label):
+        cp = (fwd or {}).get(label) or {}
         r = cp.get("return_pct")
-        return f"{r:+.1f}%" if r is not None else "—"
-
-    return f"回測：4W {_v('4w')} · 13W {_v('13w')} · 52W {_v('52w')}"
+        if r is None:
+            return '<td class="n dim">—</td>'
+        cls = "up" if r > 0 else ("down" if r < 0 else "flat")
+        return f'<td class="n {cls}">{r:+.1f}%</td>'
+    return _cell("4w") + _cell("13w") + _cell("52w")
 
 
 def opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol=None):
@@ -546,30 +542,42 @@ def opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol
     for state in STOCK_STATE_ORDER:
         icon, label = STATE_LABELS[state]
         items = groups.get(state) or []
-        lis_parts = []
+        rows_parts = []
         for r, sc in items:
             perm_icon, perm_note = entry_permission(regime_label, state)
             perm_html = f'<span title="{escape(perm_note)}">{perm_icon}</span>' if perm_note else f'<span>{perm_icon}</span>'
             reason = opportunity_reason(sc, lag_by_symbol.get(r.get("symbol")))
-            fwd_txt = _fwd_inline(fwd_by_symbol.get(r.get("symbol")))
-            lis_parts.append(
-                f'<li><b>{escape(r.get("symbol",""))}</b> '
-                f'<span class="dim">{escape((r.get("name") or "")[:16])}</span>'
-                f'<span class="dim">[{escape(r.get("sector",""))}]</span>'
-                f'<span class="dim" title="{state}">{sc.get("total","—")}</span>'
-                f'{perm_html}'
-                f'<span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">{escape(reason)}</span>'
-                f'<span class="dim" title="進場（被 pool 選中）後實際報酬 · 用來檢驗這個狀態分類準不準">{escape(fwd_txt)}</span></li>'
+            fwd_cells = _fwd_cells(fwd_by_symbol.get(r.get("symbol")))
+            rows_parts.append(
+                f'<tr><td><b>{escape(r.get("symbol",""))}</b></td>'
+                f'<td class="dim">{escape((r.get("name") or "")[:16])}</td>'
+                f'<td class="dim">{escape(r.get("sector",""))}</td>'
+                f'<td class="n" title="{state}">{sc.get("total","—")}</td>'
+                f'<td class="tag">{perm_html}</td>'
+                f'<td class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">{escape(reason)}</td>'
+                + fwd_cells +
+                '</tr>'
             )
-        lis = "".join(lis_parts) or '<li class="empty">今日無</li>'
-        sections.append(f'<h4 style="margin:10px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>'
-                         f'<ul class="fpsignal">{lis}</ul>')
+        rows = "".join(rows_parts) or '<tr><td colspan="9" class="empty">今日無</td></tr>'
+        sections.append(f'''<h4 style="margin:10px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>
+        <table>
+          <thead><tr>
+            <th>Symbol</th><th>Name</th><th>Sector</th>
+            <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分">Score</th>
+            <th title="依今日 regime 標註的進場許可">Entry</th>
+            <th>為什麼</th>
+            <th class="n" title="進場後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+            <th class="n" title="進場後 13 週實際報酬">13W後</th>
+            <th class="n" title="進場後 52 週實際報酬">52W後</th>
+          </tr></thead>
+          <tbody>{rows}</tbody>
+        </table>''')
     sections.append(f'<p class="dim" style="margin:10px 0 0;">五態（EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED）'
                      f'沿用既有感測器欄位分類，不是新公式；Entry Permission 是依今日 regime（'
                      f'{escape(regime_label)}）標註的進場許可（✅可進場／⚠️留意／❌不建議），不改變狀態分類本身——'
-                     f'股票處在哪個狀態是一回事，這個環境下該不該進場是另一回事。倒數第二欄的短標籤是從 S1-S5 挑'
-                     f'最高的兩個子分數轉成的「為什麼」，Price Lag 有資料時額外附加。最後一欄「回測」是這檔股票被這個'
-                     f'狀態分類選中之後的實際 4W/13W/52W 報酬，由 enrich_forward_returns.py 隨 Stage 2（週五）回填，'
+                     f'股票處在哪個狀態是一回事，這個環境下該不該進場是另一回事。「為什麼」欄是從 S1-S5 挑'
+                     f'最高的兩個子分數轉成的短標籤，Price Lag 有資料時額外附加。最後三欄「4W/13W/52W後」是這檔股票'
+                     f'被這個狀態分類選中之後的實際報酬，由 enrich_forward_returns.py 隨 Stage 2（週五）回填，'
                      f'用來檢驗五態分類本身準不準——不是新訊號，是既有分類的事後成績單。</p>')
     return "".join(sections)
 
@@ -596,15 +604,25 @@ def price_lag_html(lag_rows, top_n=15, all_rows_source=None):
                  '沒有「sector 已確認、股票仍落後」的組合）</p>')
                 + PRICE_LAG_SOURCE_NOTE.get(all_rows_source, ""))
     rows_sorted = sorted(early, key=lambda r: -r["price_lag"])[:top_n]
-    items = "".join(
-        f'<li><b>{escape(r["symbol"])}</b> <span class="dim">{escape((r.get("name") or "")[:16])}</span>'
-        f'<span class="dim">[{escape(r["sector"])}]</span>'
-        f'<span class="dim" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z={r["sector_z"]}</span>'
-        f'<span class="dim" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z={r["stock_z"]}</span>'
-        f'<span class="up">{r["price_lag"]:.2f}</span></li>'
+    rows_html = "".join(
+        f'<tr><td><b>{escape(r["symbol"])}</b></td>'
+        f'<td class="dim">{escape((r.get("name") or "")[:16])}</td>'
+        f'<td class="dim">{escape(r["sector"])}</td>'
+        f'<td class="n">{r["sector_z"]}</td>'
+        f'<td class="n">{r["stock_z"]}</td>'
+        f'<td class="n up">{r["price_lag"]:.2f}</td></tr>'
         for r in rows_sorted
     )
-    return f'<ul class="fpsignal">{items}</ul>{PRICE_LAG_CAVEAT}{PRICE_LAG_SOURCE_NOTE.get(all_rows_source, "")}'
+    table = f'''<table>
+      <thead><tr>
+        <th>Symbol</th><th>Name</th><th>Sector</th>
+        <th class="n" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z</th>
+        <th class="n" title="股票在 sector 內的橫斷面 Z-score，vs. sector 內同儕">stock_z</th>
+        <th class="n">Price Lag</th>
+      </tr></thead>
+      <tbody>{rows_html}</tbody>
+    </table>'''
+    return f'{table}{PRICE_LAG_CAVEAT}{PRICE_LAG_SOURCE_NOTE.get(all_rows_source, "")}'
 
 
 def capital_acceleration_html(accel_rows, prior_date, top_n=3):
@@ -625,19 +643,25 @@ def capital_acceleration_html(accel_rows, prior_date, top_n=3):
     bottom = remaining[-top_n:][::-1] if remaining else []
     middle = remaining[:len(remaining) - len(bottom)]
 
-    def _rows(items, cls):
-        return "".join(
-            f'<li><b>{escape(r["sector_name"] or r["sector"])}</b>'
-            f'<span class="dim">今日 {r["flow_ratio_today"]:+.3f} ← {prior_date} {r["flow_ratio_prior"]:+.3f}</span>'
-            f'<span class="{cls}">{r["acceleration"]:+.3f}</span></li>'
+    def _table(items, cls):
+        rows_html = "".join(
+            f'<tr><td><b>{escape(r["sector_name"] or r["sector"])}</b></td>'
+            f'<td class="n">{r["flow_ratio_today"]:+.3f}</td>'
+            f'<td class="n dim">{r["flow_ratio_prior"]:+.3f}</td>'
+            f'<td class="n {cls}">{r["acceleration"]:+.3f}</td></tr>'
             for r in items
         )
-    html = f'<h4 style="margin:0 0 4px;">🔼 TOP {top_n} 加速流入</h4><ul class="fpsignal">{_rows(top, "up")}</ul>'
+        return f'''<table>
+          <thead><tr><th>Sector</th><th class="n">今日 flow_ratio</th>
+            <th class="n">{escape(prior_date)} flow_ratio</th><th class="n">加速度</th></tr></thead>
+          <tbody>{rows_html}</tbody>
+        </table>'''
+    html = f'<h4 style="margin:0 0 4px;">🔼 TOP {top_n} 加速流入</h4>{_table(top, "up")}'
     if bottom:
-        html += f'<h4 style="margin:12px 0 4px;">🔽 TOP {top_n} 減速/流出</h4><ul class="fpsignal">{_rows(bottom, "down")}</ul>'
+        html += f'<h4 style="margin:12px 0 4px;">🔽 TOP {top_n} 減速/流出</h4>{_table(bottom, "down")}'
     if middle:
         html += (f'<details style="margin-top:10px;"><summary class="dim">其餘 {len(middle)} 個板塊'
-                  f'（變化不明顯，非 TOP {top_n}）</summary><ul class="fpsignal">{_rows(middle, "dim")}</ul></details>')
+                  f'（變化不明顯，非 TOP {top_n}）</summary>{_table(middle, "dim")}</details>')
     return html
 
 
