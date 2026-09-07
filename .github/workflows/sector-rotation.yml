@@ -27,6 +27,10 @@ on:
         description: '回放日期 YYYY-MM-DD · 空 = 用最新 · 填了會覆蓋 scorecard_latest 等前端讀的檔案'
         required: false
         default: ''
+      regen_reports_only:
+        description: '只重新排版報表：跳過所有抓資料/計算步驟，只用現有 committed 資料重跑 daily/v2/weighted report generator（改報表版面、樣式後想快速重出報表時用，不消耗 API 額度也不會覆蓋資料）'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -51,6 +55,7 @@ jobs:
       - name: Run sector scorecard (stage 1)
         # set -o pipefail 讓 python 錯誤不會被 tee 吞掉 → step 才會正確 fail
         # AS_OF 可選 · 空字串就跑最新 · 有值就傳 --as-of
+        if: '!(github.event_name == ''workflow_dispatch'' && inputs.regen_reports_only)'
         shell: bash
         env:
           AS_OF: ${{ inputs.as_of_date }}
@@ -63,6 +68,7 @@ jobs:
       # Theme 層（V2 ETF Proxy）· 跟 sector scorecard 同一批資料源、同一時間跑
       # · 輸出檔完全獨立（theme_scorecard_latest.json），失敗不擋 sector 主線
       - name: Run theme scorecard (V2 ETF Proxy)
+        if: '!(github.event_name == ''workflow_dispatch'' && inputs.regen_reports_only)'
         shell: bash
         env:
           AS_OF: ${{ inputs.as_of_date }}
@@ -80,6 +86,7 @@ jobs:
       # 排名，都是一次性批次，沒有 per-stock 迴圈），輸出獨立的
       # {date}_stock_points.csv，不覆蓋週五 Stage 2 的完整 {date}_all.csv。
       - name: Run stock points snapshot (light, daily · for Price Lag)
+        if: '!(github.event_name == ''workflow_dispatch'' && inputs.regen_reports_only)'
         shell: bash
         env:
           AS_OF: ${{ inputs.as_of_date }}
@@ -96,8 +103,10 @@ jobs:
       # 用 GitHub Actions 原生 expression · 不走 shell env（之前 bash 判斷失效）
       - name: Run S&P 500 individual screener (stage 2)
         if: |
-          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
-          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          !(github.event_name == 'workflow_dispatch' && inputs.regen_reports_only) && (
+            (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+            (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          )
         shell: bash
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
@@ -111,8 +120,10 @@ jobs:
       # Enrich · 每檔 top 3 加 1m/3m/6m/1y 前瞻報酬（回放才有意義 · live 也會跑但全 null）
       - name: Enrich forward returns on stage 2 top 3
         if: |
-          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
-          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          !(github.event_name == 'workflow_dispatch' && inputs.regen_reports_only) && (
+            (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+            (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          )
         shell: bash
         run: |
           set -o pipefail
@@ -121,8 +132,10 @@ jobs:
       # 策略 A · 九步驟選股 pipeline · 只在 stage 2 有跑時才跑（依賴 stage 2 輸出）
       - name: Run Strategy A pipeline (nine-step selection)
         if: |
-          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
-          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          !(github.event_name == 'workflow_dispatch' && inputs.regen_reports_only) && (
+            (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+            (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          )
         shell: bash
         run: |
           set -o pipefail
@@ -132,8 +145,10 @@ jobs:
       # 目前跟 stage 2 同一個 gate 排（週五 + 手動）· 未來想日跑改成上面 stage 1 gate
       - name: Run Strategy B scanner (dip buy candidates)
         if: |
-          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
-          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          !(github.event_name == 'workflow_dispatch' && inputs.regen_reports_only) && (
+            (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+            (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          )
         shell: bash
         env:
           AS_OF: ${{ inputs.as_of_date }}
@@ -149,17 +164,21 @@ jobs:
       # 失敗不擋主線（continue-on-error）。
       - name: Run market cap snapshot (for weighted momentum report)
         if: |
-          (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
-          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          !(github.event_name == 'workflow_dispatch' && inputs.regen_reports_only) && (
+            (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
+            (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          )
         continue-on-error: true
         shell: bash
         run: |
           python scripts/market_cap_snapshot.py 2>&1 | tee /tmp/market_cap.log
 
+      # 純排版：只要現有 committed 資料裡有 spmo_score/市值快照就能重出，不需要
+      # 這次剛好也跑了 stage 2/市值快照——regen_reports_only 也會觸發這步
       - name: Generate weighted momentum comparison report
         if: |
           (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 5') ||
-          (github.event_name == 'workflow_dispatch' && inputs.run_stage2)
+          (github.event_name == 'workflow_dispatch' && (inputs.run_stage2 || inputs.regen_reports_only))
         continue-on-error: true
         shell: bash
         run: |
@@ -168,6 +187,7 @@ jobs:
       # Enrich · pool 個股近 90 天 SEC Form 4 內部人交易（yfinance）
       # 只 enrich pool（ud≥1.5 + 上漲天≥12） · 通常 30-80 支 · 每支 <1s
       - name: Enrich insider activity
+        if: '!(github.event_name == ''workflow_dispatch'' && inputs.regen_reports_only)'
         shell: bash
         env:
           AS_OF: ${{ inputs.as_of_date }}
@@ -183,6 +203,15 @@ jobs:
         run: |
           set -o pipefail
           python scripts/generate_daily_report.py 2>&1 | tee /tmp/daily_report.log
+
+      # v2（機會雷達版）純用既有 committed 資料排版，沒有網路呼叫，可以無條件跑：
+      # 平日只有 Price Lag/Capital Acceleration 有資料，Opportunity Radar/SPMO
+      # 等 Stage-2-only 區塊會誠實顯示「今日無資料」，不是錯誤
+      - name: Generate daily research report v2 (Opportunity Radar)
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/generate_daily_report_v2.py 2>&1 | tee /tmp/daily_report_v2.log
 
       - name: Summary
         if: always()
@@ -217,6 +246,7 @@ jobs:
           fi
           STAMP="$(date -u '+%Y-%m-%d')"
           if [ -n "${{ inputs.as_of_date }}" ]; then STAMP="replay ${{ inputs.as_of_date }}"; fi
+          if [ "${{ inputs.regen_reports_only }}" = "true" ]; then STAMP="$STAMP (regen reports only)"; fi
           git commit -m "chore(sector-rotation): snapshot $STAMP"
           for i in 1 2 3 4; do
             git pull --rebase origin main && git push origin HEAD:main && break
