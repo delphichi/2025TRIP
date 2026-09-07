@@ -847,6 +847,8 @@
         找「資金正在進入、但價格還沒完全反映」的地方：<b>S1 板塊變強</b> + <b>S2 個股變強</b> + <b>S3 成交量確認</b> +
         <b>S4 趨勢沒破壞</b> + <b>S5 還沒過度遠離合理進場位置</b>，五個同時成立才算真正機會。
         <b>訊號矛盾（強動能但 Dow 結構已破壞 / 已列追高風險）直接扣總分，不是平均掉</b>——表面很強但結構有問題的標的會被攔進 AVOID。
+        <b>4W/13W/52W 後</b>是這檔股票被列入這組「當時」之後的實際報酬，由 enrich_forward_returns.py 隨 Stage 2
+        （週五）回填，用來檢驗 TODAY/TRIGGER/AVOID 這套分類準不準——未滿週期或缺資料顯示 —，不是 0%。
       </div>
       <div style="padding:14px 14px 4px;font-weight:700;">🟢 TODAY · 已形成機會</div>
       <table>
@@ -859,6 +861,9 @@
               <th class="n" title="趨勢完整性：Dow 型態 + 訊號">S4</th>
               <th class="n" title="位置/空間：離 52w 高點距離 + 暴漲判定 + gap alert">S5</th>
               <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分（不平均掉）">Total</th>
+              <th class="n" title="進場（被列入這組候選）後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
               <th>備註</th>
             </tr>
           </thead>
@@ -873,6 +878,7 @@
           <td class="n">20</td>
           <td class="n">9</td>
           <td class="n"><b>74</b></td>
+          <td class="n down">-2.7%</td><td class="n down">-1.7%</td><td class="n up">+15.6%</td>
           <td><span class="dim">⭐⭐⭐ 完美多頭</span></td>
         </tr>
         <tr>
@@ -885,6 +891,7 @@
           <td class="n">20</td>
           <td class="n">9</td>
           <td class="n"><b>64</b></td>
+          <td class="n up">+52.0%</td><td class="n up">+81.1%</td><td class="n up">+423.4%</td>
           <td><span class="dim">⚠️ 頂部背離</span></td>
         </tr></tbody>
         </table>
@@ -899,6 +906,9 @@
               <th class="n" title="趨勢完整性：Dow 型態 + 訊號">S4</th>
               <th class="n" title="位置/空間：離 52w 高點距離 + 暴漲判定 + gap alert">S5</th>
               <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分（不平均掉）">Total</th>
+              <th class="n" title="進場（被列入這組候選）後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
               <th>Trigger（升級 TODAY 需要的條件）</th>
             </tr>
           </thead>
@@ -913,6 +923,7 @@
           <td class="n">15</td>
           <td class="n">13</td>
           <td class="n"><b>66</b></td>
+          <td class="n down">-15.4%</td><td class="n down">-3.3%</td><td class="n up">+61.7%</td>
           <td><span class="dim">🎯 Dow 收斂 → 突破確認多頭</span></td>
         </tr></tbody>
         </table>
@@ -927,6 +938,9 @@
               <th class="n" title="趨勢完整性：Dow 型態 + 訊號">S4</th>
               <th class="n" title="位置/空間：離 52w 高點距離 + 暴漲判定 + gap alert">S5</th>
               <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分（不平均掉）">Total</th>
+              <th class="n" title="進場（被列入這組候選）後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
               <th>矛盾 / 風險</th>
             </tr>
           </thead>
@@ -941,6 +955,7 @@
           <td class="n">6</td>
           <td class="n">11</td>
           <td class="n"><b>40</b> <span class="dim">(-15)</span></td>
+          <td class="n up">+9.4%</td><td class="n down">-1.9%</td><td class="n down">-43.5%</td>
           <td><span class="dow-conflict">⚠ 訊號衝突（動能強但 Dow 空頭）</span></td>
         </tr>
         <tr>
@@ -953,6 +968,7 @@
           <td class="n">6</td>
           <td class="n">13</td>
           <td class="n"><b>40</b> <span class="dim">(-15)</span></td>
+          <td class="n up">+10.5%</td><td class="n up">+20.2%</td><td class="n up">+104.0%</td>
           <td><span class="dow-conflict">⚠ 訊號衝突（動能強但 Dow 空頭）</span></td>
         </tr>
         <tr>
@@ -965,6 +981,7 @@
           <td class="n">14</td>
           <td class="n">5</td>
           <td class="n"><b>30</b> <span class="dim">(-15)</span></td>
+          <td class="n up">+38.0%</td><td class="n up">+32.5%</td><td class="n up">+6.1%</td>
           <td><span class="dow-conflict">⚠ 追高風險 · ⚠ 吃老本未見量能確認</span></td>
         </tr>
         <tr>
@@ -977,6 +994,7 @@
           <td class="n">15</td>
           <td class="n">4</td>
           <td class="n"><b>55</b> <span class="dim">(-10)</span></td>
+          <td class="n up">+24.4%</td><td class="n up">+15.8%</td><td class="n up">+35.6%</td>
           <td><span class="dow-conflict">⚠ 追高風險</span></td>
         </tr>
         <tr>
@@ -989,6 +1007,7 @@
           <td class="n">20</td>
           <td class="n">4</td>
           <td class="n"><b>54</b> <span class="dim">(-10)</span></td>
+          <td class="n up">+6.3%</td><td class="n up">+38.7%</td><td class="n up">+46.6%</td>
           <td><span class="dow-conflict">⚠ 追高風險</span></td>
         </tr></tbody>
         </table>
@@ -1001,7 +1020,7 @@
       &nbsp;·&nbsp;
       🚀 <b>explosive</b> · 1y avg <b>+45.6%</b> / 命中 <b>75.0%</b> (n=40)
     </div>
-    產生時間 2026-09-07 14:10 UTC · <a href="../index.html">回主頁</a> · <a href="8-sample-analysis.html">看回測方法論</a> · <a href="backtest-summary.html">看 pipeline 回測</a> · <a href="daily-tw-latest.html">看台股板塊報表</a>
+    產生時間 2026-09-07 14:55 UTC · <a href="../index.html">回主頁</a> · <a href="8-sample-analysis.html">看回測方法論</a> · <a href="backtest-summary.html">看 pipeline 回測</a> · <a href="daily-tw-latest.html">看台股板塊報表</a>
     <br><br>
     <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
   </div>
