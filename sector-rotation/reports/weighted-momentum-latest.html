@@ -24,14 +24,16 @@
       <h1>⚖️ 市值加權動能比較 · 2026-09-04</h1>
       <p>9/6 用 2026-02-27 資料回測真實 SPMO 3 月調倉發現：我們的分數排名能抓到「誰該入選」（MU/GOOGL/JNJ
          都命中），但抓不到「誰的權重該最大」（真實權重最大的 NVDA/AVGO 分數只排 #64/#69）——因為真實指數
-         權重 = 動能分數 × 市值，不是純分數排名。這份報表把兩種排法並排比較，SPMO 分數（原本就有）跟
-         V1 的 point 分數（既有 daily-latest.html 用的動能分數）各做一次，回答「V1 加權後是不是也不同」。
+         權重 = 動能分數 × 市值，不是純分數排名。這份報表把 SPMO 的兩種排法並排比較。9/7 跟使用者確認過：
+         V1/V2（daily-latest.html / daily-v2-latest.html 的 Sector Map / Opportunity Radar / Price Lag /
+         Rotation Radar 等）刻意不加權——它們回答「值不值得研究」，不是「該持有多少」，加市值權重反而會
+         把 AAPL/MSFT/NVDA 這種巨頭往前推、蓋掉真正有意思的中小型股訊號，違背這些工具的目的。
          獨立新報表，不影響 daily-latest.html / daily-v2-latest.html 原本的排名。</p>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-h">市值資料狀態<span class="n">503 檔有市值資料</span></div>
+    <div class="card-h">市值資料狀態<span class="n">30 檔有市值資料</span></div>
     <div class="card-b"><p class="dim" style="font-size:12px;margin:0;">
       市值來自 scripts/market_cap_snapshot.py 抓「現在」的快照，不是任何歷史日期當天的真實市值——
       市值變化比動能分數慢很多（除非增減資/股票分割），拿現在市值近似歷史日期是可接受的簡化，不是精確值。
@@ -58,42 +60,17 @@
         <h4 style="margin:0 0 8px;font-size:13px;">市值加權（score × market cap，入選池前 100 檔內再排）</h4>
         <table style="font-size:12px;">
           <thead><tr><th>#</th><th>Symbol</th><th>Sector</th><th class="n">權重</th><th></th></tr></thead>
-          <tbody><tr><td class="n dim">1</td><td><b>MU</b></td><td class="dim">Information Technolo</td><td class="n">18.04%</td><td class="dim" style="font-size:11px;">（分數排名 #2）</td></tr><tr><td class="n dim">2</td><td><b>SNDK</b></td><td class="dim">Information Technolo</td><td class="n">8.02%</td><td class="dim" style="font-size:11px;">（分數排名 #1）</td></tr><tr><td class="n dim">3</td><td><b>AMD</b></td><td class="dim">Information Technolo</td><td class="n">5.75%</td><td class="dim" style="font-size:11px;">（分數排名 #12）</td></tr><tr><td class="n dim">4</td><td><b>INTC</b></td><td class="dim">Information Technolo</td><td class="n">4.14%</td><td class="dim" style="font-size:11px;">（分數排名 #9）</td></tr><tr><td class="n dim">5</td><td><b>AMAT</b></td><td class="dim">Information Technolo</td><td class="n">4.10%</td><td class="dim" style="font-size:11px;">（分數排名 #4）</td></tr><tr><td class="n dim">6</td><td><b>LLY</b></td><td class="dim">Health Care</td><td class="n">3.66%</td><td class="dim" style="font-size:11px;">（分數排名 #77）</td></tr><tr><td class="n dim">7</td><td><b>LRCX</b></td><td class="dim">Information Technolo</td><td class="n">3.19%</td><td class="dim" style="font-size:11px;">（分數排名 #8）</td></tr><tr><td class="n dim">8</td><td><b>JNJ</b></td><td class="dim">Health Care</td><td class="n">3.10%</td><td class="dim" style="font-size:11px;">（分數排名 #37）</td></tr><tr><td class="n dim">9</td><td><b>DELL</b></td><td class="dim">Information Technolo</td><td class="n">2.84%</td><td class="dim" style="font-size:11px;">（分數排名 #7）</td></tr><tr><td class="n dim">10</td><td><b>XOM</b></td><td class="dim">Energy</td><td class="n">2.47%</td><td class="dim" style="font-size:11px;">（分數排名 #71）</td></tr></tbody>
+          <tbody><tr><td class="n dim">1</td><td><b>WBD</b></td><td class="dim">Communication Servic</td><td class="n">100.00%</td><td class="dim" style="font-size:11px;">（分數排名 #39）</td></tr></tbody>
         </table>
       </div>
     </div>
-    <div class="dim" style="font-size:11px;margin-top:10px;">入選池：純分數前 100 檔（模擬真實指數的選股步驟）</div>
-    
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-h">📊 Point（4W/13W/26W 綜合動能，V1 既有分數）<span class="n">Top 10</span></div>
-    <div class="card-b">
-      <p class="dim" style="font-size:12px;margin:0 0 12px;">V1 的 point 分數本身沒有市值變數，這裡套用同一套「先選股、再用分數×市值算權重」的邏輯，驗證使用者的問題：V1 的排名如果考慮市值，是不是也會不一樣。</p>
-      
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-      <div>
-        <h4 style="margin:0 0 8px;font-size:13px;">不加權（純 📊 Point 排名）</h4>
-        <table style="font-size:12px;">
-          <thead><tr><th>#</th><th>Symbol</th><th>Sector</th><th class="n">Score</th></tr></thead>
-          <tbody><tr><td class="n dim">1</td><td><b>MRNA</b></td><td class="dim">Health Care</td><td class="n">177.42</td></tr><tr><td class="n dim">2</td><td><b>DELL</b></td><td class="dim">Information Technolo</td><td class="n">141.09</td></tr><tr><td class="n dim">3</td><td><b>SNDK</b></td><td class="dim">Information Technolo</td><td class="n">113.73</td></tr><tr><td class="n dim">4</td><td><b>MU</b></td><td class="dim">Information Technolo</td><td class="n">88.99</td></tr><tr><td class="n dim">5</td><td><b>MRVL</b></td><td class="dim">Information Technolo</td><td class="n">88.78</td></tr><tr><td class="n dim">6</td><td><b>AMD</b></td><td class="dim">Information Technolo</td><td class="n">73.30</td></tr><tr><td class="n dim">7</td><td><b>HPE</b></td><td class="dim">Information Technolo</td><td class="n">69.33</td></tr><tr><td class="n dim">8</td><td><b>STX</b></td><td class="dim">Information Technolo</td><td class="n">68.49</td></tr><tr><td class="n dim">9</td><td><b>HUM</b></td><td class="dim">Health Care</td><td class="n">66.18</td></tr><tr><td class="n dim">10</td><td><b>CRWD</b></td><td class="dim">Information Technolo</td><td class="n">62.18</td></tr></tbody>
-        </table>
-      </div>
-      <div>
-        <h4 style="margin:0 0 8px;font-size:13px;">市值加權（score × market cap，入選池前 100 檔內再排）</h4>
-        <table style="font-size:12px;">
-          <thead><tr><th>#</th><th>Symbol</th><th>Sector</th><th class="n">權重</th><th></th></tr></thead>
-          <tbody><tr><td class="n dim">1</td><td><b>MU</b></td><td class="dim">Information Technolo</td><td class="n">15.36%</td><td class="dim" style="font-size:11px;">（分數排名 #4）</td></tr><tr><td class="n dim">2</td><td><b>NVDA</b></td><td class="dim">Information Technolo</td><td class="n">14.10%</td><td class="dim" style="font-size:11px;">（分數排名 #78）</td></tr><tr><td class="n dim">3</td><td><b>MSFT</b></td><td class="dim">Information Technolo</td><td class="n">8.97%</td><td class="dim" style="font-size:11px;">（分數排名 #84）</td></tr><tr><td class="n dim">4</td><td><b>AMD</b></td><td class="dim">Information Technolo</td><td class="n">8.59%</td><td class="dim" style="font-size:11px;">（分數排名 #6）</td></tr><tr><td class="n dim">5</td><td><b>DELL</b></td><td class="dim">Information Technolo</td><td class="n">7.18%</td><td class="dim" style="font-size:11px;">（分數排名 #2）</td></tr><tr><td class="n dim">6</td><td><b>SNDK</b></td><td class="dim">Information Technolo</td><td class="n">4.36%</td><td class="dim" style="font-size:11px;">（分數排名 #3）</td></tr><tr><td class="n dim">7</td><td><b>INTC</b></td><td class="dim">Information Technolo</td><td class="n">4.32%</td><td class="dim" style="font-size:11px;">（分數排名 #13）</td></tr><tr><td class="n dim">8</td><td><b>MRVL</b></td><td class="dim">Information Technolo</td><td class="n">2.68%</td><td class="dim" style="font-size:11px;">（分數排名 #5）</td></tr><tr><td class="n dim">9</td><td><b>PANW</b></td><td class="dim">Information Technolo</td><td class="n">2.38%</td><td class="dim" style="font-size:11px;">（分數排名 #12）</td></tr><tr><td class="n dim">10</td><td><b>CRWD</b></td><td class="dim">Information Technolo</td><td class="n">2.04%</td><td class="dim" style="font-size:11px;">（分數排名 #10）</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="dim" style="font-size:11px;margin-top:10px;">入選池：純分數前 100 檔（模擬真實指數的選股步驟）</div>
+    <div class="dim" style="font-size:11px;margin-top:10px;">入選池：純分數前 100 檔（模擬真實指數的選股步驟） · 入選池 100 檔中有 99 檔沒有市值資料，已排除</div>
     
     </div>
   </div>
 
   <div class="foot">
-    產生時間 2026-09-06 21:47 UTC ·
+    產生時間 2026-09-07 12:22 UTC ·
     <a href="daily-latest.html">看美股報表</a> · <a href="daily-v2-latest.html">看美股 V2 報表</a>
     <br><br>
     <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
