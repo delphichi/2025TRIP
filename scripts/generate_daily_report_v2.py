@@ -385,6 +385,11 @@ CSS = gdr.CSS if hasattr(gdr, "CSS") else ""
 FRONT_CSS_EXTRA = '''
   .fpgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
   @media(max-width:800px) { .fpgrid { grid-template-columns:1fr; } }
+  .fptable { border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:10px; }
+  .fptable th, .fptable td { border:1px solid var(--line); }
+  .fptable thead th { background:#e8ecf3; }
+  .fptable tbody tr:nth-child(even) { background:#f4f6fa; }
+  .fptable tbody tr:hover { background:#eef1f8; }
   .fpnames { margin:0; padding:0; list-style:none; font-size:13px; columns:2; column-gap:16px; }
   .fpnames li { padding:4px 0; display:flex; align-items:center; justify-content:space-between; gap:8px; break-inside:avoid; }
   @media(max-width:500px) { .fpnames { columns:1; } }
@@ -560,7 +565,7 @@ def opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol
             )
         rows = "".join(rows_parts) or '<tr><td colspan="9" class="empty">今日無</td></tr>'
         sections.append(f'''<h4 style="margin:10px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>
-        <table>
+        <table class="fptable">
           <thead><tr>
             <th>Symbol</th><th>Name</th><th>Sector</th>
             <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分">Score</th>
@@ -613,7 +618,7 @@ def price_lag_html(lag_rows, top_n=15, all_rows_source=None):
         f'<td class="n up">{r["price_lag"]:.2f}</td></tr>'
         for r in rows_sorted
     )
-    table = f'''<table>
+    table = f'''<table class="fptable">
       <thead><tr>
         <th>Symbol</th><th>Name</th><th>Sector</th>
         <th class="n" title="Sector 橫斷面 Z-score，vs. 今天其他所有 sector">sec_z</th>
@@ -651,7 +656,7 @@ def capital_acceleration_html(accel_rows, prior_date, top_n=3):
             f'<td class="n {cls}">{r["acceleration"]:+.3f}</td></tr>'
             for r in items
         )
-        return f'''<table>
+        return f'''<table class="fptable">
           <thead><tr><th>Sector</th><th class="n">今日 flow_ratio</th>
             <th class="n">{escape(prior_date)} flow_ratio</th><th class="n">加速度</th></tr></thead>
           <tbody>{rows_html}</tbody>
