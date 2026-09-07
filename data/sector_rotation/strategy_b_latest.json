@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-07T14:09:48.791589+00:00",
-  "as_of_date": "2025-09-03",
+  "generated_at": "2026-09-07T14:38:43.964833+00:00",
+  "as_of_date": "2026-09-07",
   "as_of_date_note": "T-1 · 抓到的最後一根 close 的日期（非腳本執行當日）",
   "scanned_count": 503,
-  "hits_count": 1,
+  "hits_count": 0,
   "conditions": {
     "daily_drop_pct": "< -5.0% （當日跌 > 5%）",
     "ma50_up": "50MA 向上（今日 MA > 6 天前 MA）",
@@ -16,24 +16,6 @@
     "不是進場當天立刻買 · 建議等大跌後量縮 · 量縮後放量再進場（策略 B 進場時機）",
     "trigger 訊號 · 不代表 all-in · 位置管理仍需搭配策略 A 的配置上限"
   ],
-  "hits": [
-    {
-      "symbol": "DLTR",
-      "name": "Dollar Tree",
-      "sector": "Consumer Staples",
-      "as_of_date": "2025-09-03",
-      "t_price": 102.03,
-      "prev_price": 111.35,
-      "daily_drop_pct": -8.37,
-      "ma50": 110.1,
-      "ma200": 84.88,
-      "ma50_up": true,
-      "ma200_up": true,
-      "rsi_14": 22.0,
-      "vol_today": 15866100,
-      "vol_20d_avg": 3099775,
-      "vol_ratio_vs_20d": 5.12
-    }
-  ],
-  "csv": "20250903_strategy_b.csv"
+  "hits": [],
+  "csv": null
 }

@@ -1,1126 +1,1126 @@
 {
-  "generated_at": "2026-09-07T14:08:17.930562+00:00",
+  "generated_at": "2026-09-07T14:37:39.900515+00:00",
   "note": "每個 sector 最近 20 個交易日、SPMO score > 1 的個股佔比（滲透率），重用 fetch_weekly_returns() 已經抓好的價量矩陣算出來，不是另外累積的每日快照。",
   "sectors": {
     "Industrials": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 30.9,
+        "date": "2026-08-10",
+        "penetration_pct": 39.5,
         "n_scored": 81
       },
       {
-        "date": "2025-08-07",
-        "penetration_pct": 29.6,
+        "date": "2026-08-11",
+        "penetration_pct": 38.3,
         "n_scored": 81
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 30.9,
+        "date": "2026-08-12",
+        "penetration_pct": 37.0,
         "n_scored": 81
       },
       {
-        "date": "2025-08-11",
+        "date": "2026-08-13",
+        "penetration_pct": 35.8,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-14",
+        "penetration_pct": 38.3,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-17",
+        "penetration_pct": 38.3,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-18",
+        "penetration_pct": 38.3,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-19",
+        "penetration_pct": 37.0,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-20",
+        "penetration_pct": 35.8,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-21",
+        "penetration_pct": 43.2,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-24",
+        "penetration_pct": 42.0,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-25",
+        "penetration_pct": 39.5,
+        "n_scored": 81
+      },
+      {
+        "date": "2026-08-26",
         "penetration_pct": 32.1,
         "n_scored": 81
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 28.4,
+        "date": "2026-08-27",
+        "penetration_pct": 32.1,
         "n_scored": 81
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 27.2,
+        "date": "2026-08-28",
+        "penetration_pct": 35.8,
         "n_scored": 81
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 28.4,
+        "date": "2026-08-31",
+        "penetration_pct": 37.0,
         "n_scored": 81
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 24.7,
+        "date": "2026-09-01",
+        "penetration_pct": 43.2,
         "n_scored": 81
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 27.2,
+        "date": "2026-09-02",
+        "penetration_pct": 42.0,
         "n_scored": 81
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 27.2,
+        "date": "2026-09-03",
+        "penetration_pct": 37.0,
         "n_scored": 81
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 23.5,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-08-21",
-        "penetration_pct": 24.7,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-08-22",
-        "penetration_pct": 22.2,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-08-25",
-        "penetration_pct": 28.4,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-08-26",
-        "penetration_pct": 27.2,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-08-27",
-        "penetration_pct": 22.2,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-08-28",
-        "penetration_pct": 19.8,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-08-29",
-        "penetration_pct": 17.3,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-09-02",
-        "penetration_pct": 22.2,
-        "n_scored": 81
-      },
-      {
-        "date": "2025-09-03",
-        "penetration_pct": 18.5,
+        "date": "2026-09-04",
+        "penetration_pct": 40.7,
         "n_scored": 81
       }
     ],
     "Health Care": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 16.9,
+        "date": "2026-08-10",
+        "penetration_pct": 28.8,
         "n_scored": 59
       },
       {
-        "date": "2025-08-07",
-        "penetration_pct": 18.6,
+        "date": "2026-08-11",
+        "penetration_pct": 32.2,
         "n_scored": 59
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 13.6,
+        "date": "2026-08-12",
+        "penetration_pct": 30.5,
         "n_scored": 59
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 15.3,
+        "date": "2026-08-13",
+        "penetration_pct": 28.8,
         "n_scored": 59
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 13.6,
+        "date": "2026-08-14",
+        "penetration_pct": 28.8,
         "n_scored": 59
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 13.6,
+        "date": "2026-08-17",
+        "penetration_pct": 25.4,
         "n_scored": 59
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 11.9,
+        "date": "2026-08-18",
+        "penetration_pct": 30.5,
         "n_scored": 59
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 10.2,
+        "date": "2026-08-19",
+        "penetration_pct": 27.1,
         "n_scored": 59
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 11.9,
+        "date": "2026-08-20",
+        "penetration_pct": 28.8,
         "n_scored": 59
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 13.6,
+        "date": "2026-08-21",
+        "penetration_pct": 25.4,
         "n_scored": 59
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 11.9,
+        "date": "2026-08-24",
+        "penetration_pct": 27.1,
         "n_scored": 59
       },
       {
-        "date": "2025-08-21",
-        "penetration_pct": 13.6,
+        "date": "2026-08-25",
+        "penetration_pct": 30.5,
         "n_scored": 59
       },
       {
-        "date": "2025-08-22",
-        "penetration_pct": 11.9,
+        "date": "2026-08-26",
+        "penetration_pct": 28.8,
         "n_scored": 59
       },
       {
-        "date": "2025-08-25",
-        "penetration_pct": 10.2,
+        "date": "2026-08-27",
+        "penetration_pct": 27.1,
         "n_scored": 59
       },
       {
-        "date": "2025-08-26",
-        "penetration_pct": 11.9,
+        "date": "2026-08-28",
+        "penetration_pct": 25.4,
         "n_scored": 59
       },
       {
-        "date": "2025-08-27",
-        "penetration_pct": 11.9,
+        "date": "2026-08-31",
+        "penetration_pct": 25.4,
         "n_scored": 59
       },
       {
-        "date": "2025-08-28",
-        "penetration_pct": 11.9,
+        "date": "2026-09-01",
+        "penetration_pct": 25.4,
         "n_scored": 59
       },
       {
-        "date": "2025-08-29",
-        "penetration_pct": 10.2,
+        "date": "2026-09-02",
+        "penetration_pct": 35.6,
         "n_scored": 59
       },
       {
-        "date": "2025-09-02",
-        "penetration_pct": 8.5,
+        "date": "2026-09-03",
+        "penetration_pct": 27.1,
         "n_scored": 59
       },
       {
-        "date": "2025-09-03",
-        "penetration_pct": 10.2,
+        "date": "2026-09-04",
+        "penetration_pct": 28.8,
         "n_scored": 59
       }
     ],
     "Information Technology": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 31.0,
-        "n_scored": 71
+        "date": "2026-08-10",
+        "penetration_pct": 44.4,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-07",
-        "penetration_pct": 28.2,
-        "n_scored": 71
+        "date": "2026-08-11",
+        "penetration_pct": 45.8,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 28.2,
-        "n_scored": 71
+        "date": "2026-08-12",
+        "penetration_pct": 43.1,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 29.6,
-        "n_scored": 71
+        "date": "2026-08-13",
+        "penetration_pct": 41.7,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 29.6,
-        "n_scored": 71
+        "date": "2026-08-14",
+        "penetration_pct": 43.1,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 25.4,
-        "n_scored": 71
+        "date": "2026-08-17",
+        "penetration_pct": 43.1,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 25.4,
-        "n_scored": 71
+        "date": "2026-08-18",
+        "penetration_pct": 44.4,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 23.9,
-        "n_scored": 71
+        "date": "2026-08-19",
+        "penetration_pct": 44.4,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 26.8,
-        "n_scored": 71
+        "date": "2026-08-20",
+        "penetration_pct": 44.4,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 23.9,
-        "n_scored": 71
+        "date": "2026-08-21",
+        "penetration_pct": 43.1,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 25.4,
-        "n_scored": 71
+        "date": "2026-08-24",
+        "penetration_pct": 41.7,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-21",
-        "penetration_pct": 25.4,
-        "n_scored": 71
+        "date": "2026-08-25",
+        "penetration_pct": 41.7,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-22",
-        "penetration_pct": 25.4,
-        "n_scored": 71
+        "date": "2026-08-26",
+        "penetration_pct": 38.9,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-25",
-        "penetration_pct": 28.2,
-        "n_scored": 71
+        "date": "2026-08-27",
+        "penetration_pct": 44.4,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-26",
-        "penetration_pct": 28.2,
-        "n_scored": 71
+        "date": "2026-08-28",
+        "penetration_pct": 43.1,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-27",
-        "penetration_pct": 25.4,
-        "n_scored": 71
+        "date": "2026-08-31",
+        "penetration_pct": 44.4,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-28",
-        "penetration_pct": 28.2,
-        "n_scored": 71
+        "date": "2026-09-01",
+        "penetration_pct": 45.8,
+        "n_scored": 72
       },
       {
-        "date": "2025-08-29",
-        "penetration_pct": 26.8,
-        "n_scored": 71
+        "date": "2026-09-02",
+        "penetration_pct": 45.8,
+        "n_scored": 72
       },
       {
-        "date": "2025-09-02",
-        "penetration_pct": 29.6,
-        "n_scored": 71
+        "date": "2026-09-03",
+        "penetration_pct": 45.8,
+        "n_scored": 72
       },
       {
-        "date": "2025-09-03",
-        "penetration_pct": 26.8,
-        "n_scored": 71
+        "date": "2026-09-04",
+        "penetration_pct": 45.8,
+        "n_scored": 72
       }
     ],
     "Utilities": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 41.9,
+        "date": "2026-08-10",
+        "penetration_pct": 32.3,
         "n_scored": 31
       },
       {
-        "date": "2025-08-07",
-        "penetration_pct": 38.7,
+        "date": "2026-08-11",
+        "penetration_pct": 32.3,
         "n_scored": 31
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 35.5,
+        "date": "2026-08-12",
+        "penetration_pct": 25.8,
         "n_scored": 31
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 41.9,
+        "date": "2026-08-13",
+        "penetration_pct": 25.8,
         "n_scored": 31
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 41.9,
+        "date": "2026-08-14",
+        "penetration_pct": 25.8,
         "n_scored": 31
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 38.7,
+        "date": "2026-08-17",
+        "penetration_pct": 22.6,
         "n_scored": 31
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 38.7,
+        "date": "2026-08-18",
+        "penetration_pct": 29.0,
         "n_scored": 31
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 41.9,
+        "date": "2026-08-19",
+        "penetration_pct": 25.8,
         "n_scored": 31
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 45.2,
+        "date": "2026-08-20",
+        "penetration_pct": 22.6,
         "n_scored": 31
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 48.4,
+        "date": "2026-08-21",
+        "penetration_pct": 29.0,
         "n_scored": 31
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 45.2,
+        "date": "2026-08-24",
+        "penetration_pct": 25.8,
         "n_scored": 31
       },
       {
-        "date": "2025-08-21",
-        "penetration_pct": 38.7,
+        "date": "2026-08-25",
+        "penetration_pct": 29.0,
         "n_scored": 31
       },
       {
-        "date": "2025-08-22",
-        "penetration_pct": 38.7,
+        "date": "2026-08-26",
+        "penetration_pct": 25.8,
         "n_scored": 31
       },
       {
-        "date": "2025-08-25",
-        "penetration_pct": 35.5,
+        "date": "2026-08-27",
+        "penetration_pct": 16.1,
         "n_scored": 31
       },
       {
-        "date": "2025-08-26",
-        "penetration_pct": 41.9,
+        "date": "2026-08-28",
+        "penetration_pct": 19.4,
         "n_scored": 31
       },
       {
-        "date": "2025-08-27",
-        "penetration_pct": 45.2,
+        "date": "2026-08-31",
+        "penetration_pct": 22.6,
         "n_scored": 31
       },
       {
-        "date": "2025-08-28",
-        "penetration_pct": 41.9,
+        "date": "2026-09-01",
+        "penetration_pct": 22.6,
         "n_scored": 31
       },
       {
-        "date": "2025-08-29",
-        "penetration_pct": 38.7,
+        "date": "2026-09-02",
+        "penetration_pct": 19.4,
         "n_scored": 31
       },
       {
-        "date": "2025-09-02",
-        "penetration_pct": 51.6,
+        "date": "2026-09-03",
+        "penetration_pct": 16.1,
         "n_scored": 31
       },
       {
-        "date": "2025-09-03",
-        "penetration_pct": 38.7,
+        "date": "2026-09-04",
+        "penetration_pct": 16.1,
         "n_scored": 31
       }
     ],
     "Financials": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 39.5,
-        "n_scored": 76
-      },
-      {
-        "date": "2025-08-07",
+        "date": "2026-08-10",
         "penetration_pct": 36.8,
         "n_scored": 76
       },
       {
-        "date": "2025-08-08",
+        "date": "2026-08-11",
+        "penetration_pct": 35.5,
+        "n_scored": 76
+      },
+      {
+        "date": "2026-08-12",
+        "penetration_pct": 35.5,
+        "n_scored": 76
+      },
+      {
+        "date": "2026-08-13",
         "penetration_pct": 32.9,
         "n_scored": 76
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 38.2,
-        "n_scored": 76
-      },
-      {
-        "date": "2025-08-12",
+        "date": "2026-08-14",
         "penetration_pct": 32.9,
         "n_scored": 76
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 32.9,
+        "date": "2026-08-17",
+        "penetration_pct": 35.5,
         "n_scored": 76
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 32.9,
+        "date": "2026-08-18",
+        "penetration_pct": 35.5,
         "n_scored": 76
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 30.3,
-        "n_scored": 76
-      },
-      {
-        "date": "2025-08-18",
+        "date": "2026-08-19",
         "penetration_pct": 31.6,
         "n_scored": 76
       },
       {
-        "date": "2025-08-19",
+        "date": "2026-08-20",
+        "penetration_pct": 34.2,
+        "n_scored": 76
+      },
+      {
+        "date": "2026-08-21",
+        "penetration_pct": 36.8,
+        "n_scored": 76
+      },
+      {
+        "date": "2026-08-24",
+        "penetration_pct": 32.9,
+        "n_scored": 76
+      },
+      {
+        "date": "2026-08-25",
+        "penetration_pct": 34.2,
+        "n_scored": 76
+      },
+      {
+        "date": "2026-08-26",
+        "penetration_pct": 30.3,
+        "n_scored": 76
+      },
+      {
+        "date": "2026-08-27",
         "penetration_pct": 31.6,
         "n_scored": 76
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 28.9,
+        "date": "2026-08-28",
+        "penetration_pct": 31.6,
         "n_scored": 76
       },
       {
-        "date": "2025-08-21",
-        "penetration_pct": 26.3,
+        "date": "2026-08-31",
+        "penetration_pct": 32.9,
         "n_scored": 76
       },
       {
-        "date": "2025-08-22",
-        "penetration_pct": 27.6,
+        "date": "2026-09-01",
+        "penetration_pct": 34.2,
         "n_scored": 76
       },
       {
-        "date": "2025-08-25",
-        "penetration_pct": 30.3,
+        "date": "2026-09-02",
+        "penetration_pct": 32.9,
         "n_scored": 76
       },
       {
-        "date": "2025-08-26",
-        "penetration_pct": 27.6,
+        "date": "2026-09-03",
+        "penetration_pct": 31.6,
         "n_scored": 76
       },
       {
-        "date": "2025-08-27",
-        "penetration_pct": 26.3,
-        "n_scored": 76
-      },
-      {
-        "date": "2025-08-28",
-        "penetration_pct": 25.0,
-        "n_scored": 76
-      },
-      {
-        "date": "2025-08-29",
-        "penetration_pct": 25.0,
-        "n_scored": 76
-      },
-      {
-        "date": "2025-09-02",
-        "penetration_pct": 30.3,
-        "n_scored": 76
-      },
-      {
-        "date": "2025-09-03",
-        "penetration_pct": 30.3,
+        "date": "2026-09-04",
+        "penetration_pct": 34.2,
         "n_scored": 76
       }
     ],
     "Materials": [
       {
-        "date": "2025-08-06",
+        "date": "2026-08-10",
+        "penetration_pct": 24.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-11",
+        "penetration_pct": 20.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-12",
+        "penetration_pct": 16.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-13",
         "penetration_pct": 12.0,
         "n_scored": 25
       },
       {
-        "date": "2025-08-07",
+        "date": "2026-08-14",
+        "penetration_pct": 12.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-17",
+        "penetration_pct": 12.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-18",
+        "penetration_pct": 12.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-19",
+        "penetration_pct": 16.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-20",
+        "penetration_pct": 16.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-21",
+        "penetration_pct": 20.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-24",
+        "penetration_pct": 16.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-25",
+        "penetration_pct": 12.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-26",
+        "penetration_pct": 12.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-27",
+        "penetration_pct": 12.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-28",
+        "penetration_pct": 12.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-08-31",
+        "penetration_pct": 12.0,
+        "n_scored": 25
+      },
+      {
+        "date": "2026-09-01",
         "penetration_pct": 8.0,
         "n_scored": 25
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 8.0,
+        "date": "2026-09-02",
+        "penetration_pct": 20.0,
         "n_scored": 25
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 8.0,
+        "date": "2026-09-03",
+        "penetration_pct": 16.0,
         "n_scored": 25
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-13",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-14",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-15",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-18",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-19",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-20",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-21",
-        "penetration_pct": 8.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-22",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-25",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-26",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-27",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-28",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-08-29",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-09-02",
-        "penetration_pct": 4.0,
-        "n_scored": 25
-      },
-      {
-        "date": "2025-09-03",
-        "penetration_pct": 4.0,
+        "date": "2026-09-04",
+        "penetration_pct": 24.0,
         "n_scored": 25
       }
     ],
     "Consumer Discretionary": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 34.0,
+        "date": "2026-08-10",
+        "penetration_pct": 10.6,
         "n_scored": 47
       },
       {
-        "date": "2025-08-07",
-        "penetration_pct": 38.3,
+        "date": "2026-08-11",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 34.0,
+        "date": "2026-08-12",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 34.0,
+        "date": "2026-08-13",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 31.9,
+        "date": "2026-08-14",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 29.8,
+        "date": "2026-08-17",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 29.8,
+        "date": "2026-08-18",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 29.8,
+        "date": "2026-08-19",
+        "penetration_pct": 10.6,
         "n_scored": 47
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 27.7,
+        "date": "2026-08-20",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 25.5,
+        "date": "2026-08-21",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 25.5,
+        "date": "2026-08-24",
+        "penetration_pct": 10.6,
         "n_scored": 47
       },
       {
-        "date": "2025-08-21",
-        "penetration_pct": 27.7,
+        "date": "2026-08-25",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-22",
-        "penetration_pct": 23.4,
+        "date": "2026-08-26",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-25",
-        "penetration_pct": 31.9,
+        "date": "2026-08-27",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-26",
-        "penetration_pct": 27.7,
+        "date": "2026-08-28",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-27",
-        "penetration_pct": 25.5,
+        "date": "2026-08-31",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-28",
-        "penetration_pct": 25.5,
+        "date": "2026-09-01",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-08-29",
-        "penetration_pct": 25.5,
+        "date": "2026-09-02",
+        "penetration_pct": 10.6,
         "n_scored": 47
       },
       {
-        "date": "2025-09-02",
-        "penetration_pct": 27.7,
+        "date": "2026-09-03",
+        "penetration_pct": 8.5,
         "n_scored": 47
       },
       {
-        "date": "2025-09-03",
-        "penetration_pct": 25.5,
+        "date": "2026-09-04",
+        "penetration_pct": 10.6,
         "n_scored": 47
       }
     ],
     "Real Estate": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 3.3,
+        "date": "2026-08-10",
+        "penetration_pct": 36.7,
         "n_scored": 30
       },
       {
-        "date": "2025-08-07",
-        "penetration_pct": 6.7,
+        "date": "2026-08-11",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 6.7,
+        "date": "2026-08-12",
+        "penetration_pct": 36.7,
         "n_scored": 30
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 3.3,
+        "date": "2026-08-13",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 3.3,
+        "date": "2026-08-14",
+        "penetration_pct": 43.3,
         "n_scored": 30
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 6.7,
+        "date": "2026-08-17",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 3.3,
+        "date": "2026-08-18",
+        "penetration_pct": 43.3,
         "n_scored": 30
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 3.3,
+        "date": "2026-08-19",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 3.3,
+        "date": "2026-08-20",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 3.3,
+        "date": "2026-08-21",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 10.0,
+        "date": "2026-08-24",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-21",
-        "penetration_pct": 6.7,
+        "date": "2026-08-25",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-22",
-        "penetration_pct": 6.7,
+        "date": "2026-08-26",
+        "penetration_pct": 40.0,
         "n_scored": 30
       },
       {
-        "date": "2025-08-25",
-        "penetration_pct": 3.3,
+        "date": "2026-08-27",
+        "penetration_pct": 26.7,
         "n_scored": 30
       },
       {
-        "date": "2025-08-26",
-        "penetration_pct": 6.7,
+        "date": "2026-08-28",
+        "penetration_pct": 23.3,
         "n_scored": 30
       },
       {
-        "date": "2025-08-27",
-        "penetration_pct": 6.7,
+        "date": "2026-08-31",
+        "penetration_pct": 26.7,
         "n_scored": 30
       },
       {
-        "date": "2025-08-28",
-        "penetration_pct": 6.7,
+        "date": "2026-09-01",
+        "penetration_pct": 26.7,
         "n_scored": 30
       },
       {
-        "date": "2025-08-29",
-        "penetration_pct": 6.7,
+        "date": "2026-09-02",
+        "penetration_pct": 26.7,
         "n_scored": 30
       },
       {
-        "date": "2025-09-02",
-        "penetration_pct": 6.7,
+        "date": "2026-09-03",
+        "penetration_pct": 23.3,
         "n_scored": 30
       },
       {
-        "date": "2025-09-03",
-        "penetration_pct": 6.7,
+        "date": "2026-09-04",
+        "penetration_pct": 23.3,
         "n_scored": 30
       }
     ],
     "Communication Services": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 54.2,
+        "date": "2026-08-10",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-07",
-        "penetration_pct": 50.0,
+        "date": "2026-08-11",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 50.0,
+        "date": "2026-08-12",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 58.3,
+        "date": "2026-08-13",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 54.2,
+        "date": "2026-08-14",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 54.2,
+        "date": "2026-08-17",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 45.8,
+        "date": "2026-08-18",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 50.0,
+        "date": "2026-08-19",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 45.8,
+        "date": "2026-08-20",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 50.0,
+        "date": "2026-08-21",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 45.8,
+        "date": "2026-08-24",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-21",
-        "penetration_pct": 50.0,
+        "date": "2026-08-25",
+        "penetration_pct": 16.7,
         "n_scored": 24
       },
       {
-        "date": "2025-08-22",
-        "penetration_pct": 45.8,
+        "date": "2026-08-26",
+        "penetration_pct": 12.5,
         "n_scored": 24
       },
       {
-        "date": "2025-08-25",
-        "penetration_pct": 50.0,
+        "date": "2026-08-27",
+        "penetration_pct": 12.5,
         "n_scored": 24
       },
       {
-        "date": "2025-08-26",
-        "penetration_pct": 45.8,
+        "date": "2026-08-28",
+        "penetration_pct": 12.5,
         "n_scored": 24
       },
       {
-        "date": "2025-08-27",
-        "penetration_pct": 41.7,
+        "date": "2026-08-31",
+        "penetration_pct": 12.5,
         "n_scored": 24
       },
       {
-        "date": "2025-08-28",
-        "penetration_pct": 45.8,
+        "date": "2026-09-01",
+        "penetration_pct": 12.5,
         "n_scored": 24
       },
       {
-        "date": "2025-08-29",
-        "penetration_pct": 45.8,
+        "date": "2026-09-02",
+        "penetration_pct": 12.5,
         "n_scored": 24
       },
       {
-        "date": "2025-09-02",
-        "penetration_pct": 50.0,
+        "date": "2026-09-03",
+        "penetration_pct": 12.5,
         "n_scored": 24
       },
       {
-        "date": "2025-09-03",
-        "penetration_pct": 45.8,
+        "date": "2026-09-04",
+        "penetration_pct": 12.5,
         "n_scored": 24
       }
     ],
     "Consumer Staples": [
       {
-        "date": "2025-08-06",
+        "date": "2026-08-10",
         "penetration_pct": 17.6,
         "n_scored": 34
       },
       {
-        "date": "2025-08-07",
+        "date": "2026-08-11",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-12",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-13",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-14",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-17",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-18",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-19",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-20",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-21",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-24",
+        "penetration_pct": 17.6,
+        "n_scored": 34
+      },
+      {
+        "date": "2026-08-25",
         "penetration_pct": 14.7,
         "n_scored": 34
       },
       {
-        "date": "2025-08-08",
+        "date": "2026-08-26",
         "penetration_pct": 14.7,
         "n_scored": 34
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 17.6,
+        "date": "2026-08-27",
+        "penetration_pct": 14.7,
         "n_scored": 34
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 17.6,
+        "date": "2026-08-28",
+        "penetration_pct": 14.7,
         "n_scored": 34
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 17.6,
+        "date": "2026-08-31",
+        "penetration_pct": 14.7,
         "n_scored": 34
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 17.6,
+        "date": "2026-09-01",
+        "penetration_pct": 14.7,
         "n_scored": 34
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 17.6,
+        "date": "2026-09-02",
+        "penetration_pct": 11.8,
         "n_scored": 34
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 17.6,
+        "date": "2026-09-03",
+        "penetration_pct": 14.7,
         "n_scored": 34
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-08-20",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-08-21",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-08-22",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-08-25",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-08-26",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-08-27",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-08-28",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-08-29",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-09-02",
-        "penetration_pct": 17.6,
-        "n_scored": 34
-      },
-      {
-        "date": "2025-09-03",
-        "penetration_pct": 17.6,
+        "date": "2026-09-04",
+        "penetration_pct": 11.8,
         "n_scored": 34
       }
     ],
     "Energy": [
       {
-        "date": "2025-08-06",
-        "penetration_pct": 19.0,
+        "date": "2026-08-10",
+        "penetration_pct": 76.2,
         "n_scored": 21
       },
       {
-        "date": "2025-08-07",
-        "penetration_pct": 19.0,
+        "date": "2026-08-11",
+        "penetration_pct": 71.4,
         "n_scored": 21
       },
       {
-        "date": "2025-08-08",
-        "penetration_pct": 19.0,
+        "date": "2026-08-12",
+        "penetration_pct": 57.1,
         "n_scored": 21
       },
       {
-        "date": "2025-08-11",
-        "penetration_pct": 19.0,
+        "date": "2026-08-13",
+        "penetration_pct": 57.1,
         "n_scored": 21
       },
       {
-        "date": "2025-08-12",
-        "penetration_pct": 19.0,
+        "date": "2026-08-14",
+        "penetration_pct": 66.7,
         "n_scored": 21
       },
       {
-        "date": "2025-08-13",
-        "penetration_pct": 19.0,
+        "date": "2026-08-17",
+        "penetration_pct": 71.4,
         "n_scored": 21
       },
       {
-        "date": "2025-08-14",
-        "penetration_pct": 19.0,
+        "date": "2026-08-18",
+        "penetration_pct": 66.7,
         "n_scored": 21
       },
       {
-        "date": "2025-08-15",
-        "penetration_pct": 19.0,
+        "date": "2026-08-19",
+        "penetration_pct": 66.7,
         "n_scored": 21
       },
       {
-        "date": "2025-08-18",
-        "penetration_pct": 19.0,
+        "date": "2026-08-20",
+        "penetration_pct": 71.4,
         "n_scored": 21
       },
       {
-        "date": "2025-08-19",
-        "penetration_pct": 19.0,
+        "date": "2026-08-21",
+        "penetration_pct": 76.2,
         "n_scored": 21
       },
       {
-        "date": "2025-08-20",
-        "penetration_pct": 19.0,
+        "date": "2026-08-24",
+        "penetration_pct": 61.9,
         "n_scored": 21
       },
       {
-        "date": "2025-08-21",
-        "penetration_pct": 19.0,
+        "date": "2026-08-25",
+        "penetration_pct": 52.4,
         "n_scored": 21
       },
       {
-        "date": "2025-08-22",
-        "penetration_pct": 19.0,
+        "date": "2026-08-26",
+        "penetration_pct": 61.9,
         "n_scored": 21
       },
       {
-        "date": "2025-08-25",
-        "penetration_pct": 23.8,
+        "date": "2026-08-27",
+        "penetration_pct": 47.6,
         "n_scored": 21
       },
       {
-        "date": "2025-08-26",
-        "penetration_pct": 19.0,
+        "date": "2026-08-28",
+        "penetration_pct": 57.1,
         "n_scored": 21
       },
       {
-        "date": "2025-08-27",
-        "penetration_pct": 19.0,
+        "date": "2026-08-31",
+        "penetration_pct": 52.4,
         "n_scored": 21
       },
       {
-        "date": "2025-08-28",
-        "penetration_pct": 19.0,
+        "date": "2026-09-01",
+        "penetration_pct": 52.4,
         "n_scored": 21
       },
       {
-        "date": "2025-08-29",
-        "penetration_pct": 19.0,
+        "date": "2026-09-02",
+        "penetration_pct": 52.4,
         "n_scored": 21
       },
       {
-        "date": "2025-09-02",
-        "penetration_pct": 19.0,
+        "date": "2026-09-03",
+        "penetration_pct": 52.4,
         "n_scored": 21
       },
       {
-        "date": "2025-09-03",
-        "penetration_pct": 19.0,
+        "date": "2026-09-04",
+        "penetration_pct": 66.7,
         "n_scored": 21
       }
     ]
