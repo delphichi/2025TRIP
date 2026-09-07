@@ -1,0 +1,2 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+DLTR,Dollar Tree,Consumer Staples,2025-09-03,102.03,111.35,-8.37,110.1,84.88,True,True,22.0,15866100,3099775,5.12

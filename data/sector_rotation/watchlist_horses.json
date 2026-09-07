@@ -1,22 +1,5 @@
 {
-  "horses": [
-    {
-      "sector": "XLP",
-      "sector_name": "必需消費",
-      "point_rank": 7,
-      "vp_score_rank": 5,
-      "vol_rank": 1,
-      "added_at": "2026-09-06T21:46:17.613347+00:00"
-    },
-    {
-      "sector": "XLB",
-      "sector_name": "材料",
-      "point_rank": 5,
-      "vp_score_rank": 8,
-      "vol_rank": 3,
-      "added_at": "2026-09-06T21:46:17.613347+00:00"
-    }
-  ],
+  "horses": [],
   "history": [
     {
       "as_of": "2026-08-03T17:35:09.139307+00:00",
@@ -377,6 +360,11 @@
           "added_at": "2026-09-06T21:46:17.613347+00:00"
         }
       ]
+    },
+    {
+      "as_of": "2026-09-07T14:09:21.097118+00:00",
+      "promoted": [],
+      "new": []
     }
   ]
 }

@@ -1,1127 +1,1127 @@
 {
-  "generated_at": "2026-09-06T21:44:11.027993+00:00",
+  "generated_at": "2026-09-07T14:06:59.546264+00:00",
   "note": "每個 sector 最近 20 個交易日的 point/flow_ratio，重用 fetch_data() 已經抓好的價量矩陣算出來，不是另外累積的每日快照。",
   "sectors": {
     "XLK": [
       {
-        "date": "2026-08-10",
-        "point": 18.58,
-        "flow_ratio": -0.116
+        "date": "2025-08-06",
+        "point": 13.01,
+        "flow_ratio": 0.253
       },
       {
-        "date": "2026-08-11",
-        "point": 19.69,
-        "flow_ratio": -0.185
+        "date": "2025-08-07",
+        "point": 13.81,
+        "flow_ratio": 0.257
       },
       {
-        "date": "2026-08-12",
-        "point": 22.96,
-        "flow_ratio": -0.208
+        "date": "2025-08-08",
+        "point": 15.45,
+        "flow_ratio": 0.258
       },
       {
-        "date": "2026-08-13",
-        "point": 22.17,
-        "flow_ratio": -0.153
+        "date": "2025-08-11",
+        "point": 13.33,
+        "flow_ratio": 0.265
       },
       {
-        "date": "2026-08-14",
-        "point": 20.36,
-        "flow_ratio": -0.119
+        "date": "2025-08-12",
+        "point": 14.24,
+        "flow_ratio": 0.262
       },
       {
-        "date": "2026-08-17",
-        "point": 19.78,
-        "flow_ratio": -0.131
+        "date": "2025-08-13",
+        "point": 12.53,
+        "flow_ratio": 0.343
       },
       {
-        "date": "2026-08-18",
-        "point": 17.17,
-        "flow_ratio": -0.118
+        "date": "2025-08-14",
+        "point": 12.17,
+        "flow_ratio": 0.263
       },
       {
-        "date": "2026-08-19",
-        "point": 18.21,
-        "flow_ratio": -0.194
+        "date": "2025-08-15",
+        "point": 10.28,
+        "flow_ratio": 0.203
       },
       {
-        "date": "2026-08-20",
-        "point": 18.24,
-        "flow_ratio": -0.251
+        "date": "2025-08-18",
+        "point": 10.69,
+        "flow_ratio": 0.266
       },
       {
-        "date": "2026-08-21",
-        "point": 18.07,
-        "flow_ratio": -0.253
+        "date": "2025-08-19",
+        "point": 8.68,
+        "flow_ratio": 0.177
       },
       {
-        "date": "2026-08-24",
-        "point": 15.59,
-        "flow_ratio": -0.246
+        "date": "2025-08-20",
+        "point": 7.11,
+        "flow_ratio": 0.079
       },
       {
-        "date": "2026-08-25",
-        "point": 17.46,
-        "flow_ratio": -0.252
+        "date": "2025-08-21",
+        "point": 6.58,
+        "flow_ratio": 0.064
       },
       {
-        "date": "2026-08-26",
-        "point": 15.78,
-        "flow_ratio": -0.197
+        "date": "2025-08-22",
+        "point": 7.87,
+        "flow_ratio": 0.122
       },
       {
-        "date": "2026-08-27",
-        "point": 20.73,
-        "flow_ratio": -0.123
+        "date": "2025-08-25",
+        "point": 7.62,
+        "flow_ratio": 0.114
       },
       {
-        "date": "2026-08-28",
-        "point": 17.28,
-        "flow_ratio": -0.103
+        "date": "2025-08-26",
+        "point": 8.55,
+        "flow_ratio": 0.104
       },
       {
-        "date": "2026-08-31",
-        "point": 14.75,
-        "flow_ratio": -0.115
+        "date": "2025-08-27",
+        "point": 10.17,
+        "flow_ratio": 0.09
       },
       {
-        "date": "2026-09-01",
-        "point": 13.45,
-        "flow_ratio": -0.183
+        "date": "2025-08-28",
+        "point": 12.55,
+        "flow_ratio": 0.092
       },
       {
-        "date": "2026-09-02",
-        "point": 14.27,
-        "flow_ratio": -0.185
+        "date": "2025-08-29",
+        "point": 11.01,
+        "flow_ratio": 0.072
       },
       {
-        "date": "2026-09-03",
-        "point": 15.25,
-        "flow_ratio": -0.126
+        "date": "2025-09-02",
+        "point": 9.57,
+        "flow_ratio": 0.002
       },
       {
-        "date": "2026-09-04",
-        "point": 17.66,
-        "flow_ratio": -0.069
+        "date": "2025-09-03",
+        "point": 11.84,
+        "flow_ratio": 0.074
       }
     ],
     "XLE": [
       {
-        "date": "2026-08-10",
-        "point": 12.54,
-        "flow_ratio": 0.241
+        "date": "2025-08-06",
+        "point": -1.87,
+        "flow_ratio": -0.092
       },
       {
-        "date": "2026-08-11",
-        "point": 12.97,
-        "flow_ratio": 0.294
+        "date": "2025-08-07",
+        "point": -1.0,
+        "flow_ratio": -0.084
       },
       {
-        "date": "2026-08-12",
-        "point": 12.89,
-        "flow_ratio": 0.351
+        "date": "2025-08-08",
+        "point": -0.42,
+        "flow_ratio": -0.077
       },
       {
-        "date": "2026-08-13",
-        "point": 11.3,
-        "flow_ratio": 0.415
+        "date": "2025-08-11",
+        "point": -2.2,
+        "flow_ratio": -0.07
       },
       {
-        "date": "2026-08-14",
-        "point": 12.27,
-        "flow_ratio": 0.413
+        "date": "2025-08-12",
+        "point": -1.88,
+        "flow_ratio": -0.009
       },
       {
-        "date": "2026-08-17",
-        "point": 13.08,
-        "flow_ratio": 0.467
+        "date": "2025-08-13",
+        "point": -0.66,
+        "flow_ratio": -0.025
       },
       {
-        "date": "2026-08-18",
-        "point": 12.58,
-        "flow_ratio": 0.461
+        "date": "2025-08-14",
+        "point": -0.9,
+        "flow_ratio": -0.096
       },
       {
-        "date": "2026-08-19",
-        "point": 12.9,
-        "flow_ratio": 0.389
+        "date": "2025-08-15",
+        "point": -1.54,
+        "flow_ratio": -0.119
       },
       {
-        "date": "2026-08-20",
-        "point": 12.38,
-        "flow_ratio": 0.442
+        "date": "2025-08-18",
+        "point": -2.73,
+        "flow_ratio": -0.11
       },
       {
-        "date": "2026-08-21",
-        "point": 14.08,
-        "flow_ratio": 0.377
+        "date": "2025-08-19",
+        "point": -1.87,
+        "flow_ratio": -0.138
       },
       {
-        "date": "2026-08-24",
-        "point": 12.68,
-        "flow_ratio": 0.307
+        "date": "2025-08-20",
+        "point": -1.26,
+        "flow_ratio": -0.077
       },
       {
-        "date": "2026-08-25",
-        "point": 9.73,
-        "flow_ratio": 0.236
+        "date": "2025-08-21",
+        "point": -0.44,
+        "flow_ratio": -0.085
       },
       {
-        "date": "2026-08-26",
-        "point": 11.31,
-        "flow_ratio": 0.307
+        "date": "2025-08-22",
+        "point": 1.13,
+        "flow_ratio": -0.085
       },
       {
-        "date": "2026-08-27",
-        "point": 10.92,
-        "flow_ratio": 0.236
+        "date": "2025-08-25",
+        "point": 0.87,
+        "flow_ratio": -0.022
       },
       {
-        "date": "2026-08-28",
-        "point": 12.03,
-        "flow_ratio": 0.228
+        "date": "2025-08-26",
+        "point": 0.55,
+        "flow_ratio": -0.01
       },
       {
-        "date": "2026-08-31",
-        "point": 15.02,
-        "flow_ratio": 0.23
+        "date": "2025-08-27",
+        "point": 2.61,
+        "flow_ratio": 0.06
       },
       {
-        "date": "2026-09-01",
-        "point": 16.36,
-        "flow_ratio": 0.245
+        "date": "2025-08-28",
+        "point": 4.22,
+        "flow_ratio": 0.049
       },
       {
-        "date": "2026-09-02",
-        "point": 15.28,
-        "flow_ratio": 0.246
+        "date": "2025-08-29",
+        "point": 5.38,
+        "flow_ratio": 0.152
       },
       {
-        "date": "2026-09-03",
-        "point": 13.24,
-        "flow_ratio": 0.174
+        "date": "2025-09-02",
+        "point": 6.04,
+        "flow_ratio": 0.22
       },
       {
-        "date": "2026-09-04",
-        "point": 11.52,
-        "flow_ratio": 0.099
+        "date": "2025-09-03",
+        "point": 3.28,
+        "flow_ratio": 0.138
       }
     ],
     "XLF": [
       {
-        "date": "2026-08-10",
-        "point": 8.32,
-        "flow_ratio": 0.286
+        "date": "2025-08-06",
+        "point": 1.53,
+        "flow_ratio": 0.009
       },
       {
-        "date": "2026-08-11",
-        "point": 7.87,
-        "flow_ratio": 0.237
+        "date": "2025-08-07",
+        "point": 1.09,
+        "flow_ratio": -0.0
       },
       {
-        "date": "2026-08-12",
-        "point": 8.72,
-        "flow_ratio": 0.286
+        "date": "2025-08-08",
+        "point": 1.9,
+        "flow_ratio": 0.001
       },
       {
-        "date": "2026-08-13",
-        "point": 8.38,
-        "flow_ratio": 0.269
+        "date": "2025-08-11",
+        "point": 2.2,
+        "flow_ratio": -0.059
       },
       {
-        "date": "2026-08-14",
-        "point": 8.94,
-        "flow_ratio": 0.194
+        "date": "2025-08-12",
+        "point": 2.72,
+        "flow_ratio": -0.064
       },
       {
-        "date": "2026-08-17",
-        "point": 8.05,
-        "flow_ratio": 0.109
+        "date": "2025-08-13",
+        "point": 2.12,
+        "flow_ratio": -0.057
       },
       {
-        "date": "2026-08-18",
-        "point": 9.5,
-        "flow_ratio": 0.165
+        "date": "2025-08-14",
+        "point": 2.77,
+        "flow_ratio": 0.012
       },
       {
-        "date": "2026-08-19",
-        "point": 9.69,
-        "flow_ratio": 0.17
+        "date": "2025-08-15",
+        "point": 2.25,
+        "flow_ratio": -0.052
       },
       {
-        "date": "2026-08-20",
-        "point": 8.85,
-        "flow_ratio": 0.109
+        "date": "2025-08-18",
+        "point": 1.89,
+        "flow_ratio": 0.001
       },
       {
-        "date": "2026-08-21",
-        "point": 8.71,
-        "flow_ratio": 0.113
+        "date": "2025-08-19",
+        "point": 1.91,
+        "flow_ratio": 0.072
       },
       {
-        "date": "2026-08-24",
-        "point": 9.34,
-        "flow_ratio": 0.112
+        "date": "2025-08-20",
+        "point": 2.09,
+        "flow_ratio": 0.075
       },
       {
-        "date": "2026-08-25",
-        "point": 10.27,
-        "flow_ratio": 0.095
+        "date": "2025-08-21",
+        "point": 1.63,
+        "flow_ratio": 0.023
       },
       {
-        "date": "2026-08-26",
-        "point": 9.72,
-        "flow_ratio": 0.02
+        "date": "2025-08-22",
+        "point": 3.66,
+        "flow_ratio": 0.092
       },
       {
-        "date": "2026-08-27",
-        "point": 11.19,
-        "flow_ratio": -0.04
+        "date": "2025-08-25",
+        "point": 3.2,
+        "flow_ratio": 0.045
       },
       {
-        "date": "2026-08-28",
-        "point": 11.22,
-        "flow_ratio": 0.037
+        "date": "2025-08-26",
+        "point": 4.95,
+        "flow_ratio": 0.114
       },
       {
-        "date": "2026-08-31",
-        "point": 9.11,
-        "flow_ratio": 0.051
+        "date": "2025-08-27",
+        "point": 5.52,
+        "flow_ratio": 0.11
       },
       {
-        "date": "2026-09-01",
-        "point": 7.51,
-        "flow_ratio": -0.016
+        "date": "2025-08-28",
+        "point": 6.09,
+        "flow_ratio": 0.094
       },
       {
-        "date": "2026-09-02",
-        "point": 9.59,
-        "flow_ratio": 0.048
+        "date": "2025-08-29",
+        "point": 5.98,
+        "flow_ratio": 0.1
       },
       {
-        "date": "2026-09-03",
-        "point": 11.87,
-        "flow_ratio": 0.112
+        "date": "2025-09-02",
+        "point": 5.36,
+        "flow_ratio": 0.098
       },
       {
-        "date": "2026-09-04",
-        "point": 10.27,
-        "flow_ratio": 0.046
+        "date": "2025-09-03",
+        "point": 4.76,
+        "flow_ratio": 0.033
       }
     ],
     "XLV": [
       {
-        "date": "2026-08-10",
-        "point": 10.95,
-        "flow_ratio": 0.008
+        "date": "2025-08-06",
+        "point": -7.66,
+        "flow_ratio": -0.038
       },
       {
-        "date": "2026-08-11",
-        "point": 10.24,
-        "flow_ratio": -0.057
+        "date": "2025-08-07",
+        "point": -7.72,
+        "flow_ratio": -0.117
       },
       {
-        "date": "2026-08-12",
-        "point": 10.45,
-        "flow_ratio": 0.005
+        "date": "2025-08-08",
+        "point": -7.22,
+        "flow_ratio": -0.117
       },
       {
-        "date": "2026-08-13",
-        "point": 8.96,
-        "flow_ratio": -0.052
+        "date": "2025-08-11",
+        "point": -6.35,
+        "flow_ratio": -0.054
       },
       {
-        "date": "2026-08-14",
-        "point": 8.91,
-        "flow_ratio": -0.124
+        "date": "2025-08-12",
+        "point": -6.16,
+        "flow_ratio": -0.044
       },
       {
-        "date": "2026-08-17",
-        "point": 8.9,
-        "flow_ratio": -0.096
+        "date": "2025-08-13",
+        "point": -4.57,
+        "flow_ratio": -0.059
       },
       {
-        "date": "2026-08-18",
-        "point": 10.77,
-        "flow_ratio": -0.114
+        "date": "2025-08-14",
+        "point": -2.94,
+        "flow_ratio": 0.007
       },
       {
-        "date": "2026-08-19",
-        "point": 14.27,
-        "flow_ratio": -0.014
-      },
-      {
-        "date": "2026-08-20",
-        "point": 11.03,
-        "flow_ratio": -0.017
-      },
-      {
-        "date": "2026-08-21",
-        "point": 12.47,
-        "flow_ratio": 0.055
-      },
-      {
-        "date": "2026-08-24",
-        "point": 11.6,
-        "flow_ratio": 0.053
-      },
-      {
-        "date": "2026-08-25",
-        "point": 11.93,
-        "flow_ratio": 0.116
-      },
-      {
-        "date": "2026-08-26",
-        "point": 11.68,
-        "flow_ratio": 0.096
-      },
-      {
-        "date": "2026-08-27",
-        "point": 9.92,
-        "flow_ratio": 0.026
-      },
-      {
-        "date": "2026-08-28",
-        "point": 9.53,
-        "flow_ratio": 0.041
-      },
-      {
-        "date": "2026-08-31",
-        "point": 9.44,
-        "flow_ratio": 0.036
-      },
-      {
-        "date": "2026-09-01",
-        "point": 10.29,
-        "flow_ratio": 0.043
-      },
-      {
-        "date": "2026-09-02",
-        "point": 10.4,
-        "flow_ratio": 0.093
-      },
-      {
-        "date": "2026-09-03",
-        "point": 10.74,
-        "flow_ratio": 0.093
-      },
-      {
-        "date": "2026-09-04",
-        "point": 8.91,
-        "flow_ratio": 0.041
-      }
-    ],
-    "XLY": [
-      {
-        "date": "2026-08-10",
-        "point": 0.47,
-        "flow_ratio": 0.178
-      },
-      {
-        "date": "2026-08-11",
-        "point": 0.17,
-        "flow_ratio": 0.122
-      },
-      {
-        "date": "2026-08-12",
-        "point": 0.22,
-        "flow_ratio": 0.081
-      },
-      {
-        "date": "2026-08-13",
-        "point": 1.13,
-        "flow_ratio": 0.06
-      },
-      {
-        "date": "2026-08-14",
-        "point": 1.2,
-        "flow_ratio": 0.093
-      },
-      {
-        "date": "2026-08-17",
-        "point": -0.42,
+        "date": "2025-08-15",
+        "point": -0.5,
         "flow_ratio": 0.022
       },
       {
-        "date": "2026-08-18",
+        "date": "2025-08-18",
+        "point": -1.46,
+        "flow_ratio": 0.025
+      },
+      {
+        "date": "2025-08-19",
+        "point": -1.8,
+        "flow_ratio": 0.013
+      },
+      {
+        "date": "2025-08-20",
+        "point": -1.6,
+        "flow_ratio": 0.015
+      },
+      {
+        "date": "2025-08-21",
+        "point": -1.61,
+        "flow_ratio": -0.057
+      },
+      {
+        "date": "2025-08-22",
         "point": 0.13,
-        "flow_ratio": 0.041
+        "flow_ratio": 0.004
       },
       {
-        "date": "2026-08-19",
-        "point": 4.06,
-        "flow_ratio": 0.148
+        "date": "2025-08-25",
+        "point": -1.55,
+        "flow_ratio": 0.004
       },
       {
-        "date": "2026-08-20",
-        "point": 2.49,
-        "flow_ratio": 0.085
+        "date": "2025-08-26",
+        "point": -1.11,
+        "flow_ratio": 0.071
       },
       {
-        "date": "2026-08-21",
-        "point": 2.74,
-        "flow_ratio": 0.088
-      },
-      {
-        "date": "2026-08-24",
-        "point": 2.01,
-        "flow_ratio": 0.14
-      },
-      {
-        "date": "2026-08-25",
-        "point": 2.15,
-        "flow_ratio": 0.153
-      },
-      {
-        "date": "2026-08-26",
-        "point": 0.71,
-        "flow_ratio": 0.095
-      },
-      {
-        "date": "2026-08-27",
-        "point": -0.58,
-        "flow_ratio": 0.039
-      },
-      {
-        "date": "2026-08-28",
-        "point": -0.75,
-        "flow_ratio": 0.116
-      },
-      {
-        "date": "2026-08-31",
-        "point": -1.21,
-        "flow_ratio": 0.132
-      },
-      {
-        "date": "2026-09-01",
-        "point": -2.42,
-        "flow_ratio": 0.068
-      },
-      {
-        "date": "2026-09-02",
-        "point": -1.88,
-        "flow_ratio": 0.129
-      },
-      {
-        "date": "2026-09-03",
-        "point": -0.06,
-        "flow_ratio": 0.23
-      },
-      {
-        "date": "2026-09-04",
-        "point": -1.0,
-        "flow_ratio": 0.162
-      }
-    ],
-    "XLP": [
-      {
-        "date": "2026-08-10",
-        "point": 1.01,
-        "flow_ratio": -0.023
-      },
-      {
-        "date": "2026-08-11",
-        "point": -0.02,
-        "flow_ratio": -0.015
-      },
-      {
-        "date": "2026-08-12",
-        "point": 0.04,
-        "flow_ratio": 0.043
-      },
-      {
-        "date": "2026-08-13",
-        "point": 0.39,
-        "flow_ratio": 0.039
-      },
-      {
-        "date": "2026-08-14",
-        "point": 0.8,
-        "flow_ratio": 0.009
-      },
-      {
-        "date": "2026-08-17",
+        "date": "2025-08-27",
         "point": -0.54,
         "flow_ratio": 0.018
       },
       {
-        "date": "2026-08-18",
-        "point": -0.18,
-        "flow_ratio": 0.01
+        "date": "2025-08-28",
+        "point": -1.31,
+        "flow_ratio": 0.034
       },
       {
-        "date": "2026-08-19",
-        "point": 0.48,
-        "flow_ratio": 0.082
+        "date": "2025-08-29",
+        "point": -1.54,
+        "flow_ratio": 0.089
       },
       {
-        "date": "2026-08-20",
-        "point": -1.44,
-        "flow_ratio": 0.081
+        "date": "2025-09-02",
+        "point": -1.06,
+        "flow_ratio": 0.143
       },
       {
-        "date": "2026-08-21",
-        "point": -0.14,
-        "flow_ratio": 0.09
+        "date": "2025-09-03",
+        "point": -0.96,
+        "flow_ratio": 0.073
+      }
+    ],
+    "XLY": [
+      {
+        "date": "2025-08-06",
+        "point": 1.47,
+        "flow_ratio": 0.251
       },
       {
-        "date": "2026-08-24",
-        "point": 1.41,
-        "flow_ratio": 0.093
+        "date": "2025-08-07",
+        "point": 1.9,
+        "flow_ratio": 0.238
       },
       {
-        "date": "2026-08-25",
-        "point": 0.41,
-        "flow_ratio": 0.095
+        "date": "2025-08-08",
+        "point": 2.41,
+        "flow_ratio": 0.245
       },
       {
-        "date": "2026-08-26",
-        "point": 0.9,
+        "date": "2025-08-11",
+        "point": 2.14,
+        "flow_ratio": 0.247
+      },
+      {
+        "date": "2025-08-12",
+        "point": 3.6,
+        "flow_ratio": 0.297
+      },
+      {
+        "date": "2025-08-13",
+        "point": 3.39,
+        "flow_ratio": 0.297
+      },
+      {
+        "date": "2025-08-14",
+        "point": 3.69,
+        "flow_ratio": 0.224
+      },
+      {
+        "date": "2025-08-15",
+        "point": 3.05,
+        "flow_ratio": 0.172
+      },
+      {
+        "date": "2025-08-18",
+        "point": 3.85,
+        "flow_ratio": 0.231
+      },
+      {
+        "date": "2025-08-19",
+        "point": 3.44,
+        "flow_ratio": 0.211
+      },
+      {
+        "date": "2025-08-20",
+        "point": 2.14,
+        "flow_ratio": 0.145
+      },
+      {
+        "date": "2025-08-21",
+        "point": 1.46,
+        "flow_ratio": 0.092
+      },
+      {
+        "date": "2025-08-22",
+        "point": 5.1,
+        "flow_ratio": 0.115
+      },
+      {
+        "date": "2025-08-25",
+        "point": 4.97,
+        "flow_ratio": 0.065
+      },
+      {
+        "date": "2025-08-26",
+        "point": 6.32,
+        "flow_ratio": 0.124
+      },
+      {
+        "date": "2025-08-27",
+        "point": 7.17,
+        "flow_ratio": 0.113
+      },
+      {
+        "date": "2025-08-28",
+        "point": 8.46,
+        "flow_ratio": 0.115
+      },
+      {
+        "date": "2025-08-29",
+        "point": 7.31,
         "flow_ratio": 0.049
       },
       {
-        "date": "2026-08-27",
-        "point": -1.25,
-        "flow_ratio": -0.018
+        "date": "2025-09-02",
+        "point": 6.84,
+        "flow_ratio": -0.02
       },
       {
-        "date": "2026-08-28",
-        "point": -1.14,
-        "flow_ratio": 0.057
+        "date": "2025-09-03",
+        "point": 7.46,
+        "flow_ratio": -0.011
+      }
+    ],
+    "XLP": [
+      {
+        "date": "2025-08-06",
+        "point": 2.18,
+        "flow_ratio": 0.06
       },
       {
-        "date": "2026-08-31",
-        "point": -0.97,
-        "flow_ratio": 0.062
+        "date": "2025-08-07",
+        "point": 3.59,
+        "flow_ratio": 0.12
       },
       {
-        "date": "2026-09-01",
-        "point": -0.29,
-        "flow_ratio": 0.117
+        "date": "2025-08-08",
+        "point": 3.62,
+        "flow_ratio": 0.178
       },
       {
-        "date": "2026-09-02",
-        "point": -0.45,
+        "date": "2025-08-11",
+        "point": 4.27,
+        "flow_ratio": 0.12
+      },
+      {
+        "date": "2025-08-12",
+        "point": 4.28,
+        "flow_ratio": 0.128
+      },
+      {
+        "date": "2025-08-13",
+        "point": 3.76,
+        "flow_ratio": 0.08
+      },
+      {
+        "date": "2025-08-14",
+        "point": 3.32,
+        "flow_ratio": 0.018
+      },
+      {
+        "date": "2025-08-15",
+        "point": 3.31,
+        "flow_ratio": 0.068
+      },
+      {
+        "date": "2025-08-18",
+        "point": 1.93,
+        "flow_ratio": 0.073
+      },
+      {
+        "date": "2025-08-19",
+        "point": 2.71,
+        "flow_ratio": 0.136
+      },
+      {
+        "date": "2025-08-20",
+        "point": 2.75,
+        "flow_ratio": 0.236
+      },
+      {
+        "date": "2025-08-21",
+        "point": 2.21,
+        "flow_ratio": 0.161
+      },
+      {
+        "date": "2025-08-22",
+        "point": 2.58,
+        "flow_ratio": 0.197
+      },
+      {
+        "date": "2025-08-25",
+        "point": 0.36,
         "flow_ratio": 0.123
       },
       {
-        "date": "2026-09-03",
-        "point": -0.17,
-        "flow_ratio": 0.122
+        "date": "2025-08-26",
+        "point": 0.03,
+        "flow_ratio": 0.123
       },
       {
-        "date": "2026-09-04",
-        "point": -0.35,
-        "flow_ratio": 0.058
+        "date": "2025-08-27",
+        "point": -0.26,
+        "flow_ratio": 0.116
+      },
+      {
+        "date": "2025-08-28",
+        "point": -0.99,
+        "flow_ratio": 0.05
+      },
+      {
+        "date": "2025-08-29",
+        "point": -1.26,
+        "flow_ratio": 0.109
+      },
+      {
+        "date": "2025-09-02",
+        "point": -0.66,
+        "flow_ratio": 0.102
+      },
+      {
+        "date": "2025-09-03",
+        "point": -1.09,
+        "flow_ratio": 0.029
       }
     ],
     "XLI": [
       {
-        "date": "2026-08-10",
-        "point": 7.09,
-        "flow_ratio": 0.206
+        "date": "2025-08-06",
+        "point": 7.63,
+        "flow_ratio": 0.135
       },
       {
-        "date": "2026-08-11",
-        "point": 7.76,
-        "flow_ratio": 0.194
+        "date": "2025-08-07",
+        "point": 8.2,
+        "flow_ratio": 0.129
       },
       {
-        "date": "2026-08-12",
-        "point": 7.9,
-        "flow_ratio": 0.184
+        "date": "2025-08-08",
+        "point": 8.56,
+        "flow_ratio": 0.128
       },
       {
-        "date": "2026-08-13",
-        "point": 6.52,
-        "flow_ratio": 0.203
+        "date": "2025-08-11",
+        "point": 7.99,
+        "flow_ratio": 0.063
       },
       {
-        "date": "2026-08-14",
-        "point": 7.07,
-        "flow_ratio": 0.191
+        "date": "2025-08-12",
+        "point": 8.96,
+        "flow_ratio": 0.06
       },
       {
-        "date": "2026-08-17",
+        "date": "2025-08-13",
+        "point": 8.05,
+        "flow_ratio": 0.06
+      },
+      {
+        "date": "2025-08-14",
+        "point": 7.13,
+        "flow_ratio": 0.0
+      },
+      {
+        "date": "2025-08-15",
+        "point": 6.41,
+        "flow_ratio": -0.039
+      },
+      {
+        "date": "2025-08-18",
+        "point": 6.46,
+        "flow_ratio": 0.013
+      },
+      {
+        "date": "2025-08-19",
+        "point": 6.29,
+        "flow_ratio": 0.072
+      },
+      {
+        "date": "2025-08-20",
+        "point": 6.09,
+        "flow_ratio": 0.013
+      },
+      {
+        "date": "2025-08-21",
+        "point": 5.7,
+        "flow_ratio": -0.046
+      },
+      {
+        "date": "2025-08-22",
+        "point": 7.52,
+        "flow_ratio": 0.003
+      },
+      {
+        "date": "2025-08-25",
         "point": 6.68,
-        "flow_ratio": 0.126
+        "flow_ratio": -0.045
       },
       {
-        "date": "2026-08-18",
-        "point": 5.27,
-        "flow_ratio": 0.145
+        "date": "2025-08-26",
+        "point": 8.36,
+        "flow_ratio": 0.007
       },
       {
-        "date": "2026-08-19",
-        "point": 4.65,
-        "flow_ratio": 0.139
+        "date": "2025-08-27",
+        "point": 9.12,
+        "flow_ratio": -0.042
       },
       {
-        "date": "2026-08-20",
-        "point": 3.18,
-        "flow_ratio": 0.075
+        "date": "2025-08-28",
+        "point": 10.09,
+        "flow_ratio": -0.062
       },
       {
-        "date": "2026-08-21",
-        "point": 2.8,
-        "flow_ratio": 0.075
+        "date": "2025-08-29",
+        "point": 8.53,
+        "flow_ratio": -0.058
       },
       {
-        "date": "2026-08-24",
-        "point": 2.23,
-        "flow_ratio": 0.076
+        "date": "2025-09-02",
+        "point": 7.5,
+        "flow_ratio": -0.057
       },
       {
-        "date": "2026-08-25",
-        "point": 2.13,
-        "flow_ratio": 0.006
-      },
-      {
-        "date": "2026-08-26",
-        "point": 2.35,
-        "flow_ratio": 0.089
-      },
-      {
-        "date": "2026-08-27",
-        "point": 1.97,
-        "flow_ratio": 0.028
-      },
-      {
-        "date": "2026-08-28",
-        "point": 0.03,
-        "flow_ratio": 0.028
-      },
-      {
-        "date": "2026-08-31",
-        "point": -1.03,
-        "flow_ratio": 0.022
-      },
-      {
-        "date": "2026-09-01",
-        "point": -2.58,
-        "flow_ratio": -0.049
-      },
-      {
-        "date": "2026-09-02",
-        "point": -2.74,
-        "flow_ratio": -0.017
-      },
-      {
-        "date": "2026-09-03",
-        "point": -2.25,
-        "flow_ratio": -0.02
-      },
-      {
-        "date": "2026-09-04",
-        "point": -1.11,
-        "flow_ratio": -0.019
+        "date": "2025-09-03",
+        "point": 7.16,
+        "flow_ratio": -0.143
       }
     ],
     "XLU": [
       {
-        "date": "2026-08-10",
-        "point": -1.81,
-        "flow_ratio": -0.385
+        "date": "2025-08-06",
+        "point": 8.43,
+        "flow_ratio": 0.302
       },
       {
-        "date": "2026-08-11",
-        "point": -0.01,
-        "flow_ratio": -0.321
+        "date": "2025-08-07",
+        "point": 9.65,
+        "flow_ratio": 0.369
       },
       {
-        "date": "2026-08-12",
-        "point": 0.08,
-        "flow_ratio": -0.265
+        "date": "2025-08-08",
+        "point": 8.7,
+        "flow_ratio": 0.321
       },
       {
-        "date": "2026-08-13",
-        "point": 0.37,
-        "flow_ratio": -0.19
+        "date": "2025-08-11",
+        "point": 9.32,
+        "flow_ratio": 0.264
       },
       {
-        "date": "2026-08-14",
-        "point": 1.24,
-        "flow_ratio": -0.206
+        "date": "2025-08-12",
+        "point": 9.17,
+        "flow_ratio": 0.264
       },
       {
-        "date": "2026-08-17",
-        "point": -0.01,
-        "flow_ratio": -0.201
+        "date": "2025-08-13",
+        "point": 9.53,
+        "flow_ratio": 0.249
       },
       {
-        "date": "2026-08-18",
-        "point": -0.77,
-        "flow_ratio": -0.269
+        "date": "2025-08-14",
+        "point": 8.49,
+        "flow_ratio": 0.252
       },
       {
-        "date": "2026-08-19",
-        "point": -1.68,
-        "flow_ratio": -0.242
+        "date": "2025-08-15",
+        "point": 7.62,
+        "flow_ratio": 0.189
       },
       {
-        "date": "2026-08-20",
-        "point": -3.83,
-        "flow_ratio": -0.238
+        "date": "2025-08-18",
+        "point": 6.0,
+        "flow_ratio": 0.142
       },
       {
-        "date": "2026-08-21",
-        "point": -5.69,
-        "flow_ratio": -0.297
+        "date": "2025-08-19",
+        "point": 6.94,
+        "flow_ratio": 0.228
       },
       {
-        "date": "2026-08-24",
-        "point": -4.08,
-        "flow_ratio": -0.289
+        "date": "2025-08-20",
+        "point": 6.85,
+        "flow_ratio": 0.208
       },
       {
-        "date": "2026-08-25",
-        "point": -4.27,
-        "flow_ratio": -0.238
+        "date": "2025-08-21",
+        "point": 6.2,
+        "flow_ratio": 0.148
       },
       {
-        "date": "2026-08-26",
-        "point": -3.91,
-        "flow_ratio": -0.191
+        "date": "2025-08-22",
+        "point": 7.02,
+        "flow_ratio": 0.207
       },
       {
-        "date": "2026-08-27",
-        "point": -4.72,
-        "flow_ratio": -0.246
+        "date": "2025-08-25",
+        "point": 5.62,
+        "flow_ratio": 0.15
       },
       {
-        "date": "2026-08-28",
-        "point": -5.96,
-        "flow_ratio": -0.244
+        "date": "2025-08-26",
+        "point": 5.36,
+        "flow_ratio": 0.215
       },
       {
-        "date": "2026-08-31",
-        "point": -6.96,
-        "flow_ratio": -0.259
+        "date": "2025-08-27",
+        "point": 5.04,
+        "flow_ratio": 0.209
       },
       {
-        "date": "2026-09-01",
-        "point": -5.08,
-        "flow_ratio": -0.178
+        "date": "2025-08-28",
+        "point": 4.84,
+        "flow_ratio": 0.158
       },
       {
-        "date": "2026-09-02",
-        "point": -5.66,
-        "flow_ratio": -0.159
+        "date": "2025-08-29",
+        "point": 4.12,
+        "flow_ratio": 0.088
       },
       {
-        "date": "2026-09-03",
-        "point": -4.54,
-        "flow_ratio": -0.144
+        "date": "2025-09-02",
+        "point": 3.54,
+        "flow_ratio": 0.027
       },
       {
-        "date": "2026-09-04",
-        "point": -3.99,
-        "flow_ratio": -0.141
+        "date": "2025-09-03",
+        "point": 4.63,
+        "flow_ratio": -0.035
       }
     ],
     "XLB": [
       {
-        "date": "2026-08-10",
-        "point": 5.09,
+        "date": "2025-08-06",
+        "point": -0.78,
+        "flow_ratio": 0.023
+      },
+      {
+        "date": "2025-08-07",
+        "point": 0.4,
+        "flow_ratio": 0.077
+      },
+      {
+        "date": "2025-08-08",
+        "point": 1.14,
+        "flow_ratio": 0.077
+      },
+      {
+        "date": "2025-08-11",
+        "point": 0.92,
+        "flow_ratio": 0.028
+      },
+      {
+        "date": "2025-08-12",
+        "point": 2.14,
         "flow_ratio": 0.075
       },
       {
-        "date": "2026-08-11",
-        "point": 3.97,
-        "flow_ratio": 0.146
+        "date": "2025-08-13",
+        "point": 3.09,
+        "flow_ratio": 0.078
       },
       {
-        "date": "2026-08-12",
-        "point": 3.56,
-        "flow_ratio": 0.092
+        "date": "2025-08-14",
+        "point": 2.71,
+        "flow_ratio": 0.007
       },
       {
-        "date": "2026-08-13",
-        "point": 2.25,
-        "flow_ratio": 0.022
+        "date": "2025-08-15",
+        "point": 2.57,
+        "flow_ratio": 0.023
       },
       {
-        "date": "2026-08-14",
-        "point": 2.34,
-        "flow_ratio": 0.008
+        "date": "2025-08-18",
+        "point": 1.08,
+        "flow_ratio": 0.028
       },
       {
-        "date": "2026-08-17",
-        "point": 1.21,
-        "flow_ratio": 0.047
+        "date": "2025-08-19",
+        "point": 1.71,
+        "flow_ratio": 0.018
       },
       {
-        "date": "2026-08-18",
-        "point": -0.02,
-        "flow_ratio": 0.061
+        "date": "2025-08-20",
+        "point": 1.1,
+        "flow_ratio": 0.018
       },
       {
-        "date": "2026-08-19",
-        "point": 2.47,
-        "flow_ratio": 0.136
+        "date": "2025-08-21",
+        "point": 1.33,
+        "flow_ratio": 0.017
       },
       {
-        "date": "2026-08-20",
-        "point": 1.96,
-        "flow_ratio": 0.075
+        "date": "2025-08-22",
+        "point": 3.42,
+        "flow_ratio": 0.07
       },
       {
-        "date": "2026-08-21",
-        "point": 4.28,
-        "flow_ratio": 0.096
+        "date": "2025-08-25",
+        "point": 3.57,
+        "flow_ratio": 0.071
       },
       {
-        "date": "2026-08-24",
-        "point": 3.41,
-        "flow_ratio": 0.162
-      },
-      {
-        "date": "2026-08-25",
-        "point": 3.75,
-        "flow_ratio": 0.136
-      },
-      {
-        "date": "2026-08-26",
-        "point": 3.48,
-        "flow_ratio": 0.198
-      },
-      {
-        "date": "2026-08-27",
-        "point": 3.15,
-        "flow_ratio": 0.151
-      },
-      {
-        "date": "2026-08-28",
-        "point": 2.29,
-        "flow_ratio": 0.132
-      },
-      {
-        "date": "2026-08-31",
-        "point": 1.24,
+        "date": "2025-08-26",
+        "point": 4.55,
         "flow_ratio": 0.125
       },
       {
-        "date": "2026-09-01",
-        "point": -0.08,
-        "flow_ratio": 0.052
+        "date": "2025-08-27",
+        "point": 5.65,
+        "flow_ratio": 0.116
       },
       {
-        "date": "2026-09-02",
-        "point": 1.14,
-        "flow_ratio": 0.061
+        "date": "2025-08-28",
+        "point": 6.38,
+        "flow_ratio": 0.089
       },
       {
-        "date": "2026-09-03",
-        "point": 0.27,
-        "flow_ratio": 0.049
+        "date": "2025-08-29",
+        "point": 5.68,
+        "flow_ratio": 0.078
       },
       {
-        "date": "2026-09-04",
-        "point": 1.04,
-        "flow_ratio": -0.018
+        "date": "2025-09-02",
+        "point": 4.72,
+        "flow_ratio": 0.022
+      },
+      {
+        "date": "2025-09-03",
+        "point": 4.49,
+        "flow_ratio": -0.035
       }
     ],
     "XLRE": [
       {
-        "date": "2026-08-10",
-        "point": 5.42,
-        "flow_ratio": -0.143
+        "date": "2025-08-06",
+        "point": 0.52,
+        "flow_ratio": -0.035
       },
       {
-        "date": "2026-08-11",
-        "point": 3.75,
-        "flow_ratio": -0.145
+        "date": "2025-08-07",
+        "point": 1.22,
+        "flow_ratio": 0.045
       },
       {
-        "date": "2026-08-12",
-        "point": 4.43,
-        "flow_ratio": -0.058
+        "date": "2025-08-08",
+        "point": 0.33,
+        "flow_ratio": 0.078
       },
       {
-        "date": "2026-08-13",
-        "point": 4.92,
-        "flow_ratio": -0.074
+        "date": "2025-08-11",
+        "point": 0.19,
+        "flow_ratio": 0.018
       },
       {
-        "date": "2026-08-14",
-        "point": 5.25,
-        "flow_ratio": -0.08
+        "date": "2025-08-12",
+        "point": -0.84,
+        "flow_ratio": 0.023
       },
       {
-        "date": "2026-08-17",
-        "point": 3.68,
-        "flow_ratio": -0.09
+        "date": "2025-08-13",
+        "point": -0.33,
+        "flow_ratio": 0.001
       },
       {
-        "date": "2026-08-18",
-        "point": 3.77,
-        "flow_ratio": -0.162
+        "date": "2025-08-14",
+        "point": -0.58,
+        "flow_ratio": -0.07
       },
       {
-        "date": "2026-08-19",
-        "point": 4.24,
-        "flow_ratio": -0.105
+        "date": "2025-08-15",
+        "point": 0.12,
+        "flow_ratio": -0.071
       },
       {
-        "date": "2026-08-20",
-        "point": 3.02,
-        "flow_ratio": -0.094
+        "date": "2025-08-18",
+        "point": -1.97,
+        "flow_ratio": -0.062
       },
       {
-        "date": "2026-08-21",
-        "point": 2.31,
-        "flow_ratio": -0.117
+        "date": "2025-08-19",
+        "point": -0.17,
+        "flow_ratio": 0.0
       },
       {
-        "date": "2026-08-24",
-        "point": 3.42,
-        "flow_ratio": -0.118
+        "date": "2025-08-20",
+        "point": -0.2,
+        "flow_ratio": 0.058
       },
       {
-        "date": "2026-08-25",
-        "point": 3.66,
-        "flow_ratio": -0.072
+        "date": "2025-08-21",
+        "point": -0.23,
+        "flow_ratio": 0.0
       },
       {
-        "date": "2026-08-26",
-        "point": 2.88,
-        "flow_ratio": -0.125
+        "date": "2025-08-22",
+        "point": 2.3,
+        "flow_ratio": 0.06
       },
       {
-        "date": "2026-08-27",
-        "point": 2.01,
-        "flow_ratio": -0.184
+        "date": "2025-08-25",
+        "point": 1.38,
+        "flow_ratio": -0.006
       },
       {
-        "date": "2026-08-28",
-        "point": 1.52,
-        "flow_ratio": -0.184
+        "date": "2025-08-26",
+        "point": 1.09,
+        "flow_ratio": 0.004
       },
       {
-        "date": "2026-08-31",
-        "point": 1.26,
-        "flow_ratio": -0.205
+        "date": "2025-08-27",
+        "point": 1.96,
+        "flow_ratio": -0.012
       },
       {
-        "date": "2026-09-01",
-        "point": 1.28,
-        "flow_ratio": -0.222
+        "date": "2025-08-28",
+        "point": 1.54,
+        "flow_ratio": 0.006
       },
       {
-        "date": "2026-09-02",
-        "point": 0.41,
-        "flow_ratio": -0.239
+        "date": "2025-08-29",
+        "point": 1.12,
+        "flow_ratio": 0.002
       },
       {
-        "date": "2026-09-03",
-        "point": 1.4,
-        "flow_ratio": -0.183
+        "date": "2025-09-02",
+        "point": -0.47,
+        "flow_ratio": -0.066
       },
       {
-        "date": "2026-09-04",
-        "point": 0.73,
-        "flow_ratio": -0.238
+        "date": "2025-09-03",
+        "point": -0.78,
+        "flow_ratio": -0.127
       }
     ],
     "XLC": [
       {
-        "date": "2026-08-10",
-        "point": -3.27,
-        "flow_ratio": 0.12
+        "date": "2025-08-06",
+        "point": 6.0,
+        "flow_ratio": 0.078
       },
       {
-        "date": "2026-08-11",
-        "point": -3.71,
-        "flow_ratio": 0.07
+        "date": "2025-08-07",
+        "point": 5.5,
+        "flow_ratio": 0.066
       },
       {
-        "date": "2026-08-12",
-        "point": -3.9,
+        "date": "2025-08-08",
+        "point": 5.55,
         "flow_ratio": 0.065
       },
       {
-        "date": "2026-08-13",
-        "point": -1.33,
-        "flow_ratio": 0.02
+        "date": "2025-08-11",
+        "point": 5.8,
+        "flow_ratio": 0.052
       },
       {
-        "date": "2026-08-14",
-        "point": -1.67,
-        "flow_ratio": 0.085
+        "date": "2025-08-12",
+        "point": 8.42,
+        "flow_ratio": 0.061
       },
       {
-        "date": "2026-08-17",
-        "point": -3.7,
-        "flow_ratio": 0.014
+        "date": "2025-08-13",
+        "point": 8.36,
+        "flow_ratio": 0.147
       },
       {
-        "date": "2026-08-18",
-        "point": -3.26,
-        "flow_ratio": -0.056
+        "date": "2025-08-14",
+        "point": 8.41,
+        "flow_ratio": 0.204
       },
       {
-        "date": "2026-08-19",
-        "point": -0.9,
-        "flow_ratio": -0.003
+        "date": "2025-08-15",
+        "point": 7.95,
+        "flow_ratio": 0.215
       },
       {
-        "date": "2026-08-20",
-        "point": -1.45,
-        "flow_ratio": -0.065
+        "date": "2025-08-18",
+        "point": 7.03,
+        "flow_ratio": 0.223
       },
       {
-        "date": "2026-08-21",
-        "point": -1.11,
-        "flow_ratio": -0.074
+        "date": "2025-08-19",
+        "point": 6.05,
+        "flow_ratio": 0.217
       },
       {
-        "date": "2026-08-24",
-        "point": -0.85,
-        "flow_ratio": -0.012
+        "date": "2025-08-20",
+        "point": 5.06,
+        "flow_ratio": 0.135
       },
       {
-        "date": "2026-08-25",
-        "point": -0.16,
-        "flow_ratio": 0.038
+        "date": "2025-08-21",
+        "point": 4.93,
+        "flow_ratio": 0.137
       },
       {
-        "date": "2026-08-26",
-        "point": -0.67,
-        "flow_ratio": -0.027
+        "date": "2025-08-22",
+        "point": 7.03,
+        "flow_ratio": 0.197
       },
       {
-        "date": "2026-08-27",
-        "point": -1.68,
-        "flow_ratio": -0.019
+        "date": "2025-08-25",
+        "point": 7.43,
+        "flow_ratio": 0.196
       },
       {
-        "date": "2026-08-28",
-        "point": -1.44,
-        "flow_ratio": 0.057
+        "date": "2025-08-26",
+        "point": 7.26,
+        "flow_ratio": 0.202
       },
       {
-        "date": "2026-08-31",
-        "point": -2.87,
-        "flow_ratio": 0.008
+        "date": "2025-08-27",
+        "point": 7.5,
+        "flow_ratio": 0.188
       },
       {
-        "date": "2026-09-01",
-        "point": -3.18,
-        "flow_ratio": -0.0
+        "date": "2025-08-28",
+        "point": 8.12,
+        "flow_ratio": 0.189
       },
       {
-        "date": "2026-09-02",
-        "point": -2.02,
-        "flow_ratio": 0.06
+        "date": "2025-08-29",
+        "point": 8.46,
+        "flow_ratio": 0.197
       },
       {
-        "date": "2026-09-03",
-        "point": -0.79,
-        "flow_ratio": 0.171
+        "date": "2025-09-02",
+        "point": 8.45,
+        "flow_ratio": 0.121
       },
       {
-        "date": "2026-09-04",
-        "point": -2.37,
-        "flow_ratio": 0.113
+        "date": "2025-09-03",
+        "point": 10.58,
+        "flow_ratio": 0.137
       }
     ]
   }
