@@ -736,8 +736,21 @@ def render(scorecard, stage2, pattern):
         or '<tr><td colspan="11" class="empty">今日無 explosive 訊號</td></tr>'
 
     # 感測器投資建議：TODAY（已形成）/ TRIGGER（等確認）/ AVOID（矛盾或風險過高）
+    # 9/7 新增：跟 V2 Opportunity Radar 讀同一份 forward_returns_by_symbol（候選池
+    # 也是同一個 build_sensor_pool()），加回測報酬欄位驗證 TODAY/TRIGGER/AVOID 分類準不準
+    sensor_fwd_by_symbol = (stage2 or {}).get("forward_returns_by_symbol") or {}
+
+    def _sensor_fwd_cell(symbol, label):
+        cp = (sensor_fwd_by_symbol.get(symbol) or {}).get(label) or {}
+        r = cp.get("return_pct")
+        if r is None:
+            return '<td class="n dim">—</td>'
+        cls = "up" if r > 0 else ("down" if r < 0 else "flat")
+        return f'<td class="n {cls}">{r:+.1f}%</td>'
+
     def _sensor_row(rank, r, sc, group):
-        symbol = escape(r.get("symbol", ""))
+        symbol_key = r.get("symbol", "")
+        symbol = escape(symbol_key)
         name = escape((r.get("name") or "")[:24])
         sector = escape(r.get("sector", ""))
         vlink = _valuation_link(r.get("symbol"))
@@ -749,6 +762,8 @@ def render(scorecard, stage2, pattern):
         else:
             note = f'<span class="dow-conflict">{escape(sc["conflict_label"] or "—")}</span>'
         penalty_html = f' <span class="dim">(-{sc["conflict_penalty"]})</span>' if sc["conflict_penalty"] else ""
+        fwd_cells = (_sensor_fwd_cell(symbol_key, "4w") + _sensor_fwd_cell(symbol_key, "13w")
+                     + _sensor_fwd_cell(symbol_key, "52w"))
         return f'''
         <tr>
           <td class="n">{rank}</td>
@@ -760,6 +775,7 @@ def render(scorecard, stage2, pattern):
           <td class="n">{sc["s4"]}</td>
           <td class="n">{sc["s5"]}</td>
           <td class="n"><b>{sc["total"]}</b>{penalty_html}</td>
+          {fwd_cells}
           <td>{note}</td>
         </tr>'''
 
@@ -777,6 +793,9 @@ def render(scorecard, stage2, pattern):
               <th class="n" title="趨勢完整性：Dow 型態 + 訊號">S4</th>
               <th class="n" title="位置/空間：離 52w 高點距離 + 暴漲判定 + gap alert">S5</th>
               <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分（不平均掉）">Total</th>
+              <th class="n" title="進場（被列入這組候選）後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
               <th>{note_header}</th>
             </tr>
           </thead>
@@ -792,6 +811,8 @@ def render(scorecard, stage2, pattern):
         找「資金正在進入、但價格還沒完全反映」的地方：<b>S1 板塊變強</b> + <b>S2 個股變強</b> + <b>S3 成交量確認</b> +
         <b>S4 趨勢沒破壞</b> + <b>S5 還沒過度遠離合理進場位置</b>，五個同時成立才算真正機會。
         <b>訊號矛盾（強動能但 Dow 結構已破壞 / 已列追高風險）直接扣總分，不是平均掉</b>——表面很強但結構有問題的標的會被攔進 AVOID。
+        <b>4W/13W/52W 後</b>是這檔股票被列入這組「當時」之後的實際報酬，由 enrich_forward_returns.py 隨 Stage 2
+        （週五）回填，用來檢驗 TODAY/TRIGGER/AVOID 這套分類準不準——未滿週期或缺資料顯示 —，不是 0%。
       </div>
       <div style="padding:14px 14px 4px;font-weight:700;">🟢 TODAY · 已形成機會</div>
       {_sensor_table(sensor_today, "today", "備註", "今日無已形成的高分機會 · 資料日期可能較舊或候選池為空")}
