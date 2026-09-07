@@ -524,10 +524,24 @@ def opportunity_reason(sc, price_lag=None, top_n=2):
     return " + ".join(tags) if tags else "—"
 
 
+def _fwd_inline(fwd):
+    """4W/13W/52W 後實際報酬（回測驗證用）· 沒資料或未滿週期誠實顯示 —，不是 0%"""
+    if not fwd:
+        return "回測：4W — · 13W — · 52W —"
+
+    def _v(label):
+        cp = fwd.get(label) or {}
+        r = cp.get("return_pct")
+        return f"{r:+.1f}%" if r is not None else "—"
+
+    return f"回測：4W {_v('4w')} · 13W {_v('13w')} · 52W {_v('52w')}"
+
+
 def opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol=None):
     groups = build_stock_state_groups(stage2, scorecard, exp_buckets)
     regime_label = regime.get("label", "UNKNOWN") if regime else "UNKNOWN"
     lag_by_symbol = lag_by_symbol or {}
+    fwd_by_symbol = (stage2 or {}).get("forward_returns_by_symbol") or {}
     sections = []
     for state in STOCK_STATE_ORDER:
         icon, label = STATE_LABELS[state]
@@ -537,13 +551,15 @@ def opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol
             perm_icon, perm_note = entry_permission(regime_label, state)
             perm_html = f'<span title="{escape(perm_note)}">{perm_icon}</span>' if perm_note else f'<span>{perm_icon}</span>'
             reason = opportunity_reason(sc, lag_by_symbol.get(r.get("symbol")))
+            fwd_txt = _fwd_inline(fwd_by_symbol.get(r.get("symbol")))
             lis_parts.append(
                 f'<li><b>{escape(r.get("symbol",""))}</b> '
                 f'<span class="dim">{escape((r.get("name") or "")[:16])}</span>'
                 f'<span class="dim">[{escape(r.get("sector",""))}]</span>'
                 f'<span class="dim" title="{state}">{sc.get("total","—")}</span>'
                 f'{perm_html}'
-                f'<span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">{escape(reason)}</span></li>'
+                f'<span class="dim" title="從 S1-S5 子分數挑最高的兩個轉成的短標籤，不是新訊號">{escape(reason)}</span>'
+                f'<span class="dim" title="進場（被 pool 選中）後實際報酬 · 用來檢驗這個狀態分類準不準">{escape(fwd_txt)}</span></li>'
             )
         lis = "".join(lis_parts) or '<li class="empty">今日無</li>'
         sections.append(f'<h4 style="margin:10px 0 4px;">{icon} {label}<span class="dim">（{len(items)}）</span></h4>'
@@ -551,8 +567,10 @@ def opportunity_radar_html(stage2, scorecard, exp_buckets, regime, lag_by_symbol
     sections.append(f'<p class="dim" style="margin:10px 0 0;">五態（EARLY/CONFIRMED/MATURE/OVERHEATED/REJECTED）'
                      f'沿用既有感測器欄位分類，不是新公式；Entry Permission 是依今日 regime（'
                      f'{escape(regime_label)}）標註的進場許可（✅可進場／⚠️留意／❌不建議），不改變狀態分類本身——'
-                     f'股票處在哪個狀態是一回事，這個環境下該不該進場是另一回事。最後一欄的短標籤是從 S1-S5 挑'
-                     f'最高的兩個子分數轉成的「為什麼」，Price Lag 有資料時額外附加。</p>')
+                     f'股票處在哪個狀態是一回事，這個環境下該不該進場是另一回事。倒數第二欄的短標籤是從 S1-S5 挑'
+                     f'最高的兩個子分數轉成的「為什麼」，Price Lag 有資料時額外附加。最後一欄「回測」是這檔股票被這個'
+                     f'狀態分類選中之後的實際 4W/13W/52W 報酬，由 enrich_forward_returns.py 隨 Stage 2（週五）回填，'
+                     f'用來檢驗五態分類本身準不準——不是新訊號，是既有分類的事後成績單。</p>')
     return "".join(sections)
 
 

@@ -1302,8 +1302,22 @@ def render(scorecard, stage2, pattern):
 
     leaders, breakouts, weakening, combo_a, combo_b, combo_c = _build_playbook(sector_flow_map, qual_sectors)
 
+    # 9/7 新增：回測驗證用的事後報酬——這批股票被 pool 選中「當時」之後
+    # 實際漲跌幅，由 enrich_forward_returns.py 隨 stage 2 一起算好存進
+    # latest.json 的 forward_returns_by_symbol，這裡純查表，不重算
+    fwd_by_symbol = (stage2 or {}).get("forward_returns_by_symbol") or {}
+
+    def _fwd_cell(fwd, label):
+        cp = (fwd or {}).get(label) or {}
+        r = cp.get("return_pct")
+        if r is None:
+            return '<td class="n dim">—</td>'
+        cls = "up" if r > 0 else ("down" if r < 0 else "flat")
+        return f'<td class="n {cls}">{r:+.1f}%</td>'
+
     def _pb_row(s, extra_col=""):
-        sym = escape(s.get("symbol", ""))
+        sym_key = s.get("symbol", "")
+        sym = escape(sym_key)
         sec_zh = escape(s.get("_sec_zh") or "")
         sec_etf = escape(s.get("_sec_etf") or "")
         ud = s["_ud_ratio"]
@@ -1314,6 +1328,8 @@ def render(scorecard, stage2, pattern):
         weight_col = f'<td class="n">{extra_col}</td>' if extra_col else ""
         badge = _insider_badge(s.get("symbol"), compact=True)
         vlink = _valuation_link(s.get("symbol"))
+        fwd = fwd_by_symbol.get(sym_key)
+        fwd_cells = _fwd_cell(fwd, "4w") + _fwd_cell(fwd, "13w") + _fwd_cell(fwd, "52w")
         return (
             f'<tr>'
             f'<td><b>{sym}</b>{vlink}{badge}</td>'
@@ -1321,6 +1337,7 @@ def render(scorecard, stage2, pattern):
             f'<td class="n {cls5}">{ret5:+.1f}%</td>'
             f'<td class="n {cls20}">{ret20:+.1f}%</td>'
             f'<td class="n up">▲ {ud:.2f}</td>'
+            + fwd_cells
             + weight_col
             + '</tr>'
         )
@@ -1340,6 +1357,9 @@ def render(scorecard, stage2, pattern):
               <th>Symbol</th><th>Sector</th>
               <th class="n">5d</th><th class="n">20d</th>
               <th class="n">ud</th>
+              <th class="n" title="進場後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
               {w_col}
             </tr>
           </thead>
@@ -1411,7 +1431,10 @@ def render(scorecard, stage2, pattern):
         <span style="background:#dcfce7;color:#166534;padding:1px 5px;border-radius:6px;font-size:10px;">🔥 ≥+1M + officer buy</span> 極強 ·
         <span style="background:#dcfce7;color:#166534;padding:1px 5px;border-radius:6px;font-size:10px;">👔 ≥+0.3M + officer</span> 強 ·
         <span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-size:10px;">▲ ≥+0.1M</span> 中 ·
-        <span style="background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-size:10px;">▼ ≤-1M</span> 派發警訊
+        <span style="background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-size:10px;">▼ ≤-1M</span> 派發警訊<br>
+        <b>📈 4W/13W/52W 後</b>：這批個股被 pool 選中「當時」之後的實際報酬 · 用來回測驗證這套
+        分類/組合邏輯準不準 · 由 enrich_forward_returns.py 隨 Stage 2（週五）執行後回填 ·
+        {'目前尚無回填資料，等下次 Stage 2 執行後才會出現數字' if not fwd_by_symbol else '未滿週期或缺資料顯示 —，不是 0%'}
       </div>
     </div>
   </div>'''

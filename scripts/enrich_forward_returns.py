@@ -1,23 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-enrich_forward_returns.py · 給 stage 2 每檔 top 3 個股加 1m/3m/6m/1y 前瞻報酬
+enrich_forward_returns.py · 給選股 pool 加 4W/13W/52W 前瞻報酬
 =====================================================================
 目的：投資決策時看到「當時的排行」+「事後表現」· 一眼判斷 pipeline 挑股準度
 
+9/7 擴大範圍：checkpoint 從 1m/3m/6m/1y 改成 4w/13w/52w（對齊全站既有
+4W/13W/26W 交易週期慣例，13w=91 天本來就對得上，這次延伸出 52w 當滿一年
+的 checkpoint）。symbol 涵蓋範圍也從「只有 stage2 latest.json 的 top3」
+擴大成 V1 Playbook（每 sector Top3）+ V2 Opportunity Radar（sensor pool）
++ SPMO Top10 會用到的全部候選——這幾個 pool 都是從同一份 {date}_all.csv
+篩出來的子集合，直接重用 generate_daily_report.py 既有的 loader 取得完整
+symbol 清單，不重新發明篩選邏輯（跟 V1/V2 報表用同一套 filter，保證涵蓋）。
+
 用法：
-  · 一定在 stage 2 之後跑（讀 data/sector_rotation/latest.json）
-  · 若 as_of 太近（<1 個月）· 只填 1m · 其他 checkpoint 標 null
+  · 一定在 stage 2 之後跑（讀 data/sector_rotation/latest.json + {date}_all.csv）
+  · 若 as_of 太近（<4 週）· 只填 4w · 其他 checkpoint 標 null
   · 若 as_of = today · 全部 null（沒事後資料）
   · yfinance 抓完 T-1 close · 用 t±3d 找最近的交易日
 
 輸出：
-  · 覆蓋 latest.json · 每檔 entry 加 forward_returns dict:
+  · 覆蓋 latest.json：
+    - 每個 top3 tab entry 加 forward_returns dict（維持既有結構，向後相容）：
       {
-        "1m": {"date": "YYYY-MM-DD", "price": 123.45, "return_pct": 5.67},
-        "3m": {...}, "6m": {...}, "1y": {...}
+        "4w": {"date": "YYYY-MM-DD", "price": 123.45, "return_pct": 5.67},
+        "13w": {...}, "52w": {...}
       }
-  · unique symbols pre-compute 一次 · 多 tab 共享
+    - 新增 forward_returns_by_symbol：{symbol: {entry_price, entry_date_actual,
+      4w, 13w, 52w}}，涵蓋全部候選 pool，V1 Playbook / V2 Opportunity Radar
+      直接用 symbol 查表即可，不用各自重算
+  · unique symbols pre-compute 一次 · 多 pool 共享
 
 執行：
   python scripts/enrich_forward_returns.py
@@ -30,9 +42,12 @@ from datetime import datetime, date, timedelta, timezone
 
 import pandas as pd
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import generate_daily_report as gdr  # noqa: E402  重用 V1/V2 報表已驗證過的 all.csv pool 篩選邏輯
+
 
 MANIFEST_PATH = "data/sector_rotation/latest.json"
-CHECKPOINTS = [("1m", 30), ("3m", 91), ("6m", 182), ("1y", 365)]
+CHECKPOINTS = [("4w", 28), ("13w", 91), ("52w", 364)]
 
 
 def log(msg):
@@ -115,8 +130,27 @@ def main():
         for e in entries:
             if e.get("symbol"):
                 all_syms.add(e["symbol"])
+    log(f"stage2 top3 tabs symbols: {len(all_syms)}")
+
+    # 擴大覆蓋：V1 Playbook（每 sector Top3）+ V2 Opportunity Radar（sensor pool）
+    # + SPMO Top10，都是同一份 {date}_all.csv 的子集合 · 直接重用既有 loader
+    sector_flow_map = gdr.load_all_csv_stock_flow_by_sector(as_of_str, per_sector=3)
+    for stocks in sector_flow_map.values():
+        for s in stocks:
+            if s.get("symbol"):
+                all_syms.add(s["symbol"])
+    exp_buckets = gdr.load_all_csv_verdicts(as_of_str)
+    for bucket_rows in exp_buckets.values():
+        for r in bucket_rows:
+            if r.get("symbol"):
+                all_syms.add(r["symbol"])
+    spmo_rows = gdr.load_all_csv_spmo_momentum(as_of_str, top_n=10)
+    for r in spmo_rows:
+        if r.get("symbol"):
+            all_syms.add(r["symbol"])
+
     symbols = sorted(all_syms)
-    log(f"unique symbols across all tabs: {len(symbols)}")
+    log(f"unique symbols across top3 + playbook pool + sensor pool + SPMO top10: {len(symbols)}")
 
     if not symbols:
         log("沒 top 3 symbols · 跳過")
@@ -162,7 +196,7 @@ def main():
             "returns": fr,
         }
 
-    # 塞回每個 tab 每筆 entry
+    # 塞回每個 tab 每筆 entry（向後相容既有結構）
     for tab, entries in top3.items():
         for e in entries:
             sym = e.get("symbol")
@@ -176,6 +210,20 @@ def main():
                 **info["returns"],
             }
 
+    # 新增：symbol 查表，涵蓋全部候選 pool（V1 Playbook / V2 Opportunity Radar 直接查）
+    forward_returns_by_symbol = {}
+    for s in symbols:
+        info = fwd_by_sym.get(s)
+        if info is None:
+            forward_returns_by_symbol[s] = None
+            continue
+        forward_returns_by_symbol[s] = {
+            "entry_price": info["entry_price"],
+            "entry_date_actual": info["entry_date_actual"],
+            **info["returns"],
+        }
+    manifest["forward_returns_by_symbol"] = forward_returns_by_symbol
+
     # meta
     manifest["forward_returns_meta"] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -183,6 +231,7 @@ def main():
         "days_since_as_of": days_since,
         "fillable_checkpoints": [lbl for lbl, _ in fillable],
         "checkpoint_definitions": {lbl: f"+{d} calendar days" for lbl, d in CHECKPOINTS},
+        "symbol_coverage": len(symbols),
     }
 
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
@@ -195,13 +244,12 @@ def main():
     log("=" * 60)
     for e in top3.get("composite", [])[:12]:
         fr = e.get("forward_returns") or {}
-        r1 = (fr.get("1m") or {}).get("return_pct")
-        r3 = (fr.get("3m") or {}).get("return_pct")
-        r6 = (fr.get("6m") or {}).get("return_pct")
-        r12 = (fr.get("1y") or {}).get("return_pct")
+        r4w = (fr.get("4w") or {}).get("return_pct")
+        r13w = (fr.get("13w") or {}).get("return_pct")
+        r52w = (fr.get("52w") or {}).get("return_pct")
         def _fmt(v):
             return f"{v:+7.2f}%" if v is not None else "   n/a "
-        log(f"  {e['symbol']:6s} {e.get('sector',''):20s} 1m={_fmt(r1)} 3m={_fmt(r3)} 6m={_fmt(r6)} 1y={_fmt(r12)}")
+        log(f"  {e['symbol']:6s} {e.get('sector',''):20s} 4w={_fmt(r4w)} 13w={_fmt(r13w)} 52w={_fmt(r52w)}")
 
 
 if __name__ == "__main__":
