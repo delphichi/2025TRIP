@@ -1,0 +1,12 @@
+chain,chain_state,upstream_count,upstream_confirmed,upstream_confirmed_pct,upstream_total_weight,upstream_confirmed_weight,upstream_coherence_pct,upstream_states
+Robotics / Automation,❄️ Weak,2,1,50.0,1.2,0.7,58.3,"{""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Semiconductor Equipment & Materials"": ""❄️ Weak""}"
+AI Server / ODM,⚠️ Price Leading,9,5,55.6,8.6,5.0,58.1,"{""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Memory / HBM"": ""🚀 Confirmed"", ""Advanced Packaging"": ""🚀 Confirmed"", ""PCB / HDI / IC Substrate"": ""🚀 Confirmed"", ""CCL / High-Speed Materials"": ""🔥 Overheated"", ""Thermal / Liquid Cooling"": ""🚀 Confirmed"", ""Data Center Power / PSU"": ""❄️ Weak"", ""Optical Communication / AI Networking"": ""❄️ Weak"", ""Passive Components"": ""⚠️ Price Leading""}"
+AI / HPC Semiconductor,🚀 Confirmed,2,1,50.0,1.8,0.8,44.4,"{""Semiconductor Equipment & Materials"": ""❄️ Weak"", ""Advanced Packaging"": ""🚀 Confirmed""}"
+Memory / HBM,🚀 Confirmed,2,1,50.0,1.8,0.8,44.4,"{""Semiconductor Equipment & Materials"": ""❄️ Weak"", ""Advanced Packaging"": ""🚀 Confirmed""}"
+Advanced Packaging,🚀 Confirmed,2,1,50.0,1.7,0.7,41.2,"{""Semiconductor Equipment & Materials"": ""❄️ Weak"", ""PCB / HDI / IC Substrate"": ""🚀 Confirmed""}"
+EV / Auto Electronics,❄️ Weak,3,1,33.3,2.2,0.6,27.3,"{""Energy Storage / Battery"": ""❄️ Weak"", ""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Passive Components"": ""⚠️ Price Leading""}"
+Cloud / Data Center / Cybersecurity,❄️ Weak,2,0,0.0,1.8,0.0,0.0,"{""AI Server / ODM"": ""⚠️ Price Leading"", ""Optical Communication / AI Networking"": ""❄️ Weak""}"
+Display & Optical,🚀 Confirmed,1,0,0.0,0.6,0.0,0.0,"{""Semiconductor Equipment & Materials"": ""❄️ Weak""}"
+Data Center Power / PSU,❄️ Weak,1,0,0.0,0.7,0.0,0.0,"{""Passive Components"": ""⚠️ Price Leading""}"
+PCB / HDI / IC Substrate,🚀 Confirmed,1,0,0.0,1.0,0.0,0.0,"{""CCL / High-Speed Materials"": ""🔥 Overheated""}"
+Smart Grid / Transformer,💰 Capital Leading,2,0,0.0,1.1,0.0,0.0,"{""Passive Components"": ""⚠️ Price Leading"", ""Steel"": ""❄️ Weak""}"

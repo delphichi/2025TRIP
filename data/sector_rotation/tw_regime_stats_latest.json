@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-09-07T18:00:39.705867+00:00",
-  "as_of_date": "2026-09-07",
+  "generated_at": "2026-09-08T16:54:48.047602+00:00",
+  "as_of_date": "2026-09-08",
   "history_days": 431,
   "historical": {
     "🟢 多頭": {
       "n": 200,
-      "mean": 7.63,
+      "mean": 7.64,
       "win_rate": 84.0,
       "p25": 1.52,
-      "p50": 4.76,
+      "p50": 4.81,
       "p75": 9.37,
       "worst": -15.07,
       "best": 38.73
@@ -28,30 +28,30 @@
   },
   "current_regime": "🟢 多頭",
   "current_conditions": {
-    "taiex_price": 47326.27,
-    "taiex_60d_ago": 43225.54,
+    "taiex_price": 47105.78,
+    "taiex_60d_ago": 43149.46,
     "price_up_60d": true,
-    "ma50": 44924.14,
+    "ma50": 44974.82,
     "ma50_up": true,
-    "ma200": 34275.83,
+    "ma200": 34394.05,
     "ma200_up": true
   },
   "current": {
     "n": 200,
-    "mean": 7.63,
+    "mean": 7.64,
     "win_rate": 84.0,
     "p25": 1.52,
-    "p50": 4.76,
+    "p50": 4.81,
     "p75": 9.37,
     "worst": -15.07,
     "best": 38.73
   },
   "unconditional": {
     "n": 201,
-    "mean": 7.63,
+    "mean": 7.64,
     "win_rate": 84.1,
     "p25": 1.53,
-    "p50": 4.77,
+    "p50": 4.85,
     "p75": 9.34,
     "worst": -15.07,
     "best": 38.73
