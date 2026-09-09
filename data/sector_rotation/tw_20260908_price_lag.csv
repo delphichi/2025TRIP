@@ -1,0 +1,93 @@
+ticker,stock_name,supply_chain,as_of_date,chain_point,chain_z_point,chain_state,stock_point,stock_z_in_chain,chain_size,price_lag,early_flag
+1802,台玻,CCL / High-Speed Materials,2026-09-08,93.71,2.34,🚀 Confirmed,-0.73,-1.2,4,3.54,🎯 EARLY
+2383,台光電,CCL / High-Speed Materials,2026-09-08,93.71,2.34,🚀 Confirmed,63.29,-0.39,4,2.73,🎯 EARLY
+3481,群創,Display & Optical,2026-09-08,74.52,1.57,🚀 Confirmed,45.64,-0.72,3,2.29,🎯 EARLY
+2409,友達,Display & Optical,2026-09-08,74.52,1.57,🚀 Confirmed,57.95,-0.42,3,1.99,🎯 EARLY
+2308,台達電,Thermal / Liquid Cooling,2026-09-08,44.28,0.35,🚀 Confirmed,11.95,-1.49,4,1.84,🎯 EARLY
+1303,南亞,CCL / High-Speed Materials,2026-09-08,93.71,2.34,🚀 Confirmed,133.88,0.51,4,1.83,
+3533,嘉澤,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,-10.19,-1.45,10,1.66,🎯 EARLY
+3661,世芯-KY,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,11.03,-1.08,9,1.46,🎯 EARLY
+2449,京元電子,Advanced Packaging,2026-09-08,37.07,0.06,🚀 Confirmed,-1.8,-1.33,8,1.39,🎯 EARLY
+6789,采鈺,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,14.9,-0.95,9,1.33,🎯 EARLY
+6213,聯茂,CCL / High-Speed Materials,2026-09-08,93.71,2.34,🚀 Confirmed,178.4,1.07,4,1.27,
+2330,台積電,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,17.82,-0.86,9,1.24,🎯 EARLY
+2313,華通,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,5.46,-1.01,10,1.22,🎯 EARLY
+2337,旺宏,Memory / HBM,2026-09-08,35.12,-0.02,💰 Capital Leading,3.33,-1.09,5,1.07,🎯 EARLY
+6239,力成,Advanced Packaging,2026-09-08,37.07,0.06,🚀 Confirmed,8.91,-0.97,8,1.03,🎯 EARLY
+3665,貿聯-KY,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,1.67,-0.9,13,1.03,
+6770,力積電,Memory / HBM,2026-09-08,35.12,-0.02,💰 Capital Leading,6.43,-0.98,5,0.96,🎯 EARLY
+2317,鴻海,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,4.43,-0.83,13,0.96,
+3034,聯詠,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,28.33,-0.53,9,0.91,🎯 EARLY
+2382,廣達,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,7.06,-0.77,13,0.9,
+3044,健鼎,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,17.46,-0.67,10,0.88,🎯 EARLY
+2379,瑞昱,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,29.48,-0.49,9,0.87,🎯 EARLY
+2368,金像電,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,18.53,-0.64,10,0.85,🎯 EARLY
+2308,台達電,Data Center Power / PSU,2026-09-08,30.17,-0.22,❄️ Weak,11.95,-1.03,4,0.81,
+6805,富世達,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,20.65,-0.58,10,0.79,🎯 EARLY
+3036,文曄,Semiconductor Equipment & Materials,2026-09-08,29.18,-0.26,❄️ Weak,-13.08,-1.0,8,0.74,
+2330,台積電,Advanced Packaging,2026-09-08,37.07,0.06,🚀 Confirmed,17.82,-0.66,8,0.72,🎯 EARLY
+2324,仁寶,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,16.41,-0.54,13,0.67,
+1504,東元,Robotics / Automation,2026-09-08,26.12,-0.39,❄️ Weak,0.52,-1.0,4,0.61,
+4938,和碩,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,19.31,-0.47,13,0.6,
+2404,漢唐,Semiconductor Equipment & Materials,2026-09-08,29.18,-0.26,❄️ Weak,-4.39,-0.8,8,0.54,
+2356,英業達,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,25.43,-0.33,13,0.46,
+3008,大立光,Display & Optical,2026-09-08,74.52,1.57,🚀 Confirmed,119.97,1.14,3,0.43,
+3231,緯創,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,28.53,-0.25,13,0.38,
+2609,陽明,Shipping / Logistics,2026-09-08,20.3,-0.62,💰 Capital Leading,6.36,-0.96,4,0.34,🎯 EARLY
+6515,穎崴,Advanced Packaging,2026-09-08,37.07,0.06,🚀 Confirmed,30.6,-0.22,8,0.28,🎯 EARLY
+1590,亞德客-KY,Robotics / Automation,2026-09-08,26.12,-0.39,❄️ Weak,9.6,-0.64,4,0.25,
+2376,技嘉,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,34.46,-0.11,13,0.24,
+6415,矽力*-KY,Data Center Power / PSU,2026-09-08,30.17,-0.22,❄️ Weak,23.82,-0.36,4,0.14,
+2412,中華電,Cloud / Data Center / Cybersecurity,2026-09-08,18.94,-0.68,❄️ Weak,3.66,-0.74,8,0.06,
+3665,貿聯-KY,EV / Auto Electronics,2026-09-08,13.49,-0.9,❄️ Weak,1.67,-0.95,4,0.05,
+2347,聯強,Semiconductor Equipment & Materials,2026-09-08,29.18,-0.26,❄️ Weak,16.47,-0.3,8,0.04,
+2317,鴻海,Cloud / Data Center / Cybersecurity,2026-09-08,18.94,-0.68,❄️ Weak,4.43,-0.7,8,0.02,
+3017,奇鋐,Thermal / Liquid Cooling,2026-09-08,44.28,0.35,🚀 Confirmed,51.63,0.34,4,0.01,
+6531,愛普*,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,57.24,0.38,9,0.0,
+6139,亞翔,Semiconductor Equipment & Materials,2026-09-08,29.18,-0.26,❄️ Weak,19.79,-0.22,8,-0.04,
+3711,日月光投控,Advanced Packaging,2026-09-08,37.07,0.06,🚀 Confirmed,40.49,0.12,8,-0.06,
+2327,國巨*,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,47.57,0.21,13,-0.08,
+6669,緯穎,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,47.93,0.22,13,-0.09,
+2382,廣達,Cloud / Data Center / Cybersecurity,2026-09-08,18.94,-0.68,❄️ Weak,7.06,-0.57,8,-0.11,
+3702,大聯大,Semiconductor Equipment & Materials,2026-09-08,29.18,-0.26,❄️ Weak,23.02,-0.15,8,-0.11,
+3653,健策,Thermal / Liquid Cooling,2026-09-08,44.28,0.35,🚀 Confirmed,55.44,0.51,4,-0.16,
+1519,華城,Smart Grid / Transformer,2026-09-08,8.13,-1.11,💰 Capital Leading,-7.73,-0.95,4,-0.16,🎯 EARLY
+3037,欣興,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,54.73,0.39,10,-0.18,
+2603,長榮,Shipping / Logistics,2026-09-08,20.3,-0.62,💰 Capital Leading,13.85,-0.44,4,-0.18,🎯 EARLY
+2344,華邦電,Memory / HBM,2026-09-08,35.12,-0.02,💰 Capital Leading,40.95,0.2,5,-0.22,
+2301,光寶科,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,53.92,0.36,13,-0.23,
+2360,致茂,Data Center Power / PSU,2026-09-08,30.17,-0.22,❄️ Weak,30.98,0.05,4,-0.27,
+4904,遠傳,Cloud / Data Center / Cybersecurity,2026-09-08,18.94,-0.68,❄️ Weak,10.35,-0.41,8,-0.27,
+3045,台灣大,Cloud / Data Center / Cybersecurity,2026-09-08,18.94,-0.68,❄️ Weak,10.55,-0.4,8,-0.28,
+2357,華碩,Thermal / Liquid Cooling,2026-09-08,44.28,0.35,🚀 Confirmed,58.09,0.64,4,-0.29,
+2360,致茂,Semiconductor Equipment & Materials,2026-09-08,29.18,-0.26,❄️ Weak,30.98,0.04,8,-0.3,
+2345,智邦,Cloud / Data Center / Cybersecurity,2026-09-08,18.94,-0.68,❄️ Weak,11.35,-0.37,8,-0.31,
+2303,聯電,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,67.36,0.7,9,-0.32,
+2357,華碩,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,58.09,0.46,13,-0.33,
+8046,南電,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,59.76,0.54,10,-0.33,
+7769,鴻勁,Semiconductor Equipment & Materials,2026-09-08,29.18,-0.26,❄️ Weak,35.44,0.15,8,-0.41,
+2383,台光電,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,63.29,0.64,10,-0.43,
+3037,欣興,Advanced Packaging,2026-09-08,37.07,0.06,🚀 Confirmed,54.73,0.61,8,-0.55,
+2207,和泰車,EV / Auto Electronics,2026-09-08,13.49,-0.9,❄️ Weak,9.35,-0.33,4,-0.57,
+1504,東元,Smart Grid / Transformer,2026-09-08,8.13,-1.11,💰 Capital Leading,0.52,-0.46,4,-0.65,🎯 EARLY
+2618,長榮航,Shipping / Logistics,2026-09-08,20.3,-0.62,💰 Capital Leading,20.7,0.03,4,-0.65,
+8046,南電,Advanced Packaging,2026-09-08,37.07,0.06,🚀 Confirmed,59.76,0.78,8,-0.72,
+6531,愛普*,Memory / HBM,2026-09-08,35.12,-0.02,💰 Capital Leading,57.24,0.76,5,-0.78,
+2308,台達電,EV / Auto Electronics,2026-09-08,13.49,-0.9,❄️ Weak,11.95,-0.12,4,-0.78,
+7750,新代,Robotics / Automation,2026-09-08,26.12,-0.39,❄️ Weak,38.16,0.47,4,-0.86,
+2454,聯發科,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,89.27,1.39,9,-1.01,
+3443,創意,AI / HPC Semiconductor,2026-09-08,45.13,0.38,🚀 Confirmed,90.73,1.44,9,-1.06,
+3189,景碩,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,86.05,1.28,10,-1.07,
+2408,南亞科,Memory / HBM,2026-09-08,35.12,-0.02,💰 Capital Leading,67.64,1.11,5,-1.13,
+1605,華新,Smart Grid / Transformer,2026-09-08,8.13,-1.11,💰 Capital Leading,8.77,0.04,4,-1.15,
+4958,臻鼎-KY,PCB / HDI / IC Substrate,2026-09-08,40.89,0.21,🚀 Confirmed,93.17,1.49,10,-1.28,
+2395,研華,Robotics / Automation,2026-09-08,26.12,-0.39,❄️ Weak,56.19,1.17,4,-1.56,
+2301,光寶科,Data Center Power / PSU,2026-09-08,30.17,-0.22,❄️ Weak,53.92,1.34,4,-1.56,
+3189,景碩,Advanced Packaging,2026-09-08,37.07,0.06,🚀 Confirmed,86.05,1.68,8,-1.62,
+2615,萬海,Shipping / Logistics,2026-09-08,20.3,-0.62,💰 Capital Leading,40.28,1.37,4,-1.99,
+6669,緯穎,Cloud / Data Center / Cybersecurity,2026-09-08,18.94,-0.68,❄️ Weak,47.93,1.4,8,-2.08,
+2360,致茂,EV / Auto Electronics,2026-09-08,13.49,-0.9,❄️ Weak,30.98,1.4,4,-2.3,
+2395,研華,Cloud / Data Center / Cybersecurity,2026-09-08,18.94,-0.68,❄️ Weak,56.19,1.79,8,-2.47,
+2360,致茂,Smart Grid / Transformer,2026-09-08,8.13,-1.11,💰 Capital Leading,30.98,1.37,4,-2.48,
+3532,台勝科,Semiconductor Equipment & Materials,2026-09-08,29.18,-0.26,❄️ Weak,125.22,2.28,8,-2.54,
+2059,川湖,AI Server / ODM,2026-09-08,38.95,0.13,⚠️ Price Leading,161.52,2.96,13,-2.83,
