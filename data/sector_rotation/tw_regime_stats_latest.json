@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-09T16:57:25.057338+00:00",
-  "as_of_date": "2026-09-09",
+  "generated_at": "2026-09-10T16:45:38.771126+00:00",
+  "as_of_date": "2026-09-10",
   "history_days": 431,
   "historical": {
     "🟢 多頭": {
@@ -28,12 +28,12 @@
   },
   "current_regime": "🟢 多頭",
   "current_conditions": {
-    "taiex_price": 47183.36,
-    "taiex_60d_ago": 44169.04,
+    "taiex_price": 46940.49,
+    "taiex_60d_ago": 45396.99,
     "price_up_60d": true,
-    "ma50": 45018.49,
+    "ma50": 45034.78,
     "ma50_up": true,
-    "ma200": 34512.25,
+    "ma200": 34629.78,
     "ma200_up": true
   },
   "current": {
