@@ -1,0 +1,12 @@
+chain,chain_state,upstream_count,upstream_confirmed,upstream_confirmed_pct,upstream_total_weight,upstream_confirmed_weight,upstream_coherence_pct,upstream_states
+AI / HPC Semiconductor,🚀 Confirmed,2,2,100.0,1.8,1.8,100.0,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""Advanced Packaging"": ""🚀 Confirmed""}"
+Advanced Packaging,🚀 Confirmed,2,2,100.0,1.7,1.7,100.0,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""PCB / HDI / IC Substrate"": ""🚀 Confirmed""}"
+Display & Optical,🔥 Overheated,1,1,100.0,0.6,0.6,100.0,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading""}"
+PCB / HDI / IC Substrate,🚀 Confirmed,1,1,100.0,1.0,1.0,100.0,"{""CCL / High-Speed Materials"": ""🚀 Confirmed""}"
+Robotics / Automation,💰 Capital Leading,2,2,100.0,1.2,1.2,100.0,"{""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Semiconductor Equipment & Materials"": ""💰 Capital Leading""}"
+Memory / HBM,🔥 Overheated,2,2,100.0,1.8,1.8,100.0,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""Advanced Packaging"": ""🚀 Confirmed""}"
+Smart Grid / Transformer,💰 Capital Leading,2,1,50.0,1.1,0.6,54.5,"{""Passive Components"": ""⚠️ Price Leading"", ""Steel"": ""💰 Capital Leading""}"
+AI Server / ODM,⚠️ Price Leading,9,4,44.4,8.6,4.0,46.5,"{""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Memory / HBM"": ""🔥 Overheated"", ""Advanced Packaging"": ""🚀 Confirmed"", ""PCB / HDI / IC Substrate"": ""🚀 Confirmed"", ""CCL / High-Speed Materials"": ""🚀 Confirmed"", ""Thermal / Liquid Cooling"": ""⚠️ Price Leading"", ""Data Center Power / PSU"": ""❄️ Weak"", ""Optical Communication / AI Networking"": ""❄️ Weak"", ""Passive Components"": ""⚠️ Price Leading""}"
+EV / Auto Electronics,❄️ Weak,3,1,33.3,2.2,0.6,27.3,"{""Energy Storage / Battery"": ""❄️ Weak"", ""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Passive Components"": ""⚠️ Price Leading""}"
+Cloud / Data Center / Cybersecurity,❄️ Weak,2,0,0.0,1.8,0.0,0.0,"{""AI Server / ODM"": ""⚠️ Price Leading"", ""Optical Communication / AI Networking"": ""❄️ Weak""}"
+Data Center Power / PSU,❄️ Weak,1,0,0.0,0.7,0.0,0.0,"{""Passive Components"": ""⚠️ Price Leading""}"
