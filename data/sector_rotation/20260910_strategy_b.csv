@@ -1,0 +1,3 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+FDS,FactSet,Financials,2026-09-10,262.93,279.17,-5.82,274.63,247.72,True,True,32.0,1496400,856650,1.75
+BKR,Baker Hughes,Energy,2026-09-10,59.4,63.64,-6.66,60.22,58.36,True,True,32.8,11193900,6314790,1.77
