@@ -1,6 +1,8 @@
 import "./index.css";
 import { Composition, Folder } from "remotion";
 import { PipelineDemo } from "./PipelineDemo";
+import { SNAPSHOTS } from "./data/scorecards";
+import { Weekly } from "./Weekly";
 import { OutroScene } from "./scenes/OutroScene";
 import { ShotScene } from "./scenes/ShotScene";
 import { TitleScene } from "./scenes/TitleScene";
@@ -8,6 +10,17 @@ import { TitleScene } from "./scenes/TitleScene";
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      {/* 資料驅動的類股週報：換 date 這個 prop 就是另一支影片 */}
+      <Composition
+        id="Weekly"
+        component={Weekly}
+        durationInFrames={705}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{ date: SNAPSHOTS[SNAPSHOTS.length - 1].date }}
+      />
+
       <Composition
         id="PipelineDemo"
         component={PipelineDemo}
