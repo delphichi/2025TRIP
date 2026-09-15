@@ -1,13 +1,13 @@
 {
-  "date": "2026-09-14",
-  "generated_at": "2026-09-15T00:26:01+08:00",
-  "consensus_date": "2026-09-14",
+  "date": "2026-09-15",
+  "generated_at": "2026-09-15T23:08:52+08:00",
+  "consensus_date": "2026-09-15",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260914.csv",
-      "snapshot_date": "2026-09-14",
+      "snapshot": "00991A_20260915.csv",
+      "snapshot_date": "2026-09-15",
       "holdings_count": 50,
       "actions": {
         "new": [],
@@ -84,19 +84,38 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260914.csv",
-      "snapshot_date": "2026-09-14",
+      "snapshot": "00403A_20260915.csv",
+      "snapshot_date": "2026-09-15",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [],
+        "add": [
+          {
+            "code": "3443",
+            "name": "創意",
+            "pct": 6.896551724137931,
+            "weight": 2.61
+          },
+          {
+            "code": "3189",
+            "name": "景碩",
+            "pct": 4.411764705882353,
+            "weight": 1.87
+          }
+        ],
         "reduce": [
           {
-            "code": "3711",
-            "name": "日月光投控",
-            "pct": -50.0,
-            "weight": 0.81
+            "code": "2344",
+            "name": "華邦電",
+            "pct": -99.9,
+            "weight": 0.0
+          },
+          {
+            "code": "3008",
+            "name": "大立光",
+            "pct": -10.666666666666668,
+            "weight": 2.12
           }
         ],
         "build": []
@@ -105,24 +124,18 @@
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260914.csv",
-      "snapshot_date": "2026-09-14",
+      "snapshot": "00988A_20260915.csv",
+      "snapshot_date": "2026-09-15",
       "holdings_count": 8,
       "actions": {
         "new": [],
-        "drop": [
-          {
-            "code": "2308",
-            "name": "台達電",
-            "weight": 1.95
-          }
-        ],
+        "drop": [],
         "add": [
           {
-            "code": "2303",
-            "name": "聯電",
-            "pct": 40.0,
-            "weight": 1.92
+            "code": "2454",
+            "name": "聯發科",
+            "pct": 20.0,
+            "weight": 2.66
           }
         ],
         "reduce": [],
