@@ -1,0 +1,12 @@
+chain,chain_state,upstream_count,upstream_confirmed,upstream_confirmed_pct,upstream_total_weight,upstream_confirmed_weight,upstream_coherence_pct,upstream_states
+Robotics / Automation,💰 Capital Leading,2,1,50.0,1.2,0.7,58.3,"{""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Semiconductor Equipment & Materials"": ""⚠️ Price Leading""}"
+Smart Grid / Transformer,💰 Capital Leading,2,1,50.0,1.1,0.6,54.5,"{""Passive Components"": ""⚠️ Price Leading"", ""Steel"": ""💰 Capital Leading""}"
+AI Server / ODM,⚠️ Price Leading,9,4,44.4,8.6,4.0,46.5,"{""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Memory / HBM"": ""💰 Capital Leading"", ""Advanced Packaging"": ""🚀 Confirmed"", ""PCB / HDI / IC Substrate"": ""⚠️ Price Leading"", ""CCL / High-Speed Materials"": ""⚠️ Price Leading"", ""Thermal / Liquid Cooling"": ""🚀 Confirmed"", ""Data Center Power / PSU"": ""❄️ Weak"", ""Optical Communication / AI Networking"": ""❄️ Weak"", ""Passive Components"": ""⚠️ Price Leading""}"
+Memory / HBM,💰 Capital Leading,2,1,50.0,1.8,0.8,44.4,"{""Semiconductor Equipment & Materials"": ""⚠️ Price Leading"", ""Advanced Packaging"": ""🚀 Confirmed""}"
+AI / HPC Semiconductor,🚀 Confirmed,2,1,50.0,1.8,0.8,44.4,"{""Semiconductor Equipment & Materials"": ""⚠️ Price Leading"", ""Advanced Packaging"": ""🚀 Confirmed""}"
+EV / Auto Electronics,❄️ Weak,3,1,33.3,2.2,0.6,27.3,"{""Energy Storage / Battery"": ""❄️ Weak"", ""AI / HPC Semiconductor"": ""🚀 Confirmed"", ""Passive Components"": ""⚠️ Price Leading""}"
+Advanced Packaging,🚀 Confirmed,2,0,0.0,1.7,0.0,0.0,"{""Semiconductor Equipment & Materials"": ""⚠️ Price Leading"", ""PCB / HDI / IC Substrate"": ""⚠️ Price Leading""}"
+Display & Optical,🚀 Confirmed,1,0,0.0,0.6,0.0,0.0,"{""Semiconductor Equipment & Materials"": ""⚠️ Price Leading""}"
+Data Center Power / PSU,❄️ Weak,1,0,0.0,0.7,0.0,0.0,"{""Passive Components"": ""⚠️ Price Leading""}"
+Cloud / Data Center / Cybersecurity,❄️ Weak,2,0,0.0,1.8,0.0,0.0,"{""AI Server / ODM"": ""⚠️ Price Leading"", ""Optical Communication / AI Networking"": ""❄️ Weak""}"
+PCB / HDI / IC Substrate,⚠️ Price Leading,1,0,0.0,1.0,0.0,0.0,"{""CCL / High-Speed Materials"": ""⚠️ Price Leading""}"
