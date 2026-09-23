@@ -1,13 +1,13 @@
 {
-  "date": "2026-09-22",
-  "generated_at": "2026-09-22T23:06:05+08:00",
-  "consensus_date": "2026-09-22",
+  "date": "2026-09-23",
+  "generated_at": "2026-09-23T23:08:17+08:00",
+  "consensus_date": "2026-09-23",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260922.csv",
-      "snapshot_date": "2026-09-22",
+      "snapshot": "00991A_20260923.csv",
+      "snapshot_date": "2026-09-23",
       "holdings_count": 50,
       "actions": {
         "new": [],
@@ -15,10 +15,40 @@
         "add": [],
         "reduce": [
           {
+            "code": "2327",
+            "name": "國巨股份",
+            "pct": -10.666666666666668,
+            "weight": 4.844
+          },
+          {
             "code": "6223",
             "name": "旺矽科技",
-            "pct": -33.33333333333333,
-            "weight": 2.022
+            "pct": -6.666666666666667,
+            "weight": 1.986
+          },
+          {
+            "code": "3711",
+            "name": "日月光投",
+            "pct": -6.0,
+            "weight": 2.055
+          },
+          {
+            "code": "2345",
+            "name": "智邦科技",
+            "pct": -5.88235294117647,
+            "weight": 1.908
+          },
+          {
+            "code": "2408",
+            "name": "南亞科技",
+            "pct": -2.1739130434782608,
+            "weight": 8.772
+          },
+          {
+            "code": "2059",
+            "name": "川湖科技",
+            "pct": -2.0,
+            "weight": 7.66
           }
         ],
         "build": []
@@ -91,90 +121,123 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260922.csv",
-      "snapshot_date": "2026-09-22",
-      "holdings_count": 51,
+      "snapshot": "00403A_20260923.csv",
+      "snapshot_date": "2026-09-23",
+      "holdings_count": 50,
       "actions": {
         "new": [],
-        "drop": [],
-        "add": [
+        "drop": [
           {
-            "code": "2449",
-            "name": "京元電子",
-            "pct": 34.61538461538461,
-            "weight": 0.68
-          },
+            "code": "3533",
+            "name": "嘉澤",
+            "weight": 0.04
+          }
+        ],
+        "add": [
           {
             "code": "2059",
             "name": "川湖",
-            "pct": 18.181818181818183,
-            "weight": 0.53
-          },
-          {
-            "code": "3450",
-            "name": "聯鈞",
             "pct": 15.384615384615385,
-            "weight": 0.52
+            "weight": 0.61
           },
           {
-            "code": "6805",
-            "name": "富世達",
-            "pct": 10.236220472440944,
-            "weight": 1.3
+            "code": "2449",
+            "name": "京元電子",
+            "pct": 14.285714285714285,
+            "weight": 0.81
+          },
+          {
+            "code": "8996",
+            "name": "高力",
+            "pct": 2.848101265822785,
+            "weight": 1.71
+          },
+          {
+            "code": "2308",
+            "name": "台達電",
+            "pct": 2.4734982332155475,
+            "weight": 3.51
           }
         ],
         "reduce": [
           {
             "code": "6239",
             "name": "力成",
-            "pct": -35.714285714285715,
-            "weight": 0.34
+            "pct": -99.94444444444444,
+            "weight": 0.0
           },
           {
             "code": "2360",
             "name": "致茂",
-            "pct": -23.0,
-            "weight": 1.17
+            "pct": -11.688311688311687,
+            "weight": 1.06
+          },
+          {
+            "code": "6669",
+            "name": "緯穎",
+            "pct": -6.036350905150818,
+            "weight": 2.52
           },
           {
             "code": "2345",
             "name": "智邦",
-            "pct": -5.504984828781968,
-            "weight": 2.57
+            "pct": -5.5045871559633035,
+            "weight": 2.52
           }
         ],
-        "build": [
-          {
-            "code": "3533",
-            "name": "嘉澤",
-            "weight": 0.04
-          }
-        ]
+        "build": []
       }
     },
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260922.csv",
-      "snapshot_date": "2026-09-22",
+      "snapshot": "00988A_20260923.csv",
+      "snapshot_date": "2026-09-23",
       "holdings_count": 9,
       "actions": {
         "new": [],
         "drop": [],
         "add": [
           {
-            "code": "2303",
-            "name": "聯電",
-            "pct": 21.428571428571427,
-            "weight": 2.56
+            "code": "2454",
+            "name": "聯發科",
+            "pct": 15.151515151515152,
+            "weight": 3.59
           }
         ],
-        "reduce": [],
+        "reduce": [
+          {
+            "code": "6515",
+            "name": "穎崴",
+            "pct": -40.0,
+            "weight": 0.66
+          }
+        ],
         "build": []
       }
     }
   ],
   "consensus_buy": [],
-  "consensus_sell": [],
-  "divergence": []
+  "consensus_sell": [
+    {
+      "stock_id": "2345",
+      "funds": [
+        "復華未來50",
+        "統一升級50"
+      ],
+      "name": "智邦科技"
+    }
+  ],
+  "divergence": [
+    {
+      "stock_id": "2059",
+      "buy_funds": [
+        "統一升級50"
+      ],
+      "sell_funds": [
+        "復華未來50"
+      ],
+      "name": "川湖科技"
+    }
+  ]
 }
