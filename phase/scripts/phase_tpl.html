@@ -155,6 +155,7 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
   <div class="keys">
     <span><b>大小</b>Quality 0~3（EPS正季≥3 / FCF正季≥3 / ROE≥15%）</span>
     <span><b>軌跡</b>越靠近現在越粗越深</span>
+    <span><b>橫軸</b>跟著勾選縮放 —— 極端值（如 NVDA 曾 −155pp）取消勾選，其餘才看得清</span>
   </div>
 </div>
 
@@ -200,7 +201,11 @@ function draw(){
   cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
   const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
   const PL=52,PR=22,PT=44,PB=40,iw=w-PL-PR,ih=h-PT-PB;
-  const all=D.flatMap(d=>(YK==='ph'?d.path:d.pvpath).map(p=>p[0])).concat(D.map(d=>d.mom));
+  // ★★ 橫軸只看「勾選中」的公司 —— 否則一支極端值（NVDA 動能曾達 -155pp）
+  //    會把其他五家全壓成一條線。取消勾選它，其餘立刻展開。
+  const vis=D.filter(d=>show.has(d.t));
+  const all=(vis.length?vis:D).flatMap(d=>(YK==='ph'?d.path:d.pvpath).map(p=>p[0]))
+              .concat((vis.length?vis:D).map(d=>d.mom));
   const lo=Math.min(...all)-2, hi=Math.max(...all)+2;
   const X=v=>PL+iw*(v-lo)/(hi-lo), Y=v=>PT+ih-ih*(v/4);
   x.strokeStyle=C('--grid'); x.lineWidth=1; x.fillStyle=C('--muted');

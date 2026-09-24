@@ -173,9 +173,14 @@ def build(tk):
         pvs=pvnow[5] if pvnow else [False]*4,
         spark=[round(r["rev_yoy"],1) for r in rows[-8:] if r["rev_yoy"] is not None],
         path=[[x["mom"], x["ph"]] for x in traj],
-        pvpath=[[traj[i]["mom"] if i < len(traj) else cur["mom"],
-                 (pvp[i][0] if i < len(pvp) and pvp[i] else 0)] for i in range(len(pvp))]
-                + [[cur["mom"], pvnow[0] if pvnow else 0]],
+        # ★★★ 對齊修正（2026-09-24）：pvp 取 rows[-7:]、traj 取最後 8 期，
+        #   原本 pvp[i] 配 traj[i] ⇒ ★ y 是「近 7 季」而 x 是「最舊的 7 期動能」，整條錯開一季。
+        #   traj[i+1] 才是 pvp[i] 的同一季。
+        # ★★ 同時：pv_at 回傳 None（價格序列不夠長）原本被寫成「0 階」，
+        #   跟「四項全負的真 0」混在一起 ⇒ 改成整個點丟掉，不畫假點。
+        pvpath=[[traj[i+1]["mom"] if i+1 < len(traj) else cur["mom"], pvp[i][0]]
+                for i in range(len(pvp)) if pvp[i] is not None]
+                + ([[cur["mom"], pvnow[0]]] if pvnow else []),
         nq=len(traj),
         brk=(f"{brk_y} 年 {fac}x" if brk_y else None),
         mrg=(f"{mg_q} 商譽 {mg_x}x" if mg_q else None),
