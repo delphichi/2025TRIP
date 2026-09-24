@@ -158,6 +158,23 @@ tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;pa
 .flag{margin-top:14px;padding:11px 13px;border-left:3px solid var(--up);
   background:color-mix(in srgb,var(--up) 8%,transparent);font-size:12.5px;color:var(--ink2);line-height:1.6}
 .flag b{color:var(--ink);font-weight:500}
+
+.flag.alt{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.foot{margin-top:30px;padding-top:20px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:20px 36px;align-items:flex-start}
+.fl{flex:0 0 auto;min-width:270px}
+.foot .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 9px;font-weight:500}
+.fcard{display:block;padding:13px 15px;border:1px solid var(--line2);border-radius:3px;
+  text-decoration:none;background:var(--panel);transition:border-color .15s,transform .15s}
+.fcard:hover{border-color:var(--accent);transform:translateY(-1px)}
+.fcard:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.ft{display:block;font-family:Fraunces,Georgia,serif;font-size:17px;font-weight:600;color:var(--ink)}
+.fd{display:block;font-size:12.5px;color:var(--ink2);margin-top:3px}
+.fu{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);margin-top:6px}
+.fn{flex:1 1 300px;margin:0;align-self:center;font-size:12.5px;color:var(--muted);max-width:52ch;line-height:1.6}
+.fn code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink2);
+  background:color-mix(in srgb,var(--muted) 14%,transparent);padding:1px 5px;border-radius:2px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -175,7 +192,7 @@ tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;pa
 
   <div class="hold"><span class="h"><b>VOO</b> 20%</span><span class="h"><b>QQQ</b> 5%</span><span class="h"><b>BRK-B</b> 5%</span><span class="h"><b>MSFT</b> 5%</span><span class="h"><b>AMZN</b> 5%</span><span class="h"><b>GOOG</b> 5%</span><span class="h"><b>NVDA</b> 5%</span><span class="h"><b>PLTR</b> 2.5%</span><span class="h"><b>LLY</b> 2.5%</span><span class="h"><b>AMD</b> 2.5%</span><span class="h"><b>BAC</b> 2.5%</span><span class="h tw"><b>0056</b> 10%</span><span class="h tw"><b>00878</b> 10%</span><span class="h tw"><b>00919</b> 10%</span><span class="h tw new"><b>00981A</b> 5%</span><span class="h tw new"><b>00406A</b> 5%</span></div>
   <div class="mixbar"><i style="width:60%;background:var(--accent)"></i><i style="width:40%;background:var(--up)"></i></div>
-  <div class="mixlab"><span>美股 60%（11 檔）</span><span>台股 ETF 40%（5 檔 · 虛線＝2025 後新上市）</span></div>
+  <div class="mixlab"><span>美股 60%（11 檔）</span><span>台股 ETF 40%（5 檔 · 虛線＝2025 後上市的主動式）</span></div>
 
   <div class="pfgrid">
     <div>
@@ -186,6 +203,7 @@ tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;pa
       <div class="flag"><b>16 檔全在的期間只有 0.31 年。</b>00406A 在 2026-06-02 才上市、00981A 在 2025-05-16。
       要換到能看見一次像樣回撤的期間，得先把最新的幾檔拿掉 —— 而拿掉之後，測的就不是你真正要買的組合了。
       <b>這正是右邊模擬器只用 0056 的原因：它是唯一有 2008 資料的。</b></div>
+      <div class="flag alt"><b>00981A 與 00406A 是主動式 ETF。</b>代號結尾的 A 代表由經理人選股，不追蹤指數 —— 績效來自「這個團隊這段期間的判斷」，不是某個市場的長期特性。所以就算再過三年有了資料，<b>那三年的成績也不等於下一個三年</b>：被動 ETF 的回測在問「這個市場長什麼樣」，主動式的回測在問「這個人最近做得如何」，兩者不能互換。</div>
     </div>
     <div>
       <p class="cap" style="margin-bottom:0">各檔對總報酬的貢獻 —— 14 檔版（2022-10-13 起，3.95 年，總報酬 338.1%）</p>
@@ -287,6 +305,19 @@ tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;pa
         <li><b>只有一檔標的。</b>0056 是六檔高股息 ETF 裡唯一有 2008 資料的；00919 / 00918 / 00922 全部成立於 2022 年之後，從未經歷熊市 —— 它們的回撤風險是「無資料」，不是「低」。</li>
       </ul>
     </div>
+
+    <footer class="foot">
+      <div class="fl">
+        <p class="k">同一個 repo 裡的姊妹工具</p>
+        <a class="fcard" href="https://htmlpreview.github.io/?https://github.com/delphichi/2025TRIP/blob/main/retirement/index.html" target="_blank" rel="noopener">
+          <span class="ft">退休金 Sandbox</span>
+          <span class="fd">通無法師 · @back2void —— 法師不算命，只算帳。</span>
+          <span class="fu">2025TRIP / retirement</span>
+        </a>
+      </div>
+      <p class="fn">本頁在 <code>2025TRIP / sequence-risk</code>，與 Sandbox 各自獨立。
+        Sandbox 做的是「該存多少」的情境試算；這一頁做的是「存到了之後，第一年遇到熊市會怎樣」。</p>
+    </footer>
   </main>
 </div><!-- /.grid -->
 </div><!-- /.wrap -->
