@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="用 0056 元大高股息 2008–2026 的真實年度總報酬跑退休提領模擬，並拆解一個美股60%／台股ETF40% 組合的可回測期間與個股貢獻。">
+<meta name="description" content="用 0056 元大高股息 2008–2026 的真實年度總報酬跑退休提領模擬；第二分頁比較六種「退休第一年遇到大跌」的應對策略。">
 <meta name="theme-color" content="#12161c" media="(prefers-color-scheme:dark)">
 <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme:light)">
 <title>退休金撐得到幾歲</title>
@@ -175,6 +175,30 @@ tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;pa
 .fn{flex:1 1 300px;margin:0;align-self:center;font-size:12.5px;color:var(--muted);max-width:52ch;line-height:1.6}
 .fn code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink2);
   background:color-mix(in srgb,var(--muted) 14%,transparent);padding:1px 5px;border-radius:2px}
+
+/* ── 紅色提醒 ＋ 分頁 ── */
+.alert{display:block;width:100%;margin:18px 0 0;padding:15px 18px;text-align:left;cursor:pointer;
+  font:inherit;border:2px solid var(--up);border-radius:3px;
+  background:color-mix(in srgb,var(--up) 9%,transparent);transition:background .15s,transform .12s}
+.alert:hover{background:color-mix(in srgb,var(--up) 15%,transparent);transform:translateY(-1px)}
+.alert:focus-visible{outline:3px solid var(--up);outline-offset:3px}
+.alert .a1{display:block;font-family:Fraunces,Georgia,serif;font-weight:900;color:var(--up);
+  font-size:clamp(19px,2.9vw,27px);line-height:1.2;letter-spacing:-.01em}
+.alert .a2{display:block;margin-top:5px;font-size:13px;color:var(--ink2)}
+.alert .arw{display:inline-block;margin-left:7px;color:var(--up);font-weight:700}
+@media(prefers-reduced-motion:no-preference){
+  .alert .arw{animation:nudge 1.5s ease-in-out infinite}
+  @keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+}
+.tabs{display:flex;gap:2px;margin-top:20px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:14px;font-weight:500;padding:9px 16px;cursor:pointer;
+  border:none;background:transparent;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
+.tabs button:hover{color:var(--ink2)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pane[hidden]{display:none}
+tr.best td{background:color-mix(in srgb,var(--up) 13%,transparent);font-weight:500}
+td.cost{color:var(--muted);font-size:12px;white-space:normal;min-width:130px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -184,8 +208,19 @@ tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;pa
   <p class="eyebrow">0056 元大高股息 · 2008–2026 實際年度總報酬 · 含息還原</p>
   <h1>退休金撐得到幾歲</h1>
   <p class="sub">不是用平均報酬推算，而是把<b>真實發生過的 19 個年度報酬</b>照順序跑一遍 —— 包含 2008 年的 <b>−46.8%</b>。左邊調參數，右邊立刻看到錢在哪一年見底。</p>
+
+  <button class="alert" id="go-str" type="button">
+    <span class="a1">退休第一年遇到大跌，該怎麼辦？</span>
+    <span class="a2">六種應對方式實測 —— ★ 最有效的那一個不用花一毛錢<span class="arw">→</span></span>
+  </button>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-sim" aria-selected="true" aria-controls="pane-sim">撐得到幾歲</button>
+    <button role="tab" id="t-str" aria-selected="false" aria-controls="pane-str">遇到大跌怎麼辦</button>
+  </nav>
 </header>
 
+<div id="pane-sim" class="pane">
 <section class="panel pf">
   <h2>這個組合能回測多久</h2>
   <p class="cap">美股 60%／台股 ETF 40%，12 檔。台幣計價、含息還原，美股部位以 USD/TWD 換算。</p>
@@ -325,6 +360,84 @@ tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;pa
     </footer>
   </main>
 </div><!-- /.grid -->
+</div><!-- /#pane-sim -->
+
+<div id="pane-str" class="pane" hidden>
+  <div class="grid">
+    <aside class="panel">
+      <div class="ctl">
+        <div class="f"><label for="sk">退休第 1 年的衝擊 <span class="v" id="skv">−40%</span></label>
+          <input type="range" id="sk" min="-55" max="0" step="1" value="-40">
+          <p class="hint" id="skh">0056 十九年裡 ≤ −15% 的有三年：2008 −46.8%、2011 −20.4%、2022 −17.7%</p></div>
+        <div class="f"><label for="sp">退休本金 <span class="v" id="spv">2,000 萬</span></label>
+          <input type="range" id="sp" min="400" max="4000" step="10" value="2000"></div>
+        <div class="f"><label for="sw">初始提領率 <span class="v" id="swv">4.0%</span></label>
+          <input type="range" id="sw" min="2" max="8" step="0.1" value="4"></div>
+        <div class="f"><label for="si">通膨 <span class="v" id="siv">2.5%</span></label>
+          <input type="range" id="si" min="0" max="5" step="0.1" value="2.5"></div>
+        <div class="f"><label for="sc">減支幅度（③④⑥ 用） <span class="v" id="scv">10%</span></label>
+          <input type="range" id="sc" min="5" max="30" step="1" value="10"></div>
+        <div class="f"><label for="sn">規劃年數 <span class="v" id="snv">30 年</span></label>
+          <input type="range" id="sn" min="15" max="40" step="1" value="30"></div>
+        <div class="presets"><span>快速情境</span>
+          <button class="chip" data-sp="-47,4">2008 級（−47%）</button>
+          <button class="chip" data-sp="-20,4">2011 級（−20%）</button>
+          <button class="chip" data-sp="-18,4">2022 級（−18%）</button>
+          <button class="chip" data-sp="-40,3">−40% ＋ 3% 提領</button>
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="panel verdict" id="svd">
+        <div class="lead"><p class="big" id="shead">—</p><p id="sheadsub">—</p></div>
+        <div class="stats">
+          <div class="st"><p class="k">最佳策略</p><p class="n" id="s-best" style="font-size:16px">—</p></div>
+          <div class="st"><p class="k">比固定提領多</p><p class="n" id="s-gain">—</p></div>
+          <div class="st"><p class="k">降 1pp 提領率</p><p class="n" id="s-rate">—</p></div>
+        </div>
+      </div>
+
+      <section>
+        <h2>六種應對，同一個情境</h2>
+        <p class="cap">全部從同一筆本金、同樣的第 1 年衝擊出發，之後照 0056 的 2009–2026 真實序列，第 19 年起用 +8%。</p>
+        <div class="panel tablewrap">
+          <table><thead><tr>
+            <th>應對方式</th><th>成本</th><th>期末資產</th><th>最低點</th><th>vs 固定提領</th>
+          </tr></thead><tbody id="stb"></tbody></table>
+        </div>
+      </section>
+
+      <section>
+        <h2>資產路徑疊圖</h2>
+        <p class="cap">粗線是表現最好的策略，灰線是固定提領（基準）。差距要到後期才拉開 —— 這正是為什麼當下很難感覺到差別。</p>
+        <div class="panel chartbox">
+          <canvas id="scv" width="1200" height="400" role="img" aria-label="六種應對策略的資產路徑比較"></canvas>
+          <div class="legend" id="sleg"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>換個角度：提領率才是主槓桿</h2>
+        <p class="cap">同樣的第 1 年衝擊，把提領率、退休時點、緩衝三種選項放在一起比。</p>
+        <div class="panel tablewrap">
+          <table><thead><tr>
+            <th>選項</th><th>期末資產</th><th>vs 現況</th><th>你要付出什麼</th>
+          </tr></thead><tbody id="ltb"></tbody></table>
+        </div>
+      </section>
+
+      <div class="notes">
+        <h3>三個從數字看出來的結論</h3>
+        <ul>
+          <li><b>最有效的戰術是「熊市那年不給自己加薪」。</b>不調通膨，第 1 年 −40% 的情境下多 15.5%。不用準備現金、不用賣股票、不用判斷市場 —— 那一年生活費維持原樣就好。</li>
+          <li><b>緩衝是保險，不是報酬工具。</b>第 1 年 −40% 時它值 +9.6%；但在 −20% 是 −0.2%、−17% 是 −0.8%、完全沒有熊市時是 <b>−6.2%</b>。那 6.2% 就是保費，換到的是「最難熬那一年不會恐慌賣股」的機率。</li>
+          <li><b>提領率降 1pp 的效果，是緩衝 2 年的七倍。</b>第 1 年 −40%：4% → 3% 讓期末多 68.6%，緩衝 2 年只多 9.6%。而提領率是退休<b>之前</b>的選擇，不是之後的應對。</li>
+        </ul>
+      </div>
+    </main>
+  </div>
+</div><!-- /#pane-str -->
 </div><!-- /.wrap -->
 
 <script>
@@ -497,6 +610,142 @@ document.querySelectorAll('button.chip').forEach(b=>b.addEventListener('click',(
 addEventListener('resize',()=>draw(simulate()));
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>draw(simulate()));
 render();
+
+// ══════════ 第二分頁：六種應對 ══════════
+const SEQ09=YR.filter(x=>x[0]>=2009).map(x=>x[1]);
+const MODES=[
+ {k:'fixed',n:'① 固定提領（照通膨調）',c:'基準'},
+ {k:'freeze',n:'② 熊市年不調通膨',c:'那年不加薪'},
+ {k:'cut',n:'③ 熊市年提領減 R',c:'那年少花 R'},
+ {k:'guard',n:'④ 護欄：跌破期初 80% 減 R',c:'跌深時少花 R'},
+ {k:'buf',n:'⑤ 緩衝 2 年現金',c:'2 年生活費不投資'},
+ {k:'bufguard',n:'⑥ 緩衝 2 年 ＋ 護欄',c:'兩者都做'},
+];
+function srun(mode,{P,W,INF,N,SH,CUT,TAIL=8}){
+  const rets=[SH].concat(SEQ09); while(rets.length<N) rets.push(TAIL);
+  const bufY=(mode==='buf'||mode==='bufguard')?2:0;
+  let bufAmt=0,w=P*W;
+  for(let k=0;k<bufY;k++){ bufAmt+=w; w*=(1+INF); }
+  let stock=P-bufAmt, buf=bufAmt, low=P, bust=null; w=P*W;
+  const path=[];
+  for(let i=0;i<N;i++){
+    const r=rets[i]; stock*=(1+r/100);
+    const tb=stock+buf; let pay=w;
+    if(mode==='cut'&&r<0) pay=w*(1-CUT);
+    if((mode==='guard'||mode==='bufguard')&&tb<P*0.8) pay=w*(1-CUT);
+    if(i<bufY&&buf>0){ const t=Math.min(pay,buf); buf-=t; if(t<pay) stock-=(pay-t); }
+    else stock-=pay;
+    const tot=Math.max(stock,0)+Math.max(buf,0);
+    low=Math.min(low,tot); path.push(tot);
+    if(stock<=0&&buf<=0){ bust=i+1; break; }
+    w*= (mode==='freeze'&&r<0)?1:(1+INF);
+  }
+  return {end:bust?0:path[path.length-1],low,bust,path};
+}
+function srender(){
+  const P=+$('sp').value, W=+$('sw').value/100, INF=+$('si').value/100,
+        N=+$('sn').value, SH=+$('sk').value, CUT=+$('sc').value/100;
+  $('spv').textContent=fmt(P)+' 萬'; $('swv').textContent=(+$('sw').value).toFixed(1)+'%';
+  $('siv').textContent=(+$('si').value).toFixed(1)+'%'; $('scv').textContent=$('sc').value+'%';
+  $('snv').textContent=$('sn').value+' 年'; $('skv').textContent='−'+Math.abs(SH)+'%';
+  const A={P,W,INF,N,SH,CUT};
+  const res=MODES.map(m=>({...m,...srun(m.k,A),nm:m.n.replace('R',$('sc').value+'%')}));
+  const base=res[0].end||1;
+  const best=res.slice(1).reduce((a,b)=>b.end>a.end?b:a,res[1]);
+  const vd=$('svd');
+  if(res[0].bust){
+    vd.style.setProperty('--edge',C('--down'));
+    $('shead').textContent='固定提領撐不過 '+N+' 年';
+    $('sheadsub').textContent='第 '+res[0].bust+' 年就見底。'+
+      (best.bust?'六種應對全部都不夠 —— 這個提領率本身就太高了，戰術救不回來。'
+                :best.nm+' 可以撐完，但這代表你在賭一個規則能修正一個結構性問題。');
+  } else {
+    vd.style.setProperty('--edge',C('--up'));
+    $('shead').textContent=best.nm.replace(/^[①-⑥]\s*/,'')+' 最有效';
+    $('sheadsub').textContent='比固定提領多 '+fmt(best.end-base)+' 萬（'+((best.end/base-1)*100).toFixed(1)+
+      '%）。而把提領率從 '+(W*100).toFixed(1)+'% 降到 '+((W*100)-1).toFixed(1)+
+      '%，效果是 '+(((srun('fixed',{...A,W:W-0.01}).end/base-1)*100)).toFixed(0)+'% —— 戰術和提領率不是同一個量級。';
+  }
+  $('s-best').textContent=best.nm.replace(/^[①-⑥]\s*/,'').slice(0,9);
+  $('s-gain').textContent=(best.end&&base)?'+'+((best.end/base-1)*100).toFixed(1)+'%':'—';
+  $('s-gain').className='n '+(best.end>base?'pos':'');
+  const r1=srun('fixed',{...A,W:Math.max(0.005,W-0.01)});
+  $('s-rate').textContent=r1.end?'+'+((r1.end/base-1)*100).toFixed(0)+'%':'—';
+  $('s-rate').className='n pos';
+
+  $('stb').innerHTML=res.map(r=>{
+    const d=r.end&&base?((r.end/base-1)*100):null;
+    return '<tr class="'+(r===best?'best':'')+'"><td>'+r.nm+'</td><td class="cost">'+r.c+'</td>'+
+      '<td class="n">'+(r.bust?'<span class="neg">破產第 '+r.bust+' 年</span>':fmt(r.end))+'</td>'+
+      '<td class="n">'+fmt(Math.max(r.low,0))+'</td>'+
+      '<td class="n '+(d>0?'pos':d<0?'neg':'')+'">'+(d===null?'—':(d>=0?'+':'')+d.toFixed(1)+'%')+'</td></tr>';
+  }).join('');
+
+  const LEV=[
+    ['提領率 '+(W*100).toFixed(1)+'% → '+((W*100)-0.5).toFixed(1)+'%',srun('fixed',{...A,W:W-0.005}).end,'每年少花 '+fmt(P*0.005)+' 萬'],
+    ['提領率 '+(W*100).toFixed(1)+'% → '+((W*100)-1).toFixed(1)+'%',r1.end,'每年少花 '+fmt(P*0.01)+' 萬'],
+    ['本金多 10%（'+fmt(P*1.1)+' 萬）',srun('fixed',{...A,P:P*1.1}).end*1,'退休前多存 '+fmt(P*0.1)+' 萬'],
+    ['緩衝 2 年現金',res[4].end,'160 萬不投資；沒熊市時 −6.2%'],
+    ['熊市年不調通膨',res[1].end,'那年不加薪，零成本'],
+  ];
+  $('ltb').innerHTML=LEV.sort((a,b)=>b[1]-a[1]).map(([n,v,c])=>{
+    const d=base?((v/base-1)*100):0;
+    return '<tr><td>'+n+'</td><td class="n">'+(v?fmt(v):'<span class="neg">破產</span>')+'</td>'+
+      '<td class="n '+(d>0?'pos':'neg')+'">'+(d>=0?'+':'')+d.toFixed(1)+'%</td><td class="cost">'+c+'</td></tr>';
+  }).join('');
+  sdraw(res,best,P);
+}
+function sdraw(res,best,P){
+  const cv=$('scv'),dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=cv.clientWidth||1200,h=Math.round(w*0.32);
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  const PL=58,PR=14,PT=14,PB=28,iw=w-PL-PR,ih=h-PT-PB;
+  const n=Math.max(...res.map(r=>r.path.length));
+  const maxV=Math.max(P,...res.flatMap(r=>r.path))*1.06;
+  const X=k=>PL+(n<=1?iw/2:iw*k/(n-1)),Y=v=>PT+ih-ih*(v/maxV);
+  x.strokeStyle=C('--grid');x.fillStyle=C('--muted');x.font='11px "IBM Plex Mono",monospace';x.lineWidth=1;
+  const p10=Math.pow(10,Math.floor(Math.log10(maxV)));
+  const step=p10*(maxV/p10>5?2:1);
+  for(let v=0;v<=maxV;v+=step){const yy=Math.round(Y(v))+.5;
+    x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+    x.textAlign='right';x.fillText(v>=10000?(v/10000).toFixed(1)+'億':fmt(v),PL-8,yy+4);}
+  x.strokeStyle=C('--muted');x.setLineDash([4,4]);
+  x.beginPath();x.moveTo(PL,Y(P));x.lineTo(w-PR,Y(P));x.stroke();x.setLineDash([]);
+  res.forEach(r=>{
+    const isB=r===best,isBase=r.k==='fixed';
+    x.beginPath();r.path.forEach((v,k)=>k?x.lineTo(X(k),Y(v)):x.moveTo(X(k),Y(v)));
+    x.strokeStyle=isB?C('--up'):isBase?C('--muted'):C('--accent');
+    x.lineWidth=isB?2.6:isBase?1.8:1;x.globalAlpha=isB||isBase?1:.45;
+    x.lineJoin='round';x.stroke();x.globalAlpha=1;
+  });
+  x.fillStyle=C('--muted');x.font='11px "IBM Plex Mono",monospace';x.textAlign='center';
+  const tk=Math.max(1,Math.round(n/8));
+  for(let k=0;k<n;k+=tk) x.fillText('第'+(k+1)+'年',X(k),h-9);
+  $('sleg').innerHTML='<span><i style="background:var(--up)"></i>'+best.nm.replace(/^[①-⑥]\s*/,'')+'（最佳）</span>'+
+    '<span><i style="background:var(--muted)"></i>① 固定提領（基準）</span>'+
+    '<span><i style="background:var(--accent);opacity:.45"></i>其餘策略</span>'+
+    '<span><i style="background:var(--muted);height:0;border-top:1px dashed var(--muted)"></i>期初本金</span>';
+}
+['sk','sp','sw','si','sc','sn'].forEach(id=>$(id).addEventListener('input',srender));
+document.querySelectorAll('button.chip[data-sp]').forEach(b=>b.addEventListener('click',()=>{
+  const [k,w]=b.dataset.sp.split(','); $('sk').value=k; $('sw').value=w; srender();
+}));
+// ── 分頁切換 ──
+function tab(which){
+  const sim=which==='sim';
+  $('t-sim').setAttribute('aria-selected',sim); $('t-str').setAttribute('aria-selected',!sim);
+  $('pane-sim').hidden=!sim; $('pane-str').hidden=sim;
+  $('go-str').style.display=sim?'':'none';
+  if(!sim) srender(); else render();
+  window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+}
+$('t-sim').addEventListener('click',()=>tab('sim'));
+$('t-str').addEventListener('click',()=>tab('str'));
+$('go-str').addEventListener('click',()=>tab('str'));
+addEventListener('resize',()=>{ if(!$('pane-str').hidden) srender(); });
+srender(); tab('sim');
+
 </script>
 </body>
 </html>
