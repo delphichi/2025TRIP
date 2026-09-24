@@ -69,6 +69,14 @@ canvas{display:block;width:100%;height:auto;cursor:crosshair}
 .keys{display:flex;flex-wrap:wrap;gap:15px;padding:8px 14px 12px;font-size:11.5px;color:var(--ink2)}
 .keys b{font-weight:500;color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:10px;
   letter-spacing:.1em;text-transform:uppercase;margin-right:5px}
+.hmwrap{padding:10px 12px 6px}
+.hmlg{display:flex;align-items:center;gap:9px;padding:9px 3px 4px;flex-wrap:wrap}
+.hmlg i{flex:0 0 190px;height:9px;border-radius:2px;display:block}
+.hmn{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.hmt{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink2);margin-left:auto}
+.hmsm{flex-basis:100%;font-size:11px;color:var(--muted);padding-top:2px}
+.hmsm b{color:var(--up);font-weight:500}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) 278px;gap:20px;margin-top:20px;align-items:start}
 @media(max-width:840px){.cols{grid-template-columns:1fr}}
 .card{padding:15px 17px;position:sticky;top:18px;border-left:4px solid var(--cc,var(--line2))}
@@ -159,6 +167,19 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
   </div>
 </div>
 
+<h2>4 週價量熱力圖</h2>
+<p class="cap">面積 ＝ 近 4 週成交金額佔比（收盤 × 成交量）—— <b>不是成交股數</b>，否則高價股與低價股放在一起比張數，資金流向會失真。顏色 ＝ 4 週漲跌幅，紅漲綠跌。跟著上面的勾選連動。</p>
+<div class="panel hmwrap">
+  <canvas id="hm" width="1100" height="380" role="img" aria-label="4 週價量熱力圖"></canvas>
+  <div class="hmlg">
+    <span class="lb">4 週漲跌</span>
+    <i id="hmg"></i>
+    <span class="hmn" id="hmlo">—</span><span class="hmn" id="hmhi">—</span>
+    <span class="hmt" id="hmtot"></span>
+    <span class="hmsm" id="hmsm"></span>
+  </div>
+</div>
+
 <div class="cols">
   <div>
     <h2>完整讀數</h2>
@@ -186,7 +207,7 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
 </div>
 
 <script>
-let D=[{"t": "NVDA", "n": "NVIDIA CORP", "ph": 4, "mom": 27.69, "q": 3, "s": [true, true, true, true], "epsn": 4, "fcfn": 4, "rv4": [62.5, 73.2, 85.2, 105.9], "a2": 95.5, "b2": 67.9, "roe": 84.2, "ttm": 7.23, "px": 223.91, "dhi": 5.0, "pv": 2, "vr": 0.81, "r26": 30.8, "r13": 14.4, "r4": -1.8, "pvs": [true, true, false, false], "spark": [93.6, 77.9, 69.2, 55.6, 62.5, 73.2, 85.2, 105.9], "path": [[-155.7, 3], [-106.49, 3], [-34.44, 3], [-23.38, 3], [-14.52, 3], [5.46, 4], [20.17, 4], [27.69, 4]], "pvpath": [[-106.49, 3], [-34.44, 1], [-23.38, 3], [-14.52, 3], [5.46, 2], [20.17, 3], [27.69, 2], [27.69, 2]], "nq": 8, "brk": "2023 年 9.89x", "mrg": "2026-01-25 商譽 3.3x", "asof": "2026-09-24", "c": "#c0392b", "c2": "#e0715f", "cn": "紅"}, {"t": "AMD", "n": "ADVANCED MICRO DEVICES INC", "ph": 4, "mom": 9.13, "q": 2, "s": [true, true, true, true], "epsn": 4, "fcfn": 3, "rv4": [35.6, 34.1, 37.8, 50.1], "a2": 44.0, "b2": 34.8, "roe": 9.6, "ttm": 3.51, "px": 619.42, "dhi": 0.7, "pv": 3, "vr": 1.0, "r26": 204.0, "r13": 16.3, "r4": 29.9, "pvs": [true, true, true, false], "spark": [17.6, 24.2, 35.9, 31.7, 35.6, 34.1, 37.8, 50.1], "path": [[7.02, 4], [15.3, 4], [16.8, 4], [12.94, 4], [3.62, 4], [1.05, 4], [2.33, 4], [9.13, 4]], "pvpath": [[15.3, 1], [16.8, 1], [12.94, 4], [3.62, 2], [1.05, 2], [2.33, 2], [9.13, 3], [9.13, 3]], "nq": 8, "brk": null, "mrg": null, "asof": "2026-09-24", "c": "#cf7620", "c2": "#e09a4f", "cn": "橘"}, {"t": "AMZN", "n": "AMAZON COM INC", "ph": 3, "mom": 4.6, "q": 2, "s": [true, true, true, false], "epsn": 4, "fcfn": 0, "rv4": [13.4, 13.6, 16.6, 19.6], "a2": 18.1, "b2": 13.5, "roe": 24.5, "ttm": 12.16, "px": 249.11, "dhi": 12.3, "pv": 2, "vr": 0.8, "r26": 20.0, "r13": 9.7, "r4": -2.8, "pvs": [true, true, false, false], "spark": [11.0, 10.5, 8.6, 13.3, 13.4, 13.6, 16.6, 19.6], "path": [[-2.64, 3], [-0.56, 2], [-1.02, 2], [0.21, 3], [3.81, 3], [2.54, 3], [1.75, 3], [4.6, 3]], "pvpath": [[-0.56, 3], [-1.02, 2], [0.21, 3], [3.81, 2], [2.54, 2], [1.75, 0], [4.6, 3], [4.6, 2]], "nq": 8, "brk": "2020 年 20.23x", "mrg": null, "asof": "2026-09-24", "c": "#b3901c", "c2": "#d6b64a", "cn": "黃"}, {"t": "MSFT", "n": "MICROSOFT CORP", "ph": 3, "mom": 0.45, "q": 2, "s": [true, true, true, false], "epsn": 4, "fcfn": 1, "rv4": [18.4, 16.7, 18.3, 17.7], "a2": 18.0, "b2": 17.6, "roe": 30.2, "ttm": 16.61, "px": 496.1, "dhi": 8.5, "pv": 2, "vr": 0.63, "r26": 35.6, "r13": 40.6, "r4": -1.8, "pvs": [true, true, false, false], "spark": [16.0, 12.3, 13.3, 18.1, 18.4, 16.7, 18.3, 17.7], "path": [[-1.68, 3], [-1.95, 2], [-2.85, 2], [1.52, 3], [5.49, 3], [1.89, 3], [-0.76, 2], [0.45, 3]], "pvpath": [[-1.95, 2], [-2.85, 0], [1.52, 4], [5.49, 4], [1.89, 1], [-0.76, 1], [0.45, 2], [0.45, 2]], "nq": 8, "brk": null, "mrg": null, "asof": "2026-09-24", "c": "#2f8055", "c2": "#4bab77", "cn": "綠"}, {"t": "GOOG", "n": "Alphabet Inc.", "ph": 2, "mom": -2.44, "q": 2, "s": [true, false, true, false], "epsn": 4, "fcfn": 2, "rv4": [13.6, 15.1, 11.8, 12.0], "a2": 11.9, "b2": 14.3, "roe": 32.1, "ttm": 8.71, "px": 337.21, "dhi": 15.5, "pv": 1, "vr": 0.95, "r26": 20.1, "r13": -1.5, "r4": -0.1, "pvs": [true, false, false, false], "spark": [7.1, 11.0, 13.5, 15.4, 13.6, 15.1, 11.8, 12.0], "path": [[1.3, 2], [7.24, 3], [7.41, 3], [5.42, 3], [2.25, 3], [-0.11, 2], [-1.07, 2], [-2.44, 2]], "pvpath": [[7.24, 2], [7.41, 4], [5.42, 4], [2.25, 4], [-0.11, 3], [-1.07, 4], [-2.44, 1], [-2.44, 1]], "nq": 8, "brk": null, "mrg": "2026-03-31 商譽 1.7x", "asof": "2026-09-24", "c": "#2a6aa8", "c2": "#5b9ad6", "cn": "藍"}, {"t": "META", "n": "Meta Platforms, Inc.", "ph": 2, "mom": 5.5, "q": 1, "s": [true, true, false, false], "epsn": 2, "fcfn": 2, "rv4": [26.2, 23.8, 33.1, 28.0], "a2": 30.5, "b2": 25.0, "roe": 26.1, "ttm": 24.81, "px": 769.83, "dhi": 0.0, "pv": 4, "vr": 1.28, "r26": 40.6, "r13": 41.8, "r4": 34.8, "pvs": [true, true, true, true], "spark": [18.9, 20.6, 16.1, 21.6, 26.2, 23.8, 33.1, 28.0], "path": [[-5.5, 3], [-4.93, 3], [-2.14, 3], [-0.91, 2], [5.58, 3], [6.17, 3], [4.5, 3], [5.5, 2]], "pvpath": [[-4.93, 3], [-2.14, 2], [-0.91, 3], [5.58, 3], [6.17, 1], [4.5, 1], [5.5, 0], [5.5, 4]], "nq": 8, "brk": "2012 年 1.44x", "mrg": null, "asof": "2026-09-24", "c": "#75459e", "c2": "#a072cc", "cn": "紫"}], WARN=[];
+let D=[{"t": "NVDA", "n": "NVIDIA CORP", "ph": 4, "mom": 27.69, "q": 3, "s": [true, true, true, true], "epsn": 4, "fcfn": 4, "rv4": [62.5, 73.2, 85.2, 105.9], "a2": 95.5, "b2": 67.9, "roe": 84.2, "ttm": 7.23, "px": 224.58, "dhi": 4.7, "pv": 2, "vr": 0.84, "r26": 31.1, "r13": 14.7, "r4": -1.5, "pvs": [true, true, false, false], "v4": 562.326, "spark": [93.6, 77.9, 69.2, 55.6, 62.5, 73.2, 85.2, 105.9], "path": [[-155.7, 3], [-106.49, 3], [-34.44, 3], [-23.38, 3], [-14.52, 3], [5.46, 4], [20.17, 4], [27.69, 4]], "pvpath": [[-106.49, 3], [-34.44, 1], [-23.38, 3], [-14.52, 3], [5.46, 2], [20.17, 3], [27.69, 2], [27.69, 2]], "nq": 8, "brk": "2023 年 9.89x", "mrg": "2026-01-25 商譽 3.3x", "asof": "2026-09-24", "c": "#c0392b", "c2": "#e0715f", "cn": "紅"}, {"t": "AMD", "n": "ADVANCED MICRO DEVICES INC", "ph": 4, "mom": 9.13, "q": 2, "s": [true, true, true, true], "epsn": 4, "fcfn": 3, "rv4": [35.6, 34.1, 37.8, 50.1], "a2": 44.0, "b2": 34.8, "roe": 9.6, "ttm": 3.51, "px": 629.26, "dhi": 0.0, "pv": 4, "vr": 1.03, "r26": 208.8, "r13": 18.2, "r4": 32.0, "pvs": [true, true, true, true], "v4": 230.141, "spark": [17.6, 24.2, 35.9, 31.7, 35.6, 34.1, 37.8, 50.1], "path": [[7.02, 4], [15.3, 4], [16.8, 4], [12.94, 4], [3.62, 4], [1.05, 4], [2.33, 4], [9.13, 4]], "pvpath": [[15.3, 1], [16.8, 1], [12.94, 4], [3.62, 2], [1.05, 2], [2.33, 2], [9.13, 3], [9.13, 4]], "nq": 8, "brk": null, "mrg": null, "asof": "2026-09-24", "c": "#cf7620", "c2": "#e09a4f", "cn": "橘"}, {"t": "AMZN", "n": "AMAZON COM INC", "ph": 3, "mom": 4.6, "q": 2, "s": [true, true, true, false], "epsn": 4, "fcfn": 0, "rv4": [13.4, 13.6, 16.6, 19.6], "a2": 18.1, "b2": 13.5, "roe": 24.5, "ttm": 12.16, "px": 249.38, "dhi": 12.2, "pv": 2, "vr": 0.83, "r26": 20.2, "r13": 9.9, "r4": -2.7, "pvs": [true, true, false, false], "v4": 180.51, "spark": [11.0, 10.5, 8.6, 13.3, 13.4, 13.6, 16.6, 19.6], "path": [[-2.64, 3], [-0.56, 2], [-1.02, 2], [0.21, 3], [3.81, 3], [2.54, 3], [1.75, 3], [4.6, 3]], "pvpath": [[-0.56, 3], [-1.02, 2], [0.21, 3], [3.81, 2], [2.54, 2], [1.75, 0], [4.6, 3], [4.6, 2]], "nq": 8, "brk": "2020 年 20.23x", "mrg": null, "asof": "2026-09-24", "c": "#b3901c", "c2": "#d6b64a", "cn": "黃"}, {"t": "MSFT", "n": "MICROSOFT CORP", "ph": 3, "mom": 0.45, "q": 2, "s": [true, true, true, false], "epsn": 4, "fcfn": 1, "rv4": [18.4, 16.7, 18.3, 17.7], "a2": 18.0, "b2": 17.6, "roe": 30.2, "ttm": 16.61, "px": 497.93, "dhi": 8.1, "pv": 2, "vr": 0.65, "r26": 36.1, "r13": 41.1, "r4": -1.4, "pvs": [true, true, false, false], "v4": 213.436, "spark": [16.0, 12.3, 13.3, 18.1, 18.4, 16.7, 18.3, 17.7], "path": [[-1.68, 3], [-1.95, 2], [-2.85, 2], [1.52, 3], [5.49, 3], [1.89, 3], [-0.76, 2], [0.45, 3]], "pvpath": [[-1.95, 2], [-2.85, 0], [1.52, 4], [5.49, 4], [1.89, 1], [-0.76, 1], [0.45, 2], [0.45, 2]], "nq": 8, "brk": null, "mrg": null, "asof": "2026-09-24", "c": "#2f8055", "c2": "#4bab77", "cn": "綠"}, {"t": "GOOG", "n": "Alphabet Inc.", "ph": 2, "mom": -2.44, "q": 2, "s": [true, false, true, false], "epsn": 4, "fcfn": 2, "rv4": [13.6, 15.1, 11.8, 12.0], "a2": 11.9, "b2": 14.3, "roe": 32.1, "ttm": 8.71, "px": 339.01, "dhi": 15.0, "pv": 2, "vr": 0.98, "r26": 20.8, "r13": -0.9, "r4": 0.4, "pvs": [true, false, true, false], "v4": 120.37, "spark": [7.1, 11.0, 13.5, 15.4, 13.6, 15.1, 11.8, 12.0], "path": [[1.3, 2], [7.24, 3], [7.41, 3], [5.42, 3], [2.25, 3], [-0.11, 2], [-1.07, 2], [-2.44, 2]], "pvpath": [[7.24, 2], [7.41, 4], [5.42, 4], [2.25, 4], [-0.11, 3], [-1.07, 4], [-2.44, 1], [-2.44, 2]], "nq": 8, "brk": null, "mrg": "2026-03-31 商譽 1.7x", "asof": "2026-09-24", "c": "#2a6aa8", "c2": "#5b9ad6", "cn": "藍"}, {"t": "META", "n": "Meta Platforms, Inc.", "ph": 2, "mom": 5.5, "q": 1, "s": [true, true, false, false], "epsn": 2, "fcfn": 2, "rv4": [26.2, 23.8, 33.1, 28.0], "a2": 30.5, "b2": 25.0, "roe": 26.1, "ttm": 24.81, "px": 777.59, "dhi": 0.0, "pv": 4, "vr": 1.33, "r26": 42.0, "r13": 43.2, "r4": 36.2, "pvs": [true, true, true, true], "v4": 299.764, "spark": [18.9, 20.6, 16.1, 21.6, 26.2, 23.8, 33.1, 28.0], "path": [[-5.5, 3], [-4.93, 3], [-2.14, 3], [-0.91, 2], [5.58, 3], [6.17, 3], [4.5, 3], [5.5, 2]], "pvpath": [[-4.93, 3], [-2.14, 2], [-0.91, 3], [5.58, 3], [6.17, 1], [4.5, 1], [5.5, 0], [5.5, 4]], "nq": 8, "brk": "2012 年 1.44x", "mrg": null, "asof": "2026-09-24", "c": "#75459e", "c2": "#a072cc", "cn": "紫"}], WARN=[];
 const LIVE=false, INIT="";
 const $=i=>document.getElementById(i);
 const C=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
@@ -263,6 +284,108 @@ function draw(){
     x.fillStyle=cc(p.d); x.fillText(p.d.t,p.px,ty);
   });
 }
+// ★★ 熱力圖：面積 ＝ 4 週成交金額佔比，顏色 ＝ 4 週漲跌幅（紅漲綠跌）
+function hmColor(r, mx){
+  // ★ 以「勾選中的最大絕對漲跌幅」normalise，避免固定刻度在平靜期整片死白
+  const t = mx ? Math.max(-1, Math.min(1, r / mx)) : 0;
+  const a = Math.abs(t);
+  const dk = dark();
+  // 中性色：灰帶一點頁面主調；兩端走 --up(紅) / --dn(綠)
+  const n  = dk ? [58,64,59] : [214,217,206];
+  const up = dk ? [196,72,52] : [168,53,34];
+  const dn = dk ? [46,138,117] : [28,110,92];
+  const e  = t >= 0 ? up : dn;
+  const c  = n.map((v,i)=>Math.round(v + (e[i]-v)*Math.pow(a,0.62)));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function squarify(items, x, y, w, h, out){
+  // ★ squarified treemap —— 讓方塊盡量接近正方形，比 slice-and-dice 好讀
+  if(!items.length) return;
+  if(items.length===1){ out.push({d:items[0].d, x, y, w, h}); return; }
+  const tot = items.reduce((s,i)=>s+i.v, 0);
+  let best = 1, bs = Infinity;
+  for(let k=1;k<items.length;k++){
+    const sum = items.slice(0,k).reduce((s,i)=>s+i.v,0), f = sum/tot;
+    const side = (w<h) ? h*f : w*f, other = (w<h) ? w : h;
+    const worst = items.slice(0,k).reduce((m,i)=>{
+      const len = side ? (i.v/sum)*side : 0;
+      return Math.max(m, len&&other ? Math.max(len/other, other/len) : Infinity);
+    }, 0);
+    if(worst < bs){ bs = worst; best = k; }
+  }
+  const head = items.slice(0,best), rest = items.slice(best);
+  const f = head.reduce((s,i)=>s+i.v,0)/tot;
+  if(w < h){
+    const hh = h*f; let cy = y;
+    head.forEach(i=>{ const ih = hh*(i.v/head.reduce((s,j)=>s+j.v,0));
+      out.push({d:i.d, x, y:cy, w, h:ih}); cy += ih; });
+    squarify(rest, x, y+hh, w, h-hh, out);
+  } else {
+    const ww = w*f; let cx = x;
+    head.forEach(i=>{ const iw = ww*(i.v/head.reduce((s,j)=>s+j.v,0));
+      out.push({d:i.d, x:cx, y, w:iw, h}); cx += iw; });
+    squarify(rest, x+ww, y, w-ww, h, out);
+  }
+}
+let hmTiles = [];
+function drawHM(){
+  const cv=$('hm'); if(!cv || !cv.clientWidth){ if(cv) requestAnimationFrame(drawHM); return; }
+  const vis = D.filter(d=>show.has(d.t) && d.v4 > 0 && d.r4 !== null);
+  const dpr=Math.min(devicePixelRatio||1,2), w=cv.clientWidth, h=Math.round(Math.min(420, Math.max(210, w*0.34)));
+  cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
+  const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+  if(!vis.length){ x.fillStyle=C('--muted'); x.font='13px "Noto Sans TC",sans-serif';
+    x.textAlign='center'; x.fillText('沒有勾選任何公司', w/2, h/2); hmTiles=[]; return; }
+  const tot = vis.reduce((s,d)=>s+d.v4, 0);
+  const mx  = Math.max(...vis.map(d=>Math.abs(d.r4)), 0.01);
+  const items = vis.slice().sort((a,b)=>b.v4-a.v4).map(d=>({d, v:d.v4}));
+  const out=[]; squarify(items, 0, 0, w, h, out); hmTiles=out;
+  out.forEach(t=>{
+    const d=t.d, on = d.t===sel;
+    x.fillStyle = hmColor(d.r4, mx);
+    x.fillRect(t.x, t.y, t.w, t.h);
+    x.strokeStyle = C('--panel'); x.lineWidth = 2;
+    x.strokeRect(t.x+1, t.y+1, t.w-2, t.h-2);
+    if(on){ x.strokeStyle = C('--ink'); x.lineWidth = 2.5; x.strokeRect(t.x+2, t.y+2, t.w-4, t.h-4); }
+    // ★ 文字顏色跟著磚色明暗走，否則深紅上放深字會看不見
+    const rgb = hmColor(d.r4, mx).match(/\d+/g).map(Number);
+    const lum = (0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]) / 255;
+    const ink = lum > 0.58 ? '#1a1d19' : '#f4f5f0';
+    const pct = (d.v4/tot*100);
+    const big = t.w > 74 && t.h > 52, mid = t.w > 50 && t.h > 30;
+    x.fillStyle = ink; x.textAlign='center';
+    if(big){
+      x.font='700 '+Math.min(21, Math.max(13, t.w/6.2))+'px "JetBrains Mono",monospace';
+      x.fillText(d.t, t.x+t.w/2, t.y+t.h/2 - 4);
+      x.font='600 '+Math.min(15, Math.max(11, t.w/9))+'px "JetBrains Mono",monospace';
+      x.fillText((d.r4>0?'+':'')+d.r4.toFixed(1)+'%', t.x+t.w/2, t.y+t.h/2 + 14);
+      x.globalAlpha=.72; x.font='10.5px "JetBrains Mono",monospace';
+      x.fillText(pct.toFixed(1)+'% 金額', t.x+t.w/2, t.y+t.h/2 + 30); x.globalAlpha=1;
+    } else if(mid){
+      x.font='700 12px "JetBrains Mono",monospace';
+      x.fillText(d.t, t.x+t.w/2, t.y+t.h/2 - 2);
+      x.font='10.5px "JetBrains Mono",monospace';
+      x.fillText((d.r4>0?'+':'')+d.r4.toFixed(1)+'%', t.x+t.w/2, t.y+t.h/2 + 11);
+    } else {
+      x.font='700 10px "JetBrains Mono",monospace';
+      x.fillText(d.t, t.x+t.w/2, t.y+t.h/2 + 3);
+    }
+  });
+  const g=$('hmg');
+  if(g){
+    g.style.background = `linear-gradient(90deg, ${hmColor(-mx,mx)}, ${hmColor(0,mx)}, ${hmColor(mx,mx)})`;
+    $('hmlo').textContent = `-${mx.toFixed(1)}%`;
+    $('hmhi').textContent = `+${mx.toFixed(1)}%`;
+    $('hmtot').textContent = `勾選 ${vis.length} 支　4 週合計成交金額 $${tot.toFixed(0)}B`;
+    // ★★ 面積嚴格等比例 ⇒ 成交金額懸殊時小磚必然細到看不見（數學上無解，不是 bug）。
+    //    不縮放面積來「救」它們 —— 那會毀掉「面積＝佔比」這個唯一的語意。改成明白標出來。
+    const tiny = vis.filter(d => d.v4/tot < 0.02)
+                    .sort((a,b)=>a.v4-b.v4)
+                    .map(d => `${d.t} ${(d.v4/tot*100).toFixed(2)}%（${d.r4>0?'+':''}${d.r4.toFixed(1)}%）`);
+    $('hmsm').innerHTML = tiny.length
+      ? `<b>★ 佔比不足 2%，方塊細到看不清：</b>${tiny.join('　')}` : '';
+  }
+}
 function card(t){
   const d=D.find(v=>v.t===t); sel=t; show.add(t);
   const mx=Math.max(...d.spark.map(Math.abs),1);
@@ -305,7 +428,7 @@ function card(t){
    </div></div>`;
   document.querySelectorAll('#tb tr').forEach(r=>r.classList.toggle('on',r.dataset.t===t));
   document.querySelectorAll('#chips .chip[data-t]').forEach(b=>b.setAttribute('aria-pressed',show.has(b.dataset.t)));
-  draw();
+  draw(); drawHM();
 }
 function rows(){
   $('tb').innerHTML=D.map(d=>`<tr data-t="${d.t}">
@@ -329,29 +452,42 @@ function chips(){
   document.querySelectorAll('#chips .chip[data-t]').forEach(b=>b.addEventListener('click',()=>{
     const t=b.dataset.t;
     if(show.has(t)&&show.size>1) show.delete(t); else show.add(t);
-    b.setAttribute('aria-pressed',show.has(t)); draw();}));
-  $('c-all').addEventListener('click',()=>{show=new Set(D.map(d=>d.t));chips();draw();});
-  $('c-non').addEventListener('click',()=>{show=new Set([sel]);chips();draw();});
+    b.setAttribute('aria-pressed',show.has(t)); draw(); drawHM();}));
+  $('c-all').addEventListener('click',()=>{show=new Set(D.map(d=>d.t));chips();draw();drawHM();});
+  $('c-non').addEventListener('click',()=>{show=new Set([sel]);chips();draw();drawHM();});
 }
 $('cv').addEventListener('click',e=>{
   const r=$('cv').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
   const h=pts.find(p=>Math.hypot(p.px-mx,p.py-my)<=p.r+5); if(h) card(h.d.t);});
+$('hm').addEventListener('click',e=>{
+  const r=$('hm').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
+  if(t) card(t.d.t);});
+$('hm').style.cursor='pointer';
 document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
   YK=b.dataset.y;
-  document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  $('hm').addEventListener('click',e=>{
+  const r=$('hm').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
+  if(t) card(t.d.t);});
+$('hm').style.cursor='pointer';
+document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
   draw();}));
 $('tl').addEventListener('input',()=>{$('tlv').textContent=$('tl').value+' 期';draw();});
-addEventListener('resize',draw);
-matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{rows();chips();card(sel);});
+addEventListener('resize',()=>{draw();drawHM();});
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{rows();chips();card(sel);drawHM();});
 function render(){
   const has=D.length;
   $('tb').closest('.cols').style.display = has?'':'none';
+  document.querySelector('.hmwrap').style.display = has?'':'none';
+  document.querySelector('.hmwrap').previousElementSibling.style.display = has?'':'none';
+  document.querySelector('.hmwrap').previousElementSibling.previousElementSibling.style.display = has?'':'none';
   document.querySelector('.plotwrap').style.display = has?'':'none';
   document.querySelector('.bar').style.display = has?'':'none';
   document.getElementById('chips').style.display = has?'':'none';
   if(!has) return;
   show=new Set(D.map(d=>d.t)); sel=D[0].t;
-  rows(); chips(); card(D[0].t);
+  rows(); chips(); card(D[0].t); drawHM();
 }
 
 const ST=$('st'), GO=$('go'), IN=$('tks');

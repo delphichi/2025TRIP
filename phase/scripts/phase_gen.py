@@ -171,6 +171,9 @@ def build(tk):
         r26=round(pvnow[2],1) if pvnow else None, r13=round(pvnow[3],1) if pvnow else None,
         r4=round(pvnow[4],1) if pvnow else None,
         pvs=pvnow[5] if pvnow else [False]*4,
+        # ★ 近 4 週成交金額（收盤 × 成交量，20 個交易日合計）—— 熱力圖的面積用它。
+        #   ★★ 不能用成交股數：AMD $621 與低價股放一起比張數，資金流向會完全失真（SOP #11）
+        v4=round(sum(c*vv for _, c, vv in ser[-20:]) / 1e9, 3),
         spark=[round(r["rev_yoy"],1) for r in rows[-8:] if r["rev_yoy"] is not None],
         path=[[x["mom"], x["ph"]] for x in traj],
         # ★★★ 對齊修正（2026-09-24）：pvp 取 rows[-7:]、traj 取最後 8 期，
