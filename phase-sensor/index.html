@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="把 13 家美股的相位（0~4階）、動能（Δ營收成長）、品質（EPS/FCF/ROE）拆成三個獨立的軸，資料取自 SEC XBRL 近 20 季。">
+<meta name="description" content="把 13 家美股的相位（0~4階）、動能（Δ營收成長）、品質（EPS/FCF/ROE）拆成三個獨立的軸，含基本面與價量兩種 8 期移動軌跡。資料取自 SEC XBRL 近 20 季。">
 <meta name="theme-color" content="#161a17" media="(prefers-color-scheme:dark)">
 <meta name="theme-color" content="#edeee8" media="(prefers-color-scheme:light)">
 <title>基本面相位儀</title>
@@ -56,6 +56,14 @@ canvas{display:block;width:100%;height:auto;cursor:crosshair}
 .keys b{font-weight:500;color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:10px;
   letter-spacing:.1em;text-transform:uppercase;margin-right:5px}
 .dot{display:inline-block;border-radius:50%;vertical-align:-1px;margin-right:4px}
+input[type=range]{-webkit-appearance:none;appearance:none;height:18px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line2);border-radius:2px}
+input[type=range]::-moz-range-track{height:3px;background:var(--line2);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--acc);border:2px solid var(--panel);margin-top:-5.5px;box-shadow:0 0 0 1px var(--acc)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--acc);
+  border:2px solid var(--panel);box-shadow:0 0 0 1px var(--acc)}
+input[type=range]:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:3px}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px;margin-top:20px;align-items:start}
 @media(max-width:860px){.cols{grid-template-columns:1fr}}
 .card{padding:16px 18px;position:sticky;top:18px}
@@ -109,6 +117,19 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
 .fu{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);margin-top:5px}
 .fn{flex:1 1 280px;margin:0;align-self:center;font-size:12.5px;color:var(--muted);max-width:46ch;line-height:1.65}
 .fn b{color:var(--ink2);font-weight:500}
+
+.chips{display:flex;flex-wrap:wrap;gap:5px;padding:11px 14px;margin-top:8px;align-items:center}
+.chips .cl{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-right:5px}
+.chip{font:inherit;font-family:"JetBrains Mono",monospace;font-size:11.5px;padding:3px 9px;cursor:pointer;
+  border:1px solid var(--line2);border-radius:2px;background:transparent;color:var(--muted);
+  display:inline-flex;align-items:center;gap:5px}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block;opacity:.35}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--ink2);font-weight:700}
+.chip[aria-pressed="true"] i{opacity:1}
+.chip:hover{border-color:var(--acc)}
+.chip:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.chip.all{border-style:dashed;margin-left:4px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -129,12 +150,18 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
   </div>
   <span class="lb" style="margin-left:6px">橫軸</span>
   <span style="font-size:12.5px;color:var(--ink2)">Momentum · Δ營收成長（pp）</span>
+  <span class="lb" style="margin-left:auto">軌跡長度</span>
+  <input type="range" id="tl" min="1" max="8" step="1" value="8" style="width:120px">
+  <span class="lb" id="tlv" style="min-width:52px">8 季</span>
 </div>
+
+<div class="panel chips" id="chips"></div>
 
 <div class="panel plotwrap">
   <canvas id="cv" width="1100" height="520" role="img" aria-label="相位與動能散佈圖"></canvas>
   <div class="keys">
     <span><b>大小</b>Quality 0~3（EPS正季≥3 / FCF正季≥3 / ROE≥15% 各一分）</span>
+    <span><b>軌跡</b>最近 8 期的移動路徑，★ 越靠近現在越粗越深 —— 兩個縱軸都可看</span>
     <span><b>顏色</b>
       <i class="dot" style="width:11px;height:11px;background:var(--up)"></i>已到高點
       <i class="dot" style="width:11px;height:11px;background:var(--acc2);margin-left:8px"></i>中段
@@ -195,10 +222,11 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
 </div>
 
 <script>
-const D=[{"t": "FTNT", "n": "Fortinet", "ph": 4, "mom": 8.3, "q": 3, "epsn": 3, "fcfn": 3, "roe": 136.7, "ttm": 2.73, "pv": 3, "dhi": 0.3, "r4": 13.5, "r13": 23.0, "r26": 126.6, "vr": 0.97, "px": 178.74, "spark": [13.0, 17.3, 13.8, 13.6, 14.4, 14.8, 20.1, 25.6], "lab": "🔥 Expansion", "tag": "🔥🔥"}, {"t": "PANW", "n": "Palo Alto", "ph": 3, "mom": 17.5, "q": 1, "epsn": 1, "fcfn": 3, "roe": 1.1, "ttm": 1.23, "pv": 4, "dhi": 1.4, "r4": 15.9, "r13": 37.9, "r26": 156.7, "vr": 1.1, "px": 393.3, "spark": [13.9, 14.3, 15.3, 15.9, 15.7, 14.9, 31.1, 34.5], "lab": "🔥 Transition", "tag": "🔥🔥"}, {"t": "CRWD", "n": "CrowdStrike", "ph": 3, "mom": 3.0, "q": 1, "epsn": 2, "fcfn": 4, "roe": 1.1, "ttm": -0.09, "pv": 4, "dhi": 0.3, "r4": 38.8, "r13": 56.0, "r26": 172.1, "vr": 1.49, "px": 262.49, "spark": [28.5, 25.2, 19.8, 21.3, 22.2, 23.3, 25.6, 25.8], "lab": "🔥 Transition", "tag": "↑"}, {"t": "NET", "n": "Cloudflare", "ph": 3, "mom": 2.6, "q": 1, "epsn": 2, "fcfn": 4, "roe": -12.7, "ttm": -0.7, "pv": 3, "dhi": 3.3, "r4": 23.7, "r13": 57.7, "r26": 61.6, "vr": 0.98, "px": 352.33, "spark": [28.2, 26.9, 26.5, 27.8, 30.7, 33.6, 33.5, 35.9], "lab": "🔥 Transition", "tag": "↑"}, {"t": "MSFT", "n": "Microsoft", "ph": 3, "mom": 0.4, "q": 2, "epsn": 4, "fcfn": 1, "roe": 30.2, "ttm": 16.61, "pv": 3, "dhi": 3.3, "r4": 0.8, "r13": 37.0, "r26": 34.9, "vr": 0.64, "px": 500.59, "spark": [16.0, 12.3, 13.3, 18.1, 18.4, 16.7, 18.3, 17.7], "lab": "🟢 Conversion", "tag": "→"}, {"t": "OKTA", "n": "Okta", "ph": 3, "mom": -0.7, "q": 2, "epsn": 4, "fcfn": 3, "roe": 4.2, "ttm": 1.68, "pv": 4, "dhi": 0.9, "r4": 52.8, "r13": 73.2, "r26": 162.9, "vr": 1.31, "px": 205.36, "spark": [13.9, 12.7, 11.5, 12.7, 11.6, 11.6, 11.2, 10.6], "lab": "🟢 Conversion", "tag": "→"}, {"t": "MA", "n": "Mastercard", "ph": 3, "mom": -2.2, "q": 3, "epsn": 4, "fcfn": 3, "roe": 290.0, "ttm": 17.73, "pv": 2, "dhi": 6.9, "r4": -6.4, "r13": 13.2, "r26": 11.4, "vr": 0.89, "px": 559.92, "spark": [12.8, 14.4, 14.2, 16.8, 16.7, 17.6, 15.8, 14.1], "lab": "🟡 Aging", "tag": "↓"}, {"t": "RBRK", "n": "Rubrik", "ph": 3, "mom": -8.9, "q": 2, "epsn": 4, "fcfn": 3, "roe": null, "ttm": -1.32, "pv": 4, "dhi": 0.5, "r4": 20.2, "r13": 55.1, "r26": 145.0, "vr": 1.1, "px": 115.57, "spark": [42.6, 47.5, 48.7, 51.2, 48.3, 46.3, 39.0, 37.9], "lab": "🟡 Aging", "tag": "↓↓"}, {"t": "V", "n": "Visa", "ph": 2, "mom": 2.9, "q": 1, "epsn": 0, "fcfn": 2, "roe": 62.4, "ttm": null, "pv": 2, "dhi": 6.2, "r4": -5.8, "r13": 8.8, "r26": 18.6, "vr": 0.94, "px": 361.52, "spark": [9.6, 11.7, 10.1, 9.3, 14.3, 11.5, 14.6, 17.1], "lab": "🟢 Early", "tag": "↑"}, {"t": "ZS", "n": "Zscaler", "ph": 2, "mom": -0.5, "q": 1, "epsn": 1, "fcfn": 3, "roe": -2.4, "ttm": -0.4, "pv": 4, "dhi": 7.4, "r4": 25.9, "r13": 68.5, "r26": 53.8, "vr": 1.27, "px": 214.45, "spark": [26.4, 23.4, 22.6, 21.3, 25.5, 25.9, 25.4, 24.9], "lab": "🟡 Stable", "tag": "→"}, {"t": "PYPL", "n": "PayPal", "ph": 2, "mom": -0.7, "q": 2, "epsn": 3, "fcfn": 1, "roe": 25.3, "ttm": 5.09, "pv": 2, "dhi": 16.3, "r4": -15.1, "r13": 23.6, "r26": 17.1, "vr": 0.88, "px": 52.51, "spark": [8.2, 5.8, 4.2, 1.2, 5.1, 7.3, 3.7, 7.2], "lab": "🟡 Stable", "tag": "→"}, {"t": "AKAM", "n": "Akamai", "ph": 1, "mom": -0.6, "q": 0, "epsn": 1, "fcfn": 2, "roe": 8.7, "ttm": 2.91, "pv": 2, "dhi": 28.4, "r4": 9.6, "r13": -0.9, "r26": -0.6, "vr": 1.05, "px": 118.44, "spark": [4.1, 2.5, 2.9, 6.5, 5.0, 7.4, 5.8, 5.4], "lab": "🔴 Weak", "tag": "→"}, {"t": "S", "n": "SentinelOne", "ph": 1, "mom": -0.9, "q": 0, "epsn": 2, "fcfn": 2, "roe": -23.5, "ttm": -0.9, "pv": 4, "dhi": 0.8, "r4": 17.5, "r13": 59.4, "r26": 80.4, "vr": 1.27, "px": 24.1, "spark": [28.3, 29.5, 22.9, 21.7, 22.9, 20.2, 20.8, 20.6], "lab": "🔴 Weak", "tag": "→"}];
+const D=[{"t": "FTNT", "n": "Fortinet", "ph": 4, "mom": 8.3, "q": 3, "epsn": 3, "fcfn": 3, "roe": 136.7, "ttm": 2.73, "pv": 3, "dhi": 0.3, "r4": 13.5, "r13": 23.0, "r26": 126.6, "vr": 0.97, "px": 178.74, "spark": [13.0, 17.3, 13.8, 13.6, 14.4, 14.8, 20.1, 25.6], "lab": "🔥 Expansion", "tag": "🔥🔥", "path": [[3.22, 3], [6.08, 3], [3.57, 4], [-1.45, 3], [-1.53, 2], [0.85, 3], [3.43, 3], [8.32, 4]], "qs": ["2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"], "pvpath": [[3.22, 2], [6.08, 2], [3.57, 3], [-1.45, 1], [-1.53, 1], [0.85, 3], [3.43, 4], [8.32, 3]]}, {"t": "PANW", "n": "Palo Alto", "ph": 3, "mom": 17.5, "q": 1, "epsn": 1, "fcfn": 3, "roe": 1.1, "ttm": 1.23, "pv": 4, "dhi": 1.4, "r4": 15.9, "r13": 37.9, "r26": 156.7, "vr": 1.1, "px": 393.3, "spark": [13.9, 14.3, 15.3, 15.9, 15.7, 14.9, 31.1, 34.5], "lab": "🔥 Transition", "tag": "🔥🔥", "path": [[-4.36, 2], [0.38, 2], [1.82, 2], [1.51, 2], [0.96, 3], [-0.29, 2], [7.28, 3], [17.51, 3]], "qs": ["2024-10-31", "2025-01-31", "2025-04-30", "2025-07-31", "2025-10-31", "2026-01-31", "2026-04-30", "2026-07-31"], "pvpath": [[-4.36, 4], [0.38, 3], [1.82, 1], [1.51, 3], [0.96, 2], [-0.29, 2], [7.28, 2], [17.51, 4]]}, {"t": "CRWD", "n": "CrowdStrike", "ph": 3, "mom": 3.0, "q": 1, "epsn": 2, "fcfn": 4, "roe": 1.1, "ttm": -0.09, "pv": 4, "dhi": 0.3, "r4": 38.8, "r13": 56.0, "r26": 172.1, "vr": 1.49, "px": 262.49, "spark": [28.5, 25.2, 19.8, 21.3, 22.2, 23.3, 25.6, 25.8], "lab": "🔥 Transition", "tag": "↑", "path": [[-2.68, 3], [-5.49, 2], [-7.62, 1], [-6.33, 1], [-0.78, 1], [2.21, 3], [2.72, 3], [2.95, 3]], "qs": ["2024-10-31", "2025-01-31", "2025-04-30", "2025-07-31", "2025-10-31", "2026-01-31", "2026-04-30", "2026-07-31"], "pvpath": [[-2.68, 4], [-5.49, 3], [-7.62, 2], [-6.33, 3], [-0.78, 1], [2.21, 2], [2.72, 2], [2.95, 4]]}, {"t": "NET", "n": "Cloudflare", "ph": 3, "mom": 2.6, "q": 1, "epsn": 2, "fcfn": 4, "roe": -12.7, "ttm": -0.7, "pv": 3, "dhi": 3.3, "r4": 23.7, "r13": 57.7, "r26": 61.6, "vr": 0.98, "px": 352.33, "spark": [28.2, 26.9, 26.5, 27.8, 30.7, 33.6, 33.5, 35.9], "lab": "🔥 Transition", "tag": "↑", "path": [[-2.14, 3], [-2.71, 3], [-2.35, 3], [-0.37, 1], [2.5, 2], [4.99, 3], [4.35, 3], [2.56, 3]], "qs": ["2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"], "pvpath": [[-2.14, 3], [-2.71, 2], [-2.35, 3], [-0.37, 3], [2.5, 1], [4.99, 2], [4.35, 2], [2.56, 3]]}, {"t": "MSFT", "n": "Microsoft", "ph": 3, "mom": 0.4, "q": 2, "epsn": 4, "fcfn": 1, "roe": 30.2, "ttm": 16.61, "pv": 3, "dhi": 3.3, "r4": 0.8, "r13": 37.0, "r26": 34.9, "vr": 0.64, "px": 500.59, "spark": [16.0, 12.3, 13.3, 18.1, 18.4, 16.7, 18.3, 17.7], "lab": "🟢 Conversion", "tag": "→", "path": [[-1.68, 3], [-1.95, 2], [-2.85, 2], [1.52, 3], [5.49, 3], [1.89, 3], [-0.76, 2], [0.45, 3]], "qs": ["2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"], "pvpath": [[-1.68, 2], [-1.95, 0], [-2.85, 4], [1.52, 4], [5.49, 1], [1.89, 1], [-0.76, 2], [0.45, 3]]}, {"t": "OKTA", "n": "Okta", "ph": 3, "mom": -0.7, "q": 2, "epsn": 4, "fcfn": 3, "roe": 4.2, "ttm": 1.68, "pv": 4, "dhi": 0.9, "r4": 52.8, "r13": 73.2, "r26": 162.9, "vr": 1.31, "px": 205.36, "spark": [13.9, 12.7, 11.5, 12.7, 11.6, 11.6, 11.2, 10.6], "lab": "🟢 Conversion", "tag": "→", "path": [[-3.84, 3], [-4.35, 3], [-2.91, 3], [-1.2, 3], [0.02, 4], [-0.52, 3], [-0.75, 3], [-0.7, 3]], "qs": ["2024-10-31", "2025-01-31", "2025-04-30", "2025-07-31", "2025-10-31", "2026-01-31", "2026-04-30", "2026-07-31"], "pvpath": [[-3.84, 3], [-4.35, 4], [-2.91, 1], [-1.2, 0], [0.02, 1], [-0.52, 0], [-0.75, 3], [-0.7, 4]]}, {"t": "MA", "n": "Mastercard", "ph": 3, "mom": -2.2, "q": 3, "epsn": 4, "fcfn": 3, "roe": 290.0, "ttm": 17.73, "pv": 2, "dhi": 6.9, "r4": -6.4, "r13": 13.2, "r26": 11.4, "vr": 0.89, "px": 559.92, "spark": [12.8, 14.4, 14.2, 16.8, 16.7, 17.6, 15.8, 14.1], "lab": "🟡 Aging", "tag": "↓", "path": [[0.41, 4], [2.85, 4], [2.37, 4], [1.94, 4], [2.49, 4], [1.64, 4], [-0.07, 3], [-2.21, 3]], "qs": ["2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"], "pvpath": [[0.41, 4], [2.85, 3], [2.37, 3], [1.94, 3], [2.49, 2], [1.64, 0], [-0.07, 3], [-2.21, 2]]}, {"t": "RBRK", "n": "Rubrik", "ph": 3, "mom": -8.9, "q": 2, "epsn": 4, "fcfn": 3, "roe": null, "ttm": -1.32, "pv": 4, "dhi": 0.5, "r4": 20.2, "r13": 55.1, "r26": 145.0, "vr": 1.1, "px": 115.57, "spark": [42.6, 47.5, 48.7, 51.2, 48.3, 46.3, 39.0, 37.9], "lab": "🟡 Aging", "tag": "↓↓", "path": [[8.42, 2], [9.14, 4], [4.88, 4], [1.65, 4], [-2.63, 3], [-7.06, 3], [-8.86, 3]], "qs": ["2025-01-31", "2025-04-30", "2025-07-31", "2025-10-31", "2026-01-31", "2026-04-30", "2026-07-31"], "pvpath": [[8.42, 3], [9.14, 2], [4.88, 3], [1.65, 1], [-2.63, 1], [-7.06, 1], [-8.86, 2], [-8.9, 4]]}, {"t": "V", "n": "Visa", "ph": 2, "mom": 2.9, "q": 1, "epsn": 0, "fcfn": 2, "roe": 62.4, "ttm": null, "pv": 2, "dhi": 6.2, "r4": -5.8, "r13": 8.8, "r26": 18.6, "vr": 0.94, "px": 361.52, "spark": [9.6, 11.7, 10.1, 9.3, 14.3, 11.5, 14.6, 17.1], "lab": "🟢 Early", "tag": "↑", "path": [[0.05, 2], [1.29, 2], [1.2, 2], [-0.9, 1], [0.89, 3], [3.16, 3], [1.26, 3], [2.94, 2]], "qs": ["2024-06-30", "2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31"], "pvpath": [[0.05, 2], [1.29, 4], [1.2, 3], [-0.9, 3], [0.89, 1], [3.16, 2], [1.26, 1], [2.94, 2]]}, {"t": "ZS", "n": "Zscaler", "ph": 2, "mom": -0.5, "q": 1, "epsn": 1, "fcfn": 3, "roe": -2.4, "ttm": -0.4, "pv": 4, "dhi": 7.4, "r4": 25.9, "r13": 68.5, "r26": 53.8, "vr": 1.27, "px": 214.45, "spark": [26.4, 23.4, 22.6, 21.3, 25.5, 25.9, 25.4, 24.9], "lab": "🟡 Stable", "tag": "→", "path": [[-5.41, 3], [-6.28, 3], [-5.37, 3], [-2.98, 3], [0.42, 4], [3.77, 3], [2.26, 3], [-0.55, 2]], "qs": ["2024-10-31", "2025-01-31", "2025-04-30", "2025-07-31", "2025-10-31", "2026-01-31", "2026-04-30", "2026-07-31"], "pvpath": [[-5.41, 3], [-6.28, 3], [-5.37, 2], [-2.98, 3], [0.42, 1], [3.77, 0], [2.26, 2], [-0.55, 4]]}, {"t": "PYPL", "n": "PayPal", "ph": 2, "mom": -0.7, "q": 2, "epsn": 3, "fcfn": 1, "roe": 25.3, "ttm": 5.09, "pv": 2, "dhi": 16.3, "r4": -15.1, "r13": 23.6, "r26": 17.1, "vr": 0.88, "px": 52.51, "spark": [8.2, 5.8, 4.2, 1.2, 5.1, 7.3, 3.7, 7.2], "lab": "🟡 Stable", "tag": "→", "path": [[0.25, 4], [-2.04, 3], [-3.77, 3], [-4.28, 2], [-1.86, 2], [3.47, 3], [2.33, 3], [-0.73, 2]], "qs": ["2024-06-30", "2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31"], "pvpath": [[0.25, 4], [-2.04, 3], [-3.77, 0], [-4.28, 3], [-1.86, 2], [3.47, 0], [2.33, 0], [-0.73, 2]]}, {"t": "AKAM", "n": "Akamai", "ph": 1, "mom": -0.6, "q": 0, "epsn": 1, "fcfn": 2, "roe": 8.7, "ttm": 2.91, "pv": 2, "dhi": 28.4, "r4": 9.6, "r13": -0.9, "r26": -0.6, "vr": 1.05, "px": 118.44, "spark": [4.1, 2.5, 2.9, 6.5, 5.0, 7.4, 5.8, 5.4], "lab": "🔴 Weak", "tag": "→", "path": [[-3.14, 3], [-2.95, 3], [-1.69, 1], [1.41, 2], [3.07, 2], [1.47, 2], [0.81, 2], [-0.59, 1]], "qs": ["2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"], "pvpath": [[-3.14, 1], [-2.95, 0], [-1.69, 2], [1.41, 1], [3.07, 2], [1.47, 4], [0.81, 2], [-0.59, 2]]}, {"t": "S", "n": "SentinelOne", "ph": 1, "mom": -0.9, "q": 0, "epsn": 2, "fcfn": 2, "roe": -23.5, "ttm": -0.9, "pv": 4, "dhi": 0.8, "r4": 17.5, "r13": 59.4, "r26": 80.4, "vr": 1.27, "px": 24.1, "spark": [28.3, 29.5, 22.9, 21.7, 22.9, 20.2, 20.8, 20.6], "lab": "🔴 Weak", "tag": "→", "path": [[-8.19, 3], [-7.52, 3], [-4.54, 2], [-6.58, 2], [-3.86, 2], [-0.75, 2], [-1.81, 1], [-0.89, 1]], "qs": ["2024-10-31", "2025-01-31", "2025-04-30", "2025-07-31", "2025-10-31", "2026-01-31", "2026-04-30", "2026-07-31"], "pvpath": [[-8.19, 2], [-7.52, 0], [-4.54, 1], [-6.58, 0], [-3.86, 1], [-0.75, 2], [-1.81, 3], [-0.89, 4]]}];
 const $=i=>document.getElementById(i);
 const C=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 let YK="ph", sel=D[0].t;
+let show=new Set(D.map(d=>d.t));   // ★ 目前顯示哪些公司
 const mix=(a,b,t)=>{const h=s=>s.replace('#','').match(/../g).map(x=>parseInt(x,16));
   const [r1,g1,b1]=h(a),[r2,g2,b2]=h(b);
   return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;};
@@ -207,10 +235,10 @@ function col(dhi){const t=Math.min(dhi,20)/20; return mix(C('--up').startsWith('
 let pts=[];
 function draw(){
   const cv=$('cv'); if(!cv.clientWidth){requestAnimationFrame(draw);return;}
-  const dpr=Math.min(devicePixelRatio||1,2), w=cv.clientWidth, h=Math.round(w*0.47);
+  const dpr=Math.min(devicePixelRatio||1,2), w=cv.clientWidth, h=Math.round(w*0.50);
   cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
   const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
-  const PL=52,PR=22,PT=20,PB=40,iw=w-PL-PR,ih=h-PT-PB;
+  const PL=52,PR=22,PT=44,PB=40,iw=w-PL-PR,ih=h-PT-PB;   // ★ PT 加大：4 階的標籤要放得下
   const ms=D.map(d=>d.mom), lo=Math.min(...ms)-2, hi=Math.max(...ms)+2;
   const X=v=>PL+iw*(v-lo)/(hi-lo), Y=v=>PT+ih-ih*(v/4);
   x.strokeStyle=C('--grid'); x.lineWidth=1; x.fillStyle=C('--muted');
@@ -230,22 +258,62 @@ function draw(){
   x.textAlign='right'; x.fillText('加速 →',w-PR,h-6);
   pts=[];
   const jit={};
-  D.forEach(d=>{
+  const NT=+($('tl')?.value||8);
+  // ★★★ 軌跡：只有縱軸是「基本面相位」時才有歷史可畫（價量相位沒有逐季資料）
+  if(NT>1){
+    D.forEach((d,di)=>{
+      if(!show.has(d.t)) return;
+      const src=YK==='ph'?(d.path||[]):(d.pvpath||[]);   // ★★ 價量也有逐季軌跡了
+      const pa=src.slice(-NT); if(pa.length<2) return;
+      const off=((di%5)-2)*3.2;                        // ★ 微錯開，避免完全重疊
+      for(let i=1;i<pa.length;i++){
+        const t=i/(pa.length-1);                       // ★★ 越靠近現在 t 越接近 1
+        x.beginPath();
+        x.moveTo(X(pa[i-1][0]),Y(pa[i-1][1])+off);
+        x.lineTo(X(pa[i][0]),Y(pa[i][1])+off);
+        x.strokeStyle=col(d.dhi);
+        x.lineWidth=0.7+t*2.6;                         // ★ 越近越粗
+        x.globalAlpha=0.12+t*0.55;                     // ★★ 越近越深
+        x.lineCap='round'; x.stroke(); x.globalAlpha=1;
+      }
+      pa.slice(0,-1).forEach((q,i)=>{                  // ★ 歷史節點小圓點
+        const t=i/(pa.length-1);
+        x.beginPath(); x.arc(X(q[0]),Y(q[1])+off,1.6+t*1.6,0,7);
+        x.fillStyle=col(d.dhi); x.globalAlpha=0.18+t*0.45; x.fill(); x.globalAlpha=1;
+      });
+    });
+  }
+  // ★ 先算好每個點的位置，再統一排標籤 —— 這樣才知道誰跟誰重疊
+  const plan=D.filter(d=>show.has(d.t)).map(d=>{
     const yv=YK==='ph'?d.ph:d.pv;
     const key=yv+'|'+Math.round(d.mom);
     jit[key]=(jit[key]||0)+1;
-    const px=X(d.mom), py=Y(yv)+(jit[key]-1)*15-((jit[key]>1)?7:0);
-    const r=8+d.q*4.2, on=d.t===sel;
-    x.beginPath();x.arc(px,py,r,0,7);
-    x.fillStyle=col(d.dhi); x.globalAlpha=on?.95:.62; x.fill(); x.globalAlpha=1;
+    return {d,px:X(d.mom),py:Y(yv)+(jit[key]-1)*16-((jit[key]>1)?8:0),r:8+d.q*4.2};
+  });
+  plan.forEach(p=>{
+    const on=p.d.t===sel;
+    x.beginPath();x.arc(p.px,p.py,p.r,0,7);
+    x.fillStyle=col(p.d.dhi); x.globalAlpha=on?.95:.62; x.fill(); x.globalAlpha=1;
     x.lineWidth=on?2.4:1; x.strokeStyle=on?C('--ink'):C('--panel'); x.stroke();
-    x.fillStyle=C('--ink'); x.font=(on?'700 ':'500 ')+'11px "JetBrains Mono",monospace';
-    x.textAlign='center'; x.fillText(d.t,px,py-r-6);
-    pts.push({d,px,py,r});
+    pts.push({d:p.d,px:p.px,py:p.py,r:p.r});
+  });
+  // ★★ 標籤：預設在點上方；★★★ 與已放置的標籤水平距離 <34px 就改放下方，再不行就往上疊一層
+  const used=[];
+  plan.sort((a,b)=>a.px-b.px).forEach(p=>{
+    const on=p.d.t===sel;
+    x.font=(on?'700 ':'500 ')+'11px "JetBrains Mono",monospace'; x.textAlign='center';
+    let ly=p.py-p.r-7, tries=[ly, p.py+p.r+13, ly-13, p.py+p.r+26];
+    let ty=tries.find(t=>!used.some(u=>Math.abs(u.x-p.px)<34 && Math.abs(u.y-t)<11)) ?? ly;
+    ty=Math.max(12, ty);                       // ★ 不要超出上緣
+    used.push({x:p.px,y:ty});
+    if(ty>p.py){ x.strokeStyle=C('--line2'); x.lineWidth=1;
+      x.beginPath();x.moveTo(p.px,p.py+p.r+1);x.lineTo(p.px,ty-9);x.stroke(); }
+    x.fillStyle=C('--ink'); x.fillText(p.d.t,p.px,ty);
   });
 }
 function card(t){
-  const d=D.find(v=>v.t===t); sel=t;
+  const d=D.find(v=>v.t===t); sel=t; show.add(t);
+  document.querySelectorAll('#chips .chip[data-t]').forEach(b=>b.setAttribute('aria-pressed',show.has(b.dataset.t)));
   const mx=Math.max(...d.spark,1);
   $('card').innerHTML=`<p class="tk">${d.t}</p><p class="nm">${d.n}</p>
     <span class="lab" style="border-color:${d.mom>1?'var(--up)':d.mom<-1?'var(--dn)':'var(--line2)'}">${d.lab}</span>
@@ -287,6 +355,19 @@ $('mx').innerHTML=[4,3,2,1].map(p=>{
   return `<tr><td><b>${p} 階</b></td>`+c.map((v,i)=>
     `<td><span class="hd">${nm[i]}</span>${v.join('<br>')||'·'}</td>`).join('')+'</tr>';
 }).join('');
+function chips(){
+  $('chips').innerHTML='<span class="cl">顯示</span>'+
+    D.map(d=>`<button class="chip" data-t="${d.t}" aria-pressed="${show.has(d.t)}">`+
+      `<i style="background:${col(d.dhi)}"></i>${d.t}</button>`).join('')+
+    '<button class="chip all" id="c-all">全選</button><button class="chip all" id="c-non">全不選</button>';
+  document.querySelectorAll('#chips .chip[data-t]').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.t;
+    if(show.has(t)&&show.size>1) show.delete(t); else show.add(t);
+    b.setAttribute('aria-pressed',show.has(t)); draw();
+  }));
+  $('c-all').addEventListener('click',()=>{show=new Set(D.map(d=>d.t));chips();draw();});
+  $('c-non').addEventListener('click',()=>{show=new Set([sel]);chips();draw();});
+}
 $('cv').addEventListener('click',e=>{
   const r=$('cv').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
   const h=pts.find(p=>Math.hypot(p.px-mx,p.py-my)<=p.r+5);
@@ -297,8 +378,10 @@ document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',(
   document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
   draw();
 }));
+$('tl').addEventListener('input',()=>{ $('tlv').textContent=$('tl').value+' 季'; draw(); });
 addEventListener('resize',draw);
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',draw);
+chips();
 card(D[0].t);
 </script>
 </body>
