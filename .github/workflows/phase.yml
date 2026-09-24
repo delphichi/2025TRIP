@@ -1,0 +1,66 @@
+name: 相位儀（設定標的 → 抓 SEC → 產出網頁）
+
+on:
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: '追蹤標的（最多 7 支，空白或逗號分隔）例：FTNT PANW CRWD NET ZS S OKTA'
+        required: true
+        default: 'FTNT PANW CRWD NET ZS S OKTA'
+      title:
+        description: '網頁標題'
+        required: false
+        default: '相位儀'
+      slug:
+        description: '存檔資料夾（phase/<slug>/index.html；留空＝phase/index.html）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # ★ 全部 stdlib，不需要 pip install
+
+      - name: 產生相位儀
+        env:
+          # ★ SEC 要求 UA 帶聯絡方式；設 repo secret SEC_UA 可覆蓋，
+          #   沒設就用不含個資的預設值（★★ 不要把 email 寫進公開 repo）
+          SEC_UA: ${{ secrets.SEC_UA }}
+        run: |
+          set -e
+          # ★ #518：workflow_dispatch 輸入常混入 ﻿ 等不可見字元
+          TKS=$(printf '%s' "${{ inputs.tickers }}" | tr ',;' '  ' | tr -cd 'A-Za-z0-9.\- ')
+          SLUG=$(printf '%s' "${{ inputs.slug }}"   | tr -cd 'A-Za-z0-9\-_')
+          OUT="phase/index.html"; [ -n "$SLUG" ] && OUT="phase/$SLUG/index.html"
+          mkdir -p "$(dirname "$OUT")"
+          echo "★ 標的：$TKS"
+          echo "★ 輸出：$OUT"
+          python3 phase/scripts/phase_gen.py $TKS --out "$OUT" --title "${{ inputs.title }}"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+
+      - name: 提交
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A phase
+          git diff --cached --quiet && { echo "★ 沒有變動"; exit 0; }
+          git commit -m "相位儀：${{ inputs.tickers }}"
+          git push
+
+      - name: 網址
+        run: |
+          echo "### ★ 產出完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "標的：\`${{ inputs.tickers }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- htmlpreview：https://htmlpreview.github.io/?https://github.com/delphichi/2025TRIP/blob/main/$OUT" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Pages（若已開啟）：https://delphichi.github.io/2025TRIP/$(dirname $OUT)/" >> $GITHUB_STEP_SUMMARY
