@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="用 0056 元大高股息 2008–2026 的真實年度總報酬跑退休提領模擬。調整本金、提領率、通膨與熊市緩衝，看資產在哪一年見底。">
+<meta name="theme-color" content="#12161c" media="(prefers-color-scheme:dark)">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme:light)">
+<title>退休金撐得到幾歲</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#f6f4ef; --panel:#fffefb; --line:#e0dcd2; --line2:#cfc9bb;
+  --ink:#1c2029; --ink2:#4c5465; --muted:#7d8698;
+  --up:#c23b30; --down:#1f8a5f; --accent:#a8801a; --accent-soft:#f0e4c2;
+  --grid:#e6e2d8; --shadow:0 1px 2px rgba(28,32,41,.06),0 8px 24px rgba(28,32,41,.05);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#12161c; --panel:#191e27; --line:#262d3a; --line2:#39424f;
+  --ink:#e9e6df; --ink2:#b4bccb; --muted:#7d8698;
+  --up:#e05a4c; --down:#3fb587; --accent:#d4a93a; --accent-soft:#3a3018;
+  --grid:#222a35; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --bg:#12161c; --panel:#191e27; --line:#262d3a; --line2:#39424f;
+  --ink:#e9e6df; --ink2:#b4bccb; --muted:#7d8698;
+  --up:#e05a4c; --down:#3fb587; --accent:#d4a93a; --accent-soft:#3a3018;
+  --grid:#222a35; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1240px;margin:0 auto;padding:clamp(20px,4vw,44px) clamp(16px,3vw,28px) 72px}
+
+header{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:26px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h1{font-family:Fraunces,Georgia,serif;font-weight:900;font-size:clamp(30px,4.6vw,50px);
+  line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.015em}
+.sub{color:var(--ink2);max-width:66ch;margin:0;font-size:15px}
+.sub b{color:var(--ink);font-weight:500}
+
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:26px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;box-shadow:var(--shadow)}
+aside{position:sticky;top:20px;padding:20px}
+@media(max-width:900px){aside{position:static}}
+.ctl{display:flex;flex-direction:column;gap:19px}
+.f{display:flex;flex-direction:column;gap:7px}
+.f>label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  font-size:12.5px;color:var(--ink2);font-weight:500}
+.f .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:14px;font-weight:600;color:var(--accent)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line2);border-radius:2px}
+input[type=range]::-moz-range-track{height:3px;background:var(--line2);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--panel);margin-top:-6px;box-shadow:0 0 0 1px var(--accent)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);
+  border:2px solid var(--panel);box-shadow:0 0 0 1px var(--accent)}
+input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
+select{width:100%;padding:8px 9px;font-size:13.5px;font-family:inherit;color:var(--ink);
+  background:var(--bg);border:1px solid var(--line2);border-radius:2px}
+select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:11.5px;color:var(--muted);line-height:1.5;margin:-2px 0 0}
+.presets{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px;border-top:1px solid var(--line);margin-top:2px}
+.presets>span{font-size:11.5px;color:var(--muted);width:100%;margin-bottom:2px}
+button.chip{font:inherit;font-size:12px;padding:4px 10px;border:1px solid var(--line2);
+  background:transparent;color:var(--ink2);border-radius:2px;cursor:pointer}
+button.chip:hover{border-color:var(--accent);color:var(--accent)}
+button.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.verdict{padding:22px 24px;display:flex;flex-wrap:wrap;gap:24px 40px;align-items:flex-start;
+  border-left:4px solid var(--edge,var(--muted))}
+.verdict .big{font-family:Fraunces,Georgia,serif;font-weight:900;font-size:clamp(26px,3.6vw,40px);
+  line-height:1.05;letter-spacing:-.02em;color:var(--edge,var(--ink));margin:0}
+.verdict .lead{flex:1 1 280px;min-width:250px}
+.verdict .lead p{margin:8px 0 0;color:var(--ink2);font-size:14px;max-width:46ch}
+.stats{display:flex;gap:28px;flex-wrap:wrap}
+.st{min-width:92px}
+.st .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 3px}
+.st .n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:21px;font-weight:600;line-height:1.1}
+
+section{margin-top:24px}
+h2{font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:600;margin:0 0 3px;letter-spacing:-.01em}
+.cap{color:var(--muted);font-size:12.5px;margin:0 0 14px;max-width:70ch}
+.chartbox{padding:16px 16px 10px}
+canvas{display:block;width:100%;height:auto}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--ink2);padding:6px 4px 2px}
+.legend i{display:inline-block;width:18px;height:2px;vertical-align:middle;margin-right:6px}
+
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:600px}
+th,td{padding:7px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;text-align:right;position:sticky;top:0;background:var(--panel)}
+th:first-child,td:first-child{text-align:left}
+td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+tr.lowpt td{background:color-mix(in srgb,var(--accent) 11%,transparent)}
+tr.bust td{background:color-mix(in srgb,var(--down) 16%,transparent)}
+tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;padding:1px 5px;
+  border:1px solid var(--line2);border-radius:2px;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+.pos{color:var(--up)} .neg{color:var(--down)}
+
+.seq{display:flex;flex-wrap:wrap;gap:3px;padding:14px 16px}
+.seq .y{font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:3px 5px;border-radius:2px;
+  border:1px solid var(--line);color:var(--ink2);line-height:1.3}
+.seq .y b{display:block;font-weight:600;font-size:11.5px}
+.seq .y.up{border-color:color-mix(in srgb,var(--up) 45%,transparent)}
+.seq .y.dn{border-color:color-mix(in srgb,var(--down) 55%,transparent);background:color-mix(in srgb,var(--down) 10%,transparent)}
+.seq .y.tail{opacity:.5;border-style:dashed}
+
+.notes{border-top:1px solid var(--line);margin-top:34px;padding-top:18px;
+  color:var(--muted);font-size:12.5px;max-width:78ch}
+.notes h3{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:500}
+.notes li{margin-bottom:6px}
+.notes b{color:var(--ink2);font-weight:500}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="eyebrow">0056 元大高股息 · 2008–2026 實際年度總報酬 · 含息還原</p>
+  <h1>退休金撐得到幾歲</h1>
+  <p class="sub">不是用平均報酬推算，而是把<b>真實發生過的 19 個年度報酬</b>照順序跑一遍 —— 包含 2008 年的 <b>−46.8%</b>。左邊調參數，右邊立刻看到錢在哪一年見底。</p>
+</header>
+
+<div class="grid">
+  <aside class="panel">
+    <div class="ctl">
+      <div class="f"><label for="p">退休本金 <span class="v" id="pv">2,000 萬</span></label>
+        <input type="range" id="p" min="400" max="4000" step="10" value="2000"></div>
+      <div class="f"><label for="w">初始提領率 <span class="v" id="wv">4.0%</span></label>
+        <input type="range" id="w" min="2" max="8" step="0.1" value="4">
+        <p class="hint" id="wh">每年生活費 80 萬，之後隨通膨調整</p></div>
+      <div class="f"><label for="i">通膨 <span class="v" id="iv">2.5%</span></label>
+        <input type="range" id="i" min="0" max="5" step="0.1" value="2.5"></div>
+      <div class="f"><label for="st">序列起點</label>
+        <select id="st">
+          <option value="2008" selected>退休第 1 年遇到 2008（−46.8%）</option>
+          <option value="2009">從 2009 開始（避開 2008）</option>
+          <option value="2022">第 1 年遇到 2022（−17.7%）</option>
+          <option value="2011">第 1 年遇到 2011（−20.4%）</option>
+          <option value="worst3">最差三年擠在最前面</option>
+          <option value="best3">最好三年擠在最前面</option>
+          <option value="flat">完全不用歷史，固定用尾段假設</option>
+        </select></div>
+      <div class="f"><label for="b">熊市緩衝 <span class="v" id="bv">0 年</span></label>
+        <input type="range" id="b" min="0" max="6" step="1" value="0">
+        <p class="hint" id="bh">先從本金撥出現金，前幾年只花它、不動股票</p></div>
+      <div class="f"><label for="t">歷史用完後的報酬假設 <span class="v" id="tv">8.0%</span></label>
+        <input type="range" id="t" min="0" max="14" step="0.5" value="8">
+        <p class="hint">0056 十八年中位 9.3%、平均 13.1%</p></div>
+      <div class="f"><label for="a">退休年齡 <span class="v" id="av">53 歲</span></label>
+        <input type="range" id="a" min="45" max="70" step="1" value="53"></div>
+      <div class="f"><label for="e">規劃到 <span class="v" id="ev">83 歲</span></label>
+        <input type="range" id="e" min="70" max="100" step="1" value="83"></div>
+      <div class="presets"><span>快速情境</span>
+        <button class="chip" data-pre="800,4">800萬 4%</button>
+        <button class="chip" data-pre="1200,6.67">1200萬 6.67%</button>
+        <button class="chip" data-pre="2000,4">2000萬 4%</button>
+        <button class="chip" data-pre="2130,3.76">2130萬 3.76%</button>
+        <button class="chip" data-pre="2000,5">2000萬 5%</button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="panel verdict" id="vd">
+      <div class="lead"><p class="big" id="head">—</p><p id="headsub">—</p></div>
+      <div class="stats">
+        <div class="st"><p class="k">期末資產</p><p class="n" id="s-end">—</p></div>
+        <div class="st"><p class="k">最低點</p><p class="n" id="s-low">—</p></div>
+        <div class="st"><p class="k">最低點年齡</p><p class="n" id="s-lowa">—</p></div>
+        <div class="st"><p class="k">累計提領</p><p class="n" id="s-draw">—</p></div>
+      </div>
+    </div>
+
+    <section>
+      <h2>資產路徑</h2>
+      <p class="cap">粗線是資產餘額，虛線是期初本金。<b>灰帶</b>標出動用熊市緩衝的年份 —— 那幾年股票部位完全沒有被賣出。</p>
+      <div class="panel chartbox">
+        <canvas id="cv" width="1200" height="420" role="img" aria-label="退休資產逐年餘額曲線"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>資產餘額</span>
+          <span><i style="background:var(--muted);height:0;border-top:1px dashed var(--muted)"></i>期初本金</span>
+          <span><i style="background:var(--down)"></i>歸零</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>套用的報酬序列</h2>
+      <p class="cap">綠框＝該年是負報酬。<b>虛線框</b>是歷史資料用完後、改用假設值的年份。</p>
+      <div class="panel seq" id="seq"></div>
+    </section>
+
+    <section>
+      <h2>逐年明細</h2>
+      <p class="cap">金色列是資產最低的那一年；綠色列是歸零的那一年。</p>
+      <div class="panel tablewrap">
+        <table><thead><tr>
+          <th>年 / 歲</th><th>報酬</th><th>當年提領</th><th>年末資產</th><th>佔期初</th>
+        </tr></thead><tbody id="tb"></tbody></table>
+      </div>
+    </section>
+
+    <div class="notes">
+      <h3>這張表算什麼 / 不算什麼</h3>
+      <ul>
+        <li><b>報酬順序是真的。</b>2008–2026 共 19 個年度總報酬取自 0056 的還原淨值（含息），不是模擬或平均值。2008 年度 −46.8%，年內最深 −53.5%，從高點收復花了 <b>2.6 年</b>。</li>
+        <li><b>提領在年末。</b>每年先計報酬、再扣生活費；生活費逐年按通膨調整。這比年初提領樂觀一點。</li>
+        <li><b>緩衝的錢不投資。</b>它從本金裡先撥出來，前 N 年只花它，股票部位在那幾年完全不賣。這正是它能擋下序列風險的原因 —— 也是為什麼擺太久反而會錯過復甦。</li>
+        <li><b>歷史用完之後是假設。</b>19 年之後的報酬由右邊滑桿決定，不是資料。結論若在 5% 和 8% 假設下一致，才比較可信。</li>
+        <li><b>只有一檔標的。</b>0056 是六檔高股息 ETF 裡唯一有 2008 資料的；00919 / 00918 / 00922 全部成立於 2022 年之後，從未經歷熊市 —— 它們的回撤風險是「無資料」，不是「低」。</li>
+      </ul>
+    </div>
+  </main>
+</div>
+
+<script>
+const YR=[[2008,-46.8],[2009,71.2],[2010,18.9],[2011,-20.4],[2012,2.9],[2013,4.9],[2014,9.3],
+[2015,-5.4],[2016,11.3],[2017,12.4],[2018,1.5],[2019,29.0],[2020,9.3],[2021,18.7],[2022,-17.7],
+[2023,56.9],[2024,7.7],[2025,12.0],[2026,66.1]];
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const C=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+
+function sequence(mode,n,tail){
+  let base;
+  if(mode==='flat') base=[];
+  else if(mode==='worst3'||mode==='best3'){
+    const s=[...YR].sort((a,b)=>mode==='worst3'?a[1]-b[1]:b[1]-a[1]);
+    const head=s.slice(0,3), rest=YR.filter(x=>!head.includes(x));
+    base=[...head,...rest];
+  } else {
+    const i=YR.findIndex(x=>x[0]===+mode);
+    base=YR.slice(i);
+  }
+  const out=[];
+  for(let k=0;k<n;k++) out.push(k<base.length?{y:base[k][0],r:base[k][1],hist:true}:{y:null,r:tail,hist:false});
+  return out;
+}
+
+function simulate(){
+  const P=+$('p').value, W=+$('w').value/100, INF=+$('i').value/100,
+        B=+$('b').value, T=+$('t').value, A0=+$('a').value, A1=+$('e').value;
+  const n=Math.max(1,A1-A0);
+  const w0=P*W;
+  let bufAmt=0, wtmp=w0;
+  for(let k=0;k<B;k++){ bufAmt+=wtmp; wtmp*=(1+INF); }
+  bufAmt=Math.min(bufAmt,P*0.9);
+  let stock=P-bufAmt, buf=bufAmt, w=w0, low=P, lowY=0, bust=null, draw=0;
+  const seq=sequence($('st').value,n,T), rows=[];
+  for(let k=0;k<n;k++){
+    const r=seq[k].r, usingBuf=k<B&&buf>0;
+    stock=stock*(1+r/100);
+    let paid=0;
+    if(usingBuf){ paid=Math.min(w,buf); buf-=paid; if(paid<w){ stock-=(w-paid); } }
+    else stock-=w;
+    draw+=w;
+    const total=Math.max(stock,0)+Math.max(buf,0);
+    if(total<low){ low=total; lowY=k+1; }
+    rows.push({k:k+1,age:A0+k+1,y:seq[k].y,r,w,total,hist:seq[k].hist,buf:usingBuf});
+    if(stock<=0&&buf<=0){ bust=k+1; break; }
+    w*=(1+INF);
+  }
+  return {P,n,rows,low,lowY,bust,draw,end:rows.length?rows[rows.length-1].total:P,A0,A1,seq,B,bufAmt,w0};
+}
+
+function render(){
+  const S=simulate();
+  $('pv').textContent=fmt(+$('p').value)+' 萬';
+  $('wv').textContent=(+$('w').value).toFixed(1)+'%';
+  $('iv').textContent=(+$('i').value).toFixed(1)+'%';
+  $('bv').textContent=$('b').value+' 年';
+  $('tv').textContent=(+$('t').value).toFixed(1)+'%';
+  $('av').textContent=$('a').value+' 歲';
+  $('ev').textContent=$('e').value+' 歲';
+  $('wh').textContent='每年生活費 '+fmt(S.w0)+' 萬，之後隨通膨調整';
+  $('bh').textContent=S.B?('撥出 '+fmt(S.bufAmt)+' 萬現金，股票部位 '+fmt(S.P-S.bufAmt)+' 萬'):'先從本金撥出現金，前幾年只花它、不動股票';
+
+  const vd=$('vd');
+  if(S.bust){
+    const age=S.A0+S.bust;
+    vd.style.setProperty('--edge',C('--down'));
+    $('head').textContent='撐到 '+age+' 歲，錢見底';
+    $('headsub').textContent='第 '+S.bust+' 年資產歸零，距離規劃的 '+S.A1+' 歲還差 '+(S.A1-age)+' 年。要補上這個缺口，最直接的是把提領率往下調，或延後退休把本金墊高。';
+  } else {
+    const mult=S.end/S.P;
+    vd.style.setProperty('--edge',mult>=1?C('--up'):C('--accent'));
+    $('head').textContent='撐過 '+S.n+' 年，到 '+S.A1+' 歲';
+    $('headsub').textContent=mult>=1
+      ? '期末資產是期初的 '+mult.toFixed(2)+' 倍 —— 報酬跑贏了提領加通膨。但注意最低點只剩期初的 '+Math.round(S.low/S.P*100)+'%，那一年才是真正難熬的時候。'
+      : '撐住了，但期末只剩期初的 '+Math.round(mult*100)+'%。資產在被消耗，往後每一年的容錯空間都更小。';
+  }
+  $('s-end').textContent=S.bust?'0':fmt(S.end);
+  $('s-end').className='n '+(S.bust?'neg':(S.end>=S.P?'pos':''));
+  $('s-low').textContent=fmt(Math.max(S.low,0));
+  $('s-lowa').textContent=S.lowY?(S.A0+S.lowY)+' 歲':'—';
+  $('s-draw').textContent=fmt(S.draw);
+
+  // 序列
+  $('seq').innerHTML=S.seq.map((s,k)=>{
+    const cls=!s.hist?'tail':(s.r<0?'dn':'up');
+    return '<span class="y '+cls+'">'+(s.y??'假設')+'<b class="'+(s.r<0?'neg':'pos')+'">'+(s.r>=0?'+':'')+s.r.toFixed(1)+'%</b></span>';
+  }).join('');
+
+  // 表
+  $('tb').innerHTML=S.rows.map(r=>{
+    const c=[r.k===S.lowY?'lowpt':'',S.bust&&r.k===S.bust?'bust':'',r.buf?'buf':''].filter(Boolean).join(' ');
+    return '<tr class="'+c+'"><td>第 '+r.k+' 年 · '+r.age+' 歲'+(r.y?' <span style="color:var(--muted)">('+r.y+')</span>':'')+'</td>'+
+      '<td class="n '+(r.r<0?'neg':'pos')+'">'+(r.r>=0?'+':'')+r.r.toFixed(1)+'%</td>'+
+      '<td class="n">'+fmt(r.w)+'</td>'+
+      '<td class="n">'+fmt(Math.max(r.total,0))+'</td>'+
+      '<td class="n">'+Math.round(Math.max(r.total,0)/S.P*100)+'%</td></tr>';
+  }).join('');
+
+  draw(S);
+}
+
+function draw(S){
+  const cv=$('cv'), dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=cv.clientWidth||1200, h=Math.round(w*0.34);
+  cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
+  const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+  const PL=58,PR=14,PT=16,PB=30, iw=w-PL-PR, ih=h-PT-PB;
+  const vals=S.rows.map(r=>Math.max(r.total,0));
+  const maxV=Math.max(S.P,...vals)*1.08, n=S.rows.length;
+  const X=k=>PL+(n<=1?iw/2:iw*k/(n-1)), Y=v=>PT+ih-ih*(v/maxV);
+
+  // grid
+  x.strokeStyle=C('--grid'); x.fillStyle=C('--muted');
+  x.font='11px "IBM Plex Mono",monospace'; x.lineWidth=1;
+  const step=Math.pow(10,Math.floor(Math.log10(maxV)))* (maxV/Math.pow(10,Math.floor(Math.log10(maxV)))>5?2:1);
+  for(let v=0;v<=maxV;v+=step){
+    const yy=Math.round(Y(v))+.5;
+    x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+    x.textAlign='right';x.fillText(v>=10000?(v/10000).toFixed(1)+'億':fmt(v),PL-8,yy+4);
+  }
+  // 緩衝帶
+  if(S.B>0){
+    x.fillStyle=C('--accent-soft');
+    x.globalAlpha=.55;
+    x.fillRect(PL,PT,Math.max(0,X(Math.min(S.B,n)-1)-PL),ih);
+    x.globalAlpha=1;
+  }
+  // 期初本金虛線
+  x.strokeStyle=C('--muted'); x.setLineDash([4,4]); x.lineWidth=1;
+  x.beginPath();x.moveTo(PL,Y(S.P));x.lineTo(w-PR,Y(S.P));x.stroke();x.setLineDash([]);
+  // 面積
+  const g=x.createLinearGradient(0,PT,0,PT+ih);
+  g.addColorStop(0,C('--accent')+'55'); g.addColorStop(1,C('--accent')+'00');
+  x.beginPath(); x.moveTo(X(0),Y(vals[0]));
+  vals.forEach((v,k)=>x.lineTo(X(k),Y(v)));
+  x.lineTo(X(n-1),Y(0)); x.lineTo(X(0),Y(0)); x.closePath(); x.fillStyle=g; x.fill();
+  // 線
+  x.beginPath(); vals.forEach((v,k)=>k?x.lineTo(X(k),Y(v)):x.moveTo(X(k),Y(v)));
+  x.strokeStyle=C('--accent'); x.lineWidth=2.2; x.lineJoin='round'; x.stroke();
+  // 最低點
+  if(S.lowY){
+    const k=S.lowY-1, px=X(k), py=Y(Math.max(S.low,0));
+    x.beginPath();x.arc(px,py,4,0,7);x.fillStyle=C('--accent');x.fill();
+    x.fillStyle=C('--ink'); x.font='600 11px "IBM Plex Mono",monospace';
+    x.textAlign=k<n/2?'left':'right';
+    x.fillText(fmt(Math.max(S.low,0))+' 萬 · '+(S.A0+S.lowY)+'歲',px+(k<n/2?8:-8),py-9);
+  }
+  // 破產點
+  if(S.bust){
+    const px=X(S.bust-1);
+    x.strokeStyle=C('--down');x.lineWidth=2;
+    x.beginPath();x.moveTo(px,PT);x.lineTo(px,PT+ih);x.stroke();
+    x.fillStyle=C('--down');x.font='600 11px "IBM Plex Mono",monospace';
+    x.textAlign=S.bust-1<n/2?'left':'right';
+    x.fillText('歸零 · '+(S.A0+S.bust)+'歲',px+(S.bust-1<n/2?7:-7),PT+13);
+  }
+  // x 軸
+  x.fillStyle=C('--muted');x.font='11px "IBM Plex Mono",monospace';x.textAlign='center';
+  const tick=Math.max(1,Math.round(n/8));
+  S.rows.forEach((r,k)=>{ if(k%tick===0||k===n-1) x.fillText(r.age+'歲',X(k),h-10); });
+}
+
+['p','w','i','b','t','a','e'].forEach(id=>$(id).addEventListener('input',render));
+$('st').addEventListener('change',render);
+document.querySelectorAll('button.chip').forEach(b=>b.addEventListener('click',()=>{
+  const [p,w]=b.dataset.pre.split(','); $('p').value=p; $('w').value=w; render();
+}));
+addEventListener('resize',()=>draw(simulate()));
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>draw(simulate()));
+render();
+</script>
+</body>
+</html>
