@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="用 0056 元大高股息 2008–2026 的真實年度總報酬跑退休提領模擬；第二分頁比較六種「退休第一年遇到大跌」的應對策略。">
+<meta name="description" content="用 0056 的真實年度報酬跑退休提領模擬；含組合回測的價格／配息貢獻拆解，與六種「第一年遇到大跌」的應對策略比較。">
 <meta name="theme-color" content="#12161c" media="(prefers-color-scheme:dark)">
 <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme:light)">
 <title>退休金撐得到幾歲</title>
@@ -199,6 +199,31 @@ tr.buf td:first-child::after{content:"緩衝";font-size:9.5px;margin-left:7px;pa
 .pane[hidden]{display:none}
 tr.best td{background:color-mix(in srgb,var(--up) 13%,transparent);font-weight:500}
 td.cost{color:var(--muted);font-size:12px;white-space:normal;min-width:130px}
+
+.splitkey{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin:8px 0 4px}
+.splitkey i{display:inline-block;width:13px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+.splitkey i.px{background:var(--accent)} .splitkey i.dv{background:var(--up)}
+.cr2{display:grid;grid-template-columns:74px 1fr 62px;gap:9px;align-items:center;font-size:12px}
+.cr2 .t{font-family:"IBM Plex Mono",monospace;color:var(--ink2)}
+.cr2 .t s{text-decoration:none;color:var(--muted);font-size:10.5px}
+.cr2 .b2{display:flex;height:9px;background:var(--line);border-radius:2px;overflow:hidden}
+.cr2 .b2 i.px{background:var(--accent)} .cr2 .b2 i.dv{background:var(--up)}
+.cr2 .n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  text-align:right;font-size:11.5px;color:var(--ink2)}
+.cr2 .n em,.ladder em{font-style:normal;font-size:9px;color:var(--muted);margin-left:1px}
+.ladder td .wt{font-size:10px;color:var(--muted);margin-left:6px;font-family:"IBM Plex Mono",monospace}
+.ladder td.dvc{color:var(--up)}
+.ladder tr.sum td{border-top:2px solid var(--line2);border-bottom:none;font-weight:600}
+.twoup{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+.mini{padding:11px 13px;border:1px solid var(--line2);border-radius:3px;border-left-width:3px;
+  border-left-color:var(--accent)}
+.mini.tw{border-left-color:var(--up)}
+.mini .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 5px}
+.mini .mn{margin:0;font-size:12px;color:var(--ink2);font-family:"IBM Plex Mono",monospace}
+.mini .mn b{color:var(--ink)}
+.mini .mp{margin:4px 0 0;font-size:12.5px;color:var(--ink2)}
+.mini .mp b{font-family:"IBM Plex Mono",monospace;font-size:15px;color:var(--up);font-weight:600}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -246,11 +271,28 @@ td.cost{color:var(--muted);font-size:12px;white-space:normal;min-width:130px}
       <b>離譜的數字，要先查資料再解釋市場。</b></div>
     </div>
     <div>
-      <p class="cap" style="margin-bottom:0">各檔對總報酬的貢獻 —— 完整 12 檔（2022-10-13 起，3.95 年，總報酬 286.0%）</p>
-      <div class="contrib"><div class="cr"><span class="t">NVDA <s>5%</s></span><span class="b"><i class="hot" style="width:100%"></i></span><span class="n">88.1pp</span></div><div class="cr"><span class="t">0050 <s>15%</s></span><span class="b"><i class="hot" style="width:69%"></i></span><span class="n">60.7pp</span></div><div class="cr"><span class="t">QQQ <s>20%</s></span><span class="b"><i class="" style="width:41%"></i></span><span class="n">36.0pp</span></div><div class="cr"><span class="t">0056 <s>15%</s></span><span class="b"><i class="" style="width:41%"></i></span><span class="n">36.0pp</span></div><div class="cr"><span class="t">VOO <s>20%</s></span><span class="b"><i class="" style="width:27%"></i></span><span class="n">24.1pp</span></div><div class="cr"><span class="t">00919 <s>5%</s></span><span class="b"><i class="" style="width:12%"></i></span><span class="n">10.9pp</span></div><div class="cr"><span class="t">00878 <s>5%</s></span><span class="b"><i class="" style="width:12%"></i></span><span class="n">10.4pp</span></div><div class="cr"><span class="t">GOOG <s>3%</s></span><span class="b"><i class="" style="width:8%"></i></span><span class="n">7.2pp</span></div><div class="cr"><span class="t">AMZN <s>3%</s></span><span class="b"><i class="" style="width:4%"></i></span><span class="n">3.6pp</span></div><div class="cr"><span class="t">MSFT <s>3%</s></span><span class="b"><i class="" style="width:4%"></i></span><span class="n">3.5pp</span></div><div class="cr"><span class="t">BAC <s>3%</s></span><span class="b"><i class="" style="width:3%"></i></span><span class="n">2.9pp</span></div><div class="cr"><span class="t">BRK-B <s>3%</s></span><span class="b"><i class="" style="width:3%"></i></span><span class="n">2.5pp</span></div></div>
-      <div class="flag"><b>NVDA 5% 的權重貢獻 88.1pp，佔總報酬 31%。</b>
-      次高是 0050（15% → 60.7pp）。集中度仍在單一個股，但比重已從上一版的 47% 降到 31%，
-      而且 <b>VOO 20% ＋ QQQ 20% 合計 40%</b> 讓美股部位的分散度明顯提高。</div>
+      <p class="cap" style="margin-bottom:0">各檔貢獻 —— 完整 12 檔（2022-10-13 起，3.95 年）</p>
+      <div class="splitkey"><span><i class="px"></i>價格增值</span><span><i class="dv"></i>配息</span></div>
+      <div class="contrib"><div class="cr2"><span class="t">NVDA <s>5%</s></span><span class="b2"><i class="px" style="width:99.7%"></i><i class="dv" style="width:0.3%"></i></span><span class="n">88.1<em>pp</em></span></div><div class="cr2"><span class="t">0050 <s>15%</s></span><span class="b2"><i class="px" style="width:60.3%"></i><i class="dv" style="width:8.6%"></i></span><span class="n">60.7<em>pp</em></span></div><div class="cr2"><span class="t">QQQ <s>20%</s></span><span class="b2"><i class="px" style="width:39.5%"></i><i class="dv" style="width:1.5%"></i></span><span class="n">36.1<em>pp</em></span></div><div class="cr2"><span class="t">0056 <s>15%</s></span><span class="b2"><i class="px" style="width:20.8%"></i><i class="dv" style="width:20.1%"></i></span><span class="n">36.0<em>pp</em></span></div><div class="cr2"><span class="t">VOO <s>20%</s></span><span class="b2"><i class="px" style="width:24.9%"></i><i class="dv" style="width:2.6%"></i></span><span class="n">24.2<em>pp</em></span></div><div class="cr2"><span class="t">00919 <s>5%</s></span><span class="b2"><i class="px" style="width:6.4%"></i><i class="dv" style="width:6.0%"></i></span><span class="n">10.9<em>pp</em></span></div><div class="cr2"><span class="t">00878 <s>5%</s></span><span class="b2"><i class="px" style="width:7.0%"></i><i class="dv" style="width:4.9%"></i></span><span class="n">10.5<em>pp</em></span></div><div class="cr2"><span class="t">GOOG <s>3%</s></span><span class="b2"><i class="px" style="width:8.1%"></i><i class="dv" style="width:0.1%"></i></span><span class="n">7.2<em>pp</em></span></div><div class="cr2"><span class="t">AMZN <s>3%</s></span><span class="b2"><i class="px" style="width:4.1%"></i><i class="dv" style="width:-0.0%"></i></span><span class="n">3.6<em>pp</em></span></div><div class="cr2"><span class="t">MSFT <s>3%</s></span><span class="b2"><i class="px" style="width:3.7%"></i><i class="dv" style="width:0.2%"></i></span><span class="n">3.5<em>pp</em></span></div><div class="cr2"><span class="t">BAC <s>3%</s></span><span class="b2"><i class="px" style="width:2.6%"></i><i class="dv" style="width:0.7%"></i></span><span class="n">2.9<em>pp</em></span></div><div class="cr2"><span class="t">BRK-B <s>3%</s></span><span class="b2"><i class="px" style="width:2.8%"></i><i class="dv" style="width:0.0%"></i></span><span class="n">2.5<em>pp</em></span></div></div>
+
+      <div class="tablewrap" style="margin-top:14px"><table class="ladder">
+        <thead><tr><th>標的</th><th>價格報酬</th><th>配息貢獻</th><th>總報酬</th><th>年化</th></tr></thead>
+        <tbody><tr><td>NVDA<span class="wt">5%</span></td><td class="num">1,756.6%</td><td class="num dvc">6.3%</td><td class="num"><b>1,762.9%</b></td><td class="num">109.8%</td></tr><tr><td>0050<span class="wt">15%</span></td><td class="num">354.1%</td><td class="num dvc">50.7%</td><td class="num"><b>404.8%</b></td><td class="num">50.7%</td></tr><tr><td>QQQ<span class="wt">20%</span></td><td class="num">173.8%</td><td class="num dvc">6.5%</td><td class="num"><b>180.3%</b></td><td class="num">29.8%</td></tr><tr><td>0056<span class="wt">15%</span></td><td class="num">121.9%</td><td class="num dvc">118.2%</td><td class="num"><b>240.1%</b></td><td class="num">36.4%</td></tr><tr><td>VOO<span class="wt">20%</span></td><td class="num">109.5%</td><td class="num dvc">11.4%</td><td class="num"><b>120.9%</b></td><td class="num">22.2%</td></tr><tr><td>00919<span class="wt">5%</span></td><td class="num">112.2%</td><td class="num dvc">105.2%</td><td class="num"><b>217.4%</b></td><td class="num">34.0%</td></tr><tr><td>00878<span class="wt">5%</span></td><td class="num">123.2%</td><td class="num dvc">85.5%</td><td class="num"><b>208.7%</b></td><td class="num">33.0%</td></tr><tr><td>GOOG<span class="wt">3%</span></td><td class="num">235.8%</td><td class="num dvc">3.7%</td><td class="num"><b>239.4%</b></td><td class="num">36.3%</td></tr><tr><td>AMZN<span class="wt">3%</span></td><td class="num">118.8%</td><td class="num dvc">-0.0%</td><td class="num"><b>118.8%</b></td><td class="num">21.9%</td></tr><tr><td>MSFT<span class="wt">3%</span></td><td class="num">110.3%</td><td class="num dvc">6.7%</td><td class="num"><b>117.0%</b></td><td class="num">21.7%</td></tr><tr><td>BAC<span class="wt">3%</span></td><td class="num">77.5%</td><td class="num dvc">19.0%</td><td class="num"><b>96.5%</b></td><td class="num">18.7%</td></tr><tr><td>BRK-B<span class="wt">3%</span></td><td class="num">83.9%</td><td class="num dvc">0.2%</td><td class="num"><b>84.1%</b></td><td class="num">16.7%</td></tr><tr class="sum"><td>★ 組合<span class="wt">100%</span></td><td class="num">246.5<em>pp</em></td><td class="num dvc">39.6<em>pp</em></td><td class="num"><b>286.1%</b></td><td class="num"><b>40.8%</b></td></tr></tbody>
+      </table></div>
+
+      <div class="twoup">
+        <div class="mini"><p class="k">美股 60%</p>
+          <p class="mn">價格 <b>163.3</b>pp　配息 <b>4.8</b>pp</p>
+          <p class="mp">配息只佔 <b>2.9%</b></p></div>
+        <div class="mini tw"><p class="k">台股 40%</p>
+          <p class="mn">價格 <b>83.2</b>pp　配息 <b>34.9</b>pp</p>
+          <p class="mp">配息佔 <b>29.6%</b></p></div>
+      </div>
+
+      <div class="flag"><b>整個組合的報酬有 86.1% 來自價格，13.9% 來自配息。</b>
+      但拆開看差距極大：美股部位的配息只佔 2.8%，台股部位佔 29.5%。
+      <b>0056 的配息貢獻 118.2% 甚至超過它的價格增值 121.9%</b> —— 幾乎一半一半。
+      而 NVDA 的 1762.9% 總報酬裡，配息只有 6.3%。<b>兩種資產在做完全不同的事。</b></div>
     </div>
   </div>
 </section>
@@ -412,7 +454,7 @@ td.cost{color:var(--muted);font-size:12px;white-space:normal;min-width:130px}
         <h2>資產路徑疊圖</h2>
         <p class="cap">粗線是表現最好的策略，灰線是固定提領（基準）。差距要到後期才拉開 —— 這正是為什麼當下很難感覺到差別。</p>
         <div class="panel chartbox">
-          <canvas id="scv" width="1200" height="400" role="img" aria-label="六種應對策略的資產路徑比較"></canvas>
+          <canvas id="schart" width="1200" height="400" role="img" aria-label="六種應對策略的資產路徑比較"></canvas>
           <div class="legend" id="sleg"></div>
         </div>
       </section>
@@ -542,8 +584,10 @@ function render(){
 }
 
 function draw(S){
-  const cv=$('cv'), dpr=Math.min(window.devicePixelRatio||1,2);
-  const w=cv.clientWidth||1200, h=Math.round(w*0.34);
+  const cv=$('cv'); if(!cv||!cv.getContext) return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  if(!cv.clientWidth){ requestAnimationFrame(()=>draw(S)); return; }
+  const w=cv.clientWidth, h=Math.round(w*0.34);
   cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
   const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
   const PL=58,PR=14,PT=16,PB=30, iw=w-PL-PR, ih=h-PT-PB;
@@ -696,8 +740,11 @@ function srender(){
   sdraw(res,best,P);
 }
 function sdraw(res,best,P){
-  const cv=$('scv'),dpr=Math.min(window.devicePixelRatio||1,2);
-  const w=cv.clientWidth||1200,h=Math.round(w*0.32);
+  const cv=$('schart'); if(!cv||!cv.getContext) return;       // ★ 防呆：抓錯元素就不畫
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  // ★★ 分頁隱藏時 clientWidth 為 0 ⇒ 等到可見的下一幀再畫，避免畫在 0 寬的畫布上
+  if(!cv.clientWidth){ requestAnimationFrame(()=>sdraw(res,best,P)); return; }
+  const w=cv.clientWidth,h=Math.round(w*0.32);
   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
   const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
   const PL=58,PR=14,PT=14,PB=28,iw=w-PL-PR,ih=h-PT-PB;
