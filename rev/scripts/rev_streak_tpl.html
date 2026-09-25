@@ -63,6 +63,7 @@ tbody tr:hover td{background:color-mix(in srgb,var(--acc) 8%,transparent)}
 .bar{display:inline-block;height:9px;border-radius:1px;vertical-align:-1px;margin-right:6px;min-width:2px}
 .bp{background:var(--up)} .bn{background:var(--dn)}
 .pos{color:var(--up)} .neg{color:var(--dn)}
+  .vol{color:var(--up);font-weight:700}
 .mk{font-size:10.5px;padding:1px 6px;border-radius:2px;border:1px solid var(--line2);color:var(--muted)}
 .ind{color:var(--muted);font-size:11.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:-3px}
 .notes{border-top:1px solid var(--line);margin-top:26px;padding-top:15px;color:var(--muted);
@@ -96,6 +97,8 @@ tbody tr:hover td{background:color-mix(in srgb,var(--acc) 8%,transparent)}
   <select id="minp"></select>
   <input type="search" id="q" placeholder="代號或名稱" autocomplete="off">
   <select id="ind"><option value="">所有產業</option></select>
+  <label style="font-size:12.5px;color:var(--ink2);display:inline-flex;align-items:center;gap:5px;cursor:pointer">
+    <input type="checkbox" id="novol"> 排除波動 ≥60</label>
   <a class="dl" id="dl" href="__CSV__" download>下載 CSV</a>
   <span class="hint" id="hint"></span>
 </div>
@@ -104,7 +107,7 @@ tbody tr:hover td{background:color-mix(in srgb,var(--acc) 8%,transparent)}
   <table><thead><tr>
     <th data-k="code">代號</th><th data-k="name">名稱</th><th data-k="market">市場</th><th data-k="ind">產業</th>
     <th data-k="cp" class="on">★ 連續正成長</th><th data-k="pos36">__M__月內正成長</th>
-    <th data-k="cn">連續負成長</th><th data-k="last">最新月 YoY</th>
+    <th data-k="cn">連續負成長</th><th data-k="last">最新月 YoY</th><th data-k="cum">今年累計 YoY</th><th data-k="sd">★ 波動</th>
     <th data-k="rev">當月營收(億)</th><th data-k="n">有效月數</th>
   </tr></thead><tbody id="tb"></tbody></table>
 </div>
@@ -116,6 +119,9 @@ tbody tr:hover td{background:color-mix(in srgb,var(--acc) 8%,transparent)}
     <li><b>資料來源三個官方 bulk 端點。</b>上市 <code>t187ap05_L</code>、上櫃 <code>mopsfin_t187ap05_O</code>、興櫃 <code>t187ap05_P</code>，歷史月營收走公開資訊觀測站 <code>t21sc03</code>，一個月一次請求。全程不用 FinMind，沒有配額問題。</li>
     <li><b>連續正成長</b>＝ 從最新月往回數，年增率連續為正的月數，遇到第一個 ≤0 就停。<b>連續負成長</b>同理（≤0 才算，剛好 0 視為未成長）。</li>
     <li><b>有效月數</b>＝ 這家實際抓得到年增率的月份數。不足 6 個月的不列入（新上市、興櫃轉板等）。連續月數要跟有效月數一起看 —— 只有 8 個月資料的「連續 8 個月」跟有 __M__ 個月資料的「連續 8 個月」不是同一回事。</li>
+    <li><b>★ 波動欄回答「這個連續月數有多少意義」。</b>它是近 12 個月年增率的標準差。全市場 P50 是 21、P75 是 36、P90 是 93 —— 標到 ⚠ 的門檻取 60（約前 15%）。同樣是「連續 12 個月正成長」，標準差 15 的公司代表穩定擴張，標準差 90 的公司可能只是上下震盪剛好連了 12 個月。</li>
+    <li><b>高波動不是某個產業的專利。</b>最集中的是<b>建材營造</b>（53 家裡 40 家 ≥40，中位 84 —— 建案認列時點集中），其次綠能環保。金融保險業整體中位數只有 21，跟全市場一樣穩；<b>但要再分</b>：壽險型金控（國泰 303、富邦 86）的月數字含投資部位評價損益 —— 國泰金最新月 −69.46% 而今年累計是 <b>+62.5%</b>、富邦金最新月 −48% 而累計 <b>+172%</b>，對它們要看累計欄；銀行型金控（玉山金 17）則與製造業同級。</li>
+    <li><b>生技醫療的標準差最大值是 11,359。</b>那不是成長，是去年同月營收趨近 0 所以百分比爆掉。凡是看到三位數以上的年增率，先問分母多小。</li>
     <li><b>月營收是最快的基本面訊號，但只是營收。</b>它不含毛利率、費用、業外，也不含存貨與應收的變化。營收連漲而毛利率在掉的公司，這張表看不出來。</li>
     <li><b>這是篩選起點，不是買進理由。</b>排在前面只代表「值得打開來看」，接下來要問的是估值多少、賠率多少 —— 那些不在這張表上。</li>
   </ul>
@@ -141,6 +147,7 @@ function filt(){
   const q=$('q').value.trim().toLowerCase(), mc=+$('minc').value, mp=+$('minp').value, ind=$('ind').value;
   return D.filter(r=>
     (!MK || r.market===MK) && r.cp>=mc && r.pos36>=mp && (!ind || r.ind===ind) &&
+    (!nv || (r.sd||0) < 60) &&
     (!q || r.code.includes(q) || (r.name||'').toLowerCase().includes(q)));
 }
 function render(){
@@ -161,6 +168,8 @@ function render(){
     <td class="num">${r.pos36}<span style="color:var(--muted)">/${r.n}</span></td>
     <td class="num">${r.cn?`<i class="bar bn" style="width:${Math.round(r.cn/mxn*40)}px"></i>`:''}${r.cn}</td>
     <td class="num ${r.last>0?'pos':'neg'}">${r.last>0?'+':''}${r.last.toFixed(1)}%</td>
+    <td class="num ${r.cum>0?'pos':'neg'}">${r.cum===null?'—':(r.cum>0?'+':'')+r.cum.toFixed(1)+'%'}</td>
+    <td class="num">${r.sd===null?'—':(r.sd>=60?`<b class="vol" title="近 12 個月 YoY 標準差 ${r.sd}（全市場 P50=21、P85≈60）—— 單月起伏太大，連續月數的意義下降">⚠ ${r.sd.toFixed(0)}</b>`:r.sd.toFixed(0))}</td>
     <td class="num">${r.rev===null?'—':r.rev.toLocaleString(undefined,{maximumFractionDigits:1})}</td>
     <td class="num" style="color:var(--muted)">${r.n}</td></tr>`).join('');
   $('hint').textContent = `符合 ${rows.length} 家`
@@ -173,6 +182,7 @@ function stats(){
            ['連續正成長 ≥6 月', f.filter(r=>r.cp>=6).length],
            [`${M} 月正成長 ≥${Math.round(M*.92)}`, f.filter(r=>r.pos36>=Math.round(M*.92)).length],
            ['連續負成長 ≥6 月', f.filter(r=>r.cn>=6).length],
+           ['⚠ 波動 ≥60',      f.filter(r=>(r.sd||0)>=60).length],
            ['最新月 YoY 為正',  f.filter(r=>r.last>0).length],
            ['符合篩選',        f.length]];
   $('stats').innerHTML=g.map(([t,v])=>`<div class="stat"><b>${v}</b><span>${t}</span></div>`).join('');
@@ -189,7 +199,7 @@ document.querySelectorAll('#mk button').forEach(b=>b.addEventListener('click',()
   MK=b.dataset.v;
   document.querySelectorAll('#mk button').forEach(z=>z.setAttribute('aria-pressed',z===b));
   all();}));
-['q','minc','minp','ind'].forEach(i=>$(i).addEventListener('input',all));
+['q','minc','minp','ind','novol'].forEach(i=>$(i).addEventListener('input',all));
 all();
 </script>
 </body>

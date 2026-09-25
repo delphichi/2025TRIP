@@ -10,7 +10,7 @@
    ★★ 資料來源全部是官方 bulk 端點，不用 FinMind、沒有配額（#529）。
    用法：python3 scripts/tw/rev_streak_report.py [--out path/index.html]
 """
-import sys, json, csv, pathlib, datetime as dt
+import sys, json, csv, pathlib, statistics as st, datetime as dt
 
 D   = pathlib.Path(__file__).parent
 RAW = D/"raw"
@@ -31,7 +31,19 @@ def _ordk(t):
     y, m = t.split("/"); return int(y)*12 + int(m)
 
 def streak(mm):
-    """★ 與 body_check.py 的 streak() 同一套規則 —— 改這裡也要改那裡"""
+    """★ 與 body_check.py 的 streak() 同一套規則 —— 改這裡也要改那裡
+
+       ★★★ 回傳最後多一個 sd（近 12 個月 YoY 的標準差）——「這個連續月數有多少意義」。
+       全市場分位：P50 21　P75 36　P90 93　P95 254。門檻取 60（約 P85）。
+
+       ★★ 高波動不是某個產業的專利（2026-09-25 實測）：
+           建材營造   40/53 家 ≥40（75%）中位 84　← 建案認列時點集中，最嚴重
+           綠能環保   12/25 家（48%）
+           金融保險   12/31 家（39%）中位 ★ 只有 21 —— 整體其實穩
+           半導體     22/88 家（25%）中位 16
+       ★ 金融保險要再分：壽險型金控（國泰 303、富邦 86）月數字含投資部位評價損益，
+         國泰金最新月 −69% 但今年累計 +62.5%；銀行型（玉山 17）與製造業同級。
+       ★★ 生技醫療最大值 11,359 —— 基期趨近 0 的百分比（SOP #536），不是成長。"""
     ser = [v for _, v in sorted(((t, v) for t, v in mm.items() if v is not None),
                                 key=lambda x: _ordk(x[0]))]
     if len(ser) < 6: return None
@@ -42,7 +54,8 @@ def streak(mm):
     for v in reversed(ser):
         if v <= 0: cn += 1
         else: break
-    return cp, sum(1 for v in ser if v > 0), cn, len(ser), ser[-1]
+    sd = st.pstdev(ser[-12:]) if len(ser) >= 6 else None
+    return cp, sum(1 for v in ser if v > 0), cn, len(ser), ser[-1], sd
 
 NAME = HIST.get("name") or {}
 rows = []
@@ -53,6 +66,8 @@ for c, mm in (HIST.get("yoy") or {}).items():
     rows.append(dict(code=c, name=b.get("name") or NAME.get(c) or "—",
                      market=b.get("market") or "—", ind=b.get("ind") or "—",
                      cp=s[0], pos36=s[1], cn=s[2], n=s[3], last=round(s[4], 2),
+                     sd=(round(s[5], 1) if s[5] is not None else None),
+                     cum=(round(b["cum_yoy"], 1) if b.get("cum_yoy") is not None else None),
                      rev=(round(b["rev"]/1e5, 2) if b.get("rev") else None)))
 rows.sort(key=lambda r: (-r["cp"], -r["pos36"], r["cn"], r["code"]))
 
@@ -65,10 +80,14 @@ OUT.parent.mkdir(parents=True, exist_ok=True)
 with csvp.open("w", newline="", encoding="utf-8-sig") as f:
     w = csv.writer(f)
     w.writerow(["股票代號","公司名稱","市場","產業","最近連續正成長月數",
-                "36個月內正成長月數","最近連續負成長月數","有效月數","最新月YoY%","當月營收(億)"])
+                "36個月內正成長月數","最近連續負成長月數","有效月數","最新月YoY%",
+                "今年累計YoY%","近12月YoY標準差","當月營收(億)"])
     for r in rows:
         w.writerow([r["code"], r["name"], r["market"], r["ind"], r["cp"],
-                    r["pos36"], r["cn"], r["n"], r["last"], r["rev"] if r["rev"] is not None else ""])
+                    r["pos36"], r["cn"], r["n"], r["last"],
+                    r["cum"] if r["cum"] is not None else "",
+                    r["sd"] if r["sd"] is not None else "",
+                    r["rev"] if r["rev"] is not None else ""])
 
 TPL = (D/"rev_streak_tpl.html").read_text()
 html = (TPL.replace("__DATA__", json.dumps(rows, ensure_ascii=False))
@@ -84,5 +103,6 @@ print(f"   連續正成長 ≥12 月：{sum(1 for r in rows if r['cp']>=12):>4} 
 print(f"   連續正成長 ≥6  月：{sum(1 for r in rows if r['cp']>=6):>4} 家")
 print(f"   {MONTHS} 月內正成長 ≥{int(MONTHS*0.9)}：{sum(1 for r in rows if r['pos36']>=int(MONTHS*0.9)):>4} 家")
 print(f"   連續負成長 ≥6  月：{sum(1 for r in rows if r['cn']>=6):>4} 家")
+print(f"   ★★ 月營收波動大（標準差 ≥60 ≈ 前 15%）：{sum(1 for r in rows if (r['sd'] or 0)>=60):>4} 家")
 print(f"✓ {OUT}　({OUT.stat().st_size:,} bytes)")
 print(f"✓ {csvp}")
