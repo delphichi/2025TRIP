@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<meta name="description" content="相位 × 動能 × 品質三軸儀表，含 8 期移動軌跡。資料取自 SEC XBRL。">
+<meta name="theme-color" content="#161a17" media="(prefers-color-scheme:dark)">
+<meta name="theme-color" content="#edeee8" media="(prefers-color-scheme:light)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600;6..72,800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#edeee8;--panel:#fbfbf7;--line:#dcded4;--line2:#c3c7b9;--ink:#232821;--ink2:#4d5449;
+  --muted:#77807a;--acc:#8f6224;--grid:#e2e4da;--up:#b53f2a;--dn:#2b7a68;--dark:0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#161a17;--panel:#1d221e;--line:#2b312c;--line2:#414940;--ink:#e7e9e0;--ink2:#b3b9ad;
+  --muted:#77807a;--acc:#c99150;--grid:#242a25;--up:#e0664d;--dn:#47a68f;--dark:1}}
+:root[data-theme="dark"]{--bg:#161a17;--panel:#1d221e;--line:#2b312c;--line2:#414940;--ink:#e7e9e0;
+  --ink2:#b3b9ad;--muted:#77807a;--acc:#c99150;--grid:#242a25;--up:#e0664d;--dn:#47a68f;--dark:1}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC",system-ui,sans-serif;
+  font-size:15px;line-height:1.6}
+.wrap{max-width:1160px;margin:0 auto;padding:clamp(20px,4vw,40px) clamp(16px,3vw,26px) 64px}
+.eb{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 9px}
+h1{font-family:Newsreader,Georgia,serif;font-weight:800;font-size:clamp(28px,5vw,48px);line-height:1.03;
+  margin:0 0 10px;letter-spacing:-.02em;text-wrap:balance}
+.sub{color:var(--ink2);max-width:62ch;margin:0 0 22px;font-size:14.5px}
+.sub b{color:var(--ink);font-weight:500}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:2px}
+.bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:11px 15px}
+.lb{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;border:1px solid var(--line2);border-radius:2px;overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;padding:6px 13px;border:0;background:transparent;color:var(--ink2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--acc);color:var(--panel);font-weight:700}
+.seg button:focus-visible,.chip:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input[type=range]{-webkit-appearance:none;appearance:none;height:18px;background:transparent;cursor:pointer;width:118px}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line2);border-radius:2px}
+input[type=range]::-moz-range-track{height:3px;background:var(--line2);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--acc);border:2px solid var(--panel);margin-top:-5.5px;box-shadow:0 0 0 1px var(--acc)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--acc);border:2px solid var(--panel)}
+.setup{display:flex;flex-wrap:wrap;gap:9px;align-items:center;padding:12px 15px;margin-bottom:8px}
+.setup input{flex:1;min-width:230px;font:inherit;font-size:13.5px;padding:7px 11px;
+  background:var(--bg);color:var(--ink);border:1px solid var(--line2);border-radius:2px;
+  font-family:"JetBrains Mono",monospace}
+.setup input::placeholder{color:var(--muted);font-size:12px}
+.setup input:focus{outline:2px solid var(--acc);outline-offset:1px;border-color:var(--acc)}
+.setup input:disabled{opacity:.55;cursor:not-allowed}
+.go{font:inherit;font-size:13px;font-weight:700;padding:7px 18px;cursor:pointer;
+  background:var(--acc);color:var(--panel);border:0;border-radius:2px;white-space:nowrap}
+.go:disabled{opacity:.45;cursor:progress}
+.go:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.st{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted);flex-basis:100%}
+.st b{color:var(--acc);font-weight:700}
+.st .er{color:var(--up)}
+.empty{padding:46px 20px;text-align:center;color:var(--muted);font-size:13.5px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;padding:11px 15px;margin-top:8px;align-items:center}
+.chip{font-family:"JetBrains Mono",monospace;font-size:11.5px;padding:3px 10px;cursor:pointer;
+  border:1px solid var(--line2);border-radius:2px;background:transparent;color:var(--muted);
+  display:inline-flex;align-items:center;gap:6px}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block;opacity:.3}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--ink2);font-weight:700}
+.chip[aria-pressed="true"] i{opacity:1}
+.chip:hover{border-color:var(--acc)}
+.plotwrap{padding:10px 12px 4px;margin-top:8px}
+canvas{display:block;width:100%;height:auto;cursor:crosshair}
+.keys{display:flex;flex-wrap:wrap;gap:15px;padding:8px 14px 12px;font-size:11.5px;color:var(--ink2)}
+.keys b{font-weight:500;color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;margin-right:5px}
+.hmwrap{padding:10px 12px 6px}
+.hmlg{display:flex;align-items:center;gap:9px;padding:9px 3px 4px;flex-wrap:wrap}
+.hmlg i{flex:0 0 190px;height:9px;border-radius:2px;display:block}
+.hmn{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.hmt{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink2);margin-left:auto}
+.hmsm{flex-basis:100%;font-size:11px;color:var(--muted);padding-top:2px}
+.hmsm b{color:var(--up);font-weight:500}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 278px;gap:20px;margin-top:20px;align-items:start}
+@media(max-width:840px){.cols{grid-template-columns:1fr}}
+.card{padding:15px 17px;position:sticky;top:18px;border-left:4px solid var(--cc,var(--line2))}
+@media(max-width:840px){.card{position:static}}
+.card .tk{font-family:Newsreader,Georgia,serif;font-size:26px;font-weight:800;line-height:1;margin:0;color:var(--cc)}
+.card .nm{color:var(--muted);font-size:12.5px;margin:3px 0 12px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.5px}
+.kv dt{color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;align-self:center}
+.kv dd{margin:0;font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;text-align:right}
+.gates{margin:0 0 12px;padding-bottom:11px;border-bottom:1px solid var(--line)}
+.gates>p{margin:0 0 7px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted)}
+.gates>p b{color:var(--cc);font-size:13px;letter-spacing:0}
+.g{display:grid;grid-template-columns:14px 1fr auto;gap:6px;align-items:baseline;
+  font-size:11.5px;padding:2.5px 0;line-height:1.35}
+.g .m{font-family:"JetBrains Mono",monospace;font-weight:700}
+.g.y .m{color:var(--cc)} .g.n .m{color:var(--muted)}
+.g.n .t,.g.n .v{color:var(--muted)}
+.g .v{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;font-size:10.5px;
+  color:var(--ink2);white-space:nowrap}
+.gates2{margin:12px 0 0;padding:11px 0 0;border-top:1px solid var(--line);border-bottom:0}
+.spk{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.spk p{margin:0 0 6px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted)}
+.spk .bars{display:flex;align-items:flex-end;gap:3px;height:36px}
+.spk i{flex:1;background:var(--cc);border-radius:1px;min-height:2px;opacity:.75}
+h2{font-family:Newsreader,Georgia,serif;font-size:19px;font-weight:600;margin:28px 0 3px;letter-spacing:-.01em}
+.cap{color:var(--muted);font-size:12.5px;margin:0 0 12px;max-width:66ch}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:620px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);font-weight:500}
+td:first-child,th:first-child{text-align:left}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:color-mix(in srgb,var(--acc) 9%,transparent)}
+tbody tr.on td{background:color-mix(in srgb,var(--acc) 16%,transparent)}
+td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+.pos{color:var(--up)} .neg{color:var(--dn)}
+.warn{margin-top:14px;padding:11px 14px;border-left:3px solid var(--up);
+  background:color-mix(in srgb,var(--up) 8%,transparent);font-size:12.5px;color:var(--ink2)}
+.notes{border-top:1px solid var(--line);margin-top:30px;padding-top:16px;color:var(--muted);font-size:12.5px;max-width:74ch}
+.notes h3{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  margin:0 0 8px;font-weight:500}
+.notes li{margin-bottom:6px} .notes b{color:var(--ink2);font-weight:500}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="eb">公開資訊觀測站月營收 · 資料年月 __YM__ · 產出 __TS__</p>
+<h1>__TITLE__</h1>
+<p class="sub">把「走到哪一階」「正在加速還是減速」「這個數字能不能信」拆成三個獨立的軸 ——
+<b>階段不等於方向，方向不等於品質</b>。台股用<b>月營收</b>，軌跡是逐月的，線越粗越深＝越接近現在。</p>
+
+<div id="warn"></div>
+
+<div class="panel bar">
+  <span class="lb">縱軸</span>
+  <div class="seg" id="seg">
+    <button aria-pressed="true" data-y="ph">基本面相位</button>
+    <button aria-pressed="false" data-y="pv">價量相位</button>
+  </div>
+  <span class="lb" style="margin-left:6px">橫軸</span>
+  <span style="font-size:12.5px;color:var(--ink2)">Momentum · 近 3 月均 YoY − 前 3 月均（pp）</span>
+  <span class="lb" style="margin-left:auto">軌跡</span>
+  <input type="range" id="tl" min="2" max="12" step="1" value="12">
+  <span class="lb" id="tlv" style="min-width:48px">12 月</span>
+</div>
+<div class="panel chips" id="chips"></div>
+
+<div class="panel plotwrap">
+  <canvas id="cv" width="1100" height="540" role="img" aria-label="相位與動能軌跡圖"></canvas>
+  <div class="keys">
+    <span><b>大小</b>Quality 0~3（近12月標準差&lt;25 / 36月正成長≥28 / 單月與累計同號）</span>
+    <span><b>軌跡</b>越靠近現在越粗越深</span>
+    <span><b>橫軸</b>跟著勾選縮放 —— 極端值（如 NVDA 曾 −155pp）取消勾選，其餘才看得清</span>
+  </div>
+</div>
+
+<h2>4 週價量熱力圖</h2>
+<p class="cap">面積 ＝ 近 4 週成交金額佔比（收盤 × 成交量）—— <b>不是成交股數</b>，否則高價股與低價股放在一起比張數，資金流向會失真。顏色 ＝ 4 週漲跌幅，紅漲綠跌。跟著上面的勾選連動。</p>
+<div class="panel hmwrap">
+  <canvas id="hm" width="1100" height="380" role="img" aria-label="4 週價量熱力圖"></canvas>
+  <div class="hmlg">
+    <span class="lb">4 週漲跌</span>
+    <i id="hmg"></i>
+    <span class="hmn" id="hmlo">—</span><span class="hmn" id="hmhi">—</span>
+    <span class="hmt" id="hmtot"></span>
+    <span class="hmsm" id="hmsm"></span>
+  </div>
+</div>
+
+<div class="cols">
+  <div>
+    <h2>完整讀數</h2>
+    <p class="cap">點任一列在右邊展開。Momentum ＝ 近 2 季平均營收 YoY 減前 2 季平均。</p>
+    <div class="panel tw"><table><thead><tr>
+      <th>代號</th><th>相位</th><th>Momentum</th><th>Q</th><th>連續↑</th><th>12月正</th><th>標準差</th><th>累計YoY</th><th>價量</th><th>26W</th><th>13W</th><th>4W</th><th>量比</th>
+    </tr></thead><tbody id="tb"></tbody></table></div>
+  </div>
+  <div class="panel card" id="card"></div>
+</div>
+
+<div class="notes">
+  <h3>定義與限制</h3>
+  <ul>
+    <li><b>台股用月營收，不是季報。</b>美股版的四階是營收／EPS／FCF 的季度年增；台股沒有免費的月頻 EPS 與現金流 —— 不同的資料要用不同的尺，硬套會得到假的精確。</li>
+    <li><b>相位四階。</b>① 近 6 個月 YoY 全正 ② 近 3 月均 YoY ＞ 前 3 月均（加速）③ 今年累計 YoY ＞ 0 ④ 近 12 個月裡正成長 ≥ 9 個月。</li>
+    <li><b>品質三項刻意不放進相位。</b>① 近 12 月 YoY 標準差 &lt; 25 ② 36 個月正成長 ≥ 28 ③ 最新月 YoY 與今年累計 YoY <b>同號</b>。階是「走到哪」，品質是「這個數字能不能信」。</li>
+    <li><b>第三項是台股金融股專屬的陷阱。</b>壽險型金控的月數字含投資部位評價損益 —— 國泰金最新月 <b>−69.46%</b> 而今年累計 <b>+62.5%</b>、富邦金 <b>−48%</b> 而累計 <b>+172%</b>。單月與累計打架時，「連續正成長月數」沒有意義。全市場標準差 P50 是 21、P85 約 60：銀行型（玉山 16.8、彰銀 7.6）與製造業同級，壽險型與票券（國票金 991、中再保 333、中信 309）則完全不是同一種東西。</li>
+    <li><b>軌跡是逐月的，但累計 YoY 只有當期值</b>，歷史各點沿用當期值 —— 所以第 ③ 階在軌跡上不動，縱向移動來自 ①②④。</li>
+    <li><b>資料來源</b>：官方 bulk 端點（上市 t187ap05_L、上櫃 mopsfin_t187ap05_O、興櫃 t187ap05_P），歷史走公開資訊觀測站 t21sc03。價量取自 Yahoo（先試 .TW 再試 .TWO）。</li>
+    <li><b>月營收只是營收。</b>不含利差、呆帳提存、費用與業外。銀行的營收成長可能來自放款規模，也可能來自升息 —— 這張圖分不出來。<b>這是篩選起點，不是買進理由。</b></li>
+  </ul>
+</div>
+</div>
+
+<script>
+let D=__DATA__, WARN=__WARN__;
+
+const $=i=>document.getElementById(i);
+const C=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+const dark=()=>C('--dark')==='1';
+const cc=d=>dark()?d.c2:d.c;
+// ★★★ 預設只勾「數字可信」的（近 12 月 YoY 標準差 < 60）。
+//   不是為了好看 —— 壽險型金控與票券商的動能會到 −1224pp（國票金），
+//   把橫軸拉爆之後，銀行那群 −3 ~ −39pp 的差異全部看不見。
+//   而它們正好是品質軸判定「這個數字不能信」的同一批。要看隨時可勾回來。
+const NOISY = d => (d.sd ?? 0) >= 60;
+let YK="ph", sel=(D.find(d=>!NOISY(d)) || D[0]).t,
+    show=new Set((D.some(d=>!NOISY(d)) ? D.filter(d=>!NOISY(d)) : D).map(d=>d.t)), pts=[];
+if(WARN.length) $('warn').innerHTML=`<div class="warn"><b>有 ${WARN.length} 支沒有納入：</b>${WARN.join('；')}</div>`;
+
+function draw(){
+  const cv=$('cv'); if(!cv.clientWidth){requestAnimationFrame(draw);return;}
+  const dpr=Math.min(devicePixelRatio||1,2), w=cv.clientWidth, h=Math.round(w*0.50);
+  cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
+  const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+  const PL=52,PR=22,PT=44,PB=40,iw=w-PL-PR,ih=h-PT-PB;
+  // ★★ 橫軸只看「勾選中」的公司 —— 否則一支極端值（NVDA 動能曾達 -155pp）
+  //    會把其他五家全壓成一條線。取消勾選它，其餘立刻展開。
+  const vis=D.filter(d=>show.has(d.t));
+  const all=(vis.length?vis:D).flatMap(d=>(YK==='ph'?d.path:d.pvpath).map(p=>p[0]))
+              .concat((vis.length?vis:D).map(d=>d.mom));
+  const lo=Math.min(...all)-2, hi=Math.max(...all)+2;
+  const X=v=>PL+iw*(v-lo)/(hi-lo), Y=v=>PT+ih-ih*(v/4);
+  x.strokeStyle=C('--grid'); x.lineWidth=1; x.fillStyle=C('--muted');
+  x.font='11px "JetBrains Mono",monospace';
+  for(let i=0;i<=4;i++){const yy=Math.round(Y(i))+.5;
+    x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+    x.textAlign='right';x.fillText(i+' 階',PL-9,yy+4);}
+  const z=Math.round(X(0))+.5;
+  x.strokeStyle=C('--line2');x.setLineDash([3,3]);
+  x.beginPath();x.moveTo(z,PT);x.lineTo(z,PT+ih);x.stroke();x.setLineDash([]);
+  x.textAlign='center';x.fillText('0',z,h-20);
+  const step=(hi-lo)>30?8:((hi-lo)>14?4:2);
+  for(let v=Math.ceil(lo/step)*step; v<hi; v+=step){ if(Math.abs(v)<0.01) continue;
+    x.fillText((v>0?'+':'')+v+'pp',X(v),h-20);}
+  x.font='600 11px "JetBrains Mono",monospace';
+  x.textAlign='left'; x.fillText('← 減速',PL,h-6);
+  x.textAlign='right'; x.fillText('加速 →',w-PR,h-6);
+  const NT=+$('tl').value;
+  D.forEach((d,di)=>{
+    if(!show.has(d.t)) return;
+    const src=YK==='ph'?(d.path||[]):(d.pvpath||[]), pa=src.slice(-NT);
+    if(pa.length<2) return;
+    const off=((di%7)-3)*3.0;
+    for(let i=1;i<pa.length;i++){
+      const t=i/(pa.length-1);
+      x.beginPath(); x.moveTo(X(pa[i-1][0]),Y(pa[i-1][1])+off); x.lineTo(X(pa[i][0]),Y(pa[i][1])+off);
+      x.strokeStyle=cc(d); x.lineWidth=0.7+t*2.8; x.globalAlpha=0.13+t*0.58; x.lineCap='round';
+      x.stroke(); x.globalAlpha=1;
+    }
+    pa.slice(0,-1).forEach((p,i)=>{const t=i/(pa.length-1);
+      x.beginPath();x.arc(X(p[0]),Y(p[1])+off,1.6+t*1.7,0,7);
+      x.fillStyle=cc(d);x.globalAlpha=0.2+t*0.45;x.fill();x.globalAlpha=1;});
+  });
+  pts=[]; const jit={};
+  const plan=D.filter(d=>show.has(d.t)).map((d,i)=>{
+    const yv=YK==='ph'?d.ph:d.pv, key=yv+'|'+Math.round(d.mom);
+    jit[key]=(jit[key]||0)+1;
+    const di=D.findIndex(z=>z.t===d.t);
+    return {d,px:X(d.mom),py:Y(yv)+((di%7)-3)*3.0+(jit[key]-1)*16-((jit[key]>1)?8:0),r:8+d.q*4.2};
+  });
+  plan.forEach(p=>{const on=p.d.t===sel;
+    x.beginPath();x.arc(p.px,p.py,p.r,0,7);
+    x.fillStyle=cc(p.d);x.globalAlpha=on?.95:.65;x.fill();x.globalAlpha=1;
+    x.lineWidth=on?2.4:1;x.strokeStyle=on?C('--ink'):C('--panel');x.stroke();
+    pts.push(p);});
+  const used=[];
+  plan.slice().sort((a,b)=>a.px-b.px).forEach(p=>{
+    const on=p.d.t===sel;
+    x.font=(on?'700 ':'500 ')+'11px "JetBrains Mono",monospace'; x.textAlign='center';
+    const tries=[p.py-p.r-7, p.py+p.r+13, p.py-p.r-20, p.py+p.r+26];
+    let ty=tries.find(t=>!used.some(u=>Math.abs(u.x-p.px)<34&&Math.abs(u.y-t)<11)) ?? tries[0];
+    ty=Math.max(12,ty); used.push({x:p.px,y:ty});
+    if(ty>p.py){x.strokeStyle=C('--line2');x.lineWidth=1;
+      x.beginPath();x.moveTo(p.px,p.py+p.r+1);x.lineTo(p.px,ty-9);x.stroke();}
+    x.fillStyle=cc(p.d); x.fillText(p.d.t,p.px,ty);
+  });
+}
+// ★★ 熱力圖：面積 ＝ 4 週成交金額佔比，顏色 ＝ 4 週漲跌幅（紅漲綠跌）
+function hmColor(r, mx){
+  // ★ 以「勾選中的最大絕對漲跌幅」normalise，避免固定刻度在平靜期整片死白
+  const t = mx ? Math.max(-1, Math.min(1, r / mx)) : 0;
+  const a = Math.abs(t);
+  const dk = dark();
+  // 中性色：灰帶一點頁面主調；兩端走 --up(紅) / --dn(綠)
+  const n  = dk ? [58,64,59] : [214,217,206];
+  const up = dk ? [196,72,52] : [168,53,34];
+  const dn = dk ? [46,138,117] : [28,110,92];
+  const e  = t >= 0 ? up : dn;
+  const c  = n.map((v,i)=>Math.round(v + (e[i]-v)*Math.pow(a,0.62)));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function squarify(items, x, y, w, h, out){
+  // ★ squarified treemap —— 讓方塊盡量接近正方形，比 slice-and-dice 好讀
+  if(!items.length) return;
+  if(items.length===1){ out.push({d:items[0].d, x, y, w, h}); return; }
+  const tot = items.reduce((s,i)=>s+i.v, 0);
+  let best = 1, bs = Infinity;
+  for(let k=1;k<items.length;k++){
+    const sum = items.slice(0,k).reduce((s,i)=>s+i.v,0), f = sum/tot;
+    const side = (w<h) ? h*f : w*f, other = (w<h) ? w : h;
+    const worst = items.slice(0,k).reduce((m,i)=>{
+      const len = side ? (i.v/sum)*side : 0;
+      return Math.max(m, len&&other ? Math.max(len/other, other/len) : Infinity);
+    }, 0);
+    if(worst < bs){ bs = worst; best = k; }
+  }
+  const head = items.slice(0,best), rest = items.slice(best);
+  const f = head.reduce((s,i)=>s+i.v,0)/tot;
+  if(w < h){
+    const hh = h*f; let cy = y;
+    head.forEach(i=>{ const ih = hh*(i.v/head.reduce((s,j)=>s+j.v,0));
+      out.push({d:i.d, x, y:cy, w, h:ih}); cy += ih; });
+    squarify(rest, x, y+hh, w, h-hh, out);
+  } else {
+    const ww = w*f; let cx = x;
+    head.forEach(i=>{ const iw = ww*(i.v/head.reduce((s,j)=>s+j.v,0));
+      out.push({d:i.d, x:cx, y, w:iw, h}); cx += iw; });
+    squarify(rest, x+ww, y, w-ww, h, out);
+  }
+}
+let hmTiles = [];
+function drawHM(){
+  const cv=$('hm'); if(!cv || !cv.clientWidth){ if(cv) requestAnimationFrame(drawHM); return; }
+  const vis = D.filter(d=>show.has(d.t) && d.v4 > 0 && d.r4 !== null);
+  const dpr=Math.min(devicePixelRatio||1,2), w=cv.clientWidth, h=Math.round(Math.min(420, Math.max(210, w*0.34)));
+  cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
+  const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+  if(!vis.length){ x.fillStyle=C('--muted'); x.font='13px "Noto Sans TC",sans-serif';
+    x.textAlign='center'; x.fillText('沒有勾選任何公司', w/2, h/2); hmTiles=[]; return; }
+  const tot = vis.reduce((s,d)=>s+d.v4, 0);
+  const mx  = Math.max(...vis.map(d=>Math.abs(d.r4)), 0.01);
+  const items = vis.slice().sort((a,b)=>b.v4-a.v4).map(d=>({d, v:d.v4}));
+  const out=[]; squarify(items, 0, 0, w, h, out); hmTiles=out;
+  out.forEach(t=>{
+    const d=t.d, on = d.t===sel;
+    x.fillStyle = hmColor(d.r4, mx);
+    x.fillRect(t.x, t.y, t.w, t.h);
+    x.strokeStyle = C('--panel'); x.lineWidth = 2;
+    x.strokeRect(t.x+1, t.y+1, t.w-2, t.h-2);
+    if(on){ x.strokeStyle = C('--ink'); x.lineWidth = 2.5; x.strokeRect(t.x+2, t.y+2, t.w-4, t.h-4); }
+    // ★ 文字顏色跟著磚色明暗走，否則深紅上放深字會看不見
+    const rgb = hmColor(d.r4, mx).match(/\d+/g).map(Number);
+    const lum = (0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]) / 255;
+    const ink = lum > 0.58 ? '#1a1d19' : '#f4f5f0';
+    const pct = (d.v4/tot*100);
+    const big = t.w > 74 && t.h > 52, mid = t.w > 50 && t.h > 30;
+    x.fillStyle = ink; x.textAlign='center';
+    if(big){
+      x.font='700 '+Math.min(21, Math.max(13, t.w/6.2))+'px "JetBrains Mono",monospace';
+      x.fillText(d.t, t.x+t.w/2, t.y+t.h/2 - 4);
+      x.font='600 '+Math.min(15, Math.max(11, t.w/9))+'px "JetBrains Mono",monospace';
+      x.fillText((d.r4>0?'+':'')+d.r4.toFixed(1)+'%', t.x+t.w/2, t.y+t.h/2 + 14);
+      x.globalAlpha=.72; x.font='10.5px "JetBrains Mono",monospace';
+      x.fillText(pct.toFixed(1)+'% 金額', t.x+t.w/2, t.y+t.h/2 + 30); x.globalAlpha=1;
+    } else if(mid){
+      x.font='700 12px "JetBrains Mono",monospace';
+      x.fillText(d.t, t.x+t.w/2, t.y+t.h/2 - 2);
+      x.font='10.5px "JetBrains Mono",monospace';
+      x.fillText((d.r4>0?'+':'')+d.r4.toFixed(1)+'%', t.x+t.w/2, t.y+t.h/2 + 11);
+    } else {
+      x.font='700 10px "JetBrains Mono",monospace';
+      x.fillText(d.t, t.x+t.w/2, t.y+t.h/2 + 3);
+    }
+  });
+  const g=$('hmg');
+  if(g){
+    g.style.background = `linear-gradient(90deg, ${hmColor(-mx,mx)}, ${hmColor(0,mx)}, ${hmColor(mx,mx)})`;
+    $('hmlo').textContent = `-${mx.toFixed(1)}%`;
+    $('hmhi').textContent = `+${mx.toFixed(1)}%`;
+    $('hmtot').textContent = `勾選 ${vis.length} 支　4 週合計成交金額 $${tot.toFixed(0)}B`;
+    // ★★ 面積嚴格等比例 ⇒ 成交金額懸殊時小磚必然細到看不見（數學上無解，不是 bug）。
+    //    不縮放面積來「救」它們 —— 那會毀掉「面積＝佔比」這個唯一的語意。改成明白標出來。
+    const tiny = vis.filter(d => d.v4/tot < 0.02)
+                    .sort((a,b)=>a.v4-b.v4)
+                    .map(d => `${d.t} ${(d.v4/tot*100).toFixed(2)}%（${d.r4>0?'+':''}${d.r4.toFixed(1)}%）`);
+    $('hmsm').innerHTML = tiny.length
+      ? `<b>★ 佔比不足 2%，方塊細到看不清：</b>${tiny.join('　')}` : '';
+  }
+}
+function card(t){
+  const d=D.find(v=>v.t===t); sel=t; show.add(t);
+  const mx=Math.max(...d.spark.map(Math.abs),1);
+  const c=$('card'); c.style.setProperty('--cc',cc(d));
+  c.innerHTML=`<p class="tk">${d.t}</p><p class="nm">${d.n}</p>
+   <div class="gates">
+     <p>相位四階　<b>${d.ph}/4</b></p>
+     ${[['近 6 個月 YoY 全正', d.cp+' 個月連續'],
+        ['近 3 月均 &gt; 前 3 月均', (d.m3>0?'+':'')+d.m3+'% vs '+(d.m6>0?'+':'')+d.m6+'%'],
+        ['今年累計 YoY &gt; 0', d.cum===null?'—':(d.cum>0?'+':'')+d.cum+'%'],
+        ['近 12 月正成長 ≥ 9 個月', d.p12+'/'+d.n12+' 個月']
+       ].map((g,i)=>`<div class="g ${d.s[i]?'y':'n'}">
+          <span class="m">${d.s[i]?'✓':'✗'}</span>
+          <span class="t">${i+1}. ${g[0]}</span><span class="v">${g[1]}</span></div>`).join('')}
+   </div>
+   <dl class="kv">
+    <dt>Momentum</dt><dd class="${d.mom>0?'pos':'neg'}">${d.mom>0?'+':''}${d.mom}pp</dd>
+    <dt>Quality</dt><dd>${d.q}/3</dd>
+    <dt>近12月標準差</dt><dd class="${d.sd>=60?'neg':''}">${d.sd===null?'—':d.sd}</dd>
+    <dt>36月正成長</dt><dd>${d.pos36}/${d.nq}</dd>
+    <dt>連續正成長</dt><dd>${d.cp} 月</dd>
+    <dt>最新月 YoY</dt><dd class="${d.last>0?'pos':'neg'}">${d.last>0?'+':''}${d.last}%</dd>
+    <dt>今年累計</dt><dd class="${d.cum>0?'pos':'neg'}">${d.cum===null?'—':(d.cum>0?'+':'')+d.cum+'%'}</dd>
+    <dt>當月營收</dt><dd>${d.rev===null?'—':d.rev+' 億'}</dd>
+    <dt>收盤</dt><dd>${d.px===null?'—':d.px}</dd>
+    <dt>產業</dt><dd style="font-size:11px">${d.ind}</dd>
+    ${d.sd>=60?`<dt>⚠</dt><dd style="color:var(--up);font-size:10.5px">月數字起伏極大</dd>`:''}
+    ${(d.cum!==null&&d.last*d.cum<0)?`<dt>⚠</dt><dd style="color:var(--up);font-size:10.5px">單月與累計反向</dd>`:''}
+   </dl>
+   <div class="gates gates2">
+     <p>價量四階　<b>${d.pv}/4</b></p>
+     ${[['26 週漲跌幅　&gt; 0', d.r26, '%'],
+        ['13 週漲跌幅　&gt; 0', d.r13, '%'],
+        ['4 週漲跌幅　&gt; 0',  d.r4,  '%'],
+        ['10 日均量 ÷ 13 週均量 ≥ 1.0', d.vr, 'x']
+       ].map((g,i)=>`<div class="g ${d.pvs[i]?'y':'n'}">
+          <span class="m">${d.pvs[i]?'✓':'✗'}</span>
+          <span class="t">${g[0]}</span>
+          <span class="v ${g[2]==='%'?(g[1]>0?'pos':'neg'):''}">${g[1]===null?'—':((g[2]==='%'&&g[1]>0?'+':'')+g[1]+g[2])}</span></div>`).join('')}
+   </div>
+   <div class="spk"><p>近 12 個月營收 YoY</p><div class="bars">
+     ${d.spark.map(v=>`<i style="height:${Math.max(6,Math.abs(v)/mx*100)}%" title="${v}%"></i>`).join('')}
+   </div></div>`;
+  document.querySelectorAll('#tb tr').forEach(r=>r.classList.toggle('on',r.dataset.t===t));
+  document.querySelectorAll('#chips .chip[data-t]').forEach(b=>b.setAttribute('aria-pressed',show.has(b.dataset.t)));
+  draw(); drawHM();
+}
+function rows(){
+  $('tb').innerHTML=D.map(d=>`<tr data-t="${d.t}">
+   <td><i class="sw" style="background:${cc(d)}"></i><b>${d.t}</b> <span style="color:var(--muted)">${d.n}</span></td>
+   <td class="num">${'▉'.repeat(d.ph)}${'·'.repeat(4-d.ph)} ${d.ph}</td>
+   <td class="num ${d.mom>0?'pos':'neg'}">${d.mom>0?'+':''}${d.mom}pp</td>
+   <td class="num">${d.q}/3</td><td class="num">${d.cp}</td><td class="num">${d.p12}/${d.n12}</td>
+   <td class="num ${d.sd>=60?'neg':''}">${d.sd===null?'—':(d.sd>=60?'⚠ ':'')+d.sd}</td>
+   <td class="num ${d.cum>0?'pos':'neg'}">${d.cum===null?'—':(d.cum>0?'+':'')+d.cum+'%'}</td><td class="num">${'▉'.repeat(d.pv)}${'·'.repeat(4-d.pv)} ${d.pv}</td>
+   <td class="num ${d.r26>0?'pos':'neg'}">${d.r26===null?'—':(d.r26>0?'+':'')+d.r26+'%'}</td>
+   <td class="num ${d.r13>0?'pos':'neg'}">${d.r13===null?'—':(d.r13>0?'+':'')+d.r13+'%'}</td>
+   <td class="num ${d.r4>0?'pos':'neg'}">${d.r4===null?'—':(d.r4>0?'+':'')+d.r4+'%'}</td>
+   <td class="num">${d.vr===null?'—':d.vr+'x'}</td></tr>`).join('');
+  document.querySelectorAll('#tb tr').forEach(r=>r.addEventListener('click',()=>card(r.dataset.t)));
+}
+function chips(){
+  $('chips').innerHTML='<span class="lb" style="margin-right:4px">顯示</span>'+
+    D.map(d=>`<button class="chip" data-t="${d.t}" aria-pressed="${show.has(d.t)}" title="${d.n}${NOISY(d)?' ⚠ 標準差 '+d.sd:''}"><i style="background:${cc(d)}"></i>${d.t}${NOISY(d)?' ⚠':''}</button>`).join('')+
+    '<button class="chip" id="c-all" style="border-style:dashed;margin-left:4px">全選</button>'+
+    '<button class="chip" id="c-cln" style="border-style:dashed">只看可信（sd&lt;60）</button>'+
+    '<button class="chip" id="c-non" style="border-style:dashed">只看目前這支</button>'+
+    (D.some(NOISY)?`<span style="flex-basis:100%;font-size:11px;color:var(--muted);padding-top:3px">
+      ★ 預設未勾選 ${D.filter(NOISY).length} 檔：${D.filter(NOISY).map(d=>d.n).join('、')}
+      —— 近 12 月 YoY 標準差 ≥60，月數字含投資部位評價損益，動能可達 −1200pp 會把橫軸拉爆。要看請點上面的標籤。</span>`:'');
+  document.querySelectorAll('#chips .chip[data-t]').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.t;
+    if(show.has(t)&&show.size>1) show.delete(t); else show.add(t);
+    b.setAttribute('aria-pressed',show.has(t)); draw(); drawHM();}));
+  $('c-all').addEventListener('click',()=>{show=new Set(D.map(d=>d.t));chips();draw();drawHM();});
+$('c-cln').addEventListener('click',()=>{
+  show=new Set((D.some(d=>!NOISY(d))?D.filter(d=>!NOISY(d)):D).map(d=>d.t));chips();draw();drawHM();});
+  $('c-non').addEventListener('click',()=>{show=new Set([sel]);chips();draw();drawHM();});
+}
+$('cv').addEventListener('click',e=>{
+  const r=$('cv').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const h=pts.find(p=>Math.hypot(p.px-mx,p.py-my)<=p.r+5); if(h) card(h.d.t);});
+$('hm').addEventListener('click',e=>{
+  const r=$('hm').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
+  if(t) card(t.d.t);});
+$('hm').style.cursor='pointer';
+document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
+  YK=b.dataset.y;
+  $('hm').addEventListener('click',e=>{
+  const r=$('hm').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
+  if(t) card(t.d.t);});
+$('hm').style.cursor='pointer';
+document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  draw();}));
+$('tl').addEventListener('input',()=>{$('tlv').textContent=$('tl').value+' 月';draw();});
+addEventListener('resize',()=>{draw();drawHM();});
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{rows();chips();card(sel);drawHM();});
+function render(){
+  const has=D.length;
+  $('tb').closest('.cols').style.display = has?'':'none';
+  document.querySelector('.hmwrap').style.display = has?'':'none';
+  document.querySelector('.hmwrap').previousElementSibling.style.display = has?'':'none';
+  document.querySelector('.hmwrap').previousElementSibling.previousElementSibling.style.display = has?'':'none';
+  document.querySelector('.plotwrap').style.display = has?'':'none';
+  document.querySelector('.bar').style.display = has?'':'none';
+  document.getElementById('chips').style.display = has?'':'none';
+  if(!has) return;
+  show=new Set((D.some(d=>!NOISY(d))?D.filter(d=>!NOISY(d)):D).map(d=>d.t));
+  sel=(D.find(d=>!NOISY(d))||D[0]).t;
+  rows(); chips(); card(D[0].t); drawHM();
+}
+
+render();
+if(!D.length) $('warn').insertAdjacentHTML('afterend',
+  '<div class="panel empty">★ 還沒有資料 —— 在上面輸入代號，按「抓資料」</div>');
+</script>
+</body>
+</html>

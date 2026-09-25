@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""★★★ 台股相位儀 —— 月營收版
+
+   美股版用季報（營收/EPS/FCF）；台股沒有免費的月頻 EPS 與現金流，
+   所以四階全部改用「月營收年增率」重新定義。★ 不同的資料，不同的尺。
+
+   ── 基本面相位（0~4）★ 只問成長的方向與廣度 ──
+     ① 近 6 個月 YoY 全正
+     ② 近 3 個月均 YoY ＞ 前 3 個月均（加速）
+     ③ 今年累計 YoY ＞ 0
+     ④ 近 12 個月裡正成長 ≥ 9 個月
+
+   ── 動能 M ＝ 近 3 月均 YoY − 前 3 月均 YoY（pp，連續值）──
+
+   ── 品質（0~3）★★ 刻意不放進相位 —— 階是「走到哪」，品質是「這個數字能不能信」──
+     ① 近 12 月 YoY 標準差 < 25（全市場 P50=21、P85≈60）
+     ② 36 個月裡正成長 ≥ 28 個月（長期紀錄）
+     ③ 最新月 YoY 與今年累計 YoY 同號　★★★ 台股金融股專屬陷阱：
+        國泰金最新月 −69.46% 而累計 +62.5%、富邦金 −48% 而累計 +172%
+        —— 壽險型金控的月數字含投資部位評價損益，單月與累計會打架。
+
+   ── 價量相位（0~4）── 26 週 / 13 週 / 4 週漲跌幅各為正，＋ 10 日均量 ÷ 13 週均量 ≥ 1.0
+
+   用法：python3 scripts/tw/tw_phase_gen.py 2884 2890 ... [--out x.html] [--title 名稱]
+         python3 scripts/tw/tw_phase_gen.py --ind 金融保險業        # 整個產業
+"""
+import sys, json, csv, ssl, time, pathlib, statistics as st, datetime as dt, urllib.request
+
+D   = pathlib.Path(__file__).parent
+RAW = D/"raw"
+ssl._create_default_https_context = ssl._create_unverified_context
+UA  = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+OUT   = pathlib.Path(sys.argv[sys.argv.index("--out")+1])   if "--out"   in sys.argv else D/"tw_phase.html"
+TITLE = sys.argv[sys.argv.index("--title")+1]               if "--title" in sys.argv else "台股相位儀"
+IND   = sys.argv[sys.argv.index("--ind")+1]                 if "--ind"   in sys.argv else None
+TRAJ  = 12                                   # ★ 軌跡期數（月）
+
+# ★ 前 7 支用指定色，超過則沿色相環補 —— 產業別動輒二三十家
+PAL = [("#c0392b","#e0715f"),("#cf7620","#e09a4f"),("#b3901c","#d6b64a"),
+       ("#2f8055","#4bab77"),("#2a6aa8","#5b9ad6"),("#75459e","#a072cc"),
+       ("#2f3330","#9aa39c")]
+def color(i, n):
+    if i < len(PAL) and n <= len(PAL): return PAL[i]
+    h = (i*360/max(n,1) + 8) % 360
+    return (f"hsl({h:.0f} 52% 38%)", f"hsl({h:.0f} 58% 62%)")
+
+HS = sorted(RAW.glob("rev_hist_*m.json"), key=lambda p: int(p.stem.split("_")[-1][:-1]), reverse=True)
+if not HS: sys.exit("★★ 缺 raw/rev_hist_*m.json ⇒ 先跑 rev_bulk.py --history 36")
+HIST = json.loads(HS[0].read_text())
+BL = sorted(RAW.glob("rev_bulk_*.json"))
+BULK = json.loads(BL[-1].read_text()) if BL else {}
+
+def ordk(t):
+    y, m = t.split("/"); return int(y)*12 + int(m)
+
+def px(code):
+    """★ Yahoo 先試 .TW，失敗再試 .TWO（上櫃）"""
+    p1 = int((dt.datetime.now(dt.UTC)-dt.timedelta(days=430)).timestamp())
+    p2 = int(dt.datetime.now(dt.UTC).timestamp())
+    for sfx in (".TW", ".TWO"):
+        try:
+            u = (f"https://query1.finance.yahoo.com/v8/finance/chart/{code}{sfx}"
+                 f"?period1={p1}&period2={p2}&interval=1d")
+            d = json.load(urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=45))
+            r = d["chart"]["result"][0]; q = r["indicators"]["quote"][0]
+            s = [(dt.datetime.fromtimestamp(t, dt.UTC).date(), c, v or 0)
+                 for t, c, v in zip(r["timestamp"], q["close"], q["volume"]) if c is not None]
+            if len(s) > 60: return s
+        except Exception:
+            continue
+    return None
+
+def pv(ser):
+    """★ 價量四階 + 四個原始讀數"""
+    if not ser: return None
+    i = len(ser)-1; now = ser[i][1]
+    def back(n):
+        tgt = ser[i][0]-dt.timedelta(days=n)
+        j = [k for k, (d_, _, _) in enumerate(ser) if d_ <= tgt]
+        return ser[j[-1]][1] if j else None
+    a, b, c = back(182), back(91), back(28)
+    if not (a and b and c): return None
+    v10 = [v for _, _, v in ser[max(0, i-9):i+1]]
+    v13 = [v for _, _, v in ser[max(0, i-64):i+1]]
+    vr = st.mean(v10)/st.mean(v13) if v13 and st.mean(v13) else 0
+    g = [now/a-1 > 0, now/b-1 > 0, now/c-1 > 0, vr >= 1.0]
+    return sum(g), vr, (now/a-1)*100, (now/b-1)*100, (now/c-1)*100, g, now, \
+           sum(cl*vv for _, cl, vv in ser[-20:])/1e8      # ★ 近 4 週成交金額（億元）
+
+def snap(ser, cum):
+    """★ ser ＝ 依時間排好的 YoY 陣列（最後一個是最新月）"""
+    if len(ser) < 6: return None
+    g1 = all(v > 0 for v in ser[-6:])
+    g2 = st.mean(ser[-3:]) > st.mean(ser[-6:-3])
+    g3 = (cum is not None and cum > 0)
+    w12 = ser[-12:]
+    g4 = sum(1 for v in w12 if v > 0) >= 9 if len(w12) >= 9 else False
+    mom = st.mean(ser[-3:]) - st.mean(ser[-6:-3])
+    return dict(ph=sum([g1, g2, g3, g4]), mom=round(mom, 2), s=[g1, g2, g3, g4],
+                m3=round(st.mean(ser[-3:]), 1), m6=round(st.mean(ser[-6:-3]), 1),
+                p12=sum(1 for v in w12 if v > 0), n12=len(w12),
+                sd=round(st.pstdev(w12), 1) if len(w12) >= 6 else None)
+
+def build(code):
+    mm = (HIST.get("yoy") or {}).get(code)
+    if not mm: return None, f"{code} 無月營收資料"
+    pairs = sorted(((t, v) for t, v in mm.items() if v is not None), key=lambda x: ordk(x[0]))
+    if len(pairs) < 12: return None, f"{code} 只有 {len(pairs)} 個月"
+    b = BULK.get(code, {})
+    cum = b.get("cum_yoy")
+    cur = snap([v for _, v in pairs], cum)
+    if not cur: return None, f"{code} 月數不足"
+    traj = []
+    for k in range(TRAJ, 0, -1):
+        sub = pairs[:len(pairs)-k+1]
+        if len(sub) < 6: continue
+        s = snap([v for _, v in sub], cum)        # ★ 累計 YoY 只有當期值，歷史點沿用（已在註腳說明）
+        if s: traj.append([s["mom"], s["ph"], sub[-1][0]])
+    ser = px(code)
+    P = pv(ser) if ser else None
+    q = ((1 if (cur["sd"] or 99) < 25 else 0)
+         + (1 if sum(1 for _, v in pairs if v > 0) >= 28 else 0)
+         + (1 if (cum is not None and pairs[-1][1] * cum > 0) else 0))
+    name = b.get("name") or (HIST.get("name") or {}).get(code) or code
+    return dict(t=code, n=name, ind=b.get("ind") or "—", mk=b.get("market") or "—",
+                ph=cur["ph"], mom=cur["mom"], q=q, s=cur["s"],
+                m3=cur["m3"], m6=cur["m6"], p12=cur["p12"], n12=cur["n12"],
+                sd=cur["sd"], cum=(round(cum, 1) if cum is not None else None),
+                last=round(pairs[-1][1], 2), lastm=pairs[-1][0],
+                cp=next((i for i, v in enumerate(v for _, v in reversed(pairs)) if v <= 0), len(pairs)),
+                pos36=sum(1 for _, v in pairs if v > 0), nq=len(pairs),
+                rev=(round(b["rev"]/1e5, 1) if b.get("rev") else None),
+                spark=[round(v, 1) for _, v in pairs[-12:]],
+                path=[[a, bb] for a, bb, _ in traj],
+                pathq=[c for _, _, c in traj],
+                px=(round(P[6], 2) if P else None), pv=(P[0] if P else 0),
+                vr=(round(P[1], 2) if P else None),
+                r26=(round(P[2], 1) if P else None), r13=(round(P[3], 1) if P else None),
+                r4=(round(P[4], 1) if P else None), pvs=(P[5] if P else [False]*4),
+                v4=(round(P[7], 1) if P else 0),
+                pvpath=[[traj[i][0], (P[0] if P else 0)] for i in range(len(traj))]), None
+
+def main():
+    codes = [a for a in sys.argv[1:] if a.isdigit()]
+    if IND:
+        codes = [c for c, v in BULK.items() if v.get("ind") == IND]
+    if not codes: print(__doc__); sys.exit(1)
+    print(f"★★ 台股相位儀　{len(codes)} 檔\n")
+    data, bad = [], []
+    for i, c in enumerate(sorted(codes), 1):
+        try: d, err = build(c)
+        except Exception as e: d, err = None, f"{c} {type(e).__name__}"
+        if err: bad.append(err); print(f"  [{i}/{len(codes)}] {c} ✗ {err}", flush=True); continue
+        data.append(d)
+        print(f"  [{i}/{len(codes)}] {c} {d['n']:<8}相位 {d['ph']}　動能 {d['mom']:+7.1f}pp　"
+              f"品質 {d['q']}/3　價量 {d['pv']}　sd {d['sd']}", flush=True)
+        time.sleep(0.25)
+    if not data: sys.exit("★ 全部失敗")
+    data.sort(key=lambda d: (-d["ph"], -d["mom"]))
+    for i, d in enumerate(data):
+        d["c"], d["c2"] = color(i, len(data))
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    with OUT.with_suffix(".csv").open("w", newline="", encoding="utf-8-sig") as fh:
+        w = csv.writer(fh)
+        w.writerow(["代號","名稱","產業","相位","動能pp","品質","價量階","近3月均YoY","前3月均YoY",
+                    "近12月正成長","近12月標準差","今年累計YoY","最新月YoY","連續正成長月",
+                    "收盤","4w%","13w%","26w%","量比","4週成交金額(億)"])
+        for d in data:
+            w.writerow([d["t"],d["n"],d["ind"],d["ph"],d["mom"],d["q"],d["pv"],d["m3"],d["m6"],
+                        d["p12"],d["sd"],d["cum"],d["last"],d["cp"],d["px"],d["r4"],d["r13"],
+                        d["r26"],d["vr"],d["v4"]])
+    ym = str(HIST.get("latest") or "")
+    tpl = (D/"tw_phase_tpl.html").read_text()
+    OUT.write_text(tpl.replace("__DATA__", json.dumps(data, ensure_ascii=False))
+                      .replace("__TITLE__", TITLE)
+                      .replace("__YM__", f"民國 {ym[:3]} 年 {int(ym[3:]):02d} 月" if len(ym)==5 else ym)
+                      .replace("__TS__", dt.datetime.now().strftime("%Y-%m-%d %H:%M"))
+                      .replace("__WARN__", json.dumps(bad, ensure_ascii=False)))
+    print(f"\n★★ {len(data)} 檔 ⇒ {OUT}")
+    print(f"✓ {OUT.with_suffix('.csv')}")
+
+if __name__ == "__main__": main()
