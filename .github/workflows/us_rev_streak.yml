@@ -1,0 +1,48 @@
+name: S&P 500 季營收連續成長榜
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: '只跑前 N 家（留空＝全部 503 家，約 8~10 分）'
+        required: false
+        default: ''
+  schedule:
+    - cron: '0 8 8 2,5,8,11 *'    # ★ 財報季後：2/5/8/11 月 8 日
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: 產生榜單
+        env:
+          SEC_UA: ${{ secrets.SEC_UA }}   # ★★ SEC 要求 UA 帶真實 email，需設 repo secret
+          SEC_NO_CACHE: '1'               # ★★ 503 家 ≈ 1.8 GB，runner 不留快取
+        run: |
+          set -e
+          L=$(printf '%s' "${{ inputs.limit }}" | tr -cd '0-9')
+          ARGS=""; [ -n "$L" ] && ARGS="--limit $L"
+          python3 phase/scripts/us_rev_streak.py $ARGS --out phase/sp500-rev/index.html
+
+      - name: 提交
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A phase/sp500-rev
+          git diff --cached --quiet && { echo "★ 沒有變動"; exit 0; }
+          git commit -m "S&P 500 季營收連續成長榜：$(date -u +%Y-%m-%d)"
+          git push
+
+      - name: 網址
+        run: |
+          echo "### ★ S&P 500 季營收連續成長榜" >> $GITHUB_STEP_SUMMARY
+          echo "- 報表 https://htmlpreview.github.io/?https://github.com/delphichi/2025TRIP/blob/main/phase/sp500-rev/index.html" >> $GITHUB_STEP_SUMMARY
+          echo "- CSV  https://github.com/delphichi/2025TRIP/raw/main/phase/sp500-rev/index.csv" >> $GITHUB_STEP_SUMMARY

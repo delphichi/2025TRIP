@@ -35,20 +35,37 @@ def _ua():
         "   Actions：到 repo Settings → Secrets → Actions 新增 SEC_UA\n")
 UA = _ua()
 D = pathlib.Path(__file__).parent
-CACHE = D/"_cache"; CACHE.mkdir(exist_ok=True)
+# ★ 快取位置可用 SEC_CACHE_DIR 指定。預設優先用外接碟（系統碟只剩 1 GB，
+#   503 家 companyfacts ≈ 1.8 GB 會寫爆）；外接碟沒掛載就退回腳本目錄。
+_EXT = pathlib.Path("/Volumes/Crucial X6/claudecode/_seccache")
+CACHE = pathlib.Path(os.environ.get("SEC_CACHE_DIR") or
+                     (_EXT if _EXT.parent.exists() else D/"_cache"))
+CACHE.mkdir(parents=True, exist_ok=True)
 
 def get(url, cache_name=None, ttl=86400):
-    """★ SEC 限 10 req/sec，且同一份 companyfacts 一天內不會變 ⇒ 一律快取"""
-    if cache_name:
+    """★ SEC 限 10 req/sec，且同一份 companyfacts 一天內不會變 ⇒ 一律快取
+
+       ★★★ 但批次掃描（503 家 × 平均 3.6 MB ≈ 1.8 GB）不要留快取 —— 2026-09-24
+       實測把磁碟寫爆，後續 205 家連鎖失敗，而且產出的是一份「看起來完整、
+       實際漏四成」的榜單。設 SEC_NO_CACHE=1 只讀不寫，峰值只有單一家幾 MB。
+       ★ 另加保險：剩餘空間 < 2 GB 時自動不寫（免得下次又踩）。"""
+    nocache = os.environ.get("SEC_NO_CACHE", "") == "1"
+    if cache_name and not nocache:
         p = CACHE/cache_name
-        if p.exists() and time.time() - p.stat().st_mtime < ttl:
-            return json.loads(p.read_text())
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
+        if p.exists() and time.time()-p.stat().st_mtime < ttl:
+            return json.loads(p.read_bytes())
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Encoding": "gzip"})
     raw = urllib.request.urlopen(req, timeout=60).read()
-    d = json.loads(raw)
-    if cache_name: (CACHE/cache_name).write_bytes(raw)
-    time.sleep(0.15)
-    return d
+    if raw[:2] == b"\x1f\x8b":
+        import gzip as _gz; raw = _gz.decompress(raw)
+    if cache_name and not nocache:
+        try:
+            import shutil
+            if shutil.disk_usage(CACHE).free > 2e9:          # ★ 空間不足就不寫
+                (CACHE/cache_name).write_bytes(raw)
+        except OSError:
+            pass                                             # ★ 寫不進去不該讓整個任務死掉
+    return json.loads(raw)
 
 def cik_of(ticker):
     d = get("https://www.sec.gov/files/company_tickers.json", "tickers.json", 7*86400)
@@ -59,7 +76,11 @@ def cik_of(ticker):
 
 # ★ 多標籤：依序嘗試，先找到的優先；同一個 end 有多筆時取 filed 最新
 TAGS = {
+  # ★ RevenuesNetOfInterestExpense：券商／投銀的總淨收入（GS 用它）。
+  #   ★★ 但一般銀行（MS/TFC/RF/SYF/BNY）只分開申報「利息收入」與「非利息收入」，
+  #   要自己相加 —— 那是另一種營收定義，不該混進同一張排行榜比較。寧可列為未納入。
   "revenue":  ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues",
+               "RevenuesNetOfInterestExpense",
                "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet"],
   "cogs":     ["CostOfGoodsAndServicesSold", "CostOfRevenue", "CostOfGoodsSold"],
   "gross":    ["GrossProfit"],
@@ -107,11 +128,22 @@ def series(facts, keys, point):
     cands = []
     for k in keys:
         a1, q1 = _one(facts, k, point)
+        if not a1 and not q1: continue
         recent = sum(1 for x in q1 if str(x) >= _cut) + sum(1 for y in a1 if int(y) >= int(_cut[:4]))
-        cands.append((recent, len(q1) + len(a1), a1, q1))
+        # ★★★ 2026-09-24：新增「新鮮度」——Alphabet 2025-03 後停用
+        #   RevenueFromContractWithCustomerExcludingAssessedTax 改用 Revenues，
+        #   兩者季數都是 25 筆，比總筆數（87 vs 77）會選到 ★★ 已停用的那個
+        #   ⇒ 整條序列停在 2025-03-31，落後 5 季，而且「算得出來、格式正確、看起來合理」。
+        #   停用的標籤再多筆也沒用 ⇒ 新鮮度排在筆數之前。
+        last = max([str(x) for x in q1] + [f"{y}-12-31" for y in a1] or ["0000"])
+        cands.append([recent, len(q1) + len(a1), a1, q1, last])
     if not cands: return {}, {}
-    cands.sort(key=lambda c: (c[0], c[1]), reverse=True)
-    return cands[0][2], cands[0][3]
+    newest = max(c[4] for c in cands)
+    _cut2 = (_dt.date.fromisoformat(newest[:10]) - _dt.timedelta(days=200)).isoformat() \
+            if newest[:4] != "0000" else "0000"
+    for c in cands: c.insert(0, 1 if c[4] >= _cut2 else 0)   # ★ fresh 旗標放最前面
+    cands.sort(key=lambda c: (c[0], c[1], c[2]), reverse=True)
+    return cands[0][3], cands[0][4]
 
 def _one(facts, k, point):
     """單一標籤的序列 —— ★ 不與其他標籤混合"""

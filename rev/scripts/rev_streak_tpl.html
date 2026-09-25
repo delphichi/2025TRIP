@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>月營收連續成長榜</title>
+<meta name="description" content="全市場 1,800+ 家上市櫃興櫃公司的月營收 YoY 連續成長統計，資料取自官方 bulk 端點。">
+<meta name="theme-color" content="#14110f" media="(prefers-color-scheme:dark)">
+<meta name="theme-color" content="#f4f1ec" media="(prefers-color-scheme:light)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f4f1ec;--panel:#fffdfa;--line:#e3ded4;--line2:#cac3b5;--ink:#241f1a;--ink2:#4f483f;
+  --muted:#857d72;--acc:#9a4a22;--acc2:#c98a3e;--grid:#ebe7de;--up:#b23a1f;--dn:#2f6f5e;--dark:0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14110f;--panel:#1c1816;--line:#2c2724;--line2:#443c37;--ink:#eee8e0;--ink2:#b8b0a6;
+  --muted:#8b8177;--acc:#d2703a;--acc2:#e0aa63;--grid:#221e1b;--up:#e0664d;--dn:#4fa992;--dark:1}}
+:root[data-theme="dark"]{--bg:#14110f;--panel:#1c1816;--line:#2c2724;--line2:#443c37;--ink:#eee8e0;
+  --ink2:#b8b0a6;--muted:#8b8177;--acc:#d2703a;--acc2:#e0aa63;--grid:#221e1b;--up:#e0664d;--dn:#4fa992;--dark:1}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC",system-ui,sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:1240px;margin:0 auto;padding:clamp(18px,4vw,38px) clamp(14px,3vw,24px) 60px}
+.eb{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 8px}
+h1{font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(27px,5vw,44px);line-height:1.08;
+  margin:0 0 9px;letter-spacing:-.01em}
+.sub{color:var(--ink2);max-width:60ch;margin:0 0 20px;font-size:14.5px}
+.sub b{color:var(--ink);font-weight:500}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:3px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-bottom:9px}
+.stat{background:var(--panel);padding:12px 14px}
+.stat b{display:block;font-family:"JetBrains Mono",monospace;font-size:24px;font-weight:700;
+  line-height:1.1;color:var(--acc);font-variant-numeric:tabular-nums}
+.stat span{font-size:11.5px;color:var(--muted)}
+.ctl{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:11px 14px;margin-bottom:9px}
+.lb{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ctl input[type=search],.ctl select{font:inherit;font-size:13px;padding:6px 10px;background:var(--bg);
+  color:var(--ink);border:1px solid var(--line2);border-radius:2px}
+.ctl input[type=search]{min-width:170px;font-family:"JetBrains Mono",monospace}
+.ctl input:focus,.ctl select:focus{outline:2px solid var(--acc);outline-offset:1px}
+.seg{display:flex;border:1px solid var(--line2);border-radius:2px;overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;padding:5px 11px;border:0;background:transparent;
+  color:var(--ink2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--acc);color:var(--panel);font-weight:700}
+.dl{margin-left:auto;font-size:12.5px;color:var(--acc);text-decoration:none;border-bottom:1px solid currentColor}
+.hint{flex-basis:100%;font-size:11.5px;color:var(--muted);font-family:"JetBrains Mono",monospace}
+.tw{overflow-x:auto;max-height:76vh;overflow-y:auto}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;min-width:820px}
+th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{position:sticky;top:0;z-index:2;background:var(--panel);font-family:"JetBrains Mono",monospace;
+  font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:500;cursor:pointer;
+  border-bottom:2px solid var(--line2);user-select:none}
+th:hover{color:var(--acc)}
+th.on{color:var(--acc);font-weight:700}
+th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
+td:nth-child(1),td:nth-child(2),td:nth-child(3),td:nth-child(4),
+th:nth-child(1),th:nth-child(2),th:nth-child(3),th:nth-child(4){text-align:left}
+td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+tbody tr:hover td{background:color-mix(in srgb,var(--acc) 8%,transparent)}
+.bar{display:inline-block;height:9px;border-radius:1px;vertical-align:-1px;margin-right:6px;min-width:2px}
+.bp{background:var(--up)} .bn{background:var(--dn)}
+.pos{color:var(--up)} .neg{color:var(--dn)}
+.mk{font-size:10.5px;padding:1px 6px;border-radius:2px;border:1px solid var(--line2);color:var(--muted)}
+.ind{color:var(--muted);font-size:11.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:-3px}
+.notes{border-top:1px solid var(--line);margin-top:26px;padding-top:15px;color:var(--muted);
+  font-size:12.5px;max-width:74ch}
+.notes h3{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  margin:0 0 8px;font-weight:500}
+.notes li{margin-bottom:6px} .notes b{color:var(--ink2);font-weight:500}
+.none{padding:38px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="eb">官方 bulk 端點 · 資料年月 __YM__ · 產出 __TS__</p>
+<h1>月營收連續成長榜</h1>
+<p class="sub">全市場 <b>__N__ 家</b>上市、上櫃、興櫃公司，近 __M__ 個月的月營收年增率。
+三個數字：<b>連續正成長幾個月</b>、<b>__M__ 個月裡有幾個月正成長</b>、<b>連續負成長幾個月</b>。</p>
+
+<div class="stats" id="stats"></div>
+
+<div class="panel ctl">
+  <span class="lb">市場</span>
+  <div class="seg" id="mk">
+    <button aria-pressed="true" data-v="">全部</button>
+    <button aria-pressed="false" data-v="上市">上市</button>
+    <button aria-pressed="false" data-v="上櫃">上櫃</button>
+    <button aria-pressed="false" data-v="興櫃">興櫃</button>
+  </div>
+  <span class="lb">連續正成長 ≥</span>
+  <select id="minc"></select>
+  <span class="lb">__M__月正成長 ≥</span>
+  <select id="minp"></select>
+  <input type="search" id="q" placeholder="代號或名稱" autocomplete="off">
+  <select id="ind"><option value="">所有產業</option></select>
+  <a class="dl" id="dl" href="__CSV__" download>下載 CSV</a>
+  <span class="hint" id="hint"></span>
+</div>
+
+<div class="panel tw">
+  <table><thead><tr>
+    <th data-k="code">代號</th><th data-k="name">名稱</th><th data-k="market">市場</th><th data-k="ind">產業</th>
+    <th data-k="cp" class="on">★ 連續正成長</th><th data-k="pos36">__M__月內正成長</th>
+    <th data-k="cn">連續負成長</th><th data-k="last">最新月 YoY</th>
+    <th data-k="rev">當月營收(億)</th><th data-k="n">有效月數</th>
+  </tr></thead><tbody id="tb"></tbody></table>
+</div>
+<div class="none" id="none" hidden>沒有符合條件的公司</div>
+
+<div class="notes">
+  <h3>怎麼算的、以及不能拿它做什麼</h3>
+  <ul>
+    <li><b>資料來源三個官方 bulk 端點。</b>上市 <code>t187ap05_L</code>、上櫃 <code>mopsfin_t187ap05_O</code>、興櫃 <code>t187ap05_P</code>，歷史月營收走公開資訊觀測站 <code>t21sc03</code>，一個月一次請求。全程不用 FinMind，沒有配額問題。</li>
+    <li><b>連續正成長</b>＝ 從最新月往回數，年增率連續為正的月數，遇到第一個 ≤0 就停。<b>連續負成長</b>同理（≤0 才算，剛好 0 視為未成長）。</li>
+    <li><b>有效月數</b>＝ 這家實際抓得到年增率的月份數。不足 6 個月的不列入（新上市、興櫃轉板等）。連續月數要跟有效月數一起看 —— 只有 8 個月資料的「連續 8 個月」跟有 __M__ 個月資料的「連續 8 個月」不是同一回事。</li>
+    <li><b>月營收是最快的基本面訊號，但只是營收。</b>它不含毛利率、費用、業外，也不含存貨與應收的變化。營收連漲而毛利率在掉的公司，這張表看不出來。</li>
+    <li><b>這是篩選起點，不是買進理由。</b>排在前面只代表「值得打開來看」，接下來要問的是估值多少、賠率多少 —— 那些不在這張表上。</li>
+  </ul>
+</div>
+</div>
+
+<script>
+const D=__DATA__, M=__M__;
+const $=i=>document.getElementById(i);
+let SK="cp", ASC=false, MK="";
+
+(function(){
+  const mc=$('minc'), mp=$('minp');
+  [0,3,6,9,12,18,24,36].forEach(v=>mc.insertAdjacentHTML('beforeend',
+    `<option value="${v}">${v} 月</option>`));
+  [0,Math.round(M*.5),Math.round(M*.67),Math.round(M*.83),Math.round(M*.92),M].forEach(v=>mp.insertAdjacentHTML('beforeend',
+    `<option value="${v}">${v} 月</option>`));
+  const inds=[...new Set(D.map(r=>r.ind).filter(x=>x&&x!=='—'))].sort();
+  inds.forEach(v=>$('ind').insertAdjacentHTML('beforeend',`<option value="${v}">${v}</option>`));
+})();
+
+function filt(){
+  const q=$('q').value.trim().toLowerCase(), mc=+$('minc').value, mp=+$('minp').value, ind=$('ind').value;
+  return D.filter(r=>
+    (!MK || r.market===MK) && r.cp>=mc && r.pos36>=mp && (!ind || r.ind===ind) &&
+    (!q || r.code.includes(q) || (r.name||'').toLowerCase().includes(q)));
+}
+function render(){
+  const rows=filt().slice().sort((a,b)=>{
+    let x=a[SK], y=b[SK];
+    if(x===null||x===undefined) x=-Infinity; if(y===null||y===undefined) y=-Infinity;
+    if(typeof x==='string') return ASC ? x.localeCompare(y,'zh-Hant') : y.localeCompare(x,'zh-Hant');
+    return ASC ? x-y : y-x;
+  });
+  $('none').hidden = rows.length>0;
+  const mxc=Math.max(...D.map(r=>r.cp),1), mxn=Math.max(...D.map(r=>r.cn),1);
+  $('tb').innerHTML = rows.slice(0,900).map(r=>`<tr>
+    <td class="num"><b>${r.code}</b></td>
+    <td>${r.name}</td>
+    <td><span class="mk">${r.market}</span></td>
+    <td><span class="ind" title="${r.ind}">${r.ind}</span></td>
+    <td class="num"><i class="bar bp" style="width:${Math.round(r.cp/mxc*54)}px"></i><b>${r.cp}</b></td>
+    <td class="num">${r.pos36}<span style="color:var(--muted)">/${r.n}</span></td>
+    <td class="num">${r.cn?`<i class="bar bn" style="width:${Math.round(r.cn/mxn*40)}px"></i>`:''}${r.cn}</td>
+    <td class="num ${r.last>0?'pos':'neg'}">${r.last>0?'+':''}${r.last.toFixed(1)}%</td>
+    <td class="num">${r.rev===null?'—':r.rev.toLocaleString(undefined,{maximumFractionDigits:1})}</td>
+    <td class="num" style="color:var(--muted)">${r.n}</td></tr>`).join('');
+  $('hint').textContent = `符合 ${rows.length} 家`
+    + (rows.length>900 ? `（表格只列前 900 筆，★ 完整資料在 CSV）` : '')
+    + `　排序：${document.querySelector(`th[data-k="${SK}"]`).textContent.replace('★ ','')} ${ASC?'遞增':'遞減'}`;
+}
+function stats(){
+  const f=filt();
+  const g=[['連續正成長 ≥12 月',f.filter(r=>r.cp>=12).length],
+           ['連續正成長 ≥6 月', f.filter(r=>r.cp>=6).length],
+           [`${M} 月正成長 ≥${Math.round(M*.92)}`, f.filter(r=>r.pos36>=Math.round(M*.92)).length],
+           ['連續負成長 ≥6 月', f.filter(r=>r.cn>=6).length],
+           ['最新月 YoY 為正',  f.filter(r=>r.last>0).length],
+           ['符合篩選',        f.length]];
+  $('stats').innerHTML=g.map(([t,v])=>`<div class="stat"><b>${v}</b><span>${t}</span></div>`).join('');
+}
+function all(){ stats(); render(); }
+document.querySelectorAll('th[data-k]').forEach(th=>th.addEventListener('click',()=>{
+  const k=th.dataset.k;
+  if(k===SK) ASC=!ASC; else { SK=k; ASC=(k==='code'||k==='name'||k==='ind'||k==='market'); }
+  document.querySelectorAll('th').forEach(t=>{t.classList.remove('on','asc');});
+  th.classList.add('on'); if(ASC) th.classList.add('asc');
+  render();
+}));
+document.querySelectorAll('#mk button').forEach(b=>b.addEventListener('click',()=>{
+  MK=b.dataset.v;
+  document.querySelectorAll('#mk button').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  all();}));
+['q','minc','minp','ind'].forEach(i=>$(i).addEventListener('input',all));
+all();
+</script>
+</body>
+</html>

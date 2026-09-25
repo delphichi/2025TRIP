@@ -15,8 +15,15 @@ import datetime as dt, collections
 def _d(x): return dt.date.fromisoformat(x)
 
 def quarterly(facts, keys, forms=("10-Q","10-K")):
-    """回傳 {end(str): 單季值}　★ 只用同一個標籤（先比近 6 年筆數，同 sec_facts #530）"""
-    best, best_score = {}, (-1,-1)
+    """回傳 {end(str): 單季值}　★ 只用同一個標籤
+
+       ★★★ 挑標籤三順位：① 新鮮度 ② 近 6 年筆數 ③ 總筆數
+       新鮮度為什麼排第一（2026-09-24）：Alphabet 2025-03 之後停用
+       RevenueFromContractWithCustomerExcludingAssessedTax、改用 Revenues，
+       兩者季數都是 25 筆 ⇒ 只比筆數會選到 ★★ 已停用的那個，整條序列停在
+       2025-03-31，落後 5 季。而且它「算得出來、格式正確、看起來合理」。
+       ★ 停用的標籤再多筆也沒用。"""
+    cands=[]
     cut=(dt.date.today()-dt.timedelta(days=6*365)).isoformat()
     for k in keys:
         f=facts.get(k)
@@ -53,6 +60,10 @@ def quarterly(facts, keys, forms=("10-Q","10-K")):
                         out[en]=ends[en]
                     prev_end,prev_val=en,ends[en]
         if not out: continue
-        score=(sum(1 for x in out if x>=cut), len(out))
-        if score>best_score: best,best_score=out,score
-    return best
+        cands.append([max(out), sum(1 for x in out if x>=cut), len(out), out])
+    if not cands: return {}
+    newest=max(c[0] for c in cands)
+    lim=(_d(newest)-dt.timedelta(days=200)).isoformat()
+    for c in cands: c.insert(0, 1 if c[0]>=lim else 0)     # ★ fresh 旗標
+    cands.sort(key=lambda c:(c[0], c[2], c[3]), reverse=True)
+    return cands[0][4]
