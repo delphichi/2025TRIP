@@ -177,7 +177,7 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
     <h2>完整讀數</h2>
     <p class="cap">點任一列在右邊展開。Momentum ＝ 近 2 季平均營收 YoY 減前 2 季平均。</p>
     <div class="panel tw"><table><thead><tr>
-      <th>代號</th><th>相位</th><th>Momentum</th><th>Q</th><th>連續↑</th><th>12月正</th><th>標準差</th><th>累計YoY</th><th>價量</th><th>26W</th><th>13W</th><th>4W</th><th>量比</th>
+      <th>代號</th><th>相位</th><th>Momentum</th><th>★ 環比</th><th>基期</th><th>Q</th><th>連續↑</th><th>12月正</th><th>標準差</th><th>累計YoY</th><th>價量</th><th>26W</th><th>13W</th><th>4W</th><th>量比</th>
     </tr></thead><tbody id="tb"></tbody></table></div>
   </div>
   <div class="panel card" id="card"></div>
@@ -190,6 +190,7 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
     <li><b>相位四階。</b>① 近 6 個月 YoY 全正 ② 近 3 月均 YoY ＞ 前 3 月均（加速）③ 今年累計 YoY ＞ 0 ④ 近 12 個月裡正成長 ≥ 9 個月。</li>
     <li><b>品質三項刻意不放進相位。</b>① 近 12 月 YoY 標準差 &lt; 25 ② 36 個月正成長 ≥ 28 ③ 最新月 YoY 與今年累計 YoY <b>同號</b>。階是「走到哪」，品質是「這個數字能不能信」。</li>
     <li><b>第三項是台股金融股專屬的陷阱。</b>壽險型金控的月數字含投資部位評價損益 —— 國泰金最新月 <b>−69.46%</b> 而今年累計 <b>+62.5%</b>、富邦金 <b>−48%</b> 而累計 <b>+172%</b>。單月與累計打架時，「連續正成長月數」沒有意義。全市場標準差 P50 是 21、P85 約 60：銀行型（玉山 16.8、彰銀 7.6）與製造業同級，壽險型與票券（國票金 991、中再保 333、中信 309）則完全不是同一種東西。</li>
+    <li><b>★ 動能看不見基期效應，所以另外列「環比」。</b>動能是 YoY 的差，YoY 同時受「自己」與「去年同期」影響。彰銀 115/06~08 平均月營收 47.36 億是 15 個月最高（環比 <b>+9.3%</b>），但去年同期 114/06~08 恰好也是最旺（基期 <b>+15.7%</b>）—— 動能因此讀出 −6.4pp，看起來減速，實際是加速。<b>動能為負但環比為正的，已標 ★ 並在卡片上說明。</b>反過來，動能為正而環比為負，代表這次的「加速」是去年基期太低。</li>
     <li><b>軌跡是逐月的，但累計 YoY 只有當期值</b>，歷史各點沿用當期值 —— 所以第 ③ 階在軌跡上不動，縱向移動來自 ①②④。</li>
     <li><b>資料來源</b>：官方 bulk 端點（上市 t187ap05_L、上櫃 mopsfin_t187ap05_O、興櫃 t187ap05_P），歷史走公開資訊觀測站 t21sc03。價量取自 Yahoo（先試 .TW 再試 .TWO）。</li>
     <li><b>月營收只是營收。</b>不含利差、呆帳提存、費用與業外。銀行的營收成長可能來自放款規模，也可能來自升息 —— 這張圖分不出來。<b>這是篩選起點，不是買進理由。</b></li>
@@ -390,8 +391,14 @@ function card(t){
   c.innerHTML=`<p class="tk">${d.t}</p><p class="nm">${d.n}</p>
    <div class="gates">
      <p>相位四階　<b>${d.ph}/4</b></p>
+     ${d.fake?`<div style="margin:0 0 7px;padding:6px 8px;border-left:3px solid var(--up);
+       background:color-mix(in srgb,var(--up) 9%,transparent);font-size:11px;line-height:1.45">
+       <b style="color:var(--up)">★ 基期效應</b>　動能 ${d.mom}pp 讀起來在減速，
+       但近 3 月營收 <b>${d.s3} 億</b> ＞ 前 3 月 <b>${d.s6} 億</b>（環比 ${d.seq>0?'+':''}${d.seq}%），
+       是去年同期墊高 ${d.bse===null?'—':(d.bse>0?'+':'')+d.bse+'%'} 造成的。</div>`:''}
      ${[['近 6 個月 YoY 全正', d.cp+' 個月連續'],
-        ['近 3 月均 &gt; 前 3 月均', (d.m3>0?'+':'')+d.m3+'% vs '+(d.m6>0?'+':'')+d.m6+'%'],
+        ['近 3 月均 &gt; 前 3 月均', (d.m3>0?'+':'')+d.m3+'% vs '+(d.m6>0?'+':'')+d.m6+'%'
+        ],
         ['今年累計 YoY &gt; 0', d.cum===null?'—':(d.cum>0?'+':'')+d.cum+'%'],
         ['近 12 月正成長 ≥ 9 個月', d.p12+'/'+d.n12+' 個月']
        ].map((g,i)=>`<div class="g ${d.s[i]?'y':'n'}">
@@ -407,6 +414,10 @@ function card(t){
     <dt>最新月 YoY</dt><dd class="${d.last>0?'pos':'neg'}">${d.last>0?'+':''}${d.last}%</dd>
     <dt>今年累計</dt><dd class="${d.cum>0?'pos':'neg'}">${d.cum===null?'—':(d.cum>0?'+':'')+d.cum+'%'}</dd>
     <dt>當月營收</dt><dd>${d.rev===null?'—':d.rev+' 億'}</dd>
+    <dt>近3月營收</dt><dd>${d.s3===null?'—':d.s3+' 億'}</dd>
+    <dt>前3月營收</dt><dd>${d.s6===null?'—':d.s6+' 億'}</dd>
+    <dt>★ 環比</dt><dd class="${d.seq>0?'pos':'neg'}">${d.seq===null?'—':(d.seq>0?'+':'')+d.seq+'%'}</dd>
+    <dt>基期變化</dt><dd>${d.bse===null?'—':(d.bse>0?'+':'')+d.bse+'%'}</dd>
     <dt>收盤</dt><dd>${d.px===null?'—':d.px}</dd>
     <dt>產業</dt><dd style="font-size:11px">${d.ind}</dd>
     ${d.sd>=60?`<dt>⚠</dt><dd style="color:var(--up);font-size:10.5px">月數字起伏極大</dd>`:''}
@@ -434,7 +445,9 @@ function rows(){
   $('tb').innerHTML=D.map(d=>`<tr data-t="${d.t}">
    <td><i class="sw" style="background:${cc(d)}"></i><b>${d.t}</b> <span style="color:var(--muted)">${d.n}</span></td>
    <td class="num">${'▉'.repeat(d.ph)}${'·'.repeat(4-d.ph)} ${d.ph}</td>
-   <td class="num ${d.mom>0?'pos':'neg'}">${d.mom>0?'+':''}${d.mom}pp</td>
+   <td class="num ${d.mom>0?'pos':'neg'}">${d.mom>0?'+':''}${d.mom}pp${d.fake?' <b style="color:var(--up)">★</b>':''}</td>
+   <td class="num ${d.seq>0?'pos':'neg'}">${d.seq===null?'—':(d.seq>0?'+':'')+d.seq+'%'}</td>
+   <td class="num" style="color:var(--muted)">${d.bse===null?'—':(d.bse>0?'+':'')+d.bse+'%'}</td>
    <td class="num">${d.q}/3</td><td class="num">${d.cp}</td><td class="num">${d.p12}/${d.n12}</td>
    <td class="num ${d.sd>=60?'neg':''}">${d.sd===null?'—':(d.sd>=60?'⚠ ':'')+d.sd}</td>
    <td class="num ${d.cum>0?'pos':'neg'}">${d.cum===null?'—':(d.cum>0?'+':'')+d.cum+'%'}</td><td class="num">${'▉'.repeat(d.pv)}${'·'.repeat(4-d.pv)} ${d.pv}</td>

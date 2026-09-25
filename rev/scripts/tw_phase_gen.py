@@ -87,6 +87,27 @@ def pv(ser):
     return sum(g), vr, (now/a-1)*100, (now/b-1)*100, (now/c-1)*100, g, now, \
            sum(cl*vv for _, cl, vv in ser[-20:])/1e8      # ★ 近 4 週成交金額（億元）
 
+def seqbase(rv, pairs):
+    """★★★ 拆開「營收自己在動」與「去年基期在動」——只看 YoY 分不出這兩件事。
+       彰銀 115/06~08 平均 47.36 億是 15 個月最高（環比 +9.3%），
+       但去年同期 114/06~08 恰好也是最旺（基期 +15.7%）
+       ⇒ YoY 動能 −6.4pp 讀起來像減速，實際營收自己在加速。
+       回傳 (近3月營收億, 前3月營收億, 環比%, 基期變化%)"""
+    ts = [t for t, _ in pairs]
+    if len(ts) < 6: return None
+    def tot(seg):
+        v = [rv.get(t) for t in seg]
+        return sum(v)/1e5 if all(x is not None for x in v) else None
+    a, b = tot(ts[-3:]), tot(ts[-6:-3])
+    if not a or not b: return None
+    # 去年同期：把年份減 1
+    back = lambda t: f"{int(t.split('/')[0])-1}/{t.split('/')[1]}"
+    la, lb = tot([back(t) for t in ts[-3:]]), tot([back(t) for t in ts[-6:-3]])
+    # ★★ 基期為負或趨近 0 時，百分比沒有意義（凱基金算出 −385.5%）——
+    #    這是 SOP #536「凡是比值先問分母」的同一個坑，直接回 None 不要硬算。
+    bse = round((la/lb-1)*100, 1) if (la and lb and la > 0 and lb > 0) else None
+    return round(a,2), round(b,2), round((a/b-1)*100,1), bse
+
 def snap(ser, cum):
     """★ ser ＝ 依時間排好的 YoY 陣列（最後一個是最新月）"""
     if len(ser) < 6: return None
@@ -116,6 +137,7 @@ def build(code):
         if len(sub) < 6: continue
         s = snap([v for _, v in sub], cum)        # ★ 累計 YoY 只有當期值，歷史點沿用（已在註腳說明）
         if s: traj.append([s["mom"], s["ph"], sub[-1][0]])
+    SB = seqbase((HIST.get("rev") or {}).get(code) or {}, pairs)
     ser = px(code)
     P = pv(ser) if ser else None
     q = ((1 if (cur["sd"] or 99) < 25 else 0)
@@ -130,6 +152,10 @@ def build(code):
                 cp=next((i for i, v in enumerate(v for _, v in reversed(pairs)) if v <= 0), len(pairs)),
                 pos36=sum(1 for _, v in pairs if v > 0), nq=len(pairs),
                 rev=(round(b["rev"]/1e5, 1) if b.get("rev") else None),
+                s3=(SB[0] if SB else None), s6=(SB[1] if SB else None),
+                seq=(SB[2] if SB else None), bse=(SB[3] if SB else None),
+                # ★ 動能為負但營收環比為正 ⇒ 是基期墊高，不是業績減速
+                fake=(1 if (SB and SB[2] is not None and cur["mom"] < 0 and SB[2] > 0) else 0),
                 spark=[round(v, 1) for _, v in pairs[-12:]],
                 path=[[a, bb] for a, bb, _ in traj],
                 pathq=[c for _, _, c in traj],
@@ -153,7 +179,8 @@ def main():
         if err: bad.append(err); print(f"  [{i}/{len(codes)}] {c} ✗ {err}", flush=True); continue
         data.append(d)
         print(f"  [{i}/{len(codes)}] {c} {d['n']:<8}相位 {d['ph']}　動能 {d['mom']:+7.1f}pp　"
-              f"品質 {d['q']}/3　價量 {d['pv']}　sd {d['sd']}", flush=True)
+              f"品質 {d['q']}/3　價量 {d['pv']}　sd {d['sd']}"
+              + (f"　★ 基期效應（環比 {d['seq']:+.1f}%）" if d["fake"] else ""), flush=True)
         time.sleep(0.25)
     if not data: sys.exit("★ 全部失敗")
     data.sort(key=lambda d: (-d["ph"], -d["mom"]))
@@ -163,10 +190,12 @@ def main():
     with OUT.with_suffix(".csv").open("w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
         w.writerow(["代號","名稱","產業","相位","動能pp","品質","價量階","近3月均YoY","前3月均YoY",
+                    "近3月營收(億)","前3月營收(億)","環比%","基期變化%","基期效應",
                     "近12月正成長","近12月標準差","今年累計YoY","最新月YoY","連續正成長月",
                     "收盤","4w%","13w%","26w%","量比","4週成交金額(億)"])
         for d in data:
             w.writerow([d["t"],d["n"],d["ind"],d["ph"],d["mom"],d["q"],d["pv"],d["m3"],d["m6"],
+                        d["s3"],d["s6"],d["seq"],d["bse"],("★ 是" if d["fake"] else ""),
                         d["p12"],d["sd"],d["cum"],d["last"],d["cp"],d["px"],d["r4"],d["r13"],
                         d["r26"],d["vr"],d["v4"]])
     ym = str(HIST.get("latest") or "")

@@ -89,6 +89,12 @@ if "--history" in sys.argv:
     # ★ 從最新一期（Open API 的 ym，民國 YYYMM）往回推
     y0, m0 = int(ym[:3]), int(ym[3:])
     HIST = {}          # {code: {"115/08": yoy, ...}}
+    # ★★★ 2026-09-25 新增：連「當月營收絕對值」一起存。
+    #   只有 YoY 分不出「真減速」與「基期墊高」——
+    #   彰銀 115/06~08 平均 47.36 億是 15 個月最高（環比 +9.3%），
+    #   但去年同期 114/06~08 恰好也是最旺（基期 +15.7%），
+    #   ⇒ YoY 動能讀出 −6.4pp，看起來在減速，其實營收自己在加速。
+    REV  = {}          # {code: {"115/08": 當月營收(仟元), ...}}
     NAME = {}
     ok = miss = 0
     for k in range(MONTHS):
@@ -101,6 +107,7 @@ if "--history" in sys.argv:
                 d = fetch_month(yy, mm, mk)
                 for c, r in d.items():
                     HIST.setdefault(c, {})[tag] = r["yoy"]
+                    if r.get("rev") is not None: REV.setdefault(c, {})[tag] = r["rev"]
                     NAME.setdefault(c, r["name"])
                 got += len(d)
             except Exception as e:
@@ -109,7 +116,8 @@ if "--history" in sys.argv:
         ok += 1 if got else 0; miss += 0 if got else 1
         time.sleep(0.8)
     hp = OUT/f"rev_hist_{MONTHS}m.json"
-    hp.write_text(json.dumps({"months": MONTHS, "latest": ym, "name": NAME, "yoy": HIST}, ensure_ascii=False))
+    hp.write_text(json.dumps({"months": MONTHS, "latest": ym, "name": NAME,
+                              "yoy": HIST, "rev": REV}, ensure_ascii=False))
     print(f"\n★★ 歷史月營收：{len(HIST)} 家 × 最多 {MONTHS} 個月　成功 {ok} 期／失敗 {miss} 期")
     print(f"✓ 存 raw/{hp.name}")
     sys.exit(0)
