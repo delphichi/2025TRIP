@@ -464,14 +464,17 @@ $('hm').addEventListener('click',e=>{
   const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
   if(t) card(t.d.t);});
 $('hm').style.cursor='pointer';
-document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
-  YK=b.dataset.y;
-  $('hm').addEventListener('click',e=>{
+// ★★ 熱力圖點擊 —— 必須在最外層註冊。
+//   （2026-09-25 修：原本被誤塞進縱軸切換的 handler 裡，
+//     要先點過一次縱軸按鈕才會綁定，而且每點一次就重複綁一次。）
+$('hm').style.cursor='pointer';
+$('hm').addEventListener('click',e=>{
   const r=$('hm').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
   const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
   if(t) card(t.d.t);});
-$('hm').style.cursor='pointer';
-document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
+document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
+  YK=b.dataset.y;
+  document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
   draw();}));
 $('tl').addEventListener('input',()=>{$('tlv').textContent=$('tl').value+' 期';draw();});
 addEventListener('resize',()=>{draw();drawHM();});

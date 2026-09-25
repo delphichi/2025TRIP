@@ -142,8 +142,8 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
     <button aria-pressed="true" data-y="ph">基本面相位</button>
     <button aria-pressed="false" data-y="pv">價量相位</button>
   </div>
-  <span class="lb" style="margin-left:6px">橫軸</span>
-  <span style="font-size:12.5px;color:var(--ink2)">Momentum · 近 3 月均 YoY − 前 3 月均（pp）</span>
+  <span class="lb" style="margin-left:6px">軸</span>
+  <span style="font-size:12.5px;color:var(--ink2)" id="axd"></span>
   <span class="lb" style="margin-left:auto">軌跡</span>
   <input type="range" id="tl" min="2" max="12" step="1" value="12">
   <span class="lb" id="tlv" style="min-width:48px">12 月</span>
@@ -154,6 +154,7 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
   <canvas id="cv" width="1100" height="540" role="img" aria-label="相位與動能軌跡圖"></canvas>
   <div class="keys">
     <span><b>大小</b>Quality 0~3（近12月標準差&lt;25 / 36月正成長≥28 / 單月與累計同號）</span>
+    <span id="quad" style="display:none"><b>四象限</b>右上 量增價漲｜左上 量縮價漲｜右下 量增價跌｜左下 量縮價跌</span>
     <span><b>軌跡</b>越靠近現在越粗越深</span>
     <span><b>橫軸</b>跟著勾選縮放 —— 極端值（如 NVDA 曾 −155pp）取消勾選，其餘才看得清</span>
   </div>
@@ -191,7 +192,8 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
     <li><b>品質三項刻意不放進相位。</b>① 近 12 月 YoY 標準差 &lt; 25 ② 36 個月正成長 ≥ 28 ③ 最新月 YoY 與今年累計 YoY <b>同號</b>。階是「走到哪」，品質是「這個數字能不能信」。</li>
     <li><b>第三項是台股金融股專屬的陷阱。</b>壽險型金控的月數字含投資部位評價損益 —— 國泰金最新月 <b>−69.46%</b> 而今年累計 <b>+62.5%</b>、富邦金 <b>−48%</b> 而累計 <b>+172%</b>。單月與累計打架時，「連續正成長月數」沒有意義。全市場標準差 P50 是 21、P85 約 60：銀行型（玉山 16.8、彰銀 7.6）與製造業同級，壽險型與票券（國票金 991、中再保 333、中信 309）則完全不是同一種東西。</li>
     <li><b>★ 動能看不見基期效應，所以另外列「環比」。</b>動能是 YoY 的差，YoY 同時受「自己」與「去年同期」影響。彰銀 115/06~08 平均月營收 47.36 億是 15 個月最高（環比 <b>+9.3%</b>），但去年同期 114/06~08 恰好也是最旺（基期 <b>+15.7%</b>）—— 動能因此讀出 −6.4pp，看起來減速，實際是加速。<b>動能為負但環比為正的，已標 ★ 並在卡片上說明。</b>反過來，動能為正而環比為負，代表這次的「加速」是去年基期太低。</li>
-    <li><b>軌跡是逐月的，但累計 YoY 只有當期值</b>，歷史各點沿用當期值 —— 所以第 ③ 階在軌跡上不動，縱向移動來自 ①②④。</li>
+    <li><b>基本面軌跡的縱軸是「近 12 個月正成長月數」(0~12)，不是四階。</b>四階裡的第 ③ 階（今年累計 YoY）只有當期值，歷史各點只能沿用，放進軌跡會是一條假的水平線；而第 ② 階（加速）會被基期效應來回翻動。正成長月數兩者都不受影響，而且解析度是 13 格不是 5 格。<b>四階仍在右側卡片與表格裡</b>。</li>
+    <li><b>價量軌跡是逐月的量價四象限。</b>橫軸＝該月日均成交量 ÷ 近 12 月日均量 −1（相對量能），縱軸＝該月收盤漲跌幅。右上 量增價漲、左上 量縮價漲、右下 量增價跌、左下 量縮價跌。線越粗越深＝越接近現在，所以走勢會畫出「資金進出與價格的先後關係」。</li>
     <li><b>資料來源</b>：官方 bulk 端點（上市 t187ap05_L、上櫃 mopsfin_t187ap05_O、興櫃 t187ap05_P），歷史走公開資訊觀測站 t21sc03。價量取自 Yahoo（先試 .TW 再試 .TWO）。</li>
     <li><b>月營收只是營收。</b>不含利差、呆帳提存、費用與業外。銀行的營收成長可能來自放款規模，也可能來自升息 —— 這張圖分不出來。<b>這是篩選起點，不是買進理由。</b></li>
   </ul>
@@ -214,73 +216,102 @@ let YK="ph", sel=(D.find(d=>!NOISY(d)) || D[0]).t,
     show=new Set((D.some(d=>!NOISY(d)) ? D.filter(d=>!NOISY(d)) : D).map(d=>d.t)), pts=[];
 if(WARN.length) $('warn').innerHTML=`<div class="warn"><b>有 ${WARN.length} 支沒有納入：</b>${WARN.join('；')}</div>`;
 
+// ★★★ 兩張圖的軸不同 —— 各自帶設定，不要讓 draw() 假設橫軸永遠是動能
+const VIEW = {
+  ph: {ser:d=>d.path||[], cur:d=>(d.path||[]).at(-1),
+       xl:'← 減速',  xr:'加速 →',
+       yl:'↓ 正成長月數少', yr:'正成長月數多 ↑',
+       xf:v=>(v>0?'+':'')+v+'pp', yf:v=>v+' 月',
+       ymin:()=>0, ymax:()=>12, ystep:2, yzero:false},
+  pv: {ser:d=>d.pvpath||[], cur:d=>(d.pvpath||[]).at(-1),
+       xl:'← 量縮', xr:'量增 →',
+       yl:'↓ 價跌', yr:'價漲 ↑',
+       xf:v=>(v>0?'+':'')+v+'%', yf:v=>(v>0?'+':'')+v+'%',
+       ymin:null, ymax:null, ystep:null, yzero:true}
+};
 function draw(){
   const cv=$('cv'); if(!cv.clientWidth){requestAnimationFrame(draw);return;}
+  const V=VIEW[YK];
   const dpr=Math.min(devicePixelRatio||1,2), w=cv.clientWidth, h=Math.round(w*0.50);
   cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
   const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
-  const PL=52,PR=22,PT=44,PB=40,iw=w-PL-PR,ih=h-PT-PB;
-  // ★★ 橫軸只看「勾選中」的公司 —— 否則一支極端值（NVDA 動能曾達 -155pp）
-  //    會把其他五家全壓成一條線。取消勾選它，其餘立刻展開。
+  const PL=62,PR=24,PT=44,PB=44,iw=w-PL-PR,ih=h-PT-PB;
+  const NT=+$('tl').value;
   const vis=D.filter(d=>show.has(d.t));
-  const all=(vis.length?vis:D).flatMap(d=>(YK==='ph'?d.path:d.pvpath).map(p=>p[0]))
-              .concat((vis.length?vis:D).map(d=>d.mom));
-  const lo=Math.min(...all)-2, hi=Math.max(...all)+2;
-  const X=v=>PL+iw*(v-lo)/(hi-lo), Y=v=>PT+ih-ih*(v/4);
+  const use=(vis.length?vis:D);
+  const pts_=use.flatMap(d=>V.ser(d).slice(-NT));
+  if(!pts_.length){x.fillStyle=C('--muted');x.font='13px "Noto Sans TC",sans-serif';
+    x.textAlign='center';x.fillText('沒有可畫的資料',w/2,h/2);pts=[];return;}
+  const xs=pts_.map(p=>p[0]), ys=pts_.map(p=>p[1]);
+  let lo=Math.min(...xs), hi=Math.max(...xs);
+  const pad=Math.max((hi-lo)*0.08, 1); lo-=pad; hi+=pad;
+  let ylo = V.ymin!==null ? V.ymin() : Math.min(...ys), yhi = V.ymax!==null ? V.ymax() : Math.max(...ys);
+  if(V.ymin===null){const yp=Math.max((yhi-ylo)*0.10,1); ylo-=yp; yhi+=yp;}
+  const X=v=>PL+iw*(v-lo)/((hi-lo)||1), Y=v=>PT+ih-ih*(v-ylo)/((yhi-ylo)||1);
+
+  // 格線
   x.strokeStyle=C('--grid'); x.lineWidth=1; x.fillStyle=C('--muted');
   x.font='11px "JetBrains Mono",monospace';
-  for(let i=0;i<=4;i++){const yy=Math.round(Y(i))+.5;
+  const yticks=[];
+  if(V.ystep){ for(let v=V.ymin();v<=V.ymax();v+=V.ystep) yticks.push(v); }
+  else { const st=Math.max(1,Math.round((yhi-ylo)/6)); const s0=Math.ceil(ylo/st)*st;
+         for(let v=s0;v<=yhi;v+=st) yticks.push(v); }
+  yticks.forEach(v=>{const yy=Math.round(Y(v))+.5;
     x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
-    x.textAlign='right';x.fillText(i+' 階',PL-9,yy+4);}
-  const z=Math.round(X(0))+.5;
-  x.strokeStyle=C('--line2');x.setLineDash([3,3]);
-  x.beginPath();x.moveTo(z,PT);x.lineTo(z,PT+ih);x.stroke();x.setLineDash([]);
-  x.textAlign='center';x.fillText('0',z,h-20);
-  const step=(hi-lo)>30?8:((hi-lo)>14?4:2);
-  for(let v=Math.ceil(lo/step)*step; v<hi; v+=step){ if(Math.abs(v)<0.01) continue;
-    x.fillText((v>0?'+':'')+v+'pp',X(v),h-20);}
+    x.textAlign='right';x.fillText(V.yf(v),PL-9,yy+4);});
+  // 零線
+  const drawZero=(v,vert)=>{
+    x.strokeStyle=C('--line2'); x.setLineDash([3,3]);
+    if(vert){const z=Math.round(X(v))+.5; x.beginPath();x.moveTo(z,PT);x.lineTo(z,PT+ih);x.stroke();}
+    else {const z=Math.round(Y(v))+.5; x.beginPath();x.moveTo(PL,z);x.lineTo(w-PR,z);x.stroke();}
+    x.setLineDash([]);};
+  if(lo<0&&hi>0) drawZero(0,true);
+  if(V.yzero&&ylo<0&&yhi>0) drawZero(0,false);
+  // x 刻度
+  x.textAlign='center'; x.fillStyle=C('--muted');
+  const xst=Math.max(1,Math.round((hi-lo)/7));
+  for(let v=Math.ceil(lo/xst)*xst;v<hi;v+=xst) x.fillText(V.xf(v),X(v),h-24);
   x.font='600 11px "JetBrains Mono",monospace';
-  x.textAlign='left'; x.fillText('← 減速',PL,h-6);
-  x.textAlign='right'; x.fillText('加速 →',w-PR,h-6);
-  const NT=+$('tl').value;
+  x.textAlign='left';  x.fillText(V.xl,PL,h-7);
+  x.textAlign='right'; x.fillText(V.xr,w-PR,h-7);
+  x.save(); x.translate(15,PT+ih/2); x.rotate(-Math.PI/2); x.textAlign='center';
+  x.fillText(V.yr.replace(' ↑',''),0,0); x.restore();
+
+  // 軌跡
   D.forEach((d,di)=>{
-    if(!show.has(d.t)) return;
-    const src=YK==='ph'?(d.path||[]):(d.pvpath||[]), pa=src.slice(-NT);
-    if(pa.length<2) return;
-    const off=((di%7)-3)*3.0;
+    if(!show.has(d.t))return;
+    const pa=V.ser(d).slice(-NT); if(pa.length<2)return;
+    const off=((di%7)-3)*2.2;
     for(let i=1;i<pa.length;i++){
       const t=i/(pa.length-1);
-      x.beginPath(); x.moveTo(X(pa[i-1][0]),Y(pa[i-1][1])+off); x.lineTo(X(pa[i][0]),Y(pa[i][1])+off);
-      x.strokeStyle=cc(d); x.lineWidth=0.7+t*2.8; x.globalAlpha=0.13+t*0.58; x.lineCap='round';
-      x.stroke(); x.globalAlpha=1;
+      x.beginPath();x.moveTo(X(pa[i-1][0]),Y(pa[i-1][1])+off);x.lineTo(X(pa[i][0]),Y(pa[i][1])+off);
+      x.strokeStyle=cc(d);x.lineWidth=0.7+t*2.8;x.globalAlpha=0.13+t*0.58;x.lineCap='round';
+      x.stroke();x.globalAlpha=1;
     }
-    pa.slice(0,-1).forEach((p,i)=>{const t=i/(pa.length-1);
-      x.beginPath();x.arc(X(p[0]),Y(p[1])+off,1.6+t*1.7,0,7);
+    pa.slice(0,-1).forEach((q,i)=>{const t=i/(pa.length-1);
+      x.beginPath();x.arc(X(q[0]),Y(q[1])+off,1.6+t*1.7,0,7);
       x.fillStyle=cc(d);x.globalAlpha=0.2+t*0.45;x.fill();x.globalAlpha=1;});
   });
-  pts=[]; const jit={};
-  const plan=D.filter(d=>show.has(d.t)).map((d,i)=>{
-    const yv=YK==='ph'?d.ph:d.pv, key=yv+'|'+Math.round(d.mom);
-    jit[key]=(jit[key]||0)+1;
-    const di=D.findIndex(z=>z.t===d.t);
-    return {d,px:X(d.mom),py:Y(yv)+((di%7)-3)*3.0+(jit[key]-1)*16-((jit[key]>1)?8:0),r:8+d.q*4.2};
-  });
-  plan.forEach(p=>{const on=p.d.t===sel;
-    x.beginPath();x.arc(p.px,p.py,p.r,0,7);
-    x.fillStyle=cc(p.d);x.globalAlpha=on?.95:.65;x.fill();x.globalAlpha=1;
+  // 目前點
+  pts=[];
+  const plan=D.filter(d=>show.has(d.t)&&V.cur(d)).map(d=>{
+    const c0=V.cur(d), di=D.findIndex(z=>z.t===d.t);
+    return {d,px:X(c0[0]),py:Y(c0[1])+((di%7)-3)*2.2,r:7+d.q*3.8};});
+  plan.forEach(q=>{const on=q.d.t===sel;
+    x.beginPath();x.arc(q.px,q.py,q.r,0,7);
+    x.fillStyle=cc(q.d);x.globalAlpha=on?.95:.62;x.fill();x.globalAlpha=1;
     x.lineWidth=on?2.4:1;x.strokeStyle=on?C('--ink'):C('--panel');x.stroke();
-    pts.push(p);});
+    pts.push(q);});
   const used=[];
-  plan.slice().sort((a,b)=>a.px-b.px).forEach(p=>{
-    const on=p.d.t===sel;
+  plan.slice().sort((a,b)=>a.px-b.px).forEach(q=>{
+    const on=q.d.t===sel;
     x.font=(on?'700 ':'500 ')+'11px "JetBrains Mono",monospace'; x.textAlign='center';
-    const tries=[p.py-p.r-7, p.py+p.r+13, p.py-p.r-20, p.py+p.r+26];
-    let ty=tries.find(t=>!used.some(u=>Math.abs(u.x-p.px)<34&&Math.abs(u.y-t)<11)) ?? tries[0];
-    ty=Math.max(12,ty); used.push({x:p.px,y:ty});
-    if(ty>p.py){x.strokeStyle=C('--line2');x.lineWidth=1;
-      x.beginPath();x.moveTo(p.px,p.py+p.r+1);x.lineTo(p.px,ty-9);x.stroke();}
-    x.fillStyle=cc(p.d); x.fillText(p.d.t,p.px,ty);
-  });
+    const tries=[q.py-q.r-7,q.py+q.r+13,q.py-q.r-20,q.py+q.r+26];
+    let ty=tries.find(t=>!used.some(u=>Math.abs(u.x-q.px)<34&&Math.abs(u.y-t)<11))??tries[0];
+    ty=Math.max(12,Math.min(h-30,ty)); used.push({x:q.px,y:ty});
+    if(ty>q.py){x.strokeStyle=C('--line2');x.lineWidth=1;
+      x.beginPath();x.moveTo(q.px,q.py+q.r+1);x.lineTo(q.px,ty-9);x.stroke();}
+    x.fillStyle=cc(q.d);x.fillText(q.d.t,q.px,ty);});
 }
 // ★★ 熱力圖：面積 ＝ 4 週成交金額佔比，顏色 ＝ 4 週漲跌幅（紅漲綠跌）
 function hmColor(r, mx){
@@ -483,15 +514,22 @@ $('hm').addEventListener('click',e=>{
   const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
   if(t) card(t.d.t);});
 $('hm').style.cursor='pointer';
-document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
-  YK=b.dataset.y;
-  $('hm').addEventListener('click',e=>{
+// ★★ 熱力圖點擊 —— 必須在最外層註冊。
+//   （2026-09-25 修：原本被誤塞進縱軸切換的 handler 裡，
+//     要先點過一次縱軸按鈕才會綁定，而且每點一次就重複綁一次。）
+$('hm').style.cursor='pointer';
+$('hm').addEventListener('click',e=>{
   const r=$('hm').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
   const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
   if(t) card(t.d.t);});
-$('hm').style.cursor='pointer';
-document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
-  draw();}));
+document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
+  YK=b.dataset.y;
+  document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  axd(); draw();}));
+function axd(){$('quad').style.display = YK==='pv'?'':'none';
+  $('axd').textContent = YK==='ph'
+  ? '橫 Momentum（pp）× 縱 近 12 月正成長月數（0~12）'
+  : '橫 該月相對量能（%）× 縱 該月漲跌幅（%）';}
 $('tl').addEventListener('input',()=>{$('tlv').textContent=$('tl').value+' 月';draw();});
 addEventListener('resize',()=>{draw();drawHM();});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{rows();chips();card(sel);drawHM();});
@@ -507,7 +545,7 @@ function render(){
   if(!has) return;
   show=new Set((D.some(d=>!NOISY(d))?D.filter(d=>!NOISY(d)):D).map(d=>d.t));
   sel=(D.find(d=>!NOISY(d))||D[0]).t;
-  rows(); chips(); card(D[0].t); drawHM();
+  rows(); chips(); card(D[0].t); axd(); drawHM();
 }
 
 render();

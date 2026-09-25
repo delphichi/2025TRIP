@@ -108,6 +108,30 @@ def seqbase(rv, pairs):
     bse = round((la/lb-1)*100, 1) if (la and lb and la > 0 and lb > 0) else None
     return round(a,2), round(b,2), round((a/b-1)*100,1), bse
 
+def monthly_pv(ser):
+    """★★★ 近 12 個月的『量價』軌跡 —— 每個點是一個月。
+       x ＝ 該月日均量 ÷ 近 12 月日均量 − 1（相對量能 %）
+       y ＝ 該月漲跌幅（%）
+       ⇒ 右上 量增價漲、左上 量縮價漲、右下 量增價跌、左下 量縮價跌。
+       ★ 比原本「0~4 階」細得多，而且四象限本身就有讀法。"""
+    if not ser or len(ser) < 60: return None
+    mo = {}
+    for d_, c, v in ser:
+        mo.setdefault((d_.year, d_.month), []).append((d_, c, v))
+    ks = sorted(mo)[-13:]                       # ★ 13 個月才算得出 12 個漲跌幅
+    if len(ks) < 8: return None
+    avgv = {k: (st.mean([v for _, _, v in mo[k]]) if mo[k] else 0) for k in ks}
+    base = st.mean([avgv[k] for k in ks]) or 1
+    out = []
+    for i in range(1, len(ks)):
+        prev_close = mo[ks[i-1]][-1][1]
+        cur_close  = mo[ks[i]][-1][1]
+        if not prev_close: continue
+        out.append([round((avgv[ks[i]]/base-1)*100, 1),
+                    round((cur_close/prev_close-1)*100, 2),
+                    f"{ks[i][0]}/{ks[i][1]:02d}"])
+    return out or None
+
 def snap(ser, cum):
     """★ ser ＝ 依時間排好的 YoY 陣列（最後一個是最新月）"""
     if len(ser) < 6: return None
@@ -135,11 +159,14 @@ def build(code):
     for k in range(TRAJ, 0, -1):
         sub = pairs[:len(pairs)-k+1]
         if len(sub) < 6: continue
-        s = snap([v for _, v in sub], cum)        # ★ 累計 YoY 只有當期值，歷史點沿用（已在註腳說明）
-        if s: traj.append([s["mom"], s["ph"], sub[-1][0]])
+        sn = snap([v for _, v in sub], cum)
+        # ★★ 縱軸改用「近 12 月正成長月數」(0~12)：比 0~4 階細，而且不受
+        #    第 ③ 階（累計 YoY 只有當期值）沿用歷史值的問題影響。
+        if sn: traj.append([sn["mom"], sn["p12"], sub[-1][0]])
     SB = seqbase((HIST.get("rev") or {}).get(code) or {}, pairs)
     ser = px(code)
     P = pv(ser) if ser else None
+    MP = monthly_pv(ser) if ser else None
     q = ((1 if (cur["sd"] or 99) < 25 else 0)
          + (1 if sum(1 for _, v in pairs if v > 0) >= 28 else 0)
          + (1 if (cum is not None and pairs[-1][1] * cum > 0) else 0))
@@ -164,7 +191,10 @@ def build(code):
                 r26=(round(P[2], 1) if P else None), r13=(round(P[3], 1) if P else None),
                 r4=(round(P[4], 1) if P else None), pvs=(P[5] if P else [False]*4),
                 v4=(round(P[7], 1) if P else 0),
-                pvpath=[[traj[i][0], (P[0] if P else 0)] for i in range(len(traj))]), None
+                pvpath=[[a, b] for a, b, _ in (MP or [])],
+                pvq=[c for _, _, c in (MP or [])],
+                volrel=(MP[-1][0] if MP else None),
+                chg1m=(MP[-1][1] if MP else None)), None
 
 def main():
     codes = [a for a in sys.argv[1:] if a.isdigit()]
