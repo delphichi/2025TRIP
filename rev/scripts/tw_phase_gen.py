@@ -162,7 +162,7 @@ def build(code):
         sn = snap([v for _, v in sub], cum)
         # ★★ 縱軸改用「近 12 月正成長月數」(0~12)：比 0~4 階細，而且不受
         #    第 ③ 階（累計 YoY 只有當期值）沿用歷史值的問題影響。
-        if sn: traj.append([sn["mom"], sn["p12"], sub[-1][0]])
+        if sn: traj.append([sn["mom"], sn["p12"], sub[-1][0], sn["m3"]])
     SB = seqbase((HIST.get("rev") or {}).get(code) or {}, pairs)
     ser = px(code)
     P = pv(ser) if ser else None
@@ -184,8 +184,11 @@ def build(code):
                 # ★ 動能為負但營收環比為正 ⇒ 是基期墊高，不是業績減速
                 fake=(1 if (SB and SB[2] is not None and cur["mom"] < 0 and SB[2] > 0) else 0),
                 spark=[round(v, 1) for _, v in pairs[-12:]],
-                path=[[a, bb] for a, bb, _ in traj],
-                pathq=[c for _, _, c in traj],
+                # ★ lvl：縱軸＝近 3 月平均 YoY（成長水準，連續值、不飽和）
+                #   path：縱軸＝近 12 月正成長月數（滾動計數器，每月最多 ±1、幾乎只升不降 ⇒ 會飽和）
+                lvl=[[t[0], t[3]] for t in traj],
+                path=[[t[0], t[1]] for t in traj],
+                pathq=[t[2] for t in traj],
                 px=(round(P[6], 2) if P else None), pv=(P[0] if P else 0),
                 vr=(round(P[1], 2) if P else None),
                 r26=(round(P[2], 1) if P else None), r13=(round(P[3], 1) if P else None),

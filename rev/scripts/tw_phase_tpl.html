@@ -139,8 +139,9 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
 <div class="panel bar">
   <span class="lb">縱軸</span>
   <div class="seg" id="seg">
-    <button aria-pressed="true" data-y="ph">基本面相位</button>
-    <button aria-pressed="false" data-y="pv">價量相位</button>
+    <button aria-pressed="true" data-y="lv">成長水準 × 動能</button>
+    <button aria-pressed="false" data-y="ph">正成長月數 × 動能</button>
+    <button aria-pressed="false" data-y="pv">量價四象限</button>
   </div>
   <span class="lb" style="margin-left:6px">軸</span>
   <span style="font-size:12.5px;color:var(--ink2)" id="axd"></span>
@@ -155,6 +156,7 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
   <div class="keys">
     <span><b>大小</b>Quality 0~3（近12月標準差&lt;25 / 36月正成長≥28 / 單月與累計同號）</span>
     <span id="quad" style="display:none"><b>四象限</b>右上 量增價漲｜左上 量縮價漲｜右下 量增價跌｜左下 量縮價跌</span>
+    <span id="quad2" style="display:none"><b>四象限</b>右上 高成長且加速｜左上 高成長但減速｜右下 落底回升｜左下 衰退中</span>
     <span><b>軌跡</b>越靠近現在越粗越深</span>
     <span><b>橫軸</b>跟著勾選縮放 —— 極端值（如 NVDA 曾 −155pp）取消勾選，其餘才看得清</span>
   </div>
@@ -192,7 +194,9 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
     <li><b>品質三項刻意不放進相位。</b>① 近 12 月 YoY 標準差 &lt; 25 ② 36 個月正成長 ≥ 28 ③ 最新月 YoY 與今年累計 YoY <b>同號</b>。階是「走到哪」，品質是「這個數字能不能信」。</li>
     <li><b>第三項是台股金融股專屬的陷阱。</b>壽險型金控的月數字含投資部位評價損益 —— 國泰金最新月 <b>−69.46%</b> 而今年累計 <b>+62.5%</b>、富邦金 <b>−48%</b> 而累計 <b>+172%</b>。單月與累計打架時，「連續正成長月數」沒有意義。全市場標準差 P50 是 21、P85 約 60：銀行型（玉山 16.8、彰銀 7.6）與製造業同級，壽險型與票券（國票金 991、中再保 333、中信 309）則完全不是同一種東西。</li>
     <li><b>★ 動能看不見基期效應，所以另外列「環比」。</b>動能是 YoY 的差，YoY 同時受「自己」與「去年同期」影響。彰銀 115/06~08 平均月營收 47.36 億是 15 個月最高（環比 <b>+9.3%</b>），但去年同期 114/06~08 恰好也是最旺（基期 <b>+15.7%</b>）—— 動能因此讀出 −6.4pp，看起來減速，實際是加速。<b>動能為負但環比為正的，已標 ★ 並在卡片上說明。</b>反過來，動能為正而環比為負，代表這次的「加速」是去年基期太低。</li>
-    <li><b>基本面軌跡的縱軸是「近 12 個月正成長月數」(0~12)，不是四階。</b>四階裡的第 ③ 階（今年累計 YoY）只有當期值，歷史各點只能沿用，放進軌跡會是一條假的水平線；而第 ② 階（加速）會被基期效應來回翻動。正成長月數兩者都不受影響，而且解析度是 13 格不是 5 格。<b>四階仍在右側卡片與表格裡</b>。</li>
+    <li><b>預設的基本面軌跡：縱軸＝近 3 月平均 YoY（成長「水準」），橫軸＝動能（成長的「變化」）。</b>右上 高成長且加速、左上 高成長但減速、右下 落底回升、左下 衰退中 —— 和量價四象限是同一種讀法。</li>
+    <li><b>為什麼不用「正成長月數」當預設：它會飽和。</b>那是一個滾動計數器，每個月最多變 ±1 而且幾乎只升不降。實測這 31 檔裡有 10 檔的 12 個軌跡點極差 ≤2 格（彰銀 <code>[8,9,10,10,11,11,11,11,11,11,11,12]</code> 有 7 個都是 11）。縱軸幾乎不動、橫軸卻在跳，畫出來是一條橫向亂線 —— 那不是相位平面，是「一軸單調、一軸雜訊」。<b>切到第二個按鈕仍可看它</b>，適合比較不同公司「爬到第幾格」，不適合看單一公司的走勢。</li>
+    <li><b>四階不再當軌跡縱軸。</b>第 ③ 階（今年累計 YoY）只有當期值、歷史點只能沿用，放進軌跡是一條假的水平線；第 ② 階（加速）會被基期效應來回翻動。<b>四階仍完整保留在右側卡片與表格裡</b>，只是不當縱軸。</li>
     <li><b>價量軌跡是逐月的量價四象限。</b>橫軸＝該月日均成交量 ÷ 近 12 月日均量 −1（相對量能），縱軸＝該月收盤漲跌幅。右上 量增價漲、左上 量縮價漲、右下 量增價跌、左下 量縮價跌。線越粗越深＝越接近現在，所以走勢會畫出「資金進出與價格的先後關係」。</li>
     <li><b>資料來源</b>：官方 bulk 端點（上市 t187ap05_L、上櫃 mopsfin_t187ap05_O、興櫃 t187ap05_P），歷史走公開資訊觀測站 t21sc03。價量取自 Yahoo（先試 .TW 再試 .TWO）。</li>
     <li><b>月營收只是營收。</b>不含利差、呆帳提存、費用與業外。銀行的營收成長可能來自放款規模，也可能來自升息 —— 這張圖分不出來。<b>這是篩選起點，不是買進理由。</b></li>
@@ -212,15 +216,23 @@ const cc=d=>dark()?d.c2:d.c;
 //   把橫軸拉爆之後，銀行那群 −3 ~ −39pp 的差異全部看不見。
 //   而它們正好是品質軸判定「這個數字不能信」的同一批。要看隨時可勾回來。
 const NOISY = d => (d.sd ?? 0) >= 60;
-let YK="ph", sel=(D.find(d=>!NOISY(d)) || D[0]).t,
+let YK="lv", sel=(D.find(d=>!NOISY(d)) || D[0]).t,
     show=new Set((D.some(d=>!NOISY(d)) ? D.filter(d=>!NOISY(d)) : D).map(d=>d.t)), pts=[];
 if(WARN.length) $('warn').innerHTML=`<div class="warn"><b>有 ${WARN.length} 支沒有納入：</b>${WARN.join('；')}</div>`;
 
 // ★★★ 兩張圖的軸不同 —— 各自帶設定，不要讓 draw() 假設橫軸永遠是動能
 const VIEW = {
+  // ★★★ 預設這個：縱軸「近 3 月平均 YoY」是連續值，不飽和。
+  //   對照組（ph）的「近 12 月正成長月數」是滾動計數器，每月最多變 ±1 且幾乎只升不降，
+  //   實測 31 檔裡 10 檔極差 ≤2 格（彰銀 12 個點有 7 個都在 11）⇒ 縱軸不動、橫軸亂跳，讀不出東西。
+  lv: {ser:d=>d.lvl||[], cur:d=>(d.lvl||[]).at(-1),
+       xl:'← 減速',  xr:'加速 →',
+       yl:'↓ 成長低', yr:'成長水準（近 3 月均 YoY）↑',
+       xf:v=>(v>0?'+':'')+v+'pp', yf:v=>(v>0?'+':'')+v+'%',
+       ymin:null, ymax:null, ystep:null, yzero:true},
   ph: {ser:d=>d.path||[], cur:d=>(d.path||[]).at(-1),
        xl:'← 減速',  xr:'加速 →',
-       yl:'↓ 正成長月數少', yr:'正成長月數多 ↑',
+       yl:'↓ 正成長月數少', yr:'近 12 月正成長月數 ↑',
        xf:v=>(v>0?'+':'')+v+'pp', yf:v=>v+' 月',
        ymin:()=>0, ymax:()=>12, ystep:2, yzero:false},
   pv: {ser:d=>d.pvpath||[], cur:d=>(d.pvpath||[]).at(-1),
@@ -526,10 +538,13 @@ document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',(
   YK=b.dataset.y;
   document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
   axd(); draw();}));
-function axd(){$('quad').style.display = YK==='pv'?'':'none';
-  $('axd').textContent = YK==='ph'
-  ? '橫 Momentum（pp）× 縱 近 12 月正成長月數（0~12）'
-  : '橫 該月相對量能（%）× 縱 該月漲跌幅（%）';}
+const AXD={lv:'橫 Momentum（pp）× 縱 近 3 月平均 YoY（%）',
+           ph:'橫 Momentum（pp）× 縱 近 12 月正成長月數（0~12）',
+           pv:'橫 該月相對量能（%）× 縱 該月漲跌幅（%）'};
+function axd(){
+  $('quad').style.display = YK==='pv'?'':'none';
+  $('quad2').style.display = YK==='lv'?'':'none';
+  $('axd').textContent = AXD[YK];}
 $('tl').addEventListener('input',()=>{$('tlv').textContent=$('tl').value+' 月';draw();});
 addEventListener('resize',()=>{draw();drawHM();});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{rows();chips();card(sel);drawHM();});
