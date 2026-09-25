@@ -146,6 +146,10 @@ def snap(ser, cum):
                 p12=sum(1 for v in w12 if v > 0), n12=len(w12),
                 sd=round(st.pstdev(w12), 1) if len(w12) >= 6 else None)
 
+# ★ 全域月份軸：取全市場最新的 12 個月，各公司對齊到同一條軸上
+_ALLM = sorted({t for mm in (HIST.get("yoy") or {}).values() for t in mm}, key=ordk)
+MONTHS = _ALLM[-12:]
+
 def build(code):
     mm = (HIST.get("yoy") or {}).get(code)
     if not mm: return None, f"{code} 無月營收資料"
@@ -184,6 +188,10 @@ def build(code):
                 # ★ 動能為負但營收環比為正 ⇒ 是基期墊高，不是業績減速
                 fake=(1 if (SB and SB[2] is not None and cur["mom"] < 0 and SB[2] > 0) else 0),
                 spark=[round(v, 1) for _, v in pairs[-12:]],
+                # ★★ 時間序列視角：x ＝ 全域月份軸的索引，y ＝ 該月營收 YoY（%）
+                #   （逐月 YoY 本來就是連續值，不像「正成長月數」那種滾動計數器會飽和）
+                ts=[[MONTHS.index(t), round(v, 2)]
+                    for t, v in pairs if t in MONTHS],
                 # ★ lvl：縱軸＝近 3 月平均 YoY（成長水準，連續值、不飽和）
                 #   path：縱軸＝近 12 月正成長月數（滾動計數器，每月最多 ±1、幾乎只升不降 ⇒ 會飽和）
                 lvl=[[t[0], t[3]] for t in traj],
@@ -234,6 +242,7 @@ def main():
     ym = str(HIST.get("latest") or "")
     tpl = (D/"tw_phase_tpl.html").read_text()
     OUT.write_text(tpl.replace("__DATA__", json.dumps(data, ensure_ascii=False))
+                      .replace("__MONTHS__", json.dumps(MONTHS, ensure_ascii=False))
                       .replace("__TITLE__", TITLE)
                       .replace("__YM__", f"民國 {ym[:3]} 年 {int(ym[3:]):02d} 月" if len(ym)==5 else ym)
                       .replace("__TS__", dt.datetime.now().strftime("%Y-%m-%d %H:%M"))
