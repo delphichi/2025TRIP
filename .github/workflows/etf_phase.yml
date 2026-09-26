@@ -1,0 +1,79 @@
+name: ETF 相位儀（台股 ＋ 美股合併）
+
+# ★ 與個股相位儀分開：ETF 沒有 SEC XBRL 也沒有月營收 ⇒ 沒有基本面相位，
+#   全部資料來自 Yahoo 價量，★ 不需要 SEC_UA。
+
+on:
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: '追蹤標的（最多 12 支，空白或逗號分隔）台股填代號、美股填字母'
+        required: true
+        default: '0050 0056 00878 00919 00662 00646 SPY QQQ VOO VT'
+      title:
+        description: '網頁標題'
+        required: false
+        default: 'ETF 相位儀（台股 × 美股）'
+      view:
+        description: '預設開啟的視角'
+        required: false
+        default: 'px'
+        type: choice
+        options:
+          - px   # 價位 × 量能（12 個月累計總報酬）
+          - pv   # 量價四象限（當月）
+      slug:
+        description: '存檔資料夾（etf/<slug>/index.html；留空＝etf/index.html）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # ★ 全部 stdlib，不需要 pip install
+
+      - name: 產生 ETF 相位儀
+        run: |
+          set -e
+          # ★ #518：workflow_dispatch 輸入常混入 ﻿ 等不可見字元
+          TKS=$(printf '%s' "${{ inputs.tickers }}" | tr ',;' '  ' | tr -cd 'A-Za-z0-9.\- ')
+          SLUG=$(printf '%s' "${{ inputs.slug }}"   | tr -cd 'A-Za-z0-9\-_')
+          VIEW=$(printf '%s' "${{ inputs.view }}"   | tr -cd 'a-z')
+          OUT="etf/index.html"; [ -n "$SLUG" ] && OUT="etf/$SLUG/index.html"
+          mkdir -p "$(dirname "$OUT")"
+          echo "★ 標的：$TKS"
+          echo "★ 視角：${VIEW:-px}"
+          echo "★ 輸出：$OUT"
+          python3 phase/scripts/etf_phase_gen.py $TKS \
+            --out "$OUT" --title "${{ inputs.title }}" --view "${VIEW:-px}"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+
+      - name: 提交
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A etf
+          git diff --cached --quiet && { echo "★ 沒有變動"; exit 0; }
+          git commit -m "ETF 相位儀：${{ inputs.tickers }}"
+          git push
+
+      - name: 網址
+        run: |
+          {
+            echo "### ★ 產出完成"
+            echo ""
+            echo "標的：\`${{ inputs.tickers }}\`"
+            echo ""
+            echo "- htmlpreview：https://htmlpreview.github.io/?https://github.com/delphichi/2025TRIP/blob/main/$OUT"
+            echo "- GitHub Pages（若已開啟）：https://delphichi.github.io/2025TRIP/$(dirname $OUT)/"
+          } >> "$GITHUB_STEP_SUMMARY"
