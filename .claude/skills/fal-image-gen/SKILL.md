@@ -158,6 +158,9 @@ outfit and lighting direction unchanged」。
 - 描述**一顆連續鏡頭**，除非使用者明講要多個鏡頭。
 - 動作要「拍得出來」：寫具體的身體動作與速度，不要寫「很有張力」這種抽象詞。
 - 常用運鏡與動態詞彙見 `references/prompt-guide.md` 的影片段落。
+- **完整 48 種運鏡詞彙庫見 `references/camera-moves.md`**（13 類，含可直接貼用的英文寫法、
+  各家模型服從度的注意事項、以及「一顆鏡頭只給一個主運鏡」等常見錯誤）。
+  使用者提到運鏡、鏡位、運鏡表、想要某種特定鏡頭感時，先查這份檔案再擴寫。
 
 輸出格式與圖片相同（English prompt ＋ 中文翻譯），**先給使用者看過**。
 
@@ -230,7 +233,7 @@ minimax-h3 的 `image-to-video` 給兩張圖時，第一張是首幀、第二張
 | kling-v3-pro | text-to-video | `fal-ai/kling-video/v3/pro/text-to-video` |
 | kling-v3-pro | image-to-video | `fal-ai/kling-video/v3/pro/image-to-video`（比例由首幀決定） |
 
-各接口完整參數說明見 `references/endpoints.md`。要新增模型或接口，直接編輯 `scripts/fal_image.py` 最上方的 `MODELS` 表即可。
+各接口完整參數說明見 `references/endpoints.md`，運鏡詞彙見 `references/camera-moves.md`。要新增模型或接口，直接編輯 `scripts/fal_image.py` 最上方的 `MODELS` 表即可。
 
 ## 測試
 

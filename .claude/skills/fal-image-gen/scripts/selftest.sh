@@ -242,8 +242,29 @@ if [ -f "$WF" ]; then
   grep -q '完成檔/\*.mp4' "$WF"        && ok "workflow artifact 收 mp4" || bad "workflow artifact 沒收 mp4"
 fi
 
+head_ "16. 運鏡詞彙庫"
+MOVES="$SCRIPT_DIR/../references/camera-moves.md"
+if [ -f "$MOVES" ]; then
+  ok "camera-moves.md 存在"
+  CATS=$(grep -c '^## [0-9]' "$MOVES")
+  ENTRIES=$(sed -n '/^## 1\./,/^## 怎麼用進提示詞/p' "$MOVES" | grep -c '^| `')
+  [ "$CATS" -eq 13 ]     && ok "13 個分類齊全"        || bad "分類數為 $CATS，應為 13"
+  [ "$ENTRIES" -eq 48 ]  && ok "48 個運鏡條目齊全"     || bad "條目數為 $ENTRIES，應為 48"
+  for m in "slow dolly in" "vertigo effect" "crane up to a high angle reveal" \
+           "FPV drone aggressive dive" "bullet time" "worm's eye tracking at ground level"; do
+    grep -q "$m" "$MOVES" && ok "收錄：$m" || bad "缺少：$m"
+  done
+  grep -q "camera-moves.md" "$SKILL" && ok "SKILL.md 有指向詞彙庫" || bad "SKILL.md 沒有指向詞彙庫"
+  grep -q "camera-moves.md" "$SCRIPT_DIR/../references/prompt-guide.md" \
+    && ok "prompt-guide.md 有指向詞彙庫" || bad "prompt-guide.md 沒有指向詞彙庫"
+  grep -q "never combine two moves in one shot" "$CLI" \
+    && ok "影片擴寫 system prompt 帶入運鏡詞彙" || bad "擴寫 system prompt 沒帶運鏡詞彙"
+else
+  bad "找不到 $MOVES"
+fi
+
 if [ "${1:-}" = "--live" ]; then
-  head_ "16. 真實 API 測試（會消耗額度）"
+  head_ "17. 真實 API 測試（會消耗額度）"
   if "$CLI" -m nano-banana-2 -p "a single red apple on a white table, studio lighting" -r 1K; then
     ok "成功呼叫 FAL 並存檔到「完成檔」"
     ls -t "$ROOT/完成檔"/*.png 2>/dev/null | head -1

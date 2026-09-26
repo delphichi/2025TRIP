@@ -501,9 +501,18 @@ Cover all of these, woven into ONE flowing paragraph (no headings, no shot list,
    Motion is the point: describe what moves, in what order, at what speed.
 2. ENVIRONMENT IN MOTION - the setting plus its moving elements: drifting steam, swaying branches,
    passing traffic, rain streaking a window, crowd movement, shifting light and shadow.
-3. CAMERA WORK - a concrete camera move (slow dolly in, orbit around the subject, handheld follow,
-   crane down, static locked-off tripod, whip pan) plus shot size and angle, and how framing
-   changes as the move progresses.
+3. CAMERA WORK - ONE concrete camera move plus shot size and angle, and how the framing changes
+   as the move progresses. Pick from this vocabulary (never combine two moves in one shot):
+   slow/fast dolly in, slow dolly out, vertigo dolly zoom, extreme macro zoom, smooth optical
+   zoom in/out, snap zoom, tilt up/down, camera truck left/right, 180 degree orbit, fast 360
+   degree orbit, slow cinematic arc, pedestal up/down, crane up to a high angle reveal, crane
+   down landing, reveal from behind an obstacle, fly through a narrow aperture, reveal from blur,
+   rack focus from foreground to background, over the shoulder, handheld documentary style with
+   subtle shake, whip pan, dutch angle, leading shot tracking backward, following shot tracking
+   forward, side tracking parallel, POV first person walk, worm's eye tracking at ground level,
+   drone flyover, epic drone reveal, large scale drone orbit, top down god's eye view, FPV drone
+   aggressive dive, hyperlapse, time lapse from a fixed camera, bullet time with orbiting camera,
+   barrel roll, inception style rotating environment, static locked-off tripod.
 4. LIGHT & MOOD - lighting setup, colour palette, atmosphere, and any change in them over time.
 5. STYLE - overall look (cinematic live action, anime, stop-motion, documentary handheld, 3D render),
    film stock or lens character, depth of field.
