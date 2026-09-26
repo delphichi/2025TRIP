@@ -3,7 +3,7 @@
 
    用法：
      python3 scripts/us/phase_gen.py FTNT PANW CRWD NET ZS S OKTA
-     python3 scripts/us/phase_gen.py MSFT V MA --out ~/Desktop/payments.html --title 支付三雄
+     python3 scripts/us/phase_gen.py MSFT V MA --out ~/Desktop/payments.html --title 支付三雄 --view px
 
    ★ 三個軸（與手工版一致）：
      相位 Phase 0~4　①營收近4季YoY全正 ②近2季均YoY>前2季均 ③EPS絕對年增4季中≥3正 ④FCF同上
@@ -112,6 +112,27 @@ def pv_at(ser, day):
     g = [px/a-1 > 0, px/b-1 > 0, px/c-1 > 0, vr >= 1.0]   # ★ 26W / 13W / 4W / 量比
     return sum(g), vr, (px/a-1)*100, (px/b-1)*100, (px/c-1)*100, g
 
+def monthly_pv(ser):
+    """★★★ 近 12 個月的月度量價軌跡 —— 每點一個月。
+       x ＝ 該月日均量 ÷ 近 12 月日均量 − 1（相對量能 %）
+       y ＝ 該月漲跌幅（%）　★ 另帶該月最後收盤價，圖上標得出「那個位置是幾塊錢」。
+       ⚠ 與既有的 pvpath 不同：那條是「季動能 × 價量階」，這條是月度的。"""
+    if not ser or len(ser) < 60: return None
+    mo = {}
+    for d_, c_, v_ in ser:
+        mo.setdefault((d_.year, d_.month), []).append((d_, c_, v_))
+    ks = sorted(mo)[-13:]
+    if len(ks) < 8: return None
+    avgv = {k: (st.mean([v for _, _, v in mo[k]]) if mo[k] else 0) for k in ks}
+    base = st.mean([avgv[k] for k in ks]) or 1
+    out = []
+    for i in range(1, len(ks)):
+        pc = mo[ks[i-1]][-1][1]; cc_ = mo[ks[i]][-1][1]
+        if not pc: continue
+        out.append([round((avgv[ks[i]]/base-1)*100, 1), round((cc_/pc-1)*100, 2),
+                    f"{ks[i][0]}/{ks[i][1]:02d}", round(cc_, 2)])
+    return out or None
+
 def build(tk):
     cik, name = SF.cik_of(tk)
     if not cik: return None, f"{tk} 在 SEC 查不到 CIK（★ 只支援美股）"
@@ -161,6 +182,7 @@ def build(tk):
     brk_y, fac = detect_break(A)
     mg_q, mg_x = detect_merger(Qp.get("goodwill", {}), qs)
     q = (1 if cur["epsn"] >= 3 else 0)+(1 if cur["fcfn"] >= 3 else 0)+(1 if (rows[-1]["roe"] or -9) >= 15 else 0)
+    MPV = monthly_pv(ser)
     return dict(t=tk, n=name, ph=cur["ph"], mom=cur["mom"], q=q, s=cur["s"],
         epsn=cur["epsn"], fcfn=cur["fcfn"],
         rv4=cur["rv4"], a2=cur["a2"], b2=cur["b2"],
@@ -185,6 +207,12 @@ def build(tk):
                 for i in range(len(pvp)) if pvp[i] is not None]
                 + ([[cur["mom"], pvnow[0]]] if pvnow else []),
         nq=len(traj),
+        # ★★ 月度量價（與台股相位儀同構）：mpv 四象限、mpvpx 月收盤、pxpath 價位視角
+        mpv=[[a, b] for a, b, _, _ in (MPV or [])],
+        mpvq=[c_ for _, _, c_, _ in (MPV or [])],
+        mpvpx=[q_ for _, _, _, q_ in (MPV or [])],
+        pxpath=([[a, round((q_/MPV[0][3]-1)*100, 1)] for a, _, _, q_ in MPV]
+                if MPV and MPV[0][3] else []),
         brk=(f"{brk_y} 年 {fac}x" if brk_y else None),
         mrg=(f"{mg_q} 商譽 {mg_x}x" if mg_q else None),
         asof=str(now[0])), None
@@ -193,18 +221,25 @@ TPL = pathlib.Path(__file__).parent/"phase_tpl.html"
 
 def main():
     # ★★ 旗標的「值」也要排除，否則 --out /tmp/x.html 會把路徑當成第 7 支代號
-    av, args, out, title = sys.argv[1:], [], "phase_out.html", "相位儀"
+    av, args, out, title, view = sys.argv[1:], [], "phase_out.html", "相位儀", "ph"
     i = 0
     while i < len(av):
         a = av[i]
-        if a == "--out":     out   = av[i+1] if i+1 < len(av) else out;   i += 2
+        if a == "--view":    view  = av[i+1] if i+1 < len(av) else view; i += 2
+        elif a == "--out":   out   = av[i+1] if i+1 < len(av) else out;   i += 2
         elif a == "--title": title = av[i+1] if i+1 < len(av) else title; i += 2
         elif a.startswith("--"): i += 1
         else: args.append(a); i += 1
     # ★ #518：GitHub Actions 的 workflow_dispatch 輸入會混入 \ufeff 等不可見字元
-    tks = [t for t in (re.sub(r"[^A-Za-z0-9.\-]", "", a).upper() for a in args) if t][:7]
+    # ★ 逗號要先拆開再清字元，否則 "NVDA,AAPL" 會被清成一個 "NVDAAAPL"（實測踩到）
+    flat = [w for a in args for w in re.split(r"[,\s]+", a) if w]
+    tks, seen = [], set()
+    for w in flat:
+        t = re.sub(r"[^A-Za-z0-9.\-]", "", w).upper()
+        if t and t not in seen: seen.add(t); tks.append(t)
+    tks = tks[:7]
     if not tks: print(__doc__); sys.exit(1)
-    if len(args) > 7: print(f"★ 一頁最多 7 支，已取前 7：{' '.join(tks)}")
+    if len(flat) > 7: print(f"★ 一頁最多 7 支，已取前 7：{' '.join(tks)}")
     data, warn = [], []
     for i, t in enumerate(tks):
         print(f"  [{i+1}/{len(tks)}] {t} …", end="", flush=True)
@@ -217,6 +252,12 @@ def main():
               + (f"　★★ 重大併購 {d['mrg']}" if d["mrg"] else ""))
     if not data: print("★ 沒有任何一支成功"); sys.exit(1)
     tpl = TPL.read_text()
+    # ★ 預設開在哪個縱軸：ph 相位×動能 / pv 量價四象限 / px 價位×量能
+    if view in ("ph", "pv", "px") and view != "ph":
+        tpl = tpl.replace('let YK="ph"', f'let YK="{view}"')
+        for k in ("ph", "pv", "px"):
+            tpl = tpl.replace(f'aria-pressed="{"true" if k=="ph" else "false"}" data-y="{k}"',
+                              f'aria-pressed="{str(k==view).lower()}" data-y="{k}"')
     html = (tpl.replace("__DATA__", json.dumps(data, ensure_ascii=False))
                .replace("__TITLE__", title)
                .replace("__ASOF__", data[0]["asof"])

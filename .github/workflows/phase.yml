@@ -11,6 +11,16 @@ on:
         description: '網頁標題'
         required: false
         default: '相位儀'
+      view:
+        description: '預設開啟的視角'
+        required: false
+        default: 'ph'
+        type: choice
+        options:
+          - ph   # 基本面相位 × 動能
+          - pv   # 價量相位 × 動能
+          - mq   # 量價四象限（月）
+          - px   # 價位 × 量能
       slug:
         description: '存檔資料夾（phase/<slug>/index.html；留空＝phase/index.html）'
         required: false
@@ -32,11 +42,16 @@ jobs:
 
       - name: 產生相位儀
         env:
-          # ★ SEC 要求 UA 帶聯絡方式；設 repo secret SEC_UA 可覆蓋，
-          #   沒設就用不含個資的預設值（★★ 不要把 email 寫進公開 repo）
+          # ★ SEC 要求 UA 帶聯絡方式。★★ sec_facts._ua() 沒拿到就直接 SystemExit，
+          #   沒有「不含個資的預設值」這回事 —— repo secret SEC_UA 是必填。
+          #   （公開 repo 不要把 email 寫進檔案，所以只能走 secret）
           SEC_UA: ${{ secrets.SEC_UA }}
         run: |
           set -e
+          if [ -z "${SEC_UA:-}" ]; then
+            echo "::error::缺少 repo secret SEC_UA —— SEC 會回 403。到 Settings → Secrets and variables → Actions 新增，內容為「你的名字 你的email」。"
+            exit 1
+          fi
           # ★ #518：workflow_dispatch 輸入常混入 ﻿ 等不可見字元
           TKS=$(printf '%s' "${{ inputs.tickers }}" | tr ',;' '  ' | tr -cd 'A-Za-z0-9.\- ')
           SLUG=$(printf '%s' "${{ inputs.slug }}"   | tr -cd 'A-Za-z0-9\-_')
@@ -44,7 +59,10 @@ jobs:
           mkdir -p "$(dirname "$OUT")"
           echo "★ 標的：$TKS"
           echo "★ 輸出：$OUT"
-          python3 phase/scripts/phase_gen.py $TKS --out "$OUT" --title "${{ inputs.title }}"
+          VIEW=$(printf '%s' "${{ inputs.view }}" | tr -cd 'a-z')
+          echo "★ 視角：${VIEW:-ph}"
+          python3 phase/scripts/phase_gen.py $TKS --out "$OUT" \
+            --title "${{ inputs.title }}" --view "${VIEW:-ph}"
           echo "OUT=$OUT" >> "$GITHUB_ENV"
 
       - name: 提交

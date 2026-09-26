@@ -149,13 +149,22 @@ td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
   <div class="seg" id="seg">
     <button aria-pressed="true" data-y="ph">基本面相位</button>
     <button aria-pressed="false" data-y="pv">價量相位</button>
+    <button aria-pressed="false" data-y="mq">量價四象限</button>
+    <button aria-pressed="false" data-y="px">價位 × 量能</button>
   </div>
-  <span class="lb" style="margin-left:6px">橫軸</span>
-  <span style="font-size:12.5px;color:var(--ink2)">Momentum · Δ營收成長（pp）</span>
+  <span class="lb" style="margin-left:10px" id="pxlb">股價</span>
+  <div class="seg" id="pxseg">
+    <button aria-pressed="false" data-p="off">關</button>
+    <button aria-pressed="true"  data-p="ends">起訖</button>
+    <button aria-pressed="false" data-p="all">每點</button>
+  </div>
+  <span class="lb" style="margin-left:6px">軸</span>
+  <span style="font-size:12.5px;color:var(--ink2)" id="axd">Momentum · Δ營收成長（pp）</span>
   <span class="lb" style="margin-left:auto">軌跡</span>
   <input type="range" id="tl" min="1" max="8" step="1" value="8">
   <span class="lb" id="tlv" style="min-width:48px">8 期</span>
 </div>
+<div class="panel" id="quadbar" style="display:none;font-size:11.5px;line-height:1.6"></div>
 <div class="panel chips" id="chips"></div>
 
 <div class="panel plotwrap">
@@ -213,41 +222,93 @@ const $=i=>document.getElementById(i);
 const C=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 const dark=()=>C('--dark')==='1';
 const cc=d=>dark()?d.c2:d.c;
+let PXM="ends";   // ★ 價格標籤：off 關 / ends 起訖 / all 每個折線點
 let YK="ph", sel=D[0].t, show=new Set(D.map(d=>d.t)), pts=[];
 if(WARN.length) $('warn').innerHTML=`<div class="warn"><b>有 ${WARN.length} 支沒有納入：</b>${WARN.join('；')}</div>`;
 
+// ★★★ 四個視角各自帶軸設定 —— 不要讓 draw() 假設縱軸永遠是 0~4 階
+//   ph / pv：縱軸是「階」（離散 0~4），橫軸是季動能
+//   mq / px：縱軸是連續百分比，橫軸是月度相對量能 —— 兩者同一把尺，可直接切換對照
+const VIEW = {
+  ph: {ser:d=>d.path||[],   xcur:d=>d.mom, ycur:d=>d.ph, disc:true,
+       xl:'← 減速', xr:'加速 →', yr:'基本面相位（階）',
+       xf:v=>(v>0?'+':'')+v+'pp'},
+  pv: {ser:d=>d.pvpath||[], xcur:d=>d.mom, ycur:d=>d.pv, disc:true,
+       xl:'← 減速', xr:'加速 →', yr:'價量相位（階）',
+       xf:v=>(v>0?'+':'')+v+'pp'},
+  // ★ 月度量價四象限：右上 量增價漲、左上 量縮價漲、右下 量增價跌、左下 量縮價跌
+  mq: {ser:d=>d.mpv||[],    disc:false,
+       xl:'← 量縮', xr:'量增 →', yl:'↓ 價跌', yr:'價漲 ↑',
+       xf:v=>(v>0?'+':'')+v+'%', yf:v=>(v>0?'+':'')+v+'%',
+       lab:d=>d.px!=null?(d.n+'  '+d.px.toFixed(2)):d.n,
+       ptx:(d,i)=>(d.mpvpx&&d.mpvpx[i]!=null)?d.mpvpx[i].toFixed(2):null},
+  // ★★ 價位視角：四象限兩軸都是「當月變化率」，位置完全不記錄價格水準
+  //   （軌跡可能繞回起點附近而股價已翻倍）。這一頁把價格拉回縱軸。
+  px: {ser:d=>d.pxpath||[], disc:false,
+       xl:'← 量縮', xr:'量增 →', yl:'↓ 還在低檔', yr:'比 12 個月前貴 ↑',
+       xf:v=>(v>0?'+':'')+v+'%', yf:v=>(v>0?'+':'')+v+'%',
+       lab:d=>{if(d.px==null) return d.n;
+         const a=(d.mpvpx&&d.mpvpx.length)?d.mpvpx[0]:null;
+         const g=a?((d.px/a-1)*100):null;
+         return d.n+'  '+d.px.toFixed(2)+(g==null?'':'  '+(g>0?'▲':'▼')+Math.abs(g).toFixed(0)+'%');},
+       ptx:(d,i)=>(d.mpvpx&&d.mpvpx[i]!=null)?d.mpvpx[i].toFixed(2):null}
+};
 function draw(){
   const cv=$('cv'); if(!cv.clientWidth){requestAnimationFrame(draw);return;}
+  const V=VIEW[YK];
   const dpr=Math.min(devicePixelRatio||1,2), w=cv.clientWidth, h=Math.round(w*0.50);
   cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+'px';
   const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
-  const PL=52,PR=22,PT=44,PB=40,iw=w-PL-PR,ih=h-PT-PB;
-  // ★★ 橫軸只看「勾選中」的公司 —— 否則一支極端值（NVDA 動能曾達 -155pp）
-  //    會把其他五家全壓成一條線。取消勾選它，其餘立刻展開。
-  const vis=D.filter(d=>show.has(d.t));
-  const all=(vis.length?vis:D).flatMap(d=>(YK==='ph'?d.path:d.pvpath).map(p=>p[0]))
-              .concat((vis.length?vis:D).map(d=>d.mom));
-  const lo=Math.min(...all)-2, hi=Math.max(...all)+2;
-  const X=v=>PL+iw*(v-lo)/(hi-lo), Y=v=>PT+ih-ih*(v/4);
+  const PL=62,PR=24,PT=44,PB=44,iw=w-PL-PR,ih=h-PT-PB;
+  const NT=+$('tl').value;
+  const vis=D.filter(d=>show.has(d.t)), use=(vis.length?vis:D);
+  const pts_=use.flatMap(d=>V.ser(d).slice(-NT));
+  if(!pts_.length){x.fillStyle=C('--muted');x.font='13px system-ui,sans-serif';
+    x.textAlign='center';x.fillText('這個視角沒有可畫的資料',w/2,h/2);pts=[];return;}
+  // ── 橫軸
+  let xs=pts_.map(p=>p[0]); if(V.xcur) xs=xs.concat(use.map(V.xcur));
+  let lo=Math.min(...xs)-2, hi=Math.max(...xs)+2; if(hi-lo<1){lo-=1;hi+=1;}
+  const X=v=>PL+iw*(v-lo)/(hi-lo);
+  // ── 縱軸：離散 0~4 階，或連續百分比
+  let Y, yticks;
+  if(V.disc){ Y=v=>PT+ih-ih*(v/4); yticks=[0,1,2,3,4].map(v=>[v,v+' 階']); }
+  else{
+    let ys=pts_.map(p=>p[1]); if(V.ycur) ys=ys.concat(use.map(V.ycur));
+    let ylo=Math.min(...ys), yhi=Math.max(...ys);
+    const pad=(yhi-ylo)*0.12||1; ylo-=pad; yhi+=pad;
+    if(ylo>0) ylo=0; if(yhi<0) yhi=0;              // ★ 0 軸一定要在畫面內
+    Y=v=>PT+ih-ih*(v-ylo)/(yhi-ylo);
+    const span=yhi-ylo;
+    const st_=[0.5,1,2,3,5,10,20,25,50,100].find(s=>span/s<=8)||Math.ceil(span/8);
+    yticks=[]; for(let v=Math.ceil(ylo/st_)*st_; v<=yhi; v+=st_) yticks.push([v,(V.yf?V.yf(+v.toFixed(2)):v)]);
+  }
   x.strokeStyle=C('--grid'); x.lineWidth=1; x.fillStyle=C('--muted');
   x.font='11px "JetBrains Mono",monospace';
-  for(let i=0;i<=4;i++){const yy=Math.round(Y(i))+.5;
+  yticks.forEach(([v,lb])=>{const yy=Math.round(Y(v))+.5;
     x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
-    x.textAlign='right';x.fillText(i+' 階',PL-9,yy+4);}
+    x.textAlign='right';x.fillText(lb,PL-9,yy+4);});
+  // 0 軸虛線
   const z=Math.round(X(0))+.5;
-  x.strokeStyle=C('--line2');x.setLineDash([3,3]);
-  x.beginPath();x.moveTo(z,PT);x.lineTo(z,PT+ih);x.stroke();x.setLineDash([]);
-  x.textAlign='center';x.fillText('0',z,h-20);
-  const step=(hi-lo)>30?8:((hi-lo)>14?4:2);
+  if(z>PL&&z<w-PR){x.strokeStyle=C('--line2');x.setLineDash([3,3]);
+    x.beginPath();x.moveTo(z,PT);x.lineTo(z,PT+ih);x.stroke();x.setLineDash([]);
+    x.textAlign='center';x.fillStyle=C('--muted');x.fillText('0',z,h-22);}
+  if(!V.disc){const zy=Math.round(Y(0))+.5;
+    if(zy>PT&&zy<PT+ih){x.strokeStyle=C('--line2');x.setLineDash([3,3]);
+      x.beginPath();x.moveTo(PL,zy);x.lineTo(w-PR,zy);x.stroke();x.setLineDash([]);}}
+  const step=(hi-lo)>120?40:((hi-lo)>60?20:((hi-lo)>30?8:((hi-lo)>14?4:2)));
+  x.fillStyle=C('--muted');
   for(let v=Math.ceil(lo/step)*step; v<hi; v+=step){ if(Math.abs(v)<0.01) continue;
-    x.fillText((v>0?'+':'')+v+'pp',X(v),h-20);}
+    x.textAlign='center'; x.fillText(V.xf(+v.toFixed(1)),X(v),h-22);}
   x.font='600 11px "JetBrains Mono",monospace';
-  x.textAlign='left'; x.fillText('← 減速',PL,h-6);
-  x.textAlign='right'; x.fillText('加速 →',w-PR,h-6);
-  const NT=+$('tl').value;
+  x.textAlign='left';  x.fillText(V.xl,PL,h-6);
+  x.textAlign='right'; x.fillText(V.xr,w-PR,h-6);
+  x.save();x.translate(14,PT+ih/2);x.rotate(-Math.PI/2);x.textAlign='center';
+  x.fillText(V.yr.replace(' ↑',''),0,0);x.restore();
+  // ── 軌跡
+  const PXLAB=[], used=[];
   D.forEach((d,di)=>{
     if(!show.has(d.t)) return;
-    const src=YK==='ph'?(d.path||[]):(d.pvpath||[]), pa=src.slice(-NT);
+    const full=V.ser(d), pa=full.slice(-NT);
     if(pa.length<2) return;
     const off=((di%7)-3)*3.0;
     for(let i=1;i<pa.length;i++){
@@ -259,29 +320,63 @@ function draw(){
     pa.slice(0,-1).forEach((p,i)=>{const t=i/(pa.length-1);
       x.beginPath();x.arc(X(p[0]),Y(p[1])+off,1.6+t*1.7,0,7);
       x.fillStyle=cc(d);x.globalAlpha=0.2+t*0.45;x.fill();x.globalAlpha=1;});
+    // ★ 起點畫空心環 —— 連續軸的軌跡可能繞回起點附近，要分得出頭尾
+    if(!V.disc&&pa.length){const q0=pa[0];
+      x.beginPath();x.arc(X(q0[0]),Y(q0[1])+off,5.2,0,7);
+      x.strokeStyle=cc(d);x.lineWidth=1.6;x.globalAlpha=.75;x.stroke();
+      x.beginPath();x.arc(X(q0[0]),Y(q0[1])+off,1.5,0,7);
+      x.fillStyle=cc(d);x.fill();x.globalAlpha=1;}
+    // ★ 價格標籤（末點不收：那裡有大圓點，標籤已帶現價）
+    if(V.ptx && PXM!=='off'){
+      const st0=Math.max(0,full.length-NT), L=pa.length;
+      pa.forEach((q,i)=>{
+        if(i===L-1) return;
+        if(PXM==='ends' && i!==0) return;
+        const s_=V.ptx(d,st0+i); if(s_==null) return;
+        PXLAB.push({x:X(q[0]), y:Y(q[1])+off, s:(i===0?'起 '+s_:s_), d,
+                    a:(i===0?1:0.45+0.5*(i/(L-1))), pri:(i===0?2:1)});
+      });
+    }
   });
+  PXLAB.sort((a,b)=>b.pri-a.pri);
+  let nDrop=0;
+  PXLAB.forEach(Lb=>{
+    const ty=[Lb.y-9,Lb.y+16,Lb.y-21,Lb.y+28,Lb.y-33]
+      .find(t=>t>10&&t<h-26&&!used.some(u=>Math.abs(u.x-Lb.x)<32&&Math.abs(u.y-t)<10));
+    if(ty==null){nDrop++;return;}
+    used.push({x:Lb.x,y:ty});
+    x.font='500 9.5px "JetBrains Mono",monospace'; x.textAlign='center';
+    x.lineWidth=3; x.strokeStyle=C('--panel'); x.strokeText(Lb.s,Lb.x,ty);
+    x.fillStyle=cc(Lb.d); x.globalAlpha=Lb.a; x.fillText(Lb.s,Lb.x,ty); x.globalAlpha=1;
+  });
+  if(nDrop){x.fillStyle=C('--muted');x.font='10.5px "JetBrains Mono",monospace';
+    x.textAlign='left';x.fillText(`★ ${nDrop} 個價格標籤位置不足未顯示 —— 縮短軌跡或少勾幾支`,PL,PT-10);}
+  // ── 目前點
   pts=[]; const jit={};
-  const plan=D.filter(d=>show.has(d.t)).map((d,i)=>{
-    const yv=YK==='ph'?d.ph:d.pv, key=yv+'|'+Math.round(d.mom);
-    jit[key]=(jit[key]||0)+1;
-    const di=D.findIndex(z=>z.t===d.t);
-    return {d,px:X(d.mom),py:Y(yv)+((di%7)-3)*3.0+(jit[key]-1)*16-((jit[key]>1)?8:0),r:8+d.q*4.2};
-  });
+  const plan=D.filter(d=>show.has(d.t)).map(d=>{
+    const di=D.findIndex(z=>z.t===d.t), off=((di%7)-3)*3.0;
+    let cx,cy;
+    if(V.disc){ const yv=V.ycur(d), key=yv+'|'+Math.round(V.xcur(d));
+      jit[key]=(jit[key]||0)+1;
+      cx=X(V.xcur(d)); cy=Y(yv)+off+(jit[key]-1)*16-((jit[key]>1)?8:0); }
+    else { const c0=V.ser(d).at(-1); if(!c0) return null; cx=X(c0[0]); cy=Y(c0[1])+off; }
+    return {d,px:cx,py:cy,r:(V.disc?8+d.q*4.2:7+d.q*3.8)};
+  }).filter(Boolean);
   plan.forEach(p=>{const on=p.d.t===sel;
     x.beginPath();x.arc(p.px,p.py,p.r,0,7);
     x.fillStyle=cc(p.d);x.globalAlpha=on?.95:.65;x.fill();x.globalAlpha=1;
     x.lineWidth=on?2.4:1;x.strokeStyle=on?C('--ink'):C('--panel');x.stroke();
     pts.push(p);});
-  const used=[];
+  const GAP=V.lab?92:34;
   plan.slice().sort((a,b)=>a.px-b.px).forEach(p=>{
     const on=p.d.t===sel;
     x.font=(on?'700 ':'500 ')+'11px "JetBrains Mono",monospace'; x.textAlign='center';
     const tries=[p.py-p.r-7, p.py+p.r+13, p.py-p.r-20, p.py+p.r+26];
-    let ty=tries.find(t=>!used.some(u=>Math.abs(u.x-p.px)<34&&Math.abs(u.y-t)<11)) ?? tries[0];
-    ty=Math.max(12,ty); used.push({x:p.px,y:ty});
+    let ty=tries.find(t=>!used.some(u=>Math.abs(u.x-p.px)<GAP&&Math.abs(u.y-t)<11)) ?? tries[0];
+    ty=Math.max(12,Math.min(h-30,ty)); used.push({x:p.px,y:ty});
     if(ty>p.py){x.strokeStyle=C('--line2');x.lineWidth=1;
       x.beginPath();x.moveTo(p.px,p.py+p.r+1);x.lineTo(p.px,ty-9);x.stroke();}
-    x.fillStyle=cc(p.d); x.fillText(p.d.t,p.px,ty);
+    x.fillStyle=cc(p.d); x.fillText(V.lab?V.lab(p.d):p.d.t,p.px,ty);
   });
 }
 // ★★ 熱力圖：面積 ＝ 4 週成交金額佔比，顏色 ＝ 4 週漲跌幅（紅漲綠跌）
@@ -446,7 +541,7 @@ function rows(){
 }
 function chips(){
   $('chips').innerHTML='<span class="lb" style="margin-right:4px">顯示</span>'+
-    D.map(d=>`<button class="chip" data-t="${d.t}" aria-pressed="${show.has(d.t)}"><i style="background:${cc(d)}"></i>${d.t}</button>`).join('')+
+    D.map(d=>`<button class="chip" data-t="${d.t}" aria-pressed="${show.has(d.t)}" title="${d.t} ${d.n}"><i style="background:${cc(d)}"></i>${d.n||d.t}</button>`).join('')+
     '<button class="chip" id="c-all" style="border-style:dashed;margin-left:4px">全選</button>'+
     '<button class="chip" id="c-non" style="border-style:dashed">只看選中</button>';
   document.querySelectorAll('#chips .chip[data-t]').forEach(b=>b.addEventListener('click',()=>{
@@ -472,11 +567,41 @@ $('hm').addEventListener('click',e=>{
   const r=$('hm').getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
   const t=hmTiles.find(q=>mx>=q.x&&mx<=q.x+q.w&&my>=q.y&&my<=q.y+q.h);
   if(t) card(t.d.t);});
+const AXD={ph:'橫 Momentum · Δ營收成長（pp）× 縱 基本面相位（階）',
+           pv:'橫 Momentum · Δ營收成長（pp）× 縱 價量相位（階）',
+           mq:'橫 該月相對量能（%）× 縱 該月漲跌幅（%）',
+           px:'橫 該月相對量能（%）× 縱 相對 12 個月前的累計漲跌（%）'};
+const QUAD={
+  mq:'<b>四象限</b>右上 量增價漲｜左上 量縮價漲｜右下 量增價跌｜左下 量縮價跌　'+
+     '<b style="color:var(--acc)">★ 點上數字＝該月收盤價</b>，空心環＝起點。'+
+     '<b style="color:var(--up)">★★ 兩軸都是「當月變化率」，位置不代表價位</b>——軌跡可能繞回起點附近而股價已翻倍。',
+  px:'<b>四象限</b>右上 已漲多＋還有量（追價中）｜<b style="color:var(--up)">左上 已漲多＋量縮（量價背離）</b>｜'+
+     '<b style="color:var(--dn)">右下 還在低檔＋有量（有人承接）</b>｜左下 低檔無量（無人問津）　'+
+     '<b style="color:var(--acc)">★ 點上數字＝該月收盤價</b>，空心環＝起點，端點 ▲% ＝ 12 個月累計。'};
+function axd(){
+  const pxv = (YK==='mq'||YK==='px');
+  // ★ 季報視角最多 8 期、月度視角最多 12 個月 —— 滑桿上限與單位要跟著換
+  const tl=$('tl'), mx=pxv?12:8, unit=pxv?' 月':' 期';
+  if(+tl.max!==mx){ tl.max=mx; tl.value=mx; }
+  $('tlv').textContent = tl.value + unit;
+  tl.dataset.unit = unit;
+  $('pxseg').style.display = pxv?'':'none';
+  $('pxlb').style.display  = pxv?'':'none';
+  $('quadbar').style.display = QUAD[YK]?'':'none';
+  if(QUAD[YK]) $('quadbar').innerHTML = QUAD[YK];
+  if($('axd')) $('axd').textContent = AXD[YK];
+}
+document.querySelectorAll('#pxseg button').forEach(b=>b.addEventListener('click',()=>{
+  PXM=b.dataset.p;
+  document.querySelectorAll('#pxseg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  draw();
+}));
 document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
   YK=b.dataset.y;
   document.querySelectorAll('#seg button').forEach(z=>z.setAttribute('aria-pressed',z===b));
-  draw();}));
-$('tl').addEventListener('input',()=>{$('tlv').textContent=$('tl').value+' 期';draw();});
+  axd(); draw();}));
+$('tl').addEventListener('input',()=>{
+  $('tlv').textContent=$('tl').value+($('tl').dataset.unit||' 期');draw();});
 addEventListener('resize',()=>{draw();drawHM();});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{rows();chips();card(sel);drawHM();});
 function render(){
@@ -488,9 +613,9 @@ function render(){
   document.querySelector('.plotwrap').style.display = has?'':'none';
   document.querySelector('.bar').style.display = has?'':'none';
   document.getElementById('chips').style.display = has?'':'none';
-  if(!has) return;
+  if(!has){ $('quadbar').style.display='none'; return; }
   show=new Set(D.map(d=>d.t)); sel=D[0].t;
-  rows(); chips(); card(D[0].t); drawHM();
+  rows(); chips(); card(D[0].t); axd(); drawHM();
 }
 
 const ST=$('st'), GO=$('go'), IN=$('tks');
