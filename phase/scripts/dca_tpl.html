@@ -1,0 +1,477 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+:root{
+  --paper:#eef1f5; --card:#fafbfc; --ink:#111820; --ink2:#46566b; --ink3:#7b8b9f;
+  --rule:#d5dde6; --rule2:#e6ecf2;
+  --tr:#c8342b; --cash:#d9a119; --pr:#2c6fb5; --base:#2f8a4f;
+  --c5:#7a4fa3; --c6:#0f7b86; --fill:rgba(200,52,43,.10);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#0d1219; --card:#151d27; --ink:#e7edf4; --ink2:#a2b1c2; --ink3:#6d7d90;
+  --rule:#26313d; --rule2:#1b232e;
+  --tr:#f2635a; --cash:#f0c04a; --pr:#5ba3e8; --base:#4fbe78;
+  --c5:#b48ad6; --c6:#4fc3cf; --fill:rgba(242,99,90,.14);
+}}
+:root[data-theme="dark"]{
+  --paper:#0d1219; --card:#151d27; --ink:#e7edf4; --ink2:#a2b1c2; --ink3:#6d7d90;
+  --rule:#26313d; --rule2:#1b232e;
+  --tr:#f2635a; --cash:#f0c04a; --pr:#5ba3e8; --base:#4fbe78;
+  --c5:#b48ad6; --c6:#4fc3cf; --fill:rgba(242,99,90,.14);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Noto Sans TC",system-ui,sans-serif;font-size:15.5px;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:980px;margin:0 auto;padding:52px 22px 90px}
+h1,h2,h3{font-family:"Noto Serif TC",Georgia,serif;text-wrap:balance;margin:0}
+h1{font-weight:900;font-size:clamp(32px,6vw,54px);line-height:1.12;letter-spacing:-.02em}
+h2{font-weight:700;font-size:22px} h3{font-weight:700;font-size:17px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--ink3);font-weight:500}
+header{border-bottom:2px solid var(--ink);padding-bottom:26px}
+.lede{color:var(--ink2);font-size:17px;margin-top:15px;max-width:60ch}
+p{margin:0 0 15px;max-width:66ch}
+
+/* ── 區間控制：整頁都由它驅動，所以放在最上面且黏著 ── */
+.ctl{position:sticky;top:0;z-index:20;background:var(--card);border:1px solid var(--rule);
+  border-top:0;padding:13px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.ctl label{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink3)}
+.ctl select{font:inherit;font-size:14px;font-family:"IBM Plex Mono",monospace;
+  padding:5px 9px;border:1px solid var(--rule);border-radius:2px;
+  background:var(--paper);color:var(--ink)}
+.pre{display:flex;gap:0;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+.pre button{font:inherit;font-size:12.5px;padding:5px 11px;border:0;background:transparent;
+  color:var(--ink2);cursor:pointer;white-space:nowrap}
+.pre button:hover{background:var(--rule2)}
+.ctl .n{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink2)}
+.ctl button:focus-visible,.ctl select:focus-visible{outline:2px solid var(--tr);outline-offset:2px}
+
+.punch{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);
+  border-top:0;background:var(--card);margin-bottom:10px}
+@media(max-width:640px){.punch{grid-template-columns:1fr}}
+.punch>div{padding:22px 24px}
+.punch>div+div{border-left:1px solid var(--rule)}
+@media(max-width:640px){.punch>div+div{border-left:0;border-top:1px solid var(--rule)}}
+.big{font-family:"IBM Plex Mono",monospace;font-size:clamp(36px,6.5vw,50px);font-weight:600;
+  line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:10px 0 8px;color:var(--tr)}
+.punch p{margin:0;font-size:14px;color:var(--ink2);line-height:1.65;max-width:none}
+
+section{margin:46px 0}
+.shead{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink);
+  padding-bottom:9px;margin-bottom:20px}
+.snum{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;color:var(--tr)}
+.panel{border:1px solid var(--rule);background:var(--card);padding:16px 16px 8px;margin-bottom:20px}
+.ptitle{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.ptitle b{font-family:"Noto Serif TC",serif;font-size:19px}
+.ptitle span{font-size:12.5px;color:var(--ink3);font-family:"IBM Plex Mono",monospace}
+canvas{width:100%;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);
+  padding:10px 2px 4px;border-top:1px solid var(--rule2);margin-top:8px}
+.legend i{display:inline-block;width:20px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.legend .sw{display:inline-block;width:16px;height:11px;background:var(--fill);
+  border:1px solid var(--tr);vertical-align:middle;margin-right:6px}
+
+.tw{overflow-x:auto;border:1px solid var(--rule);background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:620px}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--rule2);white-space:nowrap}
+th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink3);font-weight:600;border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:500}
+tr.hi td{background:color-mix(in srgb,var(--tr) 8%,transparent)}
+tr.hi td:first-child{font-weight:700}
+tr.lo td{background:color-mix(in srgb,var(--pr) 10%,transparent)}
+tr.gap td{background:var(--fill);font-weight:700}
+tr.gap td:first-child{color:var(--tr)}
+.sub-h{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink3);padding:13px 12px 5px;border-bottom:1px solid var(--rule)}
+caption{caption-side:bottom;text-align:left;padding:11px 12px;font-size:12.5px;color:var(--ink3);line-height:1.6}
+
+.pxchips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.pxchips button{font:inherit;font-size:12.5px;padding:4px 11px;border:1px solid var(--rule);
+  border-radius:2px;background:transparent;color:var(--ink3);cursor:pointer;
+  font-family:"IBM Plex Mono",monospace;display:inline-flex;align-items:center;gap:6px}
+.pxchips button i{width:16px;height:3px;border-radius:2px;background:currentColor;opacity:.35}
+.pxchips button[aria-pressed="true"]{border-color:currentColor;font-weight:700}
+.pxchips button[aria-pressed="true"] i{opacity:1}
+.pxchips button:focus-visible{outline:2px solid var(--tr);outline-offset:2px}
+.seg{display:flex;gap:0;border:1px solid var(--rule);border-radius:2px;overflow:hidden;width:fit-content}
+.seg .tb{font:inherit;font-size:13px;padding:6px 16px;border:0;background:transparent;
+  color:var(--ink2);cursor:pointer;font-family:"IBM Plex Mono",monospace}
+.seg .tb[aria-pressed="true"]{background:var(--tr);color:#fff;font-weight:700}
+#mtab{border-collapse:collapse;width:100%;font-size:12.5px;min-width:880px}
+#mtab th{position:sticky;top:0;background:var(--card);z-index:1;font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;color:var(--ink3);font-weight:600;padding:8px 9px;text-align:right;
+  border-bottom:1px solid var(--rule);white-space:nowrap}
+#mtab td{padding:5px 9px;text-align:right;border-bottom:1px solid var(--rule2);white-space:nowrap;
+  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+#mtab th:first-child,#mtab td:first-child{text-align:left}
+#mtab tr.dv td{background:var(--fill)}
+#mtab td.d{color:var(--tr);font-weight:600}
+#mtab td.a{color:var(--tr)} #mtab td.c{color:var(--pr)}
+
+.warn{border-left:3px solid var(--cash);background:color-mix(in srgb,var(--cash) 10%,transparent);
+  padding:17px 21px;margin:22px 0}
+.warn h3{margin:0 0 9px} .warn p{margin:0 0 10px;font-size:14.5px;color:var(--ink2)}
+.warn p:last-child{margin:0}
+ul{margin:0 0 15px;padding-left:20px;max-width:66ch} li{margin-bottom:9px;color:var(--ink2)}
+li b{color:var(--ink)}
+.k{font-family:"IBM Plex Mono",monospace;font-size:.93em;background:var(--rule2);padding:1px 6px;border-radius:2px}
+footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
+  font-size:12.5px;color:var(--ink3);line-height:1.8}
+</style>
+</head><body>
+<div class="wrap">
+<header>
+  <div class="eyebrow" id="eyebrow"></div>
+  <h1>__TITLE__</h1>
+  <p class="lede">每個月固定金額買進，算三種情境：<b>配息再投入</b>、<b>配息領現金</b>、
+    <b>完全不算配息</b>。第三種就是大多數人在看盤軟體上看到的數字 —— 起迄可以自己調。</p>
+</header>
+
+<div class="ctl">
+  <label for="s0">起</label><select id="s0"></select>
+  <label for="s1">迄</label><select id="s1"></select>
+  <div class="pre" id="pre">
+    <button data-p="all">全期</button><button data-p="15">近 15 年</button>
+    <button data-p="10">近 10 年</button><button data-p="5">近 5 年</button>
+    <button data-p="3">近 3 年</button>
+  </div>
+  <span class="n" id="nsum"></span>
+</div>
+<div id="warn"></div>
+<div class="punch" id="punch"></div>
+<p id="clampnote" style="display:none;font-size:13px;color:var(--cash);margin:10px 0 0"></p>
+
+<section>
+  <div class="shead"><span class="snum">01</span><h2>資產長什麼樣子</h2></div>
+  <p>綠線是投入的本金，每個月往上一階。三條曲線是同一筆投資的三種算法
+    —— <b>紅色區域就是配息造成的差距</b>。</p>
+  <div id="curves"></div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">02</span><h2>數字</h2></div>
+  <div class="tw"><table>
+    <caption>年化報酬用 <b>IRR（資金加權）</b>，不是總報酬開根號 —— 錢是分好幾十次進場的，
+      最後一筆只放了一個月，用簡單 CAGR 會嚴重低估。最大回撤為資產淨值曲線的峰到谷。<br>
+      ★ <b>B 與 C 的最終持有股數相同</b>：兩者都只用每月固定金額買進，差別在 B 把配息留成現金
+      （列於最終資產內），C 則完全當它不存在。<b>只有 A 的股數會因為配息再買回而增加。</b>
+      <span id="mixnote"></span></caption>
+    <thead><tr><th>情境</th><th>最終資產</th><th>總報酬</th><th>年化 IRR</th><th>最大回撤</th><th>最終持有股數</th></tr></thead>
+    <tbody id="stat"></tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">03</span><h2>價位 × 量能</h2></div>
+  <p>橫軸是<b>該月成交金額相對這段期間的平均</b>，縱軸是<b>相對起點的累計總報酬</b>。
+    空心環是起點，實心點是現在。<b>這張圖回答的是「漲上來的時候，有沒有人在買」。</b></p>
+  <div class="panel">
+    <div class="pxchips" id="pxchips"></div>
+    <canvas id="cpx" role="img" aria-label="價位 × 量能軌跡圖"></canvas>
+    <div class="legend"><span style="color:var(--ink3)">右上 已漲多＋有量　左上 已漲多＋量縮（背離）　右下 還在低檔＋有量　左下 低檔無量</span></div>
+    <p style="font-size:12px;color:var(--cash);margin:6px 2px 8px" id="vnote"></p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">04</span><h2>逐月數據</h2></div>
+  <p>每月第一個交易日買進。<b>配息欄是當月實際入帳的現金</b>；
+    「配息再買入」是那筆現金在除息日收盤價買回的股數 —— 這一欄累積起來，
+    就是兩條曲線分岔的全部原因。</p>
+  <div class="panel" style="padding:14px">
+    <div class="seg" id="mtabs" style="margin-bottom:12px"></div>
+    <div style="max-height:560px;overflow:auto;border:1px solid var(--rule)">
+      <table id="mtab"></table>
+    </div>
+    <p style="font-size:12px;color:var(--ink3);margin:10px 2px 0" id="mnote"></p>
+  </div>
+</section>
+
+<div class="panel note" style="padding:18px 22px">
+  <h2 class="h2" style="margin:0 0 10px">口徑與已知陷阱</h2>
+  <ul>
+    <li><b>★ 無償配股／分割斷點會自動偵測並修正。</b>Yahoo 對 0050 在 2014-01-02 有 4.010 倍跳空，
+      而且它記錄的 splits 是 0、連 Adj Close 都是壞的 —— 不修的話跨過該日的定期定額會憑空蒸發四分之三。
+      判準是「價格跳空接近某個單純比例 <b>且成交金額在同一天是連續的</b>」，
+      真實崩盤會讓成交金額同步變化，因此不會被誤修。<span id="brknote"></span></li>
+    <li><b>報酬率用 IRR。</b>錢是分 N 次進場的，用總報酬開根號會嚴重低估。</li>
+    <li><b>量能用成交金額</b>（收盤 × 成交股數）而非張數 —— 分割會改變張數的計數單位。
+      ★ Yahoo 對部分台股 ETF 早年沒有成交量資料，「價位 × 量能」會自動裁切並標示。</li>
+    <li><b>沒有算進去：</b>稅（配息併入綜所稅、單筆逾兩萬扣 2.11% 補充保費）、手續費、匯費。
+      配息越多的標的受影響越大。</li>
+    <li><b>這是回測不是預測。</b>拉不同區間會得到完全不同的數字，這正是要自己調的原因。</li>
+  </ul>
+</div>
+
+<footer>
+  <div class="mono">資料來源</div>
+  價格、成交量與配息皆取自 Yahoo Finance。每月第一個交易日買進，資產以當月最後交易日收盤結算；
+  配息於除息當日按持股數入帳，「再投入」以除息日收盤價買回。<b>回測結果不代表未來。</b>
+</footer>
+</div>
+
+<script>
+const D=__DATA__, ORDER=__ORDER__, AMT=__AMT__, WARN=__WARN__, MIXED=__MIXED__;
+const $=i=>document.getElementById(i);
+const C=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+const NF=v=>Math.round(v).toLocaleString();
+const cc=t=>C(D[t].c);
+function money(v){
+  if(Math.abs(v)>=1e8) return (v/1e8).toFixed(2)+' 億';
+  if(Math.abs(v)>=1e4) return Math.round(v/1e4).toLocaleString()+' 萬';
+  return Math.round(v).toLocaleString();
+}
+if(WARN.length) $('warn').innerHTML=`<div class="warn" style="margin:12px 0"><b>有 ${WARN.length} 支沒有納入：</b>${WARN.join('；')}</div>`;
+$('eyebrow').textContent=`每月 ${NF(AMT)} · 定期定額 · ${ORDER.join(' / ')}`;
+if(MIXED) $('mixnote').innerHTML='<br>★ <b>本頁混用了不同計價幣別</b> —— 最終資產的絕對金額不可跨標的比較，只有 % 與 IRR 可比。';
+const bl=ORDER.filter(t=>D[t].brk.length);
+if(bl.length) $('brknote').innerHTML='<b style="color:var(--cash)"> 本頁實際修正：'+
+  bl.map(t=>`${t} ${D[t].brk.map(b=>b[0]+' ×'+b[1]).join('、')}`).join('；')+'</b>';
+
+// ★ 定期定額的報酬率必須用 IRR —— 錢是分 N 次進場的
+function irr(n,fin){let lo=-0.99,hi=3;
+  const f=r=>{let s=0;for(let i=0;i<n;i++)s-=AMT/Math.pow(1+r,i/12);
+    return s+fin/Math.pow(1+r,(n-1)/12);};
+  for(let i=0;i<200;i++){const m=(lo+hi)/2; if(f(m)>0) lo=m; else hi=m;}
+  return (lo+hi)/2*100;}
+function mdd(a){let pk=-Infinity,w=0;for(const v of a){pk=Math.max(pk,v);w=Math.min(w,(v-pk)/pk);}return w*100;}
+function sim(t,i0,i1){
+  const rec=D[t].m; let shP=0,shR=0,cash=0,inv=0;
+  const o={ym:[],px:[],nb:[],shP:[],shR:[],div:[],dsh:[],inv:[],A:[],B:[],Cv:[]};
+  for(let i=i0;i<=i1;i++){
+    const [ym,bp,ep,ds]=rec[i];
+    inv+=AMT; const nb=AMT/bp; shP+=nb; shR+=nb;
+    let dc=0,dsh=0;
+    for(const [amt,dp] of ds){ dc+=shP*amt; if(dp){const g=shR*amt/dp; dsh+=g; shR+=g;} }
+    cash+=dc;
+    o.ym.push(ym);o.px.push(bp);o.nb.push(nb);o.shP.push(shP);o.shR.push(shR);
+    o.div.push(dc);o.dsh.push(dsh);o.inv.push(inv);
+    o.A.push(shR*ep);o.B.push(shP*ep+cash);o.Cv.push(shP*ep);
+  }
+  o.n=i1-i0+1; o.cash=cash;
+  for(const k of ["A","B","Cv"]) o[k+"_"]={fin:o[k][o.n-1],irr:irr(o.n,o[k][o.n-1]),mdd:mdd(o[k])};
+  return o;
+}
+const ALL=[...new Set(ORDER.flatMap(t=>D[t].m.map(r=>r[0])))].sort();
+const S0=$('s0'),S1=$('s1');
+ALL.forEach(m=>{S0.add(new Option(m,m));S1.add(new Option(m,m));});
+S0.value=ALL[0]; S1.value=ALL[ALL.length-1];
+let SIM={},TABKEY=ORDER[0];
+let PXON=new Set(ORDER.slice(0,Math.min(3,ORDER.length)));
+function bounds(t){const rec=D[t].m;
+  let i0=rec.findIndex(r=>r[0]>=S0.value); let i1=rec.length-1;
+  while(i1>0&&rec[i1][0]>S1.value) i1--;
+  return (i0<0||i0>i1)?null:[i0,i1];}
+
+function plot(t){
+  const cv=$('cv_'+t); if(!cv||!cv.clientWidth){requestAnimationFrame(()=>plot(t));return;}
+  const d=SIM[t],n=d?d.n:0;
+  const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
+        h=Math.round(Math.min(400,Math.max(240,w*0.44)));
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  if(!n){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
+    x.fillText('這個區間沒有資料',w/2,h/2);return;}
+  const PL=68,PR=14,PT=16,PB=28,iw=w-PL-PR,ih=h-PT-PB;
+  const max=Math.max(...d.A)*1.05;
+  const X=i=>n===1?PL+iw/2:PL+iw*i/(n-1),Y=v=>PT+ih-ih*v/max;
+  let stp=Math.pow(10,Math.floor(Math.log10(max)));
+  while(max/stp>6)stp*=2; while(max/stp<3)stp/=2;
+  x.font='11px "IBM Plex Mono",monospace';x.textAlign='right';
+  for(let v=0;v<=max;v+=stp){const yy=Math.round(Y(v))+.5;
+    x.strokeStyle=C('--rule2');x.lineWidth=1;x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+    x.fillStyle=C('--ink3');x.fillText(money(v),PL-8,yy+4);}
+  if(n>1){x.beginPath();x.moveTo(X(0),Y(d.A[0]));
+    for(let i=1;i<n;i++)x.lineTo(X(i),Y(d.A[i]));
+    for(let i=n-1;i>=0;i--)x.lineTo(X(i),Y(d.Cv[i]));
+    x.closePath();x.fillStyle=C('--fill');x.fill();}
+  const line=(a,c2,wd)=>{x.beginPath();x.moveTo(X(0),Y(a[0]));
+    for(let i=1;i<n;i++)x.lineTo(X(i),Y(a[i]));
+    x.strokeStyle=c2;x.lineWidth=wd;x.lineJoin='round';x.stroke();};
+  line(d.inv,C('--base'),2.0); line(d.Cv,C('--pr'),2.2);
+  line(d.B,C('--cash'),2.2);   line(d.A,C('--tr'),2.9);
+  x.textAlign='center';x.fillStyle=C('--ink3');
+  const yrs=n/12,step=yrs>14?3:(yrs>7?2:1);
+  d.ym.forEach((m,i)=>{const[y,mo]=m.split('-');
+    if(mo==='01'&&(+y)%step===0)x.fillText(y,X(i),h-9);});
+  x.textAlign='right';x.font='600 11.5px "IBM Plex Mono",monospace';
+  x.fillStyle=C('--tr');x.fillText(money(d.A[n-1]),w-PR-2,Math.max(PT+11,Y(d.A[n-1])-5));
+  x.fillStyle=C('--pr');x.fillText(money(d.Cv[n-1]),w-PR-2,Math.min(h-PB-2,Y(d.Cv[n-1])+14));
+}
+function plotPX(){
+  const cv=$('cpx'); if(!cv.clientWidth){requestAnimationFrame(plotPX);return;}
+  const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
+        h=Math.round(Math.min(460,Math.max(280,w*0.52)));
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  const PL=64,PR=20,PT=20,PB=40,iw=w-PL-PR,ih=h-PT-PB;
+  const T={};let note=[];
+  for(const t of ORDER){
+    if(!PXON.has(t)) continue;
+    const b=bounds(t); if(!b) continue;
+    const rec=D[t].m,v=D[t].v,tri=D[t].tri,v0=D[t].v0,base=tri[b[0]],pts=[];
+    for(let i=b[0];i<=b[1];i++){
+      if(v0&&rec[i][0]<v0) continue;
+      if(!(v[i]>=0.001)) continue;
+      pts.push({ym:rec[i][0],amt:v[i],ret:(tri[i]/base-1)*100,px:rec[i][2]});}
+    if(!pts.length) continue;
+    const mean=pts.reduce((a,p)=>a+p.amt,0)/pts.length;
+    pts.forEach(p=>p.rv=(p.amt/mean-1)*100);
+    T[t]=pts;
+    if(v0&&rec[b[0]][0]<v0) note.push(`${t} 的成交量資料自 ${v0} 才開始`);
+    else if(rec[0][0]>S0.value) note.push(`${t} 自 ${rec[0][0]} 才有資料`);
+  }
+  const ks=Object.keys(T);
+  if(!ks.length){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
+    x.fillText('這個區間沒有成交量資料',w/2,h/2);$('vnote').textContent='';return;}
+  $('vnote').textContent=note.length?'★ '+note.join('；')+'，此圖已自動裁切，起點與上方曲線圖不同。':'';
+  const aX=ks.flatMap(k=>T[k].map(p=>p.rv)),aY=ks.flatMap(k=>T[k].map(p=>p.ret));
+  let xlo=Math.min(...aX),xhi=Math.max(...aX),ylo=Math.min(...aY),yhi=Math.max(...aY);
+  const px_=(xhi-xlo)*.1||10,py=(yhi-ylo)*.1||10;
+  xlo-=px_;xhi+=px_;ylo-=py;yhi+=py;
+  if(xlo>0)xlo=0;if(xhi<0)xhi=0;if(ylo>0)ylo=0;if(yhi<0)yhi=0;
+  const X=v=>PL+iw*(v-xlo)/(xhi-xlo),Y=v=>PT+ih-ih*(v-ylo)/(yhi-ylo);
+  const tick=sp=>{let s=Math.pow(10,Math.floor(Math.log10(sp)));while(sp/s>7)s*=2;while(sp/s<3)s/=2;return s;};
+  x.font='11px "IBM Plex Mono",monospace';
+  const ys=tick(yhi-ylo);x.textAlign='right';
+  for(let v=Math.ceil(ylo/ys)*ys;v<=yhi;v+=ys){const yy=Math.round(Y(v))+.5;
+    x.strokeStyle=C('--rule2');x.lineWidth=1;x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+    x.fillStyle=C('--ink3');x.fillText((v>0?'+':'')+Math.round(v)+'%',PL-8,yy+4);}
+  const xs=tick(xhi-xlo);x.textAlign='center';
+  for(let v=Math.ceil(xlo/xs)*xs;v<=xhi;v+=xs){x.fillStyle=C('--ink3');
+    x.fillText((v>0?'+':'')+Math.round(v)+'%',X(v),h-22);}
+  x.setLineDash([3,3]);x.strokeStyle=C('--rule');
+  if(X(0)>PL&&X(0)<w-PR){x.beginPath();x.moveTo(X(0),PT);x.lineTo(X(0),PT+ih);x.stroke();}
+  if(Y(0)>PT&&Y(0)<PT+ih){x.beginPath();x.moveTo(PL,Y(0));x.lineTo(w-PR,Y(0));x.stroke();}
+  x.setLineDash([]);
+  x.font='600 11px "IBM Plex Mono",monospace';x.fillStyle=C('--ink3');
+  x.textAlign='left';x.fillText('← 量縮',PL,h-7);
+  x.textAlign='right';x.fillText('量增 →',w-PR,h-7);
+  x.save();x.translate(14,PT+ih/2);x.rotate(-Math.PI/2);x.textAlign='center';
+  x.fillText('累計總報酬',0,0);x.restore();
+  for(const t of ks){
+    const P=T[t],col=cc(t);
+    for(let i=1;i<P.length;i++){const q=i/(P.length-1);
+      x.beginPath();x.moveTo(X(P[i-1].rv),Y(P[i-1].ret));x.lineTo(X(P[i].rv),Y(P[i].ret));
+      x.strokeStyle=col;x.lineWidth=0.7+q*2.4;x.globalAlpha=.14+q*.56;x.lineCap='round';x.stroke();x.globalAlpha=1;}
+    P.slice(1,-1).forEach((p,i)=>{const q=i/(P.length-1);
+      x.beginPath();x.arc(X(p.rv),Y(p.ret),1.5+q*1.5,0,7);
+      x.fillStyle=col;x.globalAlpha=.2+q*.45;x.fill();x.globalAlpha=1;});
+    const a=P[0],z=P[P.length-1];
+    x.beginPath();x.arc(X(a.rv),Y(a.ret),5.4,0,7);x.strokeStyle=col;x.lineWidth=1.7;x.globalAlpha=.8;x.stroke();x.globalAlpha=1;
+    x.beginPath();x.arc(X(a.rv),Y(a.ret),1.5,0,7);x.fillStyle=col;x.fill();
+    x.beginPath();x.arc(X(z.rv),Y(z.ret),7.5,0,7);x.fillStyle=col;x.globalAlpha=.9;x.fill();x.globalAlpha=1;
+    x.lineWidth=1.4;x.strokeStyle=C('--card');x.stroke();
+    x.font='700 11.5px "IBM Plex Mono",monospace';x.fillStyle=col;x.textAlign='center';
+    x.lineWidth=3;x.strokeStyle=C('--card');
+    const lb=D[t].nm+'  '+z.px.toFixed(2);
+    x.strokeText(lb,X(z.rv),Y(z.ret)-13);x.fillText(lb,X(z.rv),Y(z.ret)-13);
+    x.font='500 9.5px "IBM Plex Mono",monospace';
+    x.strokeText('起 '+a.ym,X(a.rv),Y(a.ret)-11);x.fillText('起 '+a.ym,X(a.rv),Y(a.ret)-11);
+  }
+}
+function pxchips(){
+  $('pxchips').innerHTML=ORDER.map(t=>
+    `<button data-k="${t}" aria-pressed="${PXON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
+  $('pxchips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.k;
+    if(PXON.has(t)&&PXON.size>1) PXON.delete(t); else PXON.add(t);
+    pxchips();plotPX();}));
+}
+function mtab(){
+  const d=SIM[TABKEY];
+  const H=['買入日','股價','每期買到<br>股數','累計股數<br>(定額)','當月配息',
+    '配息再買入<br>股數','累計股數<br>(含再投入)','累計投入','現有資產<br>(不含息)','配息後資產<br>(再投入)'];
+  if(!d||!d.n){$('mtab').innerHTML='';$('mnote').textContent='這個區間沒有資料。';return;}
+  let h='<thead><tr>'+H.map(t=>`<th>${t}</th>`).join('')+'</tr></thead><tbody>';
+  for(let i=0;i<d.n;i++){const hd=d.div[i]>0;
+    h+=`<tr class="${hd?'dv':''}"><td>${d.ym[i]}</td><td>${d.px[i].toFixed(2)}</td>`+
+       `<td>${d.nb[i].toFixed(1)}</td><td>${NF(d.shP[i])}</td>`+
+       `<td class="${hd?'d':''}">${hd?NF(d.div[i]):'—'}</td>`+
+       `<td class="${hd?'d':''}">${hd?d.dsh[i].toFixed(1):'—'}</td>`+
+       `<td>${NF(d.shR[i])}</td><td>${NF(d.inv[i])}</td>`+
+       `<td class="c">${NF(d.Cv[i])}</td><td class="a">${NF(d.A[i])}</td></tr>`;}
+  $('mtab').innerHTML=h+'</tbody>';
+  $('mnote').textContent=`共 ${d.n} 列（${D[TABKEY].nm}　計價 ${D[TABKEY].ccy}）。★ 股數與資產皆為當月底結算；股價為買入當日收盤。`;
+}
+function render(){
+  if(S0.value>S1.value){const t=S0.value;S0.value=S1.value;S1.value=t;}
+  SIM={};const clamp=[];
+  for(const t of ORDER){const b=bounds(t);
+    SIM[t]=b?sim(t,b[0],b[1]):{n:0};
+    if(b&&D[t].m[b[0]][0]!==S0.value) clamp.push(`${t} 的資料從 ${D[t].m[b[0]][0]} 才開始`);}
+  const cn=$('clampnote');
+  if(clamp.length){cn.style.display='';cn.textContent='★ '+clamp.join('；')+'，該檔已自動貼齊，各標的區間因此不同。';}
+  else cn.style.display='none';
+  const any=ORDER.find(t=>SIM[t].n);
+  $('nsum').textContent=any?`${SIM[any].n} 個月　投入 ${NF(SIM[any].inv[SIM[any].n-1])}`:'無資料';
+  // punchline
+  $('punch').innerHTML=ORDER.map(t=>{const d=SIM[t];
+    if(!d.n) return `<div><div class="eyebrow">${D[t].nm}</div><div class="big">—</div><p>這個區間沒有資料。</p></div>`;
+    const g=d.A_.fin-d.Cv_.fin,pct=g/d.A_.fin*100;
+    return `<div><div class="eyebrow">${D[t].nm}　配息佔最終資產</div>
+      <div class="big" style="color:${cc(t)}">${pct.toFixed(1)}%</div>
+      <p>${money(d.A_.fin)}裡有 <b>${money(g)}</b>是配息帶來的。<br>
+      只看股價的人，看到的是 ${money(d.Cv_.fin)}。</p></div>`;}).join('');
+  $('punch').style.gridTemplateColumns=`repeat(${Math.min(ORDER.length,3)},1fr)`;
+  // 曲線
+  $('curves').innerHTML=ORDER.map(t=>{const d=SIM[t];
+    return `<div class="panel"><div class="ptitle"><b>${D[t].nm}</b>
+      <span>${d.n?`${d.ym[0]} ~ ${d.ym[d.n-1]}　${d.n} 個月　${D[t].ccy}`:'無資料'}</span></div>
+      <canvas id="cv_${t}" role="img" aria-label="${D[t].nm} 資產成長曲線"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--tr)"></i>含息 · 配息再投入</span>
+        <span><i style="background:var(--cash)"></i>含息 · 配息領現金</span>
+        <span><i style="background:var(--pr)"></i>不含息 · 只看股價</span>
+        <span><i style="background:var(--base)"></i>累計投入本金</span>
+        <span><span class="sw"></span>配息貢獻</span></div></div>`;}).join('');
+  // 統計
+  const NM={A:['A　含息 · 配息再投入','hi'],B:['B　含息 · 配息領現金',''],Cv:['C　不含息 · 只看股價','lo']};
+  let h='';
+  for(const t of ORDER){const d=SIM[t];
+    h+=`<tr><td colspan="6" class="sub-h">${D[t].nm}　·　${D[t].ccy}</td></tr>`;
+    if(!d.n){h+='<tr><td colspan="6" style="text-align:left;color:var(--ink3)">這個區間沒有資料</td></tr>';continue;}
+    const inv=d.inv[d.n-1];
+    for(const s of ["A","B","Cv"]){const r=d[s+"_"],[lb,cl]=NM[s];
+      const sh=s==="A"?d.shR[d.n-1]:d.shP[d.n-1];
+      const ex=s==="B"?`<span style="color:var(--cash);font-size:11px"> 含現金 ${NF(d.cash)}</span>`:'';
+      h+=`<tr class="${cl}"><td>${lb}</td><td class="num">${NF(r.fin)}${ex}</td>`+
+         `<td class="num">${(r.fin/inv-1>=0?'+':'')+((r.fin/inv-1)*100).toFixed(1)}%</td>`+
+         `<td class="num">${r.irr.toFixed(2)}%</td><td class="num">${r.mdd.toFixed(1)}%</td>`+
+         `<td class="num">${NF(sh)}</td></tr>`;}
+    const g=d.A_.fin-d.Cv_.fin;
+    h+=`<tr class="gap"><td>★ 配息貢獻（A − C）</td><td class="num">${NF(g)}</td>`+
+       `<td class="num">佔 ${(g/d.A_.fin*100).toFixed(1)}%</td>`+
+       `<td class="num">+${(d.A_.irr-d.Cv_.irr).toFixed(2)}pp</td><td class="num">—</td>`+
+       `<td class="num">+${NF(d.shR[d.n-1]-d.shP[d.n-1])} <span style="font-weight:400;font-size:11px;color:var(--ink3)">(+${((d.shR[d.n-1]/d.shP[d.n-1]-1)*100).toFixed(1)}%)</span></td></tr>`;}
+  $('stat').innerHTML=h;
+  // 逐月分頁
+  $('mtabs').innerHTML=ORDER.map(t=>
+    `<button class="tb" data-k="${t}" aria-pressed="${t===TABKEY}">${t}</button>`).join('');
+  $('mtabs').querySelectorAll('.tb').forEach(b=>b.addEventListener('click',()=>{
+    TABKEY=b.dataset.k;
+    $('mtabs').querySelectorAll('.tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
+    mtab();}));
+  mtab(); pxchips(); ORDER.forEach(plot); plotPX();
+}
+S0.addEventListener('change',render);S1.addEventListener('change',render);
+$('pre').addEventListener('click',e=>{const p=e.target.dataset&&e.target.dataset.p;if(!p)return;
+  S1.value=ALL[ALL.length-1];
+  S0.value = p==='all' ? ALL[0] : ALL[Math.max(0,ALL.length-(+p)*12)];
+  render();});
+addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();});
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
+render();
+</script>
+</body></html>
