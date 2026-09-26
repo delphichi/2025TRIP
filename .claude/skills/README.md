@@ -5,6 +5,7 @@
 | `fal-image-gen` | 本專案自製 | 透過 FAL AI 生成／編輯圖片與影片（生成式素材） |
 | `remotion-*`（12 個） | [remotion-dev/skills](https://github.com/remotion-dev/skills) | 用 React 程式碼合成影片（時間軸、轉場、字幕、資料動畫、輸出 MP4） |
 | `impeccable` | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | 前端設計品質：審查、批評、打磨、動畫、配色、字體排印 |
+| `visual-worlds` | 本專案自製 | 七套可套用的網頁視覺世界（版面＋字體＋已驗算對比的色票） |
 
 兩者互補：**FAL 生素材 → Remotion 組裝成完整影片**。
 
