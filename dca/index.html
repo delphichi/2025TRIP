@@ -6,19 +6,19 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
 <style>
 :root{
-  --paper:#eef1f5; --card:#fafbfc; --ink:#111820; --ink2:#46566b; --ink3:#7b8b9f;
+  --paper:#eef1f5; --card:#fafbfc; --ink:#111820; --ink2:#46566b; --ink3:#5a6b80;
   --rule:#d5dde6; --rule2:#e6ecf2;
   --tr:#c8342b; --cash:#d9a119; --pr:#2c6fb5; --base:#2f8a4f;
   --c5:#7a4fa3; --c6:#0f7b86; --fill:rgba(200,52,43,.10);
 }
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
-  --paper:#0d1219; --card:#151d27; --ink:#e7edf4; --ink2:#a2b1c2; --ink3:#6d7d90;
+  --paper:#0d1219; --card:#151d27; --ink:#e7edf4; --ink2:#a2b1c2; --ink3:#7b8b9e;
   --rule:#26313d; --rule2:#1b232e;
   --tr:#f2635a; --cash:#f0c04a; --pr:#5ba3e8; --base:#4fbe78;
   --c5:#b48ad6; --c6:#4fc3cf; --fill:rgba(242,99,90,.14);
 }}
 :root[data-theme="dark"]{
-  --paper:#0d1219; --card:#151d27; --ink:#e7edf4; --ink2:#a2b1c2; --ink3:#6d7d90;
+  --paper:#0d1219; --card:#151d27; --ink:#e7edf4; --ink2:#a2b1c2; --ink3:#7b8b9e;
   --rule:#26313d; --rule2:#1b232e;
   --tr:#f2635a; --cash:#f0c04a; --pr:#5ba3e8; --base:#4fbe78;
   --c5:#b48ad6; --c6:#4fc3cf; --fill:rgba(242,99,90,.14);
@@ -54,14 +54,14 @@ p{margin:0 0 15px;max-width:66ch}
 .ctl .n{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink2)}
 .ctl button:focus-visible,.ctl select:focus-visible{outline:2px solid var(--tr);outline-offset:2px}
 
-.punch{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);
+.punch{display:grid;grid-template-columns:repeat(var(--cols,2),1fr);gap:0;border:1px solid var(--rule);
   border-top:0;background:var(--card);margin-bottom:10px}
 @media(max-width:640px){.punch{grid-template-columns:1fr}}
 .punch>div{padding:22px 24px}
 .punch>div+div{border-left:1px solid var(--rule)}
 @media(max-width:640px){.punch>div+div{border-left:0;border-top:1px solid var(--rule)}}
 .big{font-family:"IBM Plex Mono",monospace;font-size:clamp(36px,6.5vw,50px);font-weight:600;
-  line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:10px 0 8px;color:var(--tr)}
+  line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:10px 0 8px;color:var(--ink)}
 .punch p{margin:0;font-size:14px;color:var(--ink2);line-height:1.65;max-width:none}
 
 section{margin:46px 0}
@@ -421,10 +421,10 @@ function render(){
     if(!d.n) return `<div><div class="eyebrow">${D[t].nm}</div><div class="big">—</div><p>這個區間沒有資料。</p></div>`;
     const g=d.A_.fin-d.Cv_.fin,pct=g/d.A_.fin*100;
     return `<div><div class="eyebrow">${D[t].nm}　配息佔最終資產</div>
-      <div class="big" style="color:${cc(t)}">${pct.toFixed(1)}%</div>
+      <div class="big">${pct.toFixed(1)}%</div>
       <p>${money(d.A_.fin)}裡有 <b>${money(g)}</b>是配息帶來的。<br>
       只看股價的人，看到的是 ${money(d.Cv_.fin)}。</p></div>`;}).join('');
-  $('punch').style.gridTemplateColumns=`repeat(${Math.min(ORDER.length,3)},1fr)`;
+  $('punch').style.setProperty('--cols',Math.min(ORDER.length,3));
   // 曲線
   $('curves').innerHTML=ORDER.map(t=>{const d=SIM[t];
     return `<div class="panel"><div class="ptitle"><b>${D[t].nm}</b>

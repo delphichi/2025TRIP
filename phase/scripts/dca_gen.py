@@ -31,7 +31,9 @@ import sys, json, re, ssl, math, pathlib, datetime as dt, statistics as st, urll
 D = pathlib.Path(__file__).parent
 ssl._create_default_https_context = ssl._create_unverified_context
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
-PAL = ["--tr", "--pr", "--cash", "--base", "--c5", "--c6"]
+# 標的色：先用 c5/c6（情境色沒用到的紫與青），
+# 3 支以上才回頭借用情境色 —— 那時只出現在散點圖，該區沒有情境線，且 chips 有文字標籤
+PAL = ["--c5", "--c6", "--tr", "--pr", "--cash", "--base"]
 MAXT = 6
 SPLITS = [2, 3, 4, 5, 6, 8, 10, 20]        # ★ 常見分割／合併比例
 # ★ Yahoo 對台股 ETF 只回英文長名（0050 = "Yuanta/P-shares Taiwan Top 50 ETF"），
