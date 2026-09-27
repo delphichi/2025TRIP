@@ -185,8 +185,51 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
     <p style="font-size:12px;color:var(--cash);margin:8px 2px 0" id="cmpnote"></p>
   </div>
 </section>
+
 <section>
-  <div class="shead"><span class="snum">03</span><h2>數字</h2></div>
+  <div class="shead"><span class="snum">03</span><h2>黃金配置比</h2></div>
+  <p>用均值—變異數最佳化（Markowitz）算出「風險調整後報酬最高」的權重組合。
+    每個灰點是一種隨機配置，<b>外緣那條弧線就是效率前緣</b> —— 同樣風險下報酬最高的那批。</p>
+  <div class="panel">
+    <div class="pxchips" id="optchips"></div>
+    <canvas id="copt" role="img" aria-label="效率前緣"></canvas>
+    <div class="legend">
+      <span><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--tr);vertical-align:middle;margin-right:5px"></span>最大 Sharpe（黃金配置比）</span>
+      <span><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--pr);vertical-align:middle;margin-right:5px"></span>最小波動</span>
+      <span><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--base);vertical-align:middle;margin-right:5px"></span>無腦等權重</span>
+      <span style="color:var(--ink3)">○ 單一標的</span>
+    </div>
+  </div>
+  <div class="tw" style="margin-bottom:22px"><table>
+    <caption>年化報酬與波動由月報酬（含息總報酬指數）推算；Sharpe 用無風險利率
+      <span id="rfnote"></span>。★ 這是<b>用全部歷史資料事後算出來的</b>最佳解 ——
+      下面兩個檢驗才是重點。</caption>
+    <thead><tr><th>配置</th><th id="wcols">權重</th><th>年化報酬</th><th>年化波動</th><th>Sharpe</th></tr></thead>
+    <tbody id="opttb"></tbody>
+  </table></div>
+
+  <div class="warn" id="optverdict"></div>
+
+  <h3 style="margin:26px 0 10px">檢驗一：換一段期間，最佳解會變嗎</h3>
+  <p>把資料切成五段，各自算一次「黃金配置比」。如果這個比例是穩定的，五段應該接近。</p>
+  <div class="tw" style="margin-bottom:22px"><table>
+    <caption>★ 若各段的最適權重擺盪劇烈，代表「最佳解」只是在擬合那一段的雜訊，
+      不是這些標的之間穩定的關係。</caption>
+    <thead><tr><th>期間</th><th id="scols">最適權重</th><th>Sharpe</th></tr></thead>
+    <tbody id="segtb"></tbody>
+  </table></div>
+
+  <h3 style="margin:26px 0 10px">檢驗二：前半算出的比例，後半真的有用嗎</h3>
+  <p>用前半段資料算出黃金配置比，<b>拿到後半段實際跑一次</b> ——
+    這才是你實際會遇到的情況（你只有過去的資料）。對照組是無腦等權重。</p>
+  <div class="tw"><table>
+    <caption>★ 如果「前半最適」在後半贏不過「無腦等權重」，那這個最佳化就沒有產生價值。</caption>
+    <thead><tr><th>做法</th><th id="ocols">權重</th><th>後半段 Sharpe</th><th>vs 等權重</th></tr></thead>
+    <tbody id="ostb"></tbody>
+  </table></div>
+</section>
+<section>
+  <div class="shead"><span class="snum">04</span><h2>數字</h2></div>
   <div class="tw"><table>
     <caption>年化報酬用 <b>IRR（資金加權）</b>，不是總報酬開根號 —— 錢是分好幾十次進場的，
       最後一筆只放了一個月，用簡單 CAGR 會嚴重低估。最大回撤為資產淨值曲線的峰到谷。<br>
@@ -200,7 +243,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 
 
 <section id="navsec" style="display:none">
-  <div class="shead"><span class="snum">04</span><h2>淨值、折溢價與風險</h2></div>
+  <div class="shead"><span class="snum">05</span><h2>淨值、折溢價與風險</h2></div>
   <p>ETF 的<b>淨值（NAV）</b>是它持有的一籃子股票值多少錢，<b>市價</b>是盤面上成交的價格。
     兩者的差就是<b>折溢價</b> —— 市價比淨值高叫<b>溢價</b>（買貴了），低叫<b>折價</b>（買便宜了）。</p>
   <div class="tw"><table>
@@ -220,7 +263,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 </section>
 
 <section>
-  <div class="shead"><span class="snum">05</span><h2>水下期間</h2></div>
+  <div class="shead"><span class="snum">06</span><h2>水下期間</h2></div>
   <p>回撤圖看得到<b>跌多深</b>，這張表補的是<b>躺多久</b> —— 從跌破前高到重新站回前高。
     <b>★ 兩者不一定同向</b>：跌得淺的標的可能因為漲得也慢，反而卡在水下更久。</p>
   <div class="tw"><table>
@@ -232,7 +275,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
   </table></div>
 </section>
 <section>
-  <div class="shead"><span class="snum">06</span><h2>價位 × 量能</h2></div>
+  <div class="shead"><span class="snum">07</span><h2>價位 × 量能</h2></div>
   <p>橫軸是<b>該月成交金額相對這段期間的平均</b>，縱軸是<b>相對起點的累計總報酬</b>。
     空心環是起點，實心點是現在。<b>這張圖回答的是「漲上來的時候，有沒有人在買」。</b></p>
   <div class="panel">
@@ -244,7 +287,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 </section>
 
 <section>
-  <div class="shead"><span class="snum">07</span><h2>逐月數據</h2></div>
+  <div class="shead"><span class="snum">08</span><h2>逐月數據</h2></div>
   <p>每月第一個交易日買進。<b>配息欄是當月實際入帳的現金</b>；
     「配息再買入」是那筆現金在除息日收盤價買回的股數 —— 這一欄累積起來，
     就是兩條曲線分岔的全部原因。</p>
@@ -664,6 +707,207 @@ document.querySelectorAll('#cmpseg .tb').forEach(b=>b.addEventListener('click',(
   document.querySelectorAll('#cmpseg .tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
   plotCMP();}));
 
+
+// ★★★ 均值—變異數最佳化（Markowitz）
+//   ⚠ 這東西有名地不穩定：期望報酬的微小變化會讓權重劇烈擺盪。
+//     所以這裡除了算出「黃金配置比」，一定同時跑兩個檢驗
+//     （分段穩定性 + 樣本外），讓人看得到它撐不撐得住。
+let OPTON=new Set();
+const RF_={TWD:0.015, USD:0.043};                 // 無風險利率：台 1.5%、美 4.3%
+function optRF(){
+  const ks=ORDER.filter(t=>OPTON.has(t));
+  if(!ks.length) return 0.015;
+  // 混幣別時用 BASE 的無風險利率；否則用標的自己的
+  const c = (FX&&BASE) ? BASE : D[ks[0]].ccy;
+  return RF_[c] ?? 0.015;
+}
+// ★ 月報酬序列（含息總報酬；需換匯時連匯率一起算進去）
+function monRet(t,i0,i1){
+  const rec=D[t].m, tri=D[t].tri, cv=(FX&&BASE&&D[t].ccy!==BASE);
+  const v=[],ym=[];
+  for(let i=i0;i<=i1;i++){
+    const y=rec[i][0], f=cv?(FX[y]||null):null;
+    if(cv&&!f) continue;
+    v.push(tri[i]*(f?f[1]:1)); ym.push(y);
+  }
+  const r=[],rym=[];
+  for(let i=1;i<v.length;i++){ if(v[i-1]){ r.push(v[i]/v[i-1]-1); rym.push(ym[i]); } }
+  return {r,ym:rym};
+}
+// ★ 各標的對齊到共同月份
+function optData(){
+  const ks=ORDER.filter(t=>OPTON.has(t)&&bounds(t));
+  if(ks.length<2) return null;
+  const M={};
+  for(const t of ks){const b=bounds(t), s=monRet(t,b[0],b[1]);
+    M[t]=Object.fromEntries(s.ym.map((y,i)=>[y,s.r[i]]));}
+  let ym=Object.keys(M[ks[0]]);
+  for(const t of ks.slice(1)) ym=ym.filter(y=>y in M[t]);
+  ym.sort();
+  if(ym.length<24) return null;
+  return {ks, ym, R:ym.map(y=>ks.map(t=>M[t][y]))};
+}
+function pstat(R,w,rf){
+  const p=R.map(row=>row.reduce((a,v,i)=>a+v*w[i],0));
+  const mu=p.reduce((a,b)=>a+b,0)/p.length;
+  const sd=Math.sqrt(p.reduce((a,b)=>a+(b-mu)**2,0)/(p.length-1));
+  const A=mu*12, S=sd*Math.sqrt(12);
+  return {mu:A, sd:S, sh:S?(A-rf)/S:0};
+}
+// ★ Dirichlet 隨機取樣找前緣；2 檔時改用等距掃描（更精確且夠快）
+function optimize(R,k,rf,N){
+  let best=null,minv=null,pts=[];
+  const push=w=>{const s=pstat(R,w,rf); pts.push([s.sd,s.mu,w,s.sh]);
+    if(!best||s.sh>best.sh) best={...s,w};
+    if(!minv||s.sd<minv.sd) minv={...s,w};};
+  if(k===2){ for(let i=0;i<=400;i++){const a=i/400; push([a,1-a]);} }
+  else{
+    for(let i=0;i<(N||4000);i++){
+      const e=Array.from({length:k},()=>-Math.log(1-Math.random()));
+      const sm=e.reduce((a,b)=>a+b,0); push(e.map(v=>v/sm));
+    }
+    for(const base of [best.w,minv.w])          // 在最佳解附近再精修一輪
+      for(let i=0;i<1200;i++){
+        const w=base.map(v=>Math.max(0,v+(Math.random()-0.5)*0.12));
+        const sm=w.reduce((a,b)=>a+b,0); if(sm>0) push(w.map(v=>v/sm));
+      }
+  }
+  return {best,minv,pts};
+}
+function optchips(){
+  $('optchips').innerHTML=ORDER.map(t=>
+    `<button data-k="${t}" aria-pressed="${OPTON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
+  $('optchips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.k;
+    if(OPTON.has(t)&&OPTON.size>2) OPTON.delete(t); else OPTON.add(t);
+    optchips(); plotOPT();}));
+}
+const pct=v=>(v*100).toFixed(1)+'%';
+function wstr(ks,w){return ks.map((t,i)=>`${D[t].nm.split(' ')[0]} ${pct(w[i])}`).join('　');}
+function plotOPT(){
+  const cv=$('copt'); if(!cv.clientWidth){requestAnimationFrame(plotOPT);return;}
+  const dpr=Math.min(devicePixelRatio||1,2),w0=cv.clientWidth,
+        h=Math.round(Math.min(420,Math.max(280,w0*0.50)));
+  cv.width=w0*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w0,h);
+  const O=optData();
+  const clr=()=>{['opttb','segtb','ostb'].forEach(i=>$(i).innerHTML='');$('optverdict').innerHTML='';};
+  if(!O){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
+    x.fillText('至少需要兩檔標的、24 個共同月份',w0/2,h/2);clr();return;}
+  const {ks,ym,R}=O, k=ks.length, rf=optRF();
+  $('rfnote').textContent=`${(rf*100).toFixed(1)}%`;
+  ['wcols','scols','ocols'].forEach(i=>$(i).textContent='權重');
+  const {best,minv,pts}=optimize(R,k,rf);
+  const eqw=Array(k).fill(1/k), eq=pstat(R,eqw,rf);
+  // ── 畫布
+  const PL=62,PR=18,PT=18,PB=42,iw=w0-PL-PR,ih=h-PT-PB;
+  const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+  let xl=Math.min(...xs),xh=Math.max(...xs),yl=Math.min(...ys),yh=Math.max(...ys);
+  const px_=(xh-xl)*.12||.02, py=(yh-yl)*.12||.02;
+  xl-=px_;xh+=px_;yl-=py;yh+=py;
+  const X=v=>PL+iw*(v-xl)/(xh-xl), Y=v=>PT+ih-ih*(v-yl)/(yh-yl);
+  const tick=sp=>{let s=Math.pow(10,Math.floor(Math.log10(sp)));while(sp/s>6)s*=2;while(sp/s<3)s/=2;return s;};
+  x.font='11px "IBM Plex Mono",monospace';x.textAlign='right';
+  const ys_=tick(yh-yl);
+  for(let v=Math.ceil(yl/ys_)*ys_;v<=yh;v+=ys_){const yy=Math.round(Y(v))+.5;
+    x.strokeStyle=C('--rule2');x.lineWidth=1;x.beginPath();x.moveTo(PL,yy);x.lineTo(w0-PR,yy);x.stroke();
+    x.fillStyle=C('--ink3');x.fillText((v*100).toFixed(0)+'%',PL-8,yy+4);}
+  const xs_=tick(xh-xl);x.textAlign='center';
+  for(let v=Math.ceil(xl/xs_)*xs_;v<=xh;v+=xs_){x.fillStyle=C('--ink3');
+    x.fillText((v*100).toFixed(0)+'%',X(v),h-24);}
+  x.font='600 11px "IBM Plex Mono",monospace';x.fillStyle=C('--ink3');
+  x.textAlign='center';x.fillText('年化波動（風險）→',PL+iw/2,h-7);
+  x.save();x.translate(13,PT+ih/2);x.rotate(-Math.PI/2);x.textAlign='center';
+  x.fillText('年化報酬 →',0,0);x.restore();
+  // 隨機組合雲
+  x.fillStyle=C('--ink3');x.globalAlpha=.30;
+  for(const p of pts){x.beginPath();x.arc(X(p[0]),Y(p[1]),1.5,0,7);x.fill();}
+  x.globalAlpha=1;
+  // 單一標的
+  for(let i=0;i<k;i++){const w=Array(k).fill(0);w[i]=1;const s=pstat(R,w,rf);
+    x.beginPath();x.arc(X(s.sd),Y(s.mu),5.5,0,7);x.strokeStyle=cc(ks[i]);x.lineWidth=2;x.stroke();
+    x.font='600 10.5px "IBM Plex Mono",monospace';x.textAlign='center';
+    x.lineWidth=3;x.strokeStyle=C('--card');
+    const lb=D[ks[i]].nm.split(' ')[0];
+    x.strokeText(lb,X(s.sd),Y(s.mu)-10);x.fillStyle=cc(ks[i]);x.fillText(lb,X(s.sd),Y(s.mu)-10);}
+  const mark=(s,col,lb)=>{
+    x.beginPath();x.arc(X(s.sd),Y(s.mu),7,0,7);x.fillStyle=col;x.fill();
+    x.lineWidth=1.6;x.strokeStyle=C('--card');x.stroke();
+    x.font='700 11px "IBM Plex Mono",monospace';x.textAlign='center';
+    x.lineWidth=3;x.strokeStyle=C('--card');
+    x.strokeText(lb,X(s.sd),Y(s.mu)+20);x.fillStyle=col;x.fillText(lb,X(s.sd),Y(s.mu)+20);};
+  mark(minv,C('--pr'),'最小波動'); mark(eq,C('--base'),'等權重'); mark(best,C('--tr'),'★ 最大 Sharpe');
+  // ── 主表
+  const row=(nm,w,s,cls)=>`<tr class="${cls||''}"><td>${nm}</td>`+
+    `<td style="text-align:left;font-size:12.5px">${wstr(ks,w)}</td>`+
+    `<td class="num">${pct(s.mu)}</td><td class="num">${pct(s.sd)}</td>`+
+    `<td class="num" style="font-weight:700">${s.sh.toFixed(3)}</td></tr>`;
+  let hh=row('★ 最大 Sharpe（黃金配置比）',best.w,best,'hi')
+        +row('最小波動',minv.w,minv,'')
+        +row('無腦等權重',eqw,eq,'lo');
+  for(let i=0;i<k;i++){const w=Array(k).fill(0);w[i]=1;
+    hh+=row('單押 '+D[ks[i]].nm,w,pstat(R,w,rf),'');}
+  $('opttb').innerHTML=hh;
+  // ── 檢驗一：分段
+  const n=R.length, SEG=5, sl=Math.floor(n/SEG); let segs=[];
+  for(let i=0;i<SEG;i++){
+    const a=i*sl, b=(i===SEG-1)?n:(i+1)*sl;
+    if(b-a<12) continue;
+    const o=optimize(R.slice(a,b),k,rf);
+    segs.push({ym:[ym[a],ym[b-1]],w:o.best.w,sh:o.best.sh});
+  }
+  $('segtb').innerHTML=segs.map(g=>
+    `<tr><td style="font-size:12.5px">${g.ym[0]} ~ ${g.ym[1]}</td>`+
+    `<td style="text-align:left;font-size:12.5px">${wstr(ks,g.w)}</td>`+
+    `<td class="num">${g.sh.toFixed(3)}</td></tr>`).join('');
+  // 擺盪幅度
+  const swing=ks.map((t,i)=>{const v=segs.map(g=>g.w[i]);return Math.max(...v)-Math.min(...v);});
+  const mxSwing=Math.max(...swing);
+  // ── 檢驗二：樣本外
+  const h2=Math.floor(n/2);
+  const inS=optimize(R.slice(0,h2),k,rf);
+  const outIn=pstat(R.slice(h2),inS.best.w,rf);
+  const outEq=pstat(R.slice(h2),eqw,rf);
+  const outBest=optimize(R.slice(h2),k,rf).best;
+  const dsh=outIn.sh-outEq.sh;
+  $('ostb').innerHTML=
+    `<tr class="hi"><td>前半算出的黃金配置比</td><td style="text-align:left;font-size:12.5px">${wstr(ks,inS.best.w)}</td>`+
+      `<td class="num" style="font-weight:700">${outIn.sh.toFixed(3)}</td>`+
+      `<td class="num" style="color:${dsh>0.05?'var(--base)':(dsh<-0.05?'var(--tr)':'var(--ink3)')}">`+
+      `${(dsh>0?'+':'')+dsh.toFixed(3)}</td></tr>`+
+    `<tr class="lo"><td>無腦等權重</td><td style="text-align:left;font-size:12.5px">${wstr(ks,eqw)}</td>`+
+      `<td class="num" style="font-weight:700">${outEq.sh.toFixed(3)}</td><td class="num">—</td></tr>`+
+    `<tr><td style="color:var(--ink3)">（後半「事後」最佳解，僅供對照）</td>`+
+      `<td style="text-align:left;font-size:12.5px;color:var(--ink3)">${wstr(ks,outBest.w)}</td>`+
+      `<td class="num" style="color:var(--ink3)">${outBest.sh.toFixed(3)}</td><td class="num">—</td></tr>`;
+  // ── 結論
+  const gain=best.sh-eq.sh;
+  const stable = mxSwing<0.25, useful = dsh>0.05;
+  let verdict;
+  if(!stable && !useful)
+    verdict=`<h3>★ 這個「黃金配置比」撐不住</h3>
+      <p>全期最佳解 <b>${wstr(ks,best.w)}</b>，Sharpe ${best.sh.toFixed(3)} ——
+        但無腦等權重是 <b>${eq.sh.toFixed(3)}</b>，只差 ${gain.toFixed(3)}。</p>
+      <p><b>檢驗一沒過</b>：分五段各自最佳化，權重最大擺盪 <b>${pct(mxSwing)}</b>
+        —— 每一段的「最佳解」都不一樣，代表它在擬合那一段的雜訊。</p>
+      <p><b>檢驗二沒過</b>：前半算出的比例拿到後半，Sharpe ${outIn.sh.toFixed(3)}
+        vs 等權重 ${outEq.sh.toFixed(3)}，差 ${(dsh>0?'+':'')+dsh.toFixed(3)} —— 在雜訊範圍內。</p>
+      <p><b>誠實的結論：這幾檔之間不存在可靠的黃金配置比。</b>
+        真正有效的是「要不要持有高波動資產」這個大方向，不是小數點後的權重。</p>`;
+  else if(stable && useful)
+    verdict=`<h3>★ 這個配置比通過了兩個檢驗</h3>
+      <p>全期最佳解 <b>${wstr(ks,best.w)}</b>，Sharpe ${best.sh.toFixed(3)}（等權重 ${eq.sh.toFixed(3)}）。</p>
+      <p>分段擺盪僅 ${pct(mxSwing)}；樣本外比等權重高 ${dsh.toFixed(3)}。
+        <b>但這仍是回測</b>，未來不保證延續。</p>`;
+  else
+    verdict=`<h3>★ 半通過，要打折看</h3>
+      <p>全期最佳解 <b>${wstr(ks,best.w)}</b>，Sharpe ${best.sh.toFixed(3)}（等權重 ${eq.sh.toFixed(3)}）。</p>
+      <p>分段權重擺盪 <b>${pct(mxSwing)}</b>${stable?'（尚可）':'（過大）'}；
+        樣本外 vs 等權重 ${(dsh>0?'+':'')+dsh.toFixed(3)}${useful?'（有優勢）':'（無優勢）'}。</p>
+      <p>兩個檢驗只過一個，<b>不足以當成可以照著下單的比例</b>。</p>`;
+  $('optverdict').innerHTML=verdict;
+}
+
 function pxchips(){
   $('pxchips').innerHTML=ORDER.map(t=>
     `<button data-k="${t}" aria-pressed="${PXON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
@@ -777,14 +1021,15 @@ function render(){
       return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>${c1}${c2}</tr>`;}).join('');
   } else $('navsec').style.display='none';
   if(!CMPON.size) CMPON=new Set(ORDER);
-  mtab(); pxchips(); cmpchips(); ORDER.forEach(plot); plotPX(); plotDD(); plotCMP();
+  if(!OPTON.size) OPTON=new Set(ORDER);
+  mtab(); pxchips(); cmpchips(); optchips(); ORDER.forEach(plot); plotPX(); plotDD(); plotCMP(); plotOPT();
 }
 S0.addEventListener('change',render);S1.addEventListener('change',render);
 $('pre').addEventListener('click',e=>{const p=e.target.dataset&&e.target.dataset.p;if(!p)return;
   S1.value=ALL[ALL.length-1];
   S0.value = p==='all' ? ALL[0] : ALL[Math.max(0,ALL.length-(+p)*12)];
   render();});
-addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();plotCMP();});
+addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();plotCMP();plotOPT();});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
 render();
 </script>
