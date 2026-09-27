@@ -1,0 +1,213 @@
+/*! theme-meta
+{
+  "title": "牛皮橘 Kraft Orange",
+  "world": 7,
+  "surfaces": {
+    "light": "#c25415",
+    "dark": "#1a1410"
+  },
+  "checks": [
+    {
+      "fg": "#ffffff",
+      "bg": "#c25415",
+      "min": 4.5,
+      "what": "橘場域上的文字（只有純白過得了）"
+    },
+    {
+      "fg": "#2a1a10",
+      "bg": "#f0e0c8",
+      "min": 4.5,
+      "what": "紙板正文"
+    },
+    {
+      "fg": "#6b4f35",
+      "bg": "#f0e0c8",
+      "min": 4.5,
+      "what": "紙板次要"
+    },
+    {
+      "fg": "#9a3412",
+      "bg": "#f0e0c8",
+      "min": 4.5,
+      "what": "含息再投入"
+    },
+    {
+      "fg": "#7a3b8f",
+      "bg": "#f0e0c8",
+      "min": 4.5,
+      "what": "含息領現金（苯胺紫）"
+    },
+    {
+      "fg": "#1f5f5b",
+      "bg": "#f0e0c8",
+      "min": 4.5,
+      "what": "不含息"
+    },
+    {
+      "fg": "#57534e",
+      "bg": "#f0e0c8",
+      "min": 3.0,
+      "what": "累計本金（基準線／圖形物件）"
+    },
+    {
+      "fg": "#f0e0c8",
+      "bg": "#1a1410",
+      "min": 4.5,
+      "what": "深色 正文"
+    },
+    {
+      "fg": "#f97316",
+      "bg": "#241c15",
+      "min": 4.5,
+      "what": "深色 含息再投入"
+    },
+    {
+      "fg": "#b98ae0",
+      "bg": "#241c15",
+      "min": 4.5,
+      "what": "深色 含息領現金"
+    },
+    {
+      "fg": "#5eb8b2",
+      "bg": "#241c15",
+      "min": 4.5,
+      "what": "深色 不含息"
+    }
+  ],
+  "separations": [
+    {
+      "a": "#9a3412",
+      "b": "#7a3b8f",
+      "min": 15,
+      "what": "淺色 磚紅↔苯胺紫"
+    },
+    {
+      "a": "#7a3b8f",
+      "b": "#1f5f5b",
+      "min": 15,
+      "what": "淺色 苯胺紫↔松綠"
+    },
+    {
+      "a": "#9a3412",
+      "b": "#1f5f5b",
+      "min": 15,
+      "what": "淺色 磚紅↔松綠"
+    },
+    {
+      "a": "#f97316",
+      "b": "#b98ae0",
+      "min": 15,
+      "what": "深色 橘↔淺紫"
+    },
+    {
+      "a": "#b98ae0",
+      "b": "#5eb8b2",
+      "min": 15,
+      "what": "深色 淺紫↔青"
+    },
+    {
+      "a": "#f97316",
+      "b": "#5eb8b2",
+      "min": 15,
+      "what": "深色 橘↔青"
+    }
+  ],
+  "note": "累計投入本金是參考基準線而非對等系列，只驗對比不驗分離度（四條對等系列在此色盤上放不下）"
+}
+theme-meta */
+/* ═══ 世界 7：牛皮橘 ═══
+   場域是飽和橘，內容區是牛皮紙板：頁面本身就是「一堆箱子放在橘色地上」。
+   定期定額 = 213 個月一筆一筆堆起來，每筆有日期、價格、股數 —— 有來歷的庫存。 */
+@import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+/* ── 色票（全部實測過對比，數值見註解） ── */
+:root{
+  --paper:#c25415;            /* 橘場域 */
+  --card:#f0e0c8;             /* 牛皮紙板 */
+  --ink:#2a1a10;              /* 12.92:1 on 牛皮 */
+  --ink2:#6b4f35;             /*  5.80:1 */
+  --ink3:#7d6144;             /*  4.93:1 */
+  --rule:#c9b393; --rule2:#ddc9a9;
+  --tr:#9a3412;               /* 5.64:1 含息再投入 */
+  --cash:#7a3b8f;             /* 5.69:1 含息領現金（苯胺紫：舊式橡皮章與複寫紙的墨色） */
+  --pr:#1f5f5b;               /* 5.69:1 不含息 */
+  --base:#57534e;             /* 5.89:1 累計本金 */
+  --c5:#6d28d9; --c6:#0f766e;
+  --fill:rgba(154,52,18,.12);
+  --stamp:#ffffff;            /* 4.59:1 on 橘 —— 僅用於大字 */
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#1a1410; --card:#241c15;
+  --ink:#f0e0c8; --ink2:#b39877; --ink3:#a68d6e;
+  --rule:#3d3025; --rule2:#2f251c;
+  --tr:#f97316; --cash:#b98ae0; --pr:#5eb8b2; --base:#a8a29e;
+  --fill:rgba(249,115,22,.14); --stamp:#f0e0c8;
+}}
+:root[data-theme="dark"]{
+  --paper:#1a1410; --card:#241c15;
+  --ink:#f0e0c8; --ink2:#b39877; --ink3:#a68d6e;
+  --rule:#3d3025; --rule2:#2f251c;
+  --tr:#f97316; --cash:#b98ae0; --pr:#5eb8b2; --base:#a8a29e;
+  --fill:rgba(249,115,22,.14); --stamp:#f0e0c8;
+}
+
+/* ── 字體：壓縮粗無襯線當標題，禁用細襯線 ── */
+body{font-family:"Noto Sans TC","Barlow Condensed",system-ui,sans-serif;font-size:16px}
+h1,h2,h3{font-family:"Archivo Black","Noto Sans TC",sans-serif;font-weight:900}
+h1{font-size:clamp(40px,7.5vw,74px);line-height:.98;letter-spacing:-.01em;
+   text-transform:none;color:var(--stamp)}
+h2{font-size:26px;letter-spacing:-.01em}
+
+/* ── 場域：整頁橘，內容浮在上面；這個世界要滿，收掉多餘留白 ── */
+body{background:var(--paper)}
+.wrap{max-width:1060px;padding:44px 20px 70px}
+header{border-bottom:4px solid var(--ink);padding-bottom:22px}
+.lede{color:var(--stamp);opacity:.92;font-size:18px;max-width:58ch}
+.lede b{color:var(--stamp)}
+
+/* ── 貼紙／戳印式標籤 ── */
+.eyebrow{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:12px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink);background:var(--card);
+  border:2px solid var(--ink);padding:5px 11px;font-weight:600}
+.snum{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;
+  color:var(--card);background:var(--ink);padding:3px 8px;letter-spacing:.06em}
+.shead{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--ink);
+  padding-bottom:9px;margin-bottom:16px}
+.shead h2{color:var(--stamp)}
+
+/* ── 板條箱：方角、厚邊、緊貼堆疊 ── */
+.ctl,.punch,.panel,.tw,.note,.pxwrap{border-radius:0!important}
+.ctl{background:var(--card);border:3px solid var(--ink);border-bottom:0;padding:12px 16px}
+.punch{border:3px solid var(--ink);background:var(--card);margin-bottom:22px}
+.punch>div{padding:18px 20px}
+.punch>div+div{border-left:3px solid var(--ink)}
+@media(max-width:640px){.punch>div+div{border-left:0;border-top:3px solid var(--ink)}}
+.panel{background:var(--card);border:3px solid var(--ink);margin-bottom:-3px;padding:20px}
+.tw{border:3px solid var(--ink);background:var(--card)}
+.note{background:var(--card);border:3px solid var(--ink);padding:16px 18px}
+
+/* ── 數字：等寬，庫存清單的語氣 ── */
+.big{font-family:"IBM Plex Mono",monospace;font-weight:600;letter-spacing:-.03em;
+  color:var(--ink)}
+.ptitle b{font-family:"Archivo Black","Noto Sans TC",sans-serif;font-size:19px}
+th{background:var(--ink);color:var(--card);border-bottom:0!important}
+.sub-h{background:var(--rule2);color:var(--ink);font-weight:700}
+tr.gap td{background:var(--fill)}
+
+/* ── 控制項 ── */
+.ctl select,.pxchips button{border:2px solid var(--ink)!important;border-radius:0!important;
+  background:var(--card);color:var(--ink)}
+.pxchips button{padding:9px 14px}          /* 順手把 44px 觸控目標補上 */
+.pxchips button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+
+/* ── 場域只承載展示型文字 ──
+   #c25415 上只有純白過得了 4.5:1（4.59:1）；深色文字在這個橘上只有 3.65:1。
+   所以直接放在橘底的段落一律用 --stamp（淺 #fff / 深 #f0e0c8），
+   其餘內容一律住進牛皮紙板箱裡。 */
+.wrap > p, section > p, .lede{color:var(--stamp)}
+.wrap > p b, section > p b, .lede b{color:var(--stamp)}
+
+/* 註記與警告改成戳印貼紙，而不是漂在橘底上的淡字 */
+#clampnote, .warn{display:block!important;background:var(--card);color:var(--ink)!important;
+  border:2px solid var(--ink);padding:10px 14px;font-size:13px!important;margin:12px 0!important}
+#clampnote b, .warn b{color:var(--ink)!important}

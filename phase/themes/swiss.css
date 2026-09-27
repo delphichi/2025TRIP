@@ -1,0 +1,188 @@
+/*! theme-meta
+{
+  "title": "瑞士國際 Swiss International",
+  "world": 3,
+  "surfaces": {
+    "light": "#f2f0eb",
+    "dark": "#0e0e0d"
+  },
+  "checks": [
+    {
+      "fg": "#111111",
+      "bg": "#f2f0eb",
+      "min": 4.5,
+      "what": "淺色 正文"
+    },
+    {
+      "fg": "#c41f26",
+      "bg": "#f2f0eb",
+      "min": 4.5,
+      "what": "淺色 含息再投入（線末數值是文字）"
+    },
+    {
+      "fg": "#595954",
+      "bg": "#f2f0eb",
+      "min": 4.5,
+      "what": "淺色 不含息"
+    },
+    {
+      "fg": "#8a8a83",
+      "bg": "#f2f0eb",
+      "min": 3.0,
+      "what": "淺色 基準線（圖形物件）"
+    },
+    {
+      "fg": "#ebe9e4",
+      "bg": "#0e0e0d",
+      "min": 4.5,
+      "what": "深色 正文"
+    },
+    {
+      "fg": "#e8443f",
+      "bg": "#0e0e0d",
+      "min": 4.5,
+      "what": "深色 含息再投入"
+    },
+    {
+      "fg": "#8d8b86",
+      "bg": "#0e0e0d",
+      "min": 4.5,
+      "what": "深色 不含息"
+    }
+  ],
+  "separations": [
+    {
+      "a": "#c41f26",
+      "b": "#111111",
+      "min": 15,
+      "what": "淺色 紅↔墨"
+    },
+    {
+      "a": "#111111",
+      "b": "#595954",
+      "min": 15,
+      "what": "淺色 墨↔中灰"
+    },
+    {
+      "a": "#c41f26",
+      "b": "#595954",
+      "min": 15,
+      "what": "淺色 紅↔中灰"
+    }
+  ]
+}
+theme-meta */
+/* ═══ 世界 3：瑞士國際 ═══
+   紅與黑，沒有第三個色相。四條線靠「明度階層 + 線寬 + 文字直標」分辨，
+   「累計投入本金」降格成基準線（它本來就不是對等系列，是參考基準）。
+   髮絲線、左對齊到底、不置中、不留圓角、無陰影無漸層。 */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root, :root[data-theme="light"]{
+  --paper:#f2f0eb; --card:#f2f0eb;         /* 紙就是紙，內容不分層 */
+  --ink:#111111;                            /* 16.58:1 */
+  --ink2:#44443f;                           /*  9.4:1  */
+  --ink3:#5f5f59;                           /*  5.7:1  */
+  --rule:#111111; --rule2:#c9c7c1;          /* 髮絲線 */
+  --tr:#c41f26;                             /*  5.16:1 含息再投入 */
+  --cash:#111111;                           /* 16.58:1 含息領現金 */
+  --pr:#595954;                             /*  6.18:1 不含息 */
+  --base:#8a8a83;                           /*  3.05:1 基準線（非系列） */
+  --c5:#c41f26; --c6:#111111;
+  --fill:rgba(196,31,38,.09);
+  --red:#c41f26;
+}
+:root[data-theme="dark"], .swiss-dark{
+  --paper:#0e0e0d; --card:#0e0e0d;
+  --ink:#ebe9e4; --ink2:#bdbbb5; --ink3:#a3a19b;
+  --rule:#ebe9e4; --rule2:#333330;
+  --tr:#e8443f; --cash:#ebe9e4; --pr:#8d8b86; --base:#63615d;
+  --fill:rgba(232,68,63,.12); --red:#e8443f;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#0e0e0d; --card:#0e0e0d;
+  --ink:#ebe9e4; --ink2:#bdbbb5; --ink3:#a3a19b;
+  --rule:#ebe9e4; --rule2:#333330;
+  --tr:#e8443f; --cash:#ebe9e4; --pr:#8d8b86; --base:#63615d;
+  --fill:rgba(232,68,63,.12); --red:#e8443f;
+}}
+
+/* ── 一套 grotesque 打天下，禁襯線 ── */
+body{background:var(--paper);color:var(--ink);
+  font-family:"Archivo","Noto Sans TC",Helvetica,Arial,sans-serif;
+  font-size:14.5px;line-height:1.72;font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:"Archivo","Noto Sans TC",Helvetica,sans-serif!important}
+.mono,th,td.num,.big,select{font-family:"IBM Plex Mono",monospace}
+
+/* ── 首屏：真正的 12 欄網格，標題佔 1–8、幾何佔 9–12 ──
+   （原本用絕對定位，標題會撞上條狀圖形；瑞士世界本來就該用網格解） */
+.wrap{max-width:1180px;padding:0 24px 80px}
+header{display:grid;grid-template-columns:repeat(12,1fr);column-gap:20px;
+  align-items:start;border-bottom:0;padding:34px 0 0}
+.eyebrow{grid-column:1 / -1;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ink);font-weight:600;border-top:3px solid var(--ink);padding-top:8px;
+  display:block;margin-bottom:14px}
+h1{grid-column:1 / 9;font-size:clamp(46px,8.2vw,112px);font-weight:800;line-height:.94;
+  letter-spacing:-.035em;margin:0}
+/* 標題右側的抽象幾何：粗直條群，取代照片 */
+header::after{content:"";grid-column:9 / 13;grid-row:2;height:132px;align-self:start;
+  background:repeating-linear-gradient(90deg,
+    var(--ink) 0 13px, transparent 13px 24px,
+    var(--red) 24px 31px, transparent 31px 48px);opacity:.92}
+.lede{grid-column:1 / 8;font-size:15px;color:var(--ink2);margin-top:20px;
+  border-top:1px solid var(--rule2);padding-top:14px}
+.lede b{color:var(--ink);font-weight:700}
+@media(max-width:900px){
+  header{display:block}
+  header::after{display:block;width:100%;height:64px;margin-top:18px}
+  h1{font-size:clamp(40px,11vw,64px)}
+  .lede{margin-top:16px}
+}
+
+/* ── 方角、無陰影、髮絲線 ── */
+*{border-radius:0!important}
+.ctl,.punch,.panel,.tw,.note{box-shadow:none!important;background:transparent}
+.ctl{border:0;border-top:3px solid var(--ink);border-bottom:1px solid var(--rule2);
+  padding:12px 0;margin-top:30px}
+.punch{border:0;border-bottom:3px solid var(--ink);background:transparent}
+.punch>div{padding:20px 20px 22px 0;border-top:1px solid var(--rule2)}
+.punch>div+div{border-left:1px solid var(--rule2);padding-left:20px}
+@media(max-width:640px){.punch>div+div{border-left:0}}
+.panel{border:0;border-top:1px solid var(--rule2);padding:22px 0}
+.tw{border:0;border-top:3px solid var(--ink);border-bottom:3px solid var(--ink)}
+.note{border:0;border-top:3px solid var(--ink);padding:18px 0 0}
+
+/* ── 章節標題：橫跨欄寬的粗規線 ── */
+.shead{display:flex;align-items:baseline;gap:14px;border-top:4px solid var(--ink);
+  border-bottom:0;padding:12px 0 0;margin:48px 0 14px}
+.snum{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;
+  color:var(--red);background:transparent;padding:0;letter-spacing:.1em}
+h2{font-size:clamp(22px,2.6vw,34px);font-weight:800;letter-spacing:-.025em;line-height:1.05}
+
+/* ── 大數字：極粗、收緊、紅色只給第一個 ── */
+.big{font-family:"Archivo",sans-serif;font-weight:800;letter-spacing:-.045em;
+  font-size:clamp(40px,5.4vw,60px);color:var(--ink);margin:8px 0 10px}
+.punch>div:first-child .big{color:var(--red)}
+.punch>div .eyebrow{border-top:0;padding-top:0;margin-bottom:6px;font-size:10.5px;letter-spacing:.14em}
+.punch>div p{font-size:13px;color:var(--ink2)}
+
+/* ── 表格：資訊密度是瑞士的重點 ── */
+table{font-size:12.5px}
+th{background:transparent;color:var(--ink);font-size:10px;letter-spacing:.12em;
+  font-weight:700;border-bottom:2px solid var(--ink)!important;padding:10px 12px 8px}
+td{border-bottom:1px solid var(--rule2);padding:7px 12px}
+.sub-h{background:transparent;color:var(--red);font-weight:700;letter-spacing:.12em;
+  border-bottom:1px solid var(--ink)}
+tr.gap td{background:var(--fill)}
+caption{color:var(--ink3);border-top:1px solid var(--rule2);padding-top:10px}
+
+/* ── 註記：靠粗規線標示，不靠底色塊 ── */
+#clampnote, .warn{display:block!important;background:transparent;
+  border:0!important;border-left:4px solid var(--red)!important;
+  color:var(--ink2)!important;padding:4px 0 4px 14px;font-size:12.5px!important;
+  margin:14px 0!important}
+
+/* ── 控制項：方框、無底色 ── */
+.ctl select,.pxchips button{background:transparent;color:var(--ink);
+  border:1px solid var(--ink)!important;padding:8px 13px;font-size:12px;letter-spacing:.04em}
+.pxchips button[aria-pressed="true"]{background:var(--ink);color:var(--paper);font-weight:700}

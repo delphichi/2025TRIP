@@ -1,0 +1,230 @@
+/*! theme-meta
+{
+  "title": "磁磚遺產 Azulejo Heritage",
+  "world": 1,
+  "surfaces": {
+    "light": "#f4f1e8",
+    "dark": "#101a2e"
+  },
+  "checks": [
+    {
+      "fg": "#1c3f7a",
+      "bg": "#f4f1e8",
+      "min": 4.5,
+      "what": "淺色 主墨"
+    },
+    {
+      "fg": "#4a6a9e",
+      "bg": "#f4f1e8",
+      "min": 4.5,
+      "what": "淺色 次要"
+    },
+    {
+      "fg": "#16305c",
+      "bg": "#f4f1e8",
+      "min": 4.5,
+      "what": "淺色 含息再投入"
+    },
+    {
+      "fg": "#7a5c14",
+      "bg": "#f4f1e8",
+      "min": 4.5,
+      "what": "淺色 含息領現金（赭黃）"
+    },
+    {
+      "fg": "#40699e",
+      "bg": "#f4f1e8",
+      "min": 4.5,
+      "what": "淺色 不含息"
+    },
+    {
+      "fg": "#7387a8",
+      "bg": "#f4f1e8",
+      "min": 3.0,
+      "what": "淺色 基準線（圖形物件）"
+    },
+    {
+      "fg": "#eef2f8",
+      "bg": "#101a2e",
+      "min": 4.5,
+      "what": "深色 正文／主線"
+    },
+    {
+      "fg": "#d4a843",
+      "bg": "#101a2e",
+      "min": 4.5,
+      "what": "深色 含息領現金"
+    },
+    {
+      "fg": "#6d93c4",
+      "bg": "#101a2e",
+      "min": 4.5,
+      "what": "深色 不含息"
+    },
+    {
+      "fg": "#5a6d90",
+      "bg": "#101a2e",
+      "min": 3.0,
+      "what": "深色 基準線"
+    }
+  ],
+  "separations": [
+    {
+      "a": "#16305c",
+      "b": "#7a5c14",
+      "min": 15,
+      "what": "淺色 鈷藍↔赭黃"
+    },
+    {
+      "a": "#16305c",
+      "b": "#40699e",
+      "min": 15,
+      "what": "淺色 鈷藍↔中藍"
+    },
+    {
+      "a": "#7a5c14",
+      "b": "#40699e",
+      "min": 15,
+      "what": "淺色 赭黃↔中藍"
+    },
+    {
+      "a": "#eef2f8",
+      "b": "#d4a843",
+      "min": 15,
+      "what": "深色 磁磚白↔金"
+    },
+    {
+      "a": "#eef2f8",
+      "b": "#6d93c4",
+      "min": 15,
+      "what": "深色 磁磚白↔霧藍"
+    },
+    {
+      "a": "#d4a843",
+      "b": "#6d93c4",
+      "min": 15,
+      "what": "深色 金↔霧藍"
+    }
+  ]
+}
+theme-meta */
+/* ═══ 世界 1：磁磚遺產 ═══
+   這頁是一份十八年的編年紀錄（2008-01 → 2026-09，213 個月，含 0050 的分割斷點），
+   所以它真的有過去，不是假古董。
+   這套要求銅版畫插圖；這裡產不出來，改靠世界的另一半 —— 磁磚紋本身，純 CSS 繪製。
+   四條線在近乎單色藍裡靠深鈷藍／赭黃／中藍＋基準線分辨（赭黃是 pombaline 磁磚的正統第二色）。*/
+@import url("https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Serif+TC:wght@400;600;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root, :root[data-theme="light"]{
+  --paper:#f4f1e8; --card:#fbfaf6;
+  --ink:#1c3f7a;                 /*  9.11:1 主墨＝鈷藍 */
+  --ink2:#39568a;                /*  6.4:1  */
+  --ink3:#4a6a9e;                /*  4.83:1 */
+  --rule:#1c3f7a; --rule2:#c3cfe2;
+  --tr:#16305c;                  /* 11.54:1 含息再投入 */
+  --cash:#7a5c14;                /*  5.52:1 含息領現金（赭黃） */
+  --pr:#40699e;                  /*  4.98:1 不含息 */
+  --base:#7387a8;                /*  3.23:1 基準線（非系列） */
+  --c5:#16305c; --c6:#7a5c14;
+  --fill:rgba(28,63,122,.09);
+  --tile:#1c3f7a;
+}
+:root[data-theme="dark"]{
+  --paper:#101a2e; --card:#16223a;
+  --ink:#eef2f8; --ink2:#c9d5e6; --ink3:#b9c6db;
+  --rule:#eef2f8; --rule2:#2c3c5c;
+  --tr:#eef2f8;                  /* 15.46:1 深色模式主線改磁磚白 */
+  --cash:#d4a843;                /*  7.84:1 */
+  --pr:#6d93c4;                  /*  5.48:1 */
+  --base:#5a6d90;                /*  3.33:1 */
+  --fill:rgba(238,242,248,.09); --tile:#8ab4e8;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#101a2e; --card:#16223a;
+  --ink:#eef2f8; --ink2:#c9d5e6; --ink3:#b9c6db;
+  --rule:#eef2f8; --rule2:#2c3c5c;
+  --tr:#eef2f8; --cash:#d4a843; --pr:#6d93c4; --base:#5a6d90;
+  --fill:rgba(238,242,248,.09); --tile:#8ab4e8;
+}}
+
+/* ── 全襯線，禁無襯線標題 ── */
+body{background:var(--paper);color:var(--ink);
+  font-family:"Libre Baskerville","Noto Serif TC",Georgia,serif;
+  font-size:15px;line-height:1.85}
+h1,h2,h3{font-family:"Libre Baskerville","Noto Serif TC",Georgia,serif!important;font-weight:700}
+.mono,th,.big,select,.eyebrow{font-family:"IBM Plex Mono",monospace}
+
+/* ── 磁磚紋：純 CSS 的 azulejo 圖樣 ── */
+.wrap{max-width:1000px;padding:0 22px 80px}
+header{padding:30px 0 0;text-align:center}
+header::before{content:"";display:block;height:56px;margin-bottom:26px;
+  background:
+    repeating-linear-gradient(45deg, var(--tile) 0 2px, transparent 2px 13px),
+    repeating-linear-gradient(-45deg, var(--tile) 0 2px, transparent 2px 13px),
+    repeating-linear-gradient(90deg, var(--tile) 0 2px, transparent 2px 56px);
+  opacity:.55;
+  border-top:3px double var(--rule);border-bottom:3px double var(--rule)}
+header::after{content:"";display:block;height:56px;margin-top:24px;
+  background:
+    repeating-linear-gradient(45deg, var(--tile) 0 2px, transparent 2px 13px),
+    repeating-linear-gradient(-45deg, var(--tile) 0 2px, transparent 2px 13px);
+  opacity:.4;border-top:1px solid var(--rule2)}
+h1{font-size:clamp(30px,4.6vw,54px);letter-spacing:.06em;line-height:1.22;margin:0 auto;
+  max-width:18ch;font-weight:900}
+.eyebrow{display:block;font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:16px}
+.lede{margin:18px auto 0;max-width:56ch;color:var(--ink2);font-size:15px;text-align:left}
+.lede b{color:var(--ink);font-weight:700}
+
+/* ── 畫框分區：細雙線外框，像一片片磁磚 ── */
+*{border-radius:0!important}
+.ctl,.punch,.panel,.tw,.note{box-shadow:none!important}
+.ctl{background:var(--card);border:3px double var(--rule);border-bottom:0;padding:13px 16px}
+.punch{background:var(--card);border:3px double var(--rule);margin-bottom:24px}
+.punch>div{padding:20px 22px}
+.punch>div+div{border-left:1px solid var(--rule2)}
+@media(max-width:640px){.punch>div+div{border-left:0;border-top:1px solid var(--rule2)}}
+.panel{background:var(--card);border:3px double var(--rule);margin-bottom:18px;padding:22px}
+.tw{background:var(--card);border:3px double var(--rule)}
+.note{background:var(--card);border:3px double var(--rule);padding:18px 20px}
+
+/* ── 章節：羅馬數字＋雙線 ── */
+.shead{display:flex;align-items:baseline;gap:14px;justify-content:center;
+  border-top:3px double var(--rule);border-bottom:1px solid var(--rule2);
+  padding:14px 0;margin:46px 0 18px}
+.snum{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.2em;
+  color:var(--ink3);background:transparent;padding:0}
+h2{font-size:24px;letter-spacing:.04em;font-weight:700}
+
+/* ── 大數字 ── */
+.big{font-family:"Libre Baskerville",serif!important;font-weight:700;
+  font-size:clamp(38px,5vw,52px);letter-spacing:-.01em;color:var(--ink)}
+.punch>div p{font-size:14px;color:var(--ink2)}
+
+/* ── 表格：細線、居中表頭 ── */
+table{font-size:13px}
+th{background:transparent;color:var(--ink3);font-size:10px;letter-spacing:.14em;
+  border-bottom:1px solid var(--rule)!important;padding:11px 12px 8px}
+td{border-bottom:1px solid var(--rule2)}
+.sub-h{background:transparent;color:var(--ink);letter-spacing:.14em;
+  border-bottom:1px solid var(--rule)}
+tr.gap td{background:var(--fill)}
+caption{color:var(--ink3);border-top:1px solid var(--rule2);padding-top:10px}
+
+/* ── 註記：雙線框起來，像磁磚上的題字 ── */
+#clampnote, .warn{display:block!important;background:var(--card);
+  border:1px double var(--rule)!important;color:var(--ink2)!important;
+  padding:11px 15px;font-size:12.5px!important;margin:14px 0!important;
+  font-family:"Libre Baskerville","Noto Serif TC",serif!important}
+
+/* ── 控制項 ── */
+.ctl select,.pxchips button{background:var(--card);color:var(--ink);
+  border:1px solid var(--rule)!important;padding:8px 13px;font-size:12.5px}
+.pxchips button[aria-pressed="true"]{background:var(--ink);color:var(--card);font-weight:700}
+
+/* ── 章節編號改羅馬數字（這套的規則：編號用羅馬數字或小型大寫）── */
+body{counter-reset:sec}
+section{counter-increment:sec}
+.shead .snum{font-size:0!important}
+.shead .snum::before{content:counter(sec, upper-roman);font-size:13px;letter-spacing:.22em;
+  font-family:"Libre Baskerville",serif}

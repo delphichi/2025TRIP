@@ -1,0 +1,143 @@
+name: 套用視覺世界主題
+
+# 目的：把 phase/themes/<主題>.css 套到頁面上，算繪桌機／手機 × 淺色／深色四張截圖，
+#      並驗證該主題宣告的對比度與色彩分離度。
+#
+# 這支 workflow 只做機械的部分：套用、算繪、驗算。
+# 設計判斷（挑主題、決定色票、發現版面破損）不在這裡 —— 那要有人看著截圖做。
+#
+# 用法：Actions → 套用視覺世界主題 → Run workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      theme:
+        description: '視覺世界（none = 還原成原本的樣子）'
+        type: choice
+        default: 'swiss'
+        options: ['swiss', 'board', 'kraft', 'azulejo', 'none']
+      target:
+        description: '要套用的頁面'
+        type: string
+        default: 'dca/index.html'
+      also_template:
+        description: '同時套到模板（下次 workflow 重新產生頁面也會帶著主題）'
+        type: boolean
+        default: false
+      template:
+        description: '模板路徑（勾了上面才用）'
+        type: string
+        default: 'phase/scripts/dca_tpl.html'
+      commit:
+        description: '把結果 commit 回這個分支'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  theme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # 全部 stdlib，不需要 pip install
+
+      - name: 驗證色票
+        id: contrast
+        shell: bash
+        env:
+          THEME: ${{ inputs.theme }}
+        run: |
+          set -o pipefail
+          if [ "$THEME" = "none" ]; then
+            echo "還原模式，略過色票驗證"; exit 0
+          fi
+          python3 phase/scripts/check_contrast.py --theme "$THEME" --md > /tmp/contrast.md 2>/tmp/contrast.err
+          cat /tmp/contrast.err
+
+      - name: 套用主題
+        shell: bash
+        env:
+          THEME:  ${{ inputs.theme }}
+          TARGET: ${{ inputs.target }}
+          ALSO:   ${{ inputs.also_template }}
+          TPL:    ${{ inputs.template }}
+        run: |
+          set -o pipefail
+          ARGS=(--theme "$THEME" --target "$TARGET")
+          if [ "$ALSO" = "true" ]; then ARGS+=(--target "$TPL"); fi
+          python3 phase/scripts/apply_theme.py "${ARGS[@]}"
+
+      - name: 算繪截圖
+        if: inputs.theme != 'none'
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -o pipefail
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium-browser)
+          echo "瀏覽器：$CHROME"; "$CHROME" --version
+          mkdir -p /tmp/shots
+          for T in light dark; do
+            sed "s|<html lang=\"zh-Hant\">|<html lang=\"zh-Hant\" data-theme=\"$T\">|" "$TARGET" > "/tmp/page-$T.html"
+          done
+          for V in "1440,2600:desktop" "390,2400:mobile"; do
+            SIZE="${V%%:*}"; NAME="${V##*:}"
+            for T in light dark; do
+              "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars \
+                --virtual-time-budget=9000 --window-size="$SIZE" \
+                --screenshot="/tmp/shots/$NAME-$T.png" "file:///tmp/page-$T.html" 2>/dev/null || true
+            done
+          done
+          ls -la /tmp/shots/
+
+      - name: 上傳截圖
+        if: always() && inputs.theme != 'none'
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-${{ inputs.theme }}-${{ github.run_number }}
+          path: /tmp/shots/*.png
+          if-no-files-found: warn
+
+      - name: 摘要
+        if: always()
+        shell: bash
+        env:
+          THEME:  ${{ inputs.theme }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          {
+            echo "## 視覺世界：\`$THEME\` · $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "套用對象：\`$TARGET\`"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -s /tmp/contrast.md ]; then
+            cat /tmp/contrast.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          {
+            echo ""
+            echo "> 截圖在這次執行的 artifact 裡（桌機／手機 × 淺色／深色，共四張）。"
+            echo "> 這支 workflow 不做設計判斷 —— 版面破損、文案與配色矛盾這類問題要有人看截圖才會發現。"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 提交
+        if: success() && inputs.commit
+        shell: bash
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "沒有變動"; exit 0; }
+          git commit -m "style: 套用視覺世界 ${{ inputs.theme }}（run #${{ github.run_number }}）"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${{ github.ref_name }}" \
+              && git push origin "HEAD:${{ github.ref_name }}" && break
+            sleep $((2**i))
+          done

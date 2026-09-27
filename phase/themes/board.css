@@ -1,0 +1,179 @@
+/*! theme-meta
+{
+  "title": "航班看板 Departure Board",
+  "world": 6,
+  "surfaces": {
+    "light": "#0b0d0e",
+    "dark": "#0b0d0e"
+  },
+  "checks": [
+    {
+      "fg": "#e6e6e6",
+      "bg": "#0b0d0e",
+      "min": 4.5,
+      "what": "正文"
+    },
+    {
+      "fg": "#78838c",
+      "bg": "#131719",
+      "min": 4.5,
+      "what": "暗字（資料列上）"
+    },
+    {
+      "fg": "#f0a500",
+      "bg": "#0b0d0e",
+      "min": 4.5,
+      "what": "含息再投入"
+    },
+    {
+      "fg": "#f2f0e6",
+      "bg": "#0b0d0e",
+      "min": 4.5,
+      "what": "含息領現金"
+    },
+    {
+      "fg": "#5bc0de",
+      "bg": "#0b0d0e",
+      "min": 4.5,
+      "what": "不含息"
+    },
+    {
+      "fg": "#7d858c",
+      "bg": "#0b0d0e",
+      "min": 4.5,
+      "what": "累計本金"
+    },
+    {
+      "fg": "#35c46b",
+      "bg": "#0b0d0e",
+      "min": 4.5,
+      "what": "狀態 ON"
+    },
+    {
+      "fg": "#e5484d",
+      "bg": "#0b0d0e",
+      "min": 4.5,
+      "what": "狀態 OFF"
+    }
+  ],
+  "separations": [
+    {
+      "a": "#f0a500",
+      "b": "#f2f0e6",
+      "min": 15,
+      "what": "琥珀↔奶白"
+    },
+    {
+      "a": "#f2f0e6",
+      "b": "#5bc0de",
+      "min": 15,
+      "what": "奶白↔青"
+    },
+    {
+      "a": "#5bc0de",
+      "b": "#7d858c",
+      "min": 15,
+      "what": "青↔灰"
+    }
+  ]
+}
+theme-meta */
+/* ═══ 世界 6：航班看板 ═══
+   資訊即介面：全站等寬、嚴格欄位對齊、狀態色配文字標籤、零裝飾圖像。
+   定期定額 = 213 個月的班次表，每一列是一個時刻與一組數字。
+   中文用 Noto Sans TC —— 漢字本來就是等寬的全形方塊，和 IBM Plex Mono 併用不會破壞欄位格線。 */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap");
+
+:root, :root[data-theme="light"], :root[data-theme="dark"]{
+  --paper:#0b0d0e;            /* 看板底 */
+  --card:#131719;             /* 資料列 */
+  --ink:#e6e6e6;              /* 15.61:1 */
+  --ink2:#9aa4ad;             /*  7.69:1 */
+  --ink3:#78838c;             /*  5.03:1 */
+  --rule:#252b2f; --rule2:#1b2023;
+  --tr:#f0a500;               /*  9.36:1 含息再投入（主琥珀） */
+  --cash:#f2f0e6;             /* 17.05:1 含息領現金（奶白） */
+  --pr:#5bc0de;               /*  9.31:1 不含息 */
+  --base:#7d858c;             /*  5.20:1 累計本金 */
+  --ok:#35c46b;               /*  8.59:1 ── 保留給狀態，不挪作資料系列 */
+  --bad:#e5484d;              /*  4.98:1 */
+  --c5:#c792ea; --c6:#5bc0de;
+  --fill:rgba(240,165,0,.10);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --paper:#0b0d0e; --card:#131719 }}
+
+/* ── 全站等寬，禁混比例字體 ── */
+body{background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Mono","Noto Sans TC",ui-monospace,monospace;
+  font-size:15px;line-height:1.7;font-variant-numeric:tabular-nums}
+h1,h2,h3,.big,.mono,th,td,select,button,p,li{
+  font-family:"IBM Plex Mono","Noto Sans TC",ui-monospace,monospace!important}
+
+/* ── 首屏：翻牌顯示器 ── */
+.wrap{max-width:1100px;padding:40px 20px 70px}
+header{border-bottom:1px solid var(--rule);padding-bottom:20px}
+header::before{content:"DOLLAR COST AVERAGING / 定期定額";display:block;
+  color:var(--ink3);font-size:11px;letter-spacing:.38em;margin-bottom:18px}
+h1{font-size:clamp(30px,5vw,50px);font-weight:700;line-height:1.25;
+  letter-spacing:.22em;color:var(--tr);text-shadow:0 0 22px rgba(240,165,0,.18)}
+h2{font-size:17px;font-weight:600;letter-spacing:.16em;color:var(--ink)}
+.lede{color:var(--ink2);font-size:14.5px;letter-spacing:.02em;max-width:64ch}
+.lede b{color:var(--ink)}
+
+/* ── 一切方角，零圓角、零陰影 ── */
+*{border-radius:0!important}
+.ctl,.punch,.panel,.tw,.note,select,button{box-shadow:none!important}
+
+/* ── 標籤列：像班次表的欄位標頭 ── */
+.eyebrow{color:var(--ink3);font-size:11px;letter-spacing:.3em;text-transform:uppercase}
+.snum{color:var(--paper);background:var(--tr);font-size:11px;font-weight:700;
+  padding:3px 8px;letter-spacing:.14em}
+.shead{display:flex;align-items:center;gap:12px;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:11px 0;margin-bottom:18px;background:var(--card)}
+.shead .snum{margin-left:12px}
+
+/* ── 資料列：嚴格對齊，交替底色 ── */
+.ctl{background:var(--card);border:1px solid var(--rule);border-bottom:0;padding:11px 14px}
+.punch{border:1px solid var(--rule);background:var(--card);margin-bottom:20px}
+.punch>div{padding:16px 18px}
+.punch>div+div{border-left:1px solid var(--rule)}
+@media(max-width:640px){.punch>div+div{border-left:0;border-top:1px solid var(--rule)}}
+.panel{background:var(--card);border:1px solid var(--rule);border-bottom:0;padding:18px}
+.tw{border:1px solid var(--rule);background:var(--card)}
+table{font-size:13px}
+th{background:var(--paper);color:var(--ink3);font-size:10.5px;letter-spacing:.14em;
+  border-bottom:1px solid var(--rule)!important}
+tbody tr:nth-child(even) td{background:rgba(255,255,255,.022)}
+td{border-bottom:1px solid var(--rule2)}
+.sub-h{background:var(--paper);color:var(--tr);letter-spacing:.16em;font-weight:700}
+tr.gap td{background:var(--fill)}
+tr.hi td:first-child{color:var(--ok)}
+tr.lo td:first-child{color:var(--bad)}
+
+/* ── 大數字：看板的主角 ── */
+.big{font-weight:700;letter-spacing:.02em;color:var(--tr);
+  text-shadow:0 0 18px rgba(240,165,0,.16)}
+.punch>div p{color:var(--ink2);font-size:13px}
+.punch>div p b{color:var(--ink)}
+
+/* ── 註記做成狀態列，顏色不單獨承載意義 ── */
+#clampnote, .warn{display:block!important;background:var(--card);
+  border:1px solid var(--rule);border-left:3px solid var(--tr);
+  color:var(--ink2)!important;padding:10px 14px;font-size:12.5px!important;
+  letter-spacing:.02em;margin:12px 0!important}
+.note{background:var(--card);border:1px solid var(--rule);padding:16px 18px;font-size:13px}
+
+/* ── 控制項：看板上的按鍵 ── */
+.ctl select{background:var(--paper);color:var(--ink);border:1px solid var(--rule)!important}
+.pxchips button{background:var(--paper);color:var(--ink2);border:1px solid var(--rule)!important;
+  padding:9px 14px;letter-spacing:.08em;font-size:12px}
+.pxchips button[aria-pressed="true"]{background:var(--tr);color:var(--paper);font-weight:700}
+
+/* 窄螢幕收掉字距：看板的寬字距在 390px 會把最後一顆按鍵擠出畫面 */
+@media(max-width:640px){
+  .ctl{letter-spacing:0}
+  .ctl button{letter-spacing:.02em!important;padding:7px 9px}
+  header::before{letter-spacing:.2em;font-size:10px}
+  h1{letter-spacing:.12em}
+}
