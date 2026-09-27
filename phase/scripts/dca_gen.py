@@ -149,6 +149,34 @@ def fx_series(pair="TWD=X"):
     return {f"{k[0]}-{k[1]:02d}": [round(sorted(v)[0][1], 4), round(sorted(v)[-1][1], 4)]
             for k, v in mo.items()}
 
+def risk_stats(ser, ccy):
+    """★ Beta / 年化波動 / R²。基準：台股 ^TWII、其他 ^GSPC。
+       ⚠ 一定要附 R² —— 它低代表「跟這個基準關聯弱」，此時 Beta 本身沒有意義
+         （例：債券 ETF 對股票指數的 Beta 接近 0，但那不代表它穩，只代表無關）。
+       ⚠ 用近 5 年日報酬；不足 250 個交易日就回 None，不硬算。"""
+    bm = "^TWII" if ccy == "TWD" else "^GSPC"
+    try:
+        bser, _, _, _, _ = chart(bm, years=6)
+    except Exception:
+        return None
+    cut = ser[-1][0] - dt.timedelta(days=365*5)
+    A = {d_: c for d_, c, _ in ser if d_ >= cut}
+    B = {d_: c for d_, c, _ in bser if d_ >= cut}
+    ks = sorted(set(A) & set(B))
+    if len(ks) < 251: return None
+    ra = [A[ks[i]]/A[ks[i-1]]-1 for i in range(1, len(ks))]
+    rb = [B[ks[i]]/B[ks[i-1]]-1 for i in range(1, len(ks))]
+    ma, mb = st.mean(ra), st.mean(rb)
+    cov = sum((x-ma)*(y-mb) for x, y in zip(ra, rb))/(len(ra)-1)
+    va = sum((x-ma)**2 for x in ra)/(len(ra)-1)
+    vb = sum((y-mb)**2 for y in rb)/(len(rb)-1)
+    if not vb or not va: return None
+    beta = cov/vb
+    r2 = (cov/((va*vb)**0.5))**2
+    return dict(bm=bm, beta=round(beta, 3), r2=round(r2, 3),
+                vol=round((va**0.5)*(252**0.5)*100, 1),
+                bvol=round((vb**0.5)*(252**0.5)*100, 1), n=len(ra))
+
 def nav_info(sym):
     """★ ETF 折溢價 ＝ 市價 ÷ 淨值 − 1。
        ⚠ 只拿得到「當下」的淨值：yfinance .info 的 navPrice 是快照，
@@ -202,9 +230,10 @@ def build(code):
         tsp = 1.0
         for _, r_ in spl: tsp *= r_
         NAV = nav_info(sym)
+        RSK = risk_stats(ser, ccy)
         return dict(t=code, sym=sym, nm=nm, ccy=ccy,
                     m=rec, v=vol, tri=tri, v0=v0,
-                    nsp=len(spl), tsp=round(tsp, 4), nav=NAV,
+                    nsp=len(spl), tsp=round(tsp, 4), nav=NAV, rsk=RSK,
                     brk=[[str(b), r] for b, r, _ in brks]), None
     return None, f"{code} Yahoo 查不到或資料太短"
 
@@ -243,6 +272,7 @@ def main():
               + (f"　★ 自動修正斷點 {d['brk']}" if d["brk"] else "")
               + (f"　（配股 {d['nsp']} 次 {d['tsp']}x，已含在還原價裡）" if d["nsp"] else "")
               + (f"　淨值 {d['nav']['nav']} 折溢價 {d['nav']['prem']:+.3f}%" if d["nav"] else "")
+              + (f"　β {d['rsk']['beta']} (R² {d['rsk']['r2']}) 波動 {d['rsk']['vol']}%" if d["rsk"] else "")
               + (f"　★ 量能自 {d['v0']}" if d["v0"] and d["v0"] != d["m"][0][0] else ""))
     if not data: sys.exit("★ 全部失敗")
     ccys = sorted({d["ccy"] for d in data})

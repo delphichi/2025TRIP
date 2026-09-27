@@ -174,7 +174,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 
 
 <section id="navsec" style="display:none">
-  <div class="shead"><span class="snum">03</span><h2>淨值與折溢價</h2></div>
+  <div class="shead"><span class="snum">03</span><h2>淨值、折溢價與風險</h2></div>
   <p>ETF 的<b>淨值（NAV）</b>是它持有的一籃子股票值多少錢，<b>市價</b>是盤面上成交的價格。
     兩者的差就是<b>折溢價</b> —— 市價比淨值高叫<b>溢價</b>（買貴了），低叫<b>折價</b>（買便宜了）。</p>
   <div class="tw"><table>
@@ -182,8 +182,13 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
       （TWSE／TPEX／投信官網的公開端點實測全部非 JSON 或需登入），所以這張表不能畫成時間序列，
       上面的報酬計算也<b>完全沒有用到淨值</b> —— 那些數字是用市價與配息算的。<br>
       一般而言台股 ETF 的折溢價在 ±1% 內屬正常；<b>持續溢價超過 2% 要小心</b>，
-      通常代表該檔暫停或限制申購，買進等於替別人的溢價買單。</caption>
-    <thead><tr><th>標的</th><th>市價</th><th>淨值 NAV</th><th>折溢價</th><th>狀態</th><th>報價時間</th></tr></thead>
+      通常代表該檔暫停或限制申購，買進等於替別人的溢價買單。<br>
+      <b>Beta</b> 是近 5 年日報酬對基準（台股 ^TWII／美股 ^GSPC）的回歸斜率：
+      &gt;1 比大盤波動大、&lt;1 比大盤穩。<b>★ 一定要同時看 R²</b> —— 它低於 0.5 時
+      代表「跟這個基準關聯弱」，Beta 本身就沒有意義（債券 ETF 對股票指數的 Beta 接近 0，
+      那不代表它穩，只代表無關），這種情況會標 ⚠。</caption>
+    <thead><tr><th>標的</th><th>市價</th><th>淨值 NAV</th><th>折溢價</th><th>狀態</th>
+      <th>Beta</th><th>R²</th><th>年化波動</th><th>基準</th></tr></thead>
     <tbody id="navtb"></tbody>
   </table></div>
 </section>
@@ -508,19 +513,29 @@ function render(){
     $('mtabs').querySelectorAll('.tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
     mtab();}));
   // ★ 折溢價：只有當下一筆，與區間無關，所以不跟著 render 重算
-  const nv=ORDER.filter(t=>D[t].nav);
+  const nv=ORDER.filter(t=>D[t].nav||D[t].rsk);
   if(nv.length){
     $('navsec').style.display='';
-    $('navtb').innerHTML=nv.map(t=>{const v=D[t].nav, p=v.prem;
-      const st = Math.abs(p)<0.5 ? ['貼近淨值','var(--ink3)']
-               : p>=2 ? ['★ 溢價偏高','var(--tr)']
-               : p<=-2 ? ['★ 折價偏深','var(--pr)']
-               : p>0 ? ['小幅溢價','var(--cash)'] : ['小幅折價','var(--base)'];
-      return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>`+
-        `<td class="num">${v.px.toFixed(2)}</td><td class="num">${v.nav.toFixed(2)}</td>`+
-        `<td class="num" style="color:${st[1]};font-weight:700">${(p>0?'+':'')+p.toFixed(3)}%</td>`+
-        `<td style="text-align:left;color:${st[1]};font-size:12.5px">${st[0]}</td>`+
-        `<td style="text-align:left;font-size:11.5px;color:var(--ink3)">${v.ts||'—'}</td></tr>`;}).join('');
+    $('navtb').innerHTML=nv.map(t=>{const v=D[t].nav, r=D[t].rsk;
+      let c1='<td class="num">—</td><td class="num">—</td><td class="num">—</td><td>—</td>';
+      if(v){const p=v.prem;
+        const st = Math.abs(p)<0.5 ? ['貼近淨值','var(--ink3)']
+                 : p>=2 ? ['★ 溢價偏高','var(--tr)']
+                 : p<=-2 ? ['★ 折價偏深','var(--pr)']
+                 : p>0 ? ['小幅溢價','var(--cash)'] : ['小幅折價','var(--base)'];
+        c1=`<td class="num">${v.px.toFixed(2)}</td><td class="num">${v.nav.toFixed(2)}</td>`+
+           `<td class="num" style="color:${st[1]};font-weight:700">${(p>0?'+':'')+p.toFixed(3)}%</td>`+
+           `<td style="text-align:left;color:${st[1]};font-size:12.5px">${st[0]}</td>`;}
+      let c2='<td class="num">—</td><td class="num">—</td><td class="num">—</td><td>—</td>';
+      if(r){
+        // ★ R² 低 ⇒ Beta 本身沒有意義，要標出來而不是讓人照著讀
+        const weak = r.r2 < 0.5;
+        const bc = r.beta>=1.1?'var(--tr)':(r.beta<=0.8?'var(--base)':'var(--ink)');
+        c2=`<td class="num" style="color:${weak?'var(--ink3)':bc};font-weight:700">${r.beta.toFixed(2)}${weak?' ⚠':''}</td>`+
+           `<td class="num" style="color:${weak?'var(--cash)':'var(--ink3)'}">${r.r2.toFixed(2)}</td>`+
+           `<td class="num">${r.vol.toFixed(1)}%</td>`+
+           `<td style="text-align:left;font-size:11px;color:var(--ink3)">${r.bm}<br>${r.bvol.toFixed(1)}%</td>`;}
+      return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>${c1}${c2}</tr>`;}).join('');
   } else $('navsec').style.display='none';
   mtab(); pxchips(); ORDER.forEach(plot); plotPX();
 }
