@@ -169,8 +169,24 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
   <div id="curves"></div>
 </section>
 
+
 <section>
-  <div class="shead"><span class="snum">02</span><h2>數字</h2></div>
+  <div class="shead"><span class="snum">02</span><h2>放在一起比</h2></div>
+  <p>同樣每月投入、<b>同一天開始、同一天結束</b>，四條資產曲線疊在一起 ——
+    上半看誰跑得遠，下半看誰跌得深、躺得久。</p>
+  <div class="panel">
+    <div class="pxchips" id="cmpchips"></div>
+    <div class="seg" id="cmpseg" style="margin-bottom:12px">
+      <button class="tb" data-m="A" aria-pressed="true">含息 · 配息再投入</button>
+      <button class="tb" data-m="B" aria-pressed="false">含息 · 領現金</button>
+      <button class="tb" data-m="Cv" aria-pressed="false">不含息 · 只看股價</button>
+    </div>
+    <canvas id="ccmp" role="img" aria-label="多標的資產與回撤對照"></canvas>
+    <p style="font-size:12px;color:var(--cash);margin:8px 2px 0" id="cmpnote"></p>
+  </div>
+</section>
+<section>
+  <div class="shead"><span class="snum">03</span><h2>數字</h2></div>
   <div class="tw"><table>
     <caption>年化報酬用 <b>IRR（資金加權）</b>，不是總報酬開根號 —— 錢是分好幾十次進場的，
       最後一筆只放了一個月，用簡單 CAGR 會嚴重低估。最大回撤為資產淨值曲線的峰到谷。<br>
@@ -184,7 +200,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 
 
 <section id="navsec" style="display:none">
-  <div class="shead"><span class="snum">03</span><h2>淨值、折溢價與風險</h2></div>
+  <div class="shead"><span class="snum">04</span><h2>淨值、折溢價與風險</h2></div>
   <p>ETF 的<b>淨值（NAV）</b>是它持有的一籃子股票值多少錢，<b>市價</b>是盤面上成交的價格。
     兩者的差就是<b>折溢價</b> —— 市價比淨值高叫<b>溢價</b>（買貴了），低叫<b>折價</b>（買便宜了）。</p>
   <div class="tw"><table>
@@ -204,7 +220,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 </section>
 
 <section>
-  <div class="shead"><span class="snum">04</span><h2>水下期間</h2></div>
+  <div class="shead"><span class="snum">05</span><h2>水下期間</h2></div>
   <p>回撤圖看得到<b>跌多深</b>，這張表補的是<b>躺多久</b> —— 從跌破前高到重新站回前高。
     <b>★ 兩者不一定同向</b>：跌得淺的標的可能因為漲得也慢，反而卡在水下更久。</p>
   <div class="tw"><table>
@@ -216,7 +232,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
   </table></div>
 </section>
 <section>
-  <div class="shead"><span class="snum">05</span><h2>價位 × 量能</h2></div>
+  <div class="shead"><span class="snum">06</span><h2>價位 × 量能</h2></div>
   <p>橫軸是<b>該月成交金額相對這段期間的平均</b>，縱軸是<b>相對起點的累計總報酬</b>。
     空心環是起點，實心點是現在。<b>這張圖回答的是「漲上來的時候，有沒有人在買」。</b></p>
   <div class="panel">
@@ -228,7 +244,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 </section>
 
 <section>
-  <div class="shead"><span class="snum">06</span><h2>逐月數據</h2></div>
+  <div class="shead"><span class="snum">07</span><h2>逐月數據</h2></div>
   <p>每月第一個交易日買進。<b>配息欄是當月實際入帳的現金</b>；
     「配息再買入」是那筆現金在除息日收盤價買回的股數 —— 這一欄累積起來，
     就是兩條曲線分岔的全部原因。</p>
@@ -539,6 +555,115 @@ document.querySelectorAll('#ddseg .tb').forEach(b=>b.addEventListener('click',()
   document.querySelectorAll('#ddseg .tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
   ORDER.forEach(plot); plotDD();}));
 
+
+// ★★★ 多標的對照：上半資產、下半回撤，全部疊在同一條時間軸。
+//   ★ 起點必須對齊 —— 各檔資料起始月不同（SPY 2001-10、0050 2009-01），
+//     不對齊就是拿「25 年的投資」跟「17 年的投資」比絕對金額，完全沒有意義。
+//     取所有勾選標的裡「最晚的起始月」當共同起點，並在圖下標示。
+let CMPM="A";
+let CMPON=new Set();
+function cmpSim(){
+  const ks=ORDER.filter(t=>CMPON.has(t)&&bounds(t));
+  if(!ks.length) return null;
+  const starts=ks.map(t=>D[t].m[bounds(t)[0]][0]);
+  const s0=starts.reduce((a,b)=>a>b?a:b);          // 最晚的起始月
+  const out={};
+  for(const t of ks){
+    const rec=D[t].m, b=bounds(t);
+    let i0=rec.findIndex(r=>r[0]>=s0);
+    if(i0<0||i0>b[1]) continue;
+    out[t]=sim(t,i0,b[1]);
+  }
+  return {s0, ks:Object.keys(out), S:out,
+          late:starts.some(x=>x!==s0), starts:Object.fromEntries(ks.map((t,i)=>[t,starts[i]]))};
+}
+function cmpchips(){
+  $('cmpchips').innerHTML=ORDER.map(t=>
+    `<button data-k="${t}" aria-pressed="${CMPON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
+  $('cmpchips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.k;
+    if(CMPON.has(t)&&CMPON.size>1) CMPON.delete(t); else CMPON.add(t);
+    cmpchips(); plotCMP();}));
+}
+function plotCMP(){
+  const cv=$('ccmp'); if(!cv.clientWidth){requestAnimationFrame(plotCMP);return;}
+  const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
+        h=Math.round(Math.min(560,Math.max(340,w*0.62)));
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  const R=cmpSim();
+  if(!R||!R.ks.length){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
+    x.fillText('這個區間沒有共同資料',w/2,h/2);$('cmpnote').textContent='';return;}
+  const PL=70,PR=16,PT=16,PB=28,GAP=26;
+  const iw=w-PL-PR, avail=h-PT-PB-GAP;
+  const ihT=Math.round(avail*0.62), ihB=avail-ihT, yT=PT, yB=PT+ihT+GAP;
+  const n=Math.max(...R.ks.map(t=>R.S[t].n));
+  const X=i=>n===1?PL+iw/2:PL+iw*i/(n-1);
+  // ── 上半：資產
+  const max=Math.max(...R.ks.flatMap(t=>R.S[t][CMPM]))*1.05;
+  const Y=v=>yT+ihT-ihT*v/max;
+  let stp=Math.pow(10,Math.floor(Math.log10(max)));
+  while(max/stp>5)stp*=2; while(max/stp<3)stp/=2;
+  x.font='11px "IBM Plex Mono",monospace';x.textAlign='right';
+  for(let v=0;v<=max;v+=stp){const yy=Math.round(Y(v))+.5;
+    x.strokeStyle=C('--rule2');x.lineWidth=1;x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+    x.fillStyle=C('--ink3');x.fillText(money(v),PL-8,yy+4);}
+  // 本金線（共同起點 ⇒ 各檔相同，畫一次）
+  const inv=R.S[R.ks[0]].inv;
+  x.beginPath();x.moveTo(X(0),Y(inv[0]));
+  for(let i=1;i<inv.length;i++)x.lineTo(X(i),Y(inv[i]));
+  x.strokeStyle=C('--base');x.lineWidth=2.0;x.setLineDash([5,4]);x.stroke();x.setLineDash([]);
+  const lab=[];
+  for(const t of R.ks){const a=R.S[t][CMPM],m=a.length,XX=i=>m===1?PL+iw/2:PL+iw*i/(m-1);
+    x.beginPath();x.moveTo(XX(0),Y(a[0]));
+    for(let i=1;i<m;i++)x.lineTo(XX(i),Y(a[i]));
+    x.strokeStyle=cc(t);x.lineWidth=2.6;x.lineJoin='round';x.stroke();
+    lab.push({t,y:Y(a[m-1]),v:a[m-1]});}
+  // 端點標籤：由上而下排開避免重疊
+  lab.sort((a,b)=>a.y-b.y);
+  let prev=-99;
+  x.textAlign='right';x.font='700 11.5px "IBM Plex Mono",monospace';
+  for(const L of lab){
+    const yy=Math.max(yT+11,Math.max(prev+13,L.y)); prev=yy;
+    x.lineWidth=3;x.strokeStyle=C('--card');
+    const s2=D[L.t].nm.split(' ')[0]+'  '+money(L.v);
+    x.strokeText(s2,w-PR-2,yy);x.fillStyle=cc(L.t);x.fillText(s2,w-PR-2,yy);}
+  // ── 下半：回撤
+  const DD={};
+  for(const t of R.ks){const a=R.S[t][CMPM];let pk=-Infinity;const o=[];
+    for(const v of a){pk=Math.max(pk,v);o.push((v-pk)/pk*100);} DD[t]=o;}
+  let lo=Math.min(...R.ks.flatMap(t=>DD[t])); lo=Math.min(lo*1.1,-2);
+  const Y2=v=>yB+ihB*(v/lo);
+  let s3=Math.pow(10,Math.floor(Math.log10(-lo)));
+  while(-lo/s3>3)s3*=2; while(-lo/s3<1.5)s3/=2;
+  x.font='10.5px "IBM Plex Mono",monospace';x.textAlign='right';
+  for(let v=0;v>=lo;v-=s3){const yy=Math.round(Y2(v))+.5;
+    x.strokeStyle=v===0?C('--rule'):C('--rule2');x.lineWidth=v===0?1.4:1;
+    x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+    x.fillStyle=C('--ink3');x.fillText(Math.round(v)+'%',PL-8,yy+4);}
+  for(const t of R.ks){const o=DD[t],m=o.length,XX=i=>m===1?PL+iw/2:PL+iw*i/(m-1);
+    x.beginPath();x.moveTo(XX(0),Y2(o[0]));
+    for(let i=1;i<m;i++)x.lineTo(XX(i),Y2(o[i]));
+    x.strokeStyle=cc(t);x.lineWidth=1.8;x.lineJoin='round';
+    x.globalAlpha=R.ks.length>2?.85:1;x.stroke();x.globalAlpha=1;}
+  x.textAlign='left';x.font='600 10px "IBM Plex Mono",monospace';x.fillStyle=C('--ink3');
+  x.fillText('回撤（距各自的歷史最高點）',PL+2,yB-7);
+  // ── 時間軸
+  const ref=R.S[R.ks[0]];
+  x.textAlign='center';x.fillStyle=C('--ink3');x.font='11px "IBM Plex Mono",monospace';
+  const yrs=ref.n/12,step=yrs>14?3:(yrs>7?2:1);
+  ref.ym.forEach((mm,i)=>{const[y,mo]=mm.split('-');
+    if(mo==='01'&&(+y)%step===0)x.fillText(y,X(i),h-9);});
+  const nm={A:'含息 · 配息再投入',B:'含息 · 領現金',Cv:'不含息 · 只看股價'}[CMPM];
+  $('cmpnote').innerHTML=`口徑：<b>${nm}</b>　共同起點 <b>${R.s0}</b>　${ref.n} 個月　投入 ${NF(inv[inv.length-1])}`+
+    (R.late?`　★ 已對齊到最晚的起始月（${R.ks.map(t=>`${D[t].nm.split(' ')[0]} ${R.starts[t]}`).join('、')}），`+
+      `否則等於拿不同長度的投資互比。`:'');
+}
+document.querySelectorAll('#cmpseg .tb').forEach(b=>b.addEventListener('click',()=>{
+  CMPM=b.dataset.m;
+  document.querySelectorAll('#cmpseg .tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  plotCMP();}));
+
 function pxchips(){
   $('pxchips').innerHTML=ORDER.map(t=>
     `<button data-k="${t}" aria-pressed="${PXON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
@@ -651,14 +776,15 @@ function render(){
            `<td style="text-align:left;font-size:11px;color:var(--ink3)">${r.bm}<br>${r.bvol.toFixed(1)}%</td>`;}
       return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>${c1}${c2}</tr>`;}).join('');
   } else $('navsec').style.display='none';
-  mtab(); pxchips(); ORDER.forEach(plot); plotPX(); plotDD();
+  if(!CMPON.size) CMPON=new Set(ORDER);
+  mtab(); pxchips(); cmpchips(); ORDER.forEach(plot); plotPX(); plotDD(); plotCMP();
 }
 S0.addEventListener('change',render);S1.addEventListener('change',render);
 $('pre').addEventListener('click',e=>{const p=e.target.dataset&&e.target.dataset.p;if(!p)return;
   S1.value=ALL[ALL.length-1];
   S0.value = p==='all' ? ALL[0] : ALL[Math.max(0,ALL.length-(+p)*12)];
   render();});
-addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();});
+addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();plotCMP();});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
 render();
 </script>
