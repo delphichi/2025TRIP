@@ -208,6 +208,44 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
     <tbody id="opttb"></tbody>
   </table></div>
 
+
+  <h3 style="margin:30px 0 10px">投入一筆錢，每年領多少</h3>
+  <p>把上面的配置比換成實際金額：<b>一次投入</b>這筆錢，每年會收到多少現金配息。
+    <b>這跟前面的定期定額是兩件事</b> —— 那邊問「累積多少」，這裡問「每年能領多少」。</p>
+  <div class="panel bar" style="position:static;box-shadow:none;margin-bottom:14px">
+    <span class="lb">投入金額</span>
+    <select id="amtsel">
+      <option value="1000000">100 萬</option>
+      <option value="3000000">300 萬</option>
+      <option value="5000000">500 萬</option>
+      <option value="10000000" selected>1,000 萬</option>
+      <option value="20000000">2,000 萬</option>
+      <option value="30000000">3,000 萬</option>
+    </select>
+    <span class="lb" style="margin-left:8px">配息率口徑</span>
+    <div class="seg" id="yseg">
+      <button class="tb" data-y="ttm" aria-pressed="true">近 12 個月</button>
+      <button class="tb" data-y="med" aria-pressed="false">歷史中位數</button>
+    </div>
+    <span style="font-size:12.5px;color:var(--ink2)" id="ynote"></span>
+  </div>
+  <div class="tw" style="margin-bottom:14px"><table>
+    <caption>配息率由<b>本頁自己的歷史配息資料</b>算出，不是引用外部殖利率。
+      「近 12 個月」＝ 最近四季實際配息 ÷ 現價；「歷史中位數」＝ 近十個完整年度
+      <b>各年配息 ÷ 當年均價</b>的中位數。<br>
+      ★ <b>二代健保補充保費 2.11%</b> 已扣（單筆配息逾 2 萬元才課，這裡以全額估算，
+      實際依每次配息金額判定）。<b>綜所稅未計</b> —— 股利可選合併計稅（8.5% 抵減、上限 8 萬）
+      或分開計稅 28%，因人而異。</caption>
+    <thead><tr><th>配置</th><th id="ycols">權重</th><th>年配息（稅前）</th><th>扣二代健保後</th><th>平均配息率</th><th>每月約</th></tr></thead>
+    <tbody id="inctb"></tbody>
+  </table></div>
+  <div class="tw"><table>
+    <caption>★ 各檔的配息率本身就會變。下表是近十年逐年的實際數字 ——
+      <b>把最低那一年當成保守估計</b>，比用平均值安全。</caption>
+    <thead><tr><th>標的</th><th>近 12 個月</th><th>歷史中位數</th><th>最低</th><th>最高</th><th>逐年（近 10 個完整年度）</th></tr></thead>
+    <tbody id="yldtb"></tbody>
+  </table></div>
+
   <div class="warn" id="optverdict"></div>
 
   <h3 style="margin:26px 0 10px">檢驗一：換一段期間，最佳解會變嗎</h3>
@@ -774,6 +812,84 @@ function optimize(R,k,rf,N){
   }
   return {best,minv,pts};
 }
+
+// ★★★ 配息率：一律從本頁自己的歷史配息資料算，不引用外部殖利率。
+//   ⚠ 兩種口徑差很多，一定要並列：
+//     ttm ＝ 近 12 個月實際配息 ÷ 現價 —— 反映「現在買進」，但股價剛大漲時會被壓低
+//           （0050 2026 股價 65.6→112.4 近乎翻倍，配息還沒跟上，TTM 只有 1.42%）
+//     med ＝ 近十個完整年度「各年配息 ÷ 當年均價」的中位數 —— 反映長期常態
+//   ⚠ 2026 是未完整年度，算中位數時排除。
+let YM_="ttm", INVAMT=10000000;
+const NHI=0.0211;                                  // 二代健保補充保費
+function yieldOf(t){
+  const rec=D[t].m; if(!rec||!rec.length) return null;
+  const px=rec[rec.length-1][2];
+  let ttm=0; for(const r of rec.slice(-12)) for(const [a] of r[3]) ttm+=a;
+  const yr={};
+  for(const [ym,bp,ep,ds] of rec){const y=ym.slice(0,4);
+    if(!yr[y]) yr[y]={d:0,px:[]};
+    for(const [a] of ds) yr[y].d+=a;
+    yr[y].px.push(ep);}
+  const thisY=rec[rec.length-1][0].slice(0,4);
+  const ys=Object.keys(yr).sort().filter(y=>y<thisY);   // 排除未完整年度
+  const list=ys.slice(-10).map(y=>{const v=yr[y];
+    return {y, yld:v.d/(v.px.reduce((a,b)=>a+b,0)/v.px.length)*100};});
+  if(!list.length) return {px, ttm:ttm/px*100, med:null, lo:null, hi:null, list:[]};
+  const sorted=list.map(o=>o.yld).sort((a,b)=>a-b);
+  return {px, ttm:ttm/px*100, ttmAmt:ttm,
+          med:sorted[Math.floor(sorted.length/2)], lo:sorted[0], hi:sorted[sorted.length-1], list};
+}
+function renderIncome(ks,best,minv,eqw){
+  const Yd={}; for(const t of ks) Yd[t]=yieldOf(t);
+  const miss=ks.filter(t=>!Yd[t]||Yd[t][YM_]==null);
+  $('ynote').textContent = YM_==='ttm'
+    ? '★ 反映「現在買進」，但股價剛大漲時會被壓低'
+    : '★ 反映長期常態，未必是現在買得到的水準';
+  // 配置清單：兩檔給梯度，多檔給關鍵組合
+  const rows=[];
+  if(ks.length===2){
+    for(let i=0;i<=4;i++){const a=i/4; rows.push({nm:`${D[ks[0]].nm.split(' ')[0]} ${a*100}% / ${D[ks[1]].nm.split(' ')[0]} ${(1-a)*100}%`, w:[a,1-a]});}
+    rows.push({nm:'★ 最大 Sharpe', w:best.w, cls:'hi'});
+    rows.push({nm:'最小波動', w:minv.w, cls:''});
+  }else{
+    rows.push({nm:'★ 最大 Sharpe', w:best.w, cls:'hi'});
+    rows.push({nm:'最小波動', w:minv.w, cls:''});
+    rows.push({nm:'無腦等權重', w:eqw, cls:'lo'});
+    ks.forEach((t,i)=>{const w=Array(ks.length).fill(0);w[i]=1;
+      rows.push({nm:'單押 '+D[t].nm, w});});
+  }
+  $('inctb').innerHTML=rows.map(r=>{
+    let y=0, ok=true;
+    ks.forEach((t,i)=>{const v=Yd[t]&&Yd[t][YM_]; if(v==null){ok=false;return;} y+=r.w[i]*v;});
+    if(!ok) return '';
+    const gross=INVAMT*y/100, net=gross*(1-NHI);
+    return `<tr class="${r.cls||''}"><td>${r.nm}</td>`+
+      `<td style="text-align:left;font-size:12.5px">${ks.map((t,i)=>`${D[t].nm.split(' ')[0]} ${(r.w[i]*100).toFixed(0)}%`).join('　')}</td>`+
+      `<td class="num" style="font-weight:700">${NF(gross)}</td>`+
+      `<td class="num">${NF(net)}</td>`+
+      `<td class="num">${y.toFixed(2)}%</td>`+
+      `<td class="num" style="color:var(--ink3)">${NF(net/12)}</td></tr>`;}).join('');
+  $('yldtb').innerHTML=ks.map(t=>{const v=Yd[t]; if(!v) return '';
+    return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>`+
+      `<td class="num" style="font-weight:700">${v.ttm.toFixed(2)}%</td>`+
+      `<td class="num">${v.med!=null?v.med.toFixed(2)+'%':'—'}</td>`+
+      `<td class="num" style="color:var(--pr)">${v.lo!=null?v.lo.toFixed(2)+'%':'—'}</td>`+
+      `<td class="num" style="color:var(--tr)">${v.hi!=null?v.hi.toFixed(2)+'%':'—'}</td>`+
+      `<td style="text-align:left;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--ink2)">`+
+      `${v.list.map(o=>o.y.slice(2)+':'+o.yld.toFixed(1)).join('  ')}</td></tr>`;}).join('');
+  // ★ TTM 與中位數差距過大時明講原因
+  const warn=ks.filter(t=>{const v=Yd[t];return v&&v.med&&(v.med/v.ttm>1.8||v.ttm/v.med>1.8);});
+  const el=$('ynote');
+  if(warn.length){
+    el.innerHTML += ` 　<b style="color:var(--tr)">★ ${warn.map(t=>D[t].nm.split(' ')[0]).join('、')} 兩種口徑差超過 1.8 倍</b>`;
+  }
+}
+$('amtsel').addEventListener('change',()=>{INVAMT=+$('amtsel').value;plotOPT();});
+document.querySelectorAll('#yseg .tb').forEach(b=>b.addEventListener('click',()=>{
+  YM_=b.dataset.y;
+  document.querySelectorAll('#yseg .tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  plotOPT();}));
+
 function optchips(){
   $('optchips').innerHTML=ORDER.map(t=>
     `<button data-k="${t}" aria-pressed="${OPTON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
@@ -791,7 +907,7 @@ function plotOPT(){
   cv.width=w0*dpr;cv.height=h*dpr;cv.style.height=h+'px';
   const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w0,h);
   const O=optData();
-  const clr=()=>{['opttb','segtb','ostb'].forEach(i=>$(i).innerHTML='');$('optverdict').innerHTML='';};
+  const clr=()=>{['opttb','segtb','ostb','inctb','yldtb'].forEach(i=>$(i).innerHTML='');$('optverdict').innerHTML='';};
   if(!O){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
     x.fillText('至少需要兩檔標的、24 個共同月份',w0/2,h/2);clr();return;}
   const {ks,ym,R}=O, k=ks.length, rf=optRF();
@@ -848,6 +964,7 @@ function plotOPT(){
   for(let i=0;i<k;i++){const w=Array(k).fill(0);w[i]=1;
     hh+=row('單押 '+D[ks[i]].nm,w,pstat(R,w,rf),'');}
   $('opttb').innerHTML=hh;
+  renderIncome(ks,best,minv,eqw);
   // ── 檢驗一：分段
   const n=R.length, SEG=5, sl=Math.floor(n/SEG); let segs=[];
   for(let i=0;i<SEG;i++){
