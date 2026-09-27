@@ -205,6 +205,10 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
       而且它記錄的 splits 是 0、連 Adj Close 都是壞的 —— 不修的話跨過該日的定期定額會憑空蒸發四分之三。
       判準是「價格跳空接近某個單純比例 <b>且成交金額在同一天是連續的</b>」，
       真實崩盤會讓成交金額同步變化，因此不會被誤修。<span id="brknote"></span></li>
+    <li><b>★ 台股配股（盈餘轉增資）Yahoo 記在 splits，但 raw Close 已經還原過。</b>
+      所以<b>不能再拿它去乘股數</b>，否則重複計算 —— 實測「raw Close + 現金配息再投入」
+      已能重現 Adj Close（富邦金 1691.2% vs 1697.7%、0056 427.3% vs 428.4%，誤差 &lt;0.4%）。
+      逐月表的「配股」欄僅標示發生時點，不參與計算。<span id="spnote"></span></li>
     <li><b>報酬率用 IRR。</b>錢是分 N 次進場的，用總報酬開根號會嚴重低估。</li>
     <li><b>量能用成交金額</b>（收盤 × 成交股數）而非張數 —— 分割會改變張數的計數單位。
       ★ Yahoo 對部分台股 ETF 早年沒有成交量資料，「價位 × 量能」會自動裁切並標示。</li>
@@ -241,6 +245,9 @@ if(FX&&BASE){const us=ORDER.filter(t=>D[t].ccy!==BASE);
     `每月的 ${NF(AMT)} ${BASE} 先換成 ${D[us[0]].ccy} 再買進，期末再換回。`+
     `<b>匯率損益已包含在報酬裡</b>，這才是台灣人實際拿到的數字。`;}
 const bl=ORDER.filter(t=>D[t].brk.length);
+const sl=ORDER.filter(t=>D[t].nsp);
+if(sl.length&&$('spnote')) $('spnote').innerHTML='<b style="color:var(--cash)"> 本頁實際配股：'+
+  sl.map(t=>`${D[t].nm} ${D[t].nsp} 次累積 ${D[t].tsp}x`).join('；')+'（已含在還原價內）</b>';
 if(bl.length) $('brknote').innerHTML='<b style="color:var(--cash)"> 本頁實際修正：'+
   bl.map(t=>`${t} ${D[t].brk.map(b=>b[0]+' ×'+b[1]).join('、')}`).join('；')+'</b>';
 
@@ -260,6 +267,7 @@ function sim(t,i0,i1){
   const o={ym:[],px:[],nb:[],shP:[],shR:[],div:[],dsh:[],inv:[],A:[],B:[],Cv:[]};
   for(let i=i0;i<=i1;i++){
     const [ym,bp,ep,ds]=rec[i];
+    // ★ rec[4] 是配股倍數，★ 只作顯示 —— raw Close 已還原過，再乘會重複計算
     const f=cv?(FX[ym]||null):null;
     if(cv && !f) continue;                      // ★ 該月沒有匯率就跳過，不用舊值硬湊
     const fb=f?f[0]:1, fe=f?f[1]:1;
@@ -404,13 +412,16 @@ function pxchips(){
 }
 function mtab(){
   const d=SIM[TABKEY];
-  const H=['買入日','股價','每期買到<br>股數','累計股數<br>(定額)','當月配息',
+  const H=['買入日','股價','每期買到<br>股數','配股<br>(已還原)','累計股數<br>(定額)','當月配息',
     '配息再買入<br>股數','累計股數<br>(含再投入)','累計投入','現有資產<br>(不含息)','配息後資產<br>(再投入)'];
   if(!d||!d.n){$('mtab').innerHTML='';$('mnote').textContent='這個區間沒有資料。';return;}
   let h='<thead><tr>'+H.map(t=>`<th>${t}</th>`).join('')+'</tr></thead><tbody>';
   for(let i=0;i<d.n;i++){const hd=d.div[i]>0;
-    h+=`<tr class="${hd?'dv':''}"><td>${d.ym[i]}</td><td>${d.px[i].toFixed(2)}</td>`+
-       `<td>${d.nb[i].toFixed(1)}</td><td>${NF(d.shP[i])}</td>`+
+    const sp=D[TABKEY].m.find(r=>r[0]===d.ym[i]); const spv=sp?sp[4]:1;
+    h+=`<tr class="${hd||spv!==1?'dv':''}"><td>${d.ym[i]}</td><td>${d.px[i].toFixed(2)}</td>`+
+       `<td>${d.nb[i].toFixed(1)}</td>`+
+       `<td class="${spv!==1?'d':''}">${spv!==1?'×'+spv.toFixed(3):'—'}</td>`+
+       `<td>${NF(d.shP[i])}</td>`+
        `<td class="${hd?'d':''}">${hd?NF(d.div[i]):'—'}</td>`+
        `<td class="${hd?'d':''}">${hd?d.dsh[i].toFixed(1):'—'}</td>`+
        `<td>${NF(d.shR[i])}</td><td>${NF(d.inv[i])}</td>`+
