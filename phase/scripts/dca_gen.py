@@ -4,6 +4,7 @@
    用法：
      python3 phase/scripts/dca_gen.py 0050 0056 00878 --out dca/index.html
      python3 phase/scripts/dca_gen.py SPY QQQ VOO --amount 500 --title 美股定期定額
+     python3 phase/scripts/dca_gen.py 0050 0056 SPY QQQ --base TWD   # ★ 台美混合，逐月換匯
 
    ★ 每月第一個交易日投入固定金額，算三種情境：
        A 含息 · 配息再投入   配息在除息日收盤價買回，股數持續增加
@@ -24,7 +25,8 @@
      ③ 成交量用成交金額（收盤 × 股數）而非張數。分割會改變張數的計數單位，
         用張數比會讓分割前的量能被低估數倍。
 
-   ⚠ 混用不同幣別時，「最終資產」的絕對金額不可跨標的比較，只有 % 與 IRR 可比。
+   ⚠ 混用不同幣別時：加 --base TWD 會逐月換匯，全部以台幣計價（匯率效果一併算進去）；
+     不加則各自用原幣別，此時絕對金額不可跨標的比較，只有 % 與 IRR 可比。
 """
 import sys, json, re, ssl, math, pathlib, datetime as dt, statistics as st, urllib.request
 
@@ -105,6 +107,24 @@ def monthly(ser, div):
         vol.append(round(st.mean(amt)/1e8, 4) if amt else 0.0)
     return rec, vol
 
+def fx_series(pair="TWD=X"):
+    """★★ 台灣人每月拿固定台幣去買美股 ETF，實際上是逐月換匯。
+       不換匯就把「每月 10,000」同時當成 NT$10,000 與 US$10,000，
+       兩邊的絕對金額差三十幾倍 —— 並列出來毫無意義。
+       換匯之後全部以台幣計價才比得了，而且會把匯率效果一起吃進來
+       （實測 00662 對 QQQ 的超額 +2.59pp 就是這個）。
+       ⚠ Yahoo 對 TWD=X 偶有 1.80 / 3.67 之類的垃圾值，先用區間過濾掉。"""
+    try:
+        ser, _, _, _ = chart(pair)
+    except Exception:
+        return None
+    mo = {}
+    for d_, c, _ in ser:
+        if c and 20 < c < 45: mo.setdefault((d_.year, d_.month), []).append((d_, c))
+    if len(mo) < 24: return None
+    return {f"{k[0]}-{k[1]:02d}": [round(sorted(v)[0][1], 4), round(sorted(v)[-1][1], 4)]
+            for k, v in mo.items()}
+
 def build(code):
     cands = [code] if not code.isdigit() else [code+".TW", code+".TWO"]
     for sym in cands:
@@ -132,13 +152,14 @@ def build(code):
 
 def main():
     av, args = sys.argv[1:], []
-    out, title, amt = "dca.html", "定期定額試算", 10000
+    out, title, amt, base = "dca.html", "定期定額試算", 10000, ""
     i = 0
     while i < len(av):
         a = av[i]
         if   a == "--out":    out   = av[i+1]; i += 2
         elif a == "--title":  title = av[i+1]; i += 2
         elif a == "--amount": amt   = int(re.sub(r"[^\d]", "", av[i+1]) or 10000); i += 2
+        elif a == "--base":   base  = av[i+1].upper(); i += 2
         elif a.startswith("--"): i += 1
         else: args.append(a); i += 1
     flat = [w for a in args for w in re.split(r"[,\s]+", a) if w]
@@ -165,14 +186,22 @@ def main():
               + (f"　★ 量能自 {d['v0']}" if d["v0"] and d["v0"] != d["m"][0][0] else ""))
     if not data: sys.exit("★ 全部失敗")
     ccys = sorted({d["ccy"] for d in data})
+    FX = None
     if len(ccys) > 1:
-        print(f"\n★ 混用幣別 {ccys} —— 最終資產的絕對金額不可跨標的比較，只有 % 與 IRR 可比")
+        if base == "TWD" and ccys == ["TWD", "USD"]:
+            FX = fx_series()
+            if FX: print(f"\n★ 逐月換匯（USD/TWD，{len(FX)} 個月）—— 全部以台幣計價，匯率效果已含在內")
+            else:  print("\n★ 匯率取不到 ⇒ 退回不換匯")
+        if not FX:
+            print(f"\n★ 混用幣別 {ccys} —— 最終資產的絕對金額不可跨標的比較，只有 % 與 IRR 可比")
     tpl = (D/"dca_tpl.html").read_text()
     html = (tpl.replace("__DATA__", json.dumps({d["t"]: d for d in data}, ensure_ascii=False))
                .replace("__ORDER__", json.dumps([d["t"] for d in data]))
                .replace("__AMT__", str(amt))
                .replace("__TITLE__", title)
-               .replace("__MIXED__", json.dumps(len(ccys) > 1))
+               .replace("__MIXED__", json.dumps(len(ccys) > 1 and not FX))
+               .replace("__FX__", json.dumps(FX))
+               .replace("__BASE__", json.dumps(base if FX else "")) 
                .replace("__WARN__", json.dumps(warn, ensure_ascii=False)))
     p = pathlib.Path(out).expanduser(); p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(html)

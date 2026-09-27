@@ -223,6 +223,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 
 <script>
 const D=__DATA__, ORDER=__ORDER__, AMT=__AMT__, WARN=__WARN__, MIXED=__MIXED__;
+const FX=__FX__, BASE=__BASE__;   // ★ FX 非 null 時逐月換匯，全部以 BASE 計價
 const $=i=>document.getElementById(i);
 const C=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 const NF=v=>Math.round(v).toLocaleString();
@@ -235,6 +236,10 @@ function money(v){
 if(WARN.length) $('warn').innerHTML=`<div class="warn" style="margin:12px 0"><b>有 ${WARN.length} 支沒有納入：</b>${WARN.join('；')}</div>`;
 $('eyebrow').textContent=`每月 ${NF(AMT)} · 定期定額 · ${ORDER.join(' / ')}`;
 if(MIXED) $('mixnote').innerHTML='<br>★ <b>本頁混用了不同計價幣別</b> —— 最終資產的絕對金額不可跨標的比較，只有 % 與 IRR 可比。';
+if(FX&&BASE){const us=ORDER.filter(t=>D[t].ccy!==BASE);
+  if(us.length) $('mixnote').innerHTML=`<br>★ <b>${us.join('、')} 以 ${BASE} 逐月換匯計價</b> —— `+
+    `每月的 ${NF(AMT)} ${BASE} 先換成 ${D[us[0]].ccy} 再買進，期末再換回。`+
+    `<b>匯率損益已包含在報酬裡</b>，這才是台灣人實際拿到的數字。`;}
 const bl=ORDER.filter(t=>D[t].brk.length);
 if(bl.length) $('brknote').innerHTML='<b style="color:var(--cash)"> 本頁實際修正：'+
   bl.map(t=>`${t} ${D[t].brk.map(b=>b[0]+' ×'+b[1]).join('、')}`).join('；')+'</b>';
@@ -248,18 +253,26 @@ function irr(n,fin){let lo=-0.99,hi=3;
 function mdd(a){let pk=-Infinity,w=0;for(const v of a){pk=Math.max(pk,v);w=Math.min(w,(v-pk)/pk);}return w*100;}
 function sim(t,i0,i1){
   const rec=D[t].m; let shP=0,shR=0,cash=0,inv=0;
+  // ★★ 需要換匯時：投入的 BASE 金額先用「當月起始匯率」換成標的幣別再買；
+  //    配息與現金都留在標的幣別，最後用「當月末匯率」換回 BASE 計價。
+  //    ⇒ 匯率損益自然被算進去，不需要另外加欄位。
+  const cv = (FX && BASE && D[t].ccy!==BASE);
   const o={ym:[],px:[],nb:[],shP:[],shR:[],div:[],dsh:[],inv:[],A:[],B:[],Cv:[]};
   for(let i=i0;i<=i1;i++){
     const [ym,bp,ep,ds]=rec[i];
-    inv+=AMT; const nb=AMT/bp; shP+=nb; shR+=nb;
+    const f=cv?(FX[ym]||null):null;
+    if(cv && !f) continue;                      // ★ 該月沒有匯率就跳過，不用舊值硬湊
+    const fb=f?f[0]:1, fe=f?f[1]:1;
+    inv+=AMT; const nb=(AMT/fb)/bp; shP+=nb; shR+=nb;
     let dc=0,dsh=0;
     for(const [amt,dp] of ds){ dc+=shP*amt; if(dp){const g=shR*amt/dp; dsh+=g; shR+=g;} }
     cash+=dc;
     o.ym.push(ym);o.px.push(bp);o.nb.push(nb);o.shP.push(shP);o.shR.push(shR);
-    o.div.push(dc);o.dsh.push(dsh);o.inv.push(inv);
-    o.A.push(shR*ep);o.B.push(shP*ep+cash);o.Cv.push(shP*ep);
+    o.div.push(dc*fe);o.dsh.push(dsh);o.inv.push(inv);o.fe=fe;
+    o.A.push(shR*ep*fe);o.B.push((shP*ep+cash)*fe);o.Cv.push(shP*ep*fe);
   }
-  o.n=i1-i0+1; o.cash=cash;
+  o.n=o.ym.length; o.cash=cash*(cv&&o.fe?o.fe:1);
+  if(!o.n) return {n:0};
   for(const k of ["A","B","Cv"]) o[k+"_"]={fin:o[k][o.n-1],irr:irr(o.n,o[k][o.n-1]),mdd:mdd(o[k])};
   return o;
 }
@@ -424,7 +437,8 @@ function render(){
       <div class="big">${pct.toFixed(1)}%</div>
       <p>${money(d.A_.fin)}裡有 <b>${money(g)}</b>是配息帶來的。<br>
       只看股價的人，看到的是 ${money(d.Cv_.fin)}。</p></div>`;}).join('');
-  $('punch').style.setProperty('--cols',Math.min(ORDER.length,3));
+  // ★ 保留遠端的 --cols 機制（RWD 由 CSS 接手），但四檔要排 2×2 而不是 3+1
+  $('punch').style.setProperty('--cols', ORDER.length===4?2:Math.min(ORDER.length,3));
   // 曲線
   $('curves').innerHTML=ORDER.map(t=>{const d=SIM[t];
     return `<div class="panel"><div class="ptitle"><b>${D[t].nm}</b>
