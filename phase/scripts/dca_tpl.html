@@ -51,6 +51,12 @@ p{margin:0 0 15px;max-width:66ch}
 .pre button{font:inherit;font-size:12.5px;padding:5px 11px;border:0;background:transparent;
   color:var(--ink2);cursor:pointer;white-space:nowrap}
 .pre button:hover{background:var(--rule2)}
+.rp{font:inherit;font-size:12.5px;font-weight:700;padding:5px 13px;cursor:pointer;
+  border:1px solid var(--tr);border-radius:2px;background:transparent;color:var(--tr);
+  font-family:"IBM Plex Mono",monospace}
+.rp:hover{background:var(--tr);color:var(--card)}
+.rp:focus-visible{outline:2px solid var(--tr);outline-offset:2px}
+.rp[disabled]{opacity:.4;cursor:default}
 .ctl .n{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink2)}
 .ctl button:focus-visible,.ctl select:focus-visible{outline:2px solid var(--tr);outline-offset:2px}
 
@@ -145,6 +151,14 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
     <button data-p="all">全期</button><button data-p="15">近 15 年</button>
     <button data-p="10">近 10 年</button><button data-p="5">近 5 年</button>
     <button data-p="3">近 3 年</button>
+  </div>
+  <span class="lb" style="margin-left:10px">動畫</span>
+  <button id="replay" class="rp">▶ 重播</button>
+  <div class="seg" id="spdseg">
+    <button class="tb" data-s="0.5" aria-pressed="false">慢</button>
+    <button class="tb" data-s="1" aria-pressed="true">正常</button>
+    <button class="tb" data-s="2" aria-pressed="false">快</button>
+    <button class="tb" data-s="0" aria-pressed="false">關</button>
   </div>
   <span class="n" id="nsum"></span>
 </div>
@@ -439,11 +453,43 @@ function bounds(t){const rec=D[t].m;
   while(i1>0&&rec[i1][0]>S1.value) i1--;
   return (i0<0||i0>i1)?null:[i0,i1];}
 
+
+// ★★★ 動畫：折線由左往右畫出來，錄影時看得到「錢長出來」的過程。
+//   ⚠ prefers-reduced-motion 時直接跳到結尾，不做動畫。
+//   ⚠ 進度是「畫到第幾個點」，不是透明度漸變 —— 後者在錄影壓縮後會糊掉。
+//   ⚠ 座標軸與刻度一律用完整資料算，動畫中才不會邊畫邊跳。
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+let ANIM_ON = !RM.matches;
+const AP = {}, AT = {};
+function animate(key, dur, redraw){
+  if(AT[key]) cancelAnimationFrame(AT[key]);
+  if(!ANIM_ON){ AP[key]=1; redraw(); return; }
+  dur = dur / (typeof SPD==='number' && SPD>0 ? SPD : 1);
+  AP[key]=0;
+  const t0=performance.now();
+  const step=now=>{
+    const t=Math.min(1,(now-t0)/dur);
+    AP[key]= t<1 ? 1-Math.pow(1-t,3) : 1;
+    redraw();
+    AT[key] = t<1 ? requestAnimationFrame(step) : null;
+  };
+  AT[key]=requestAnimationFrame(step);
+}
+const prog=k=>(AP[k]==null?1:AP[k]);
+const upto=(n,k)=>Math.max(2,Math.round(n*prog(k)));
+function replayAll(){
+  ORDER.forEach(t=>animate('cv_'+t,1800,()=>plot(t)));
+  animate('cmp',2200,plotCMP);
+  animate('px',2000,plotPX);
+}
+RM.addEventListener('change',e=>{ANIM_ON=!e.matches;});
+
 // ★★★ 上半 資產成長 ／ 下半 回撤，共用同一條時間軸 —— 回測報告的標準排版。
 //   合在一起才看得到「那一段漲上去的時候，其實正在水下」。
 function plot(t){
   const cv=$('cv_'+t); if(!cv||!cv.clientWidth){requestAnimationFrame(()=>plot(t));return;}
-  const d=SIM[t],n=d?d.n:0;
+  const d=SIM[t],nFull=d?d.n:0;
+  const n=nFull?upto(nFull,'cv_'+t):0;
   const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
         h=Math.round(Math.min(520,Math.max(320,w*0.60)));
   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
@@ -454,7 +500,7 @@ function plot(t){
   const iw=w-PL-PR, avail=h-PT-PB-GAP;
   const ihT=Math.round(avail*0.68), ihB=avail-ihT;      // 上 68% 成長、下 32% 回撤
   const yT=PT, yB=PT+ihT+GAP;
-  const X=i=>n===1?PL+iw/2:PL+iw*i/(n-1);
+  const X=i=>nFull===1?PL+iw/2:PL+iw*i/(nFull-1);
   // ── 上半：資產
   const max=Math.max(...d.A)*1.05;
   const Y=v=>yT+ihT-ihT*v/max;
@@ -477,10 +523,10 @@ function plot(t){
   x.fillStyle=C('--tr');x.fillText(money(d.A[n-1]),w-PR-2,Math.max(yT+11,Y(d.A[n-1])-5));
   x.fillStyle=C('--pr');x.fillText(money(d.Cv[n-1]),w-PR-2,Math.min(yT+ihT-2,Y(d.Cv[n-1])+14));
   // ── 下半：回撤（口徑跟著 DDM 切換）
-  const r=ddSeries(t);
-  if(r){
-    const dd=r.dd;
-    let lo=Math.min(...dd); lo=Math.min(lo*1.1,-2);
+  const rF=ddSeries(t);
+  if(rF){
+    const dd=rF.dd.slice(0,Math.max(2,Math.round(rF.dd.length*prog('cv_'+t))));
+    let lo=Math.min(...rF.dd); lo=Math.min(lo*1.1,-2);
     const Y2=v=>yB+ihB*(v/lo);
     let s2=Math.pow(10,Math.floor(Math.log10(-lo)));
     while(-lo/s2>3)s2*=2; while(-lo/s2<1.5)s2/=2;
@@ -489,7 +535,7 @@ function plot(t){
       x.strokeStyle=v===0?C('--rule'):C('--rule2');x.lineWidth=v===0?1.4:1;
       x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
       x.fillStyle=C('--ink3');x.fillText(Math.round(v)+'%',PL-8,yy+4);}
-    const m=dd.length, XX=i=>m===1?PL+iw/2:PL+iw*i/(m-1);
+    const mF=rF.dd.length, m=dd.length, XX=i=>mF===1?PL+iw/2:PL+iw*i/(mF-1);
     x.beginPath();x.moveTo(XX(0),Y2(0));
     for(let i=0;i<m;i++)x.lineTo(XX(i),Y2(dd[i]));
     x.lineTo(XX(m-1),Y2(0));x.closePath();
@@ -498,18 +544,20 @@ function plot(t){
     for(let i=1;i<m;i++)x.lineTo(XX(i),Y2(dd[i]));
     x.strokeStyle=C('--tr');x.lineWidth=1.7;x.lineJoin='round';x.stroke();
     // 最深點
-    x.beginPath();x.arc(XX(r.mi),Y2(r.mn),3.4,0,7);x.fillStyle=C('--tr');x.fill();
-    x.font='700 10.5px "IBM Plex Mono",monospace';x.textAlign='center';
-    x.lineWidth=3;x.strokeStyle=C('--card');
-    const lb=r.mn.toFixed(1)+'%';
-    const ly=Math.min(yB+ihB-3,Y2(r.mn)+13);
-    x.strokeText(lb,XX(r.mi),ly);x.fillStyle=C('--tr');x.fillText(lb,XX(r.mi),ly);
+    if(rF.mi < m){
+      x.beginPath();x.arc(XX(rF.mi),Y2(rF.mn),3.4,0,7);x.fillStyle=C('--tr');x.fill();
+      x.font='700 10.5px "IBM Plex Mono",monospace';x.textAlign='center';
+      x.lineWidth=3;x.strokeStyle=C('--card');
+      const lb=rF.mn.toFixed(1)+'%';
+      const ly=Math.min(yB+ihB-3,Y2(rF.mn)+13);
+      x.strokeText(lb,XX(rF.mi),ly);x.fillStyle=C('--tr');x.fillText(lb,XX(rF.mi),ly);
+    }
     x.textAlign='left';x.font='600 10px "IBM Plex Mono",monospace';x.fillStyle=C('--ink3');
     x.fillText('回撤　'+(DDM==='dca'?'定期定額資產':'單筆買進持有'),PL+2,yB-7);
   }
   // ── 共用時間軸
   x.textAlign='center';x.fillStyle=C('--ink3');x.font='11px "IBM Plex Mono",monospace';
-  const yrs=n/12,step=yrs>14?3:(yrs>7?2:1);
+  const yrs=nFull/12,step=yrs>14?3:(yrs>7?2:1);
   d.ym.forEach((mm,i)=>{const[y,mo]=mm.split('-');
     if(mo==='01'&&(+y)%step===0)x.fillText(y,X(i),h-9);});
 }
@@ -532,7 +580,7 @@ function plotPX(){
     if(!pts.length) continue;
     const mean=pts.reduce((a,p)=>a+p.amt,0)/pts.length;
     pts.forEach(p=>p.rv=(p.amt/mean-1)*100);
-    T[t]=pts;
+    T[t]=pts; T[t].full=pts.length;
     if(v0&&rec[b[0]][0]<v0) note.push(`${t} 的成交量資料自 ${v0} 才開始`);
     else if(rec[0][0]>S0.value) note.push(`${t} 自 ${rec[0][0]} 才有資料`);
   }
@@ -565,11 +613,12 @@ function plotPX(){
   x.save();x.translate(14,PT+ih/2);x.rotate(-Math.PI/2);x.textAlign='center';
   x.fillText('累計總報酬',0,0);x.restore();
   for(const t of ks){
-    const P=T[t],col=cc(t);
-    for(let i=1;i<P.length;i++){const q=i/(P.length-1);
+    const PF=T[t],col=cc(t);
+    const P=PF.slice(0,Math.max(2,Math.round(PF.length*prog('px'))));
+    for(let i=1;i<P.length;i++){const q=i/(PF.length-1);
       x.beginPath();x.moveTo(X(P[i-1].rv),Y(P[i-1].ret));x.lineTo(X(P[i].rv),Y(P[i].ret));
       x.strokeStyle=col;x.lineWidth=0.7+q*2.4;x.globalAlpha=.14+q*.56;x.lineCap='round';x.stroke();x.globalAlpha=1;}
-    P.slice(1,-1).forEach((p,i)=>{const q=i/(P.length-1);
+    P.slice(1,-1).forEach((p,i)=>{const q=i/(PF.length-1);
       x.beginPath();x.arc(X(p.rv),Y(p.ret),1.5+q*1.5,0,7);
       x.fillStyle=col;x.globalAlpha=.2+q*.45;x.fill();x.globalAlpha=1;});
     const a=P[0],z=P[P.length-1];
@@ -678,8 +727,9 @@ function plotCMP(){
   const PL=70,PR=16,PT=16,PB=28,GAP=26;
   const iw=w-PL-PR, avail=h-PT-PB-GAP;
   const ihT=Math.round(avail*0.62), ihB=avail-ihT, yT=PT, yB=PT+ihT+GAP;
-  const n=Math.max(...R.ks.map(t=>R.S[t].n));
-  const X=i=>n===1?PL+iw/2:PL+iw*i/(n-1);
+  const nFull=Math.max(...R.ks.map(t=>R.S[t].n));
+  const n=upto(nFull,'cmp');
+  const X=i=>nFull===1?PL+iw/2:PL+iw*i/(nFull-1);
   // ── 上半：資產
   const max=Math.max(...R.ks.flatMap(t=>R.S[t][CMPM]))*1.05;
   const Y=v=>yT+ihT-ihT*v/max;
@@ -690,16 +740,17 @@ function plotCMP(){
     x.strokeStyle=C('--rule2');x.lineWidth=1;x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
     x.fillStyle=C('--ink3');x.fillText(money(v),PL-8,yy+4);}
   // 本金線（共同起點 ⇒ 各檔相同，畫一次）
-  const inv=R.S[R.ks[0]].inv;
+  const inv=R.S[R.ks[0]].inv, nInv=Math.min(inv.length,n);
   x.beginPath();x.moveTo(X(0),Y(inv[0]));
-  for(let i=1;i<inv.length;i++)x.lineTo(X(i),Y(inv[i]));
+  for(let i=1;i<nInv;i++)x.lineTo(X(i),Y(inv[i]));
   x.strokeStyle=C('--base');x.lineWidth=2.0;x.setLineDash([5,4]);x.stroke();x.setLineDash([]);
   const lab=[];
-  for(const t of R.ks){const a=R.S[t][CMPM],m=a.length,XX=i=>m===1?PL+iw/2:PL+iw*i/(m-1);
-    x.beginPath();x.moveTo(XX(0),Y(a[0]));
-    for(let i=1;i<m;i++)x.lineTo(XX(i),Y(a[i]));
+  for(const t of R.ks){const aF=R.S[t][CMPM],mF=aF.length;
+    const m=Math.min(mF,n), XX=i=>mF===1?PL+iw/2:PL+iw*i/(mF-1);
+    x.beginPath();x.moveTo(XX(0),Y(aF[0]));
+    for(let i=1;i<m;i++)x.lineTo(XX(i),Y(aF[i]));
     x.strokeStyle=cc(t);x.lineWidth=2.6;x.lineJoin='round';x.stroke();
-    lab.push({t,y:Y(a[m-1]),v:a[m-1]});}
+    lab.push({t,y:Y(aF[m-1]),v:aF[m-1]});}
   // 端點標籤：由上而下排開避免重疊
   lab.sort((a,b)=>a.y-b.y);
   let prev=-99;
@@ -710,10 +761,11 @@ function plotCMP(){
     const s2=D[L.t].nm.split(' ')[0]+'  '+money(L.v);
     x.strokeText(s2,w-PR-2,yy);x.fillStyle=cc(L.t);x.fillText(s2,w-PR-2,yy);}
   // ── 下半：回撤
-  const DD={};
+  const DD={},DDf={};
   for(const t of R.ks){const a=R.S[t][CMPM];let pk=-Infinity;const o=[];
-    for(const v of a){pk=Math.max(pk,v);o.push((v-pk)/pk*100);} DD[t]=o;}
-  let lo=Math.min(...R.ks.flatMap(t=>DD[t])); lo=Math.min(lo*1.1,-2);
+    for(const v of a){pk=Math.max(pk,v);o.push((v-pk)/pk*100);}
+    DDf[t]=o; DD[t]=o.slice(0,Math.max(2,Math.min(o.length,n)));}
+  let lo=Math.min(...R.ks.flatMap(t=>DDf[t])); lo=Math.min(lo*1.1,-2);
   const Y2=v=>yB+ihB*(v/lo);
   let s3=Math.pow(10,Math.floor(Math.log10(-lo)));
   while(-lo/s3>3)s3*=2; while(-lo/s3<1.5)s3/=2;
@@ -722,7 +774,8 @@ function plotCMP(){
     x.strokeStyle=v===0?C('--rule'):C('--rule2');x.lineWidth=v===0?1.4:1;
     x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
     x.fillStyle=C('--ink3');x.fillText(Math.round(v)+'%',PL-8,yy+4);}
-  for(const t of R.ks){const o=DD[t],m=o.length,XX=i=>m===1?PL+iw/2:PL+iw*i/(m-1);
+  for(const t of R.ks){const o=DD[t],m=o.length,mF=DDf[t].length,
+      XX=i=>mF===1?PL+iw/2:PL+iw*i/(mF-1);
     x.beginPath();x.moveTo(XX(0),Y2(o[0]));
     for(let i=1;i<m;i++)x.lineTo(XX(i),Y2(o[i]));
     x.strokeStyle=cc(t);x.lineWidth=1.8;x.lineJoin='round';
@@ -732,7 +785,7 @@ function plotCMP(){
   // ── 時間軸
   const ref=R.S[R.ks[0]];
   x.textAlign='center';x.fillStyle=C('--ink3');x.font='11px "IBM Plex Mono",monospace';
-  const yrs=ref.n/12,step=yrs>14?3:(yrs>7?2:1);
+  const yrs=nFull/12,step=yrs>14?3:(yrs>7?2:1);
   ref.ym.forEach((mm,i)=>{const[y,mo]=mm.split('-');
     if(mo==='01'&&(+y)%step===0)x.fillText(y,X(i),h-9);});
   const nm={A:'含息 · 配息再投入',B:'含息 · 領現金',Cv:'不含息 · 只看股價'}[CMPM];
@@ -1139,8 +1192,20 @@ function render(){
   } else $('navsec').style.display='none';
   if(!CMPON.size) CMPON=new Set(ORDER);
   if(!OPTON.size) OPTON=new Set(ORDER);
-  mtab(); pxchips(); cmpchips(); optchips(); ORDER.forEach(plot); plotPX(); plotDD(); plotCMP(); plotOPT();
+  mtab(); pxchips(); cmpchips(); optchips(); plotDD(); plotOPT();
+  // ★ 先把靜態區塊畫好，再讓三張時序圖跑動畫
+  if(ANIM_ON) replayAll(); else { ORDER.forEach(plot); plotPX(); plotCMP(); }
 }
+// ★ 速度 0 ＝ 關掉動畫（直接畫完整圖）；錄影時用「慢」比較好抓節奏
+let SPD=1;
+$('replay').addEventListener('click',()=>{ if(SPD>0) replayAll(); });
+document.querySelectorAll('#spdseg .tb').forEach(b=>b.addEventListener('click',()=>{
+  SPD=+b.dataset.s;
+  document.querySelectorAll('#spdseg .tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  ANIM_ON = SPD>0 && !RM.matches;
+  $('replay').disabled = SPD===0;
+  if(SPD>0) replayAll(); else { ORDER.forEach(t=>{AP['cv_'+t]=1;plot(t);}); AP.cmp=1;plotCMP(); AP.px=1;plotPX(); }
+}));
 S0.addEventListener('change',render);S1.addEventListener('change',render);
 $('pre').addEventListener('click',e=>{const p=e.target.dataset&&e.target.dataset.p;if(!p)return;
   S1.value=ALL[ALL.length-1];
