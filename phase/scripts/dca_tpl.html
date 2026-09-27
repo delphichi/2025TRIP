@@ -153,9 +153,19 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 <p id="clampnote" style="display:none;font-size:13px;color:var(--cash);margin:10px 0 0"></p>
 
 <section>
-  <div class="shead"><span class="snum">01</span><h2>資產長什麼樣子</h2></div>
-  <p>綠線是投入的本金，每個月往上一階。三條曲線是同一筆投資的三種算法
-    —— <b>紅色區域就是配息造成的差距</b>。</p>
+  <div class="shead"><span class="snum">01</span><h2>資產與回撤</h2></div>
+  <p><b>上半</b>是資產成長：綠線是投入的本金，每個月往上一階，三條曲線是同一筆投資的三種算法
+    —— 紅色區域就是配息造成的差距。<br>
+    <b>下半</b>是回撤：水平線代表歷史最高點，線往下掉就是正在虧損。
+    <b>★ 兩張共用同一條時間軸 —— 看得到「那一段在漲的時候，其實還在水下」。</b></p>
+  <div class="panel bar" style="position:static;box-shadow:none;margin-bottom:16px">
+    <span class="lb">回撤口徑</span>
+    <div class="seg" id="ddseg">
+      <button class="tb" data-d="dca" aria-pressed="true">定期定額資產</button>
+      <button class="tb" data-d="hold" aria-pressed="false">單筆買進持有</button>
+    </div>
+    <span style="font-size:12.5px;color:var(--ink2)" id="ddnote"></span>
+  </div>
   <div id="curves"></div>
 </section>
 
@@ -194,18 +204,9 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 </section>
 
 <section>
-  <div class="shead"><span class="snum">04</span><h2>回撤曲線</h2></div>
-  <p>水平線是<b>歷史最高點</b>，線往下掉就是<b>正在虧損</b> —— 掉多深、被水淹多久，一眼看得到。
-    這張圖回答的是「<b>抱得住嗎</b>」，不是「賺多少」。</p>
-  <div class="panel">
-    <div class="seg" id="ddseg" style="margin-bottom:10px">
-      <button class="tb" data-d="dca" aria-pressed="true">定期定額資產</button>
-      <button class="tb" data-d="hold" aria-pressed="false">單筆買進持有</button>
-    </div>
-    <div class="pxchips" id="ddchips"></div>
-    <canvas id="cdd" role="img" aria-label="回撤曲線"></canvas>
-    <p style="font-size:12px;color:var(--ink3);margin:8px 2px 0" id="ddnote"></p>
-  </div>
+  <div class="shead"><span class="snum">04</span><h2>水下期間</h2></div>
+  <p>回撤圖看得到<b>跌多深</b>，這張表補的是<b>躺多久</b> —— 從跌破前高到重新站回前高。
+    <b>★ 兩者不一定同向</b>：跌得淺的標的可能因為漲得也慢，反而卡在水下更久。</p>
   <div class="tw"><table>
     <caption>★ 兩種口徑差很多：<b>定期定額</b>因為持續投入新錢，帳面回撤會被稀釋（尤其前期）；
       <b>單筆買進持有</b>才是這個標的本身的真實跌幅。前者是你會經歷的，後者是標的的性格。<br>
@@ -341,20 +342,27 @@ function bounds(t){const rec=D[t].m;
   while(i1>0&&rec[i1][0]>S1.value) i1--;
   return (i0<0||i0>i1)?null:[i0,i1];}
 
+// ★★★ 上半 資產成長 ／ 下半 回撤，共用同一條時間軸 —— 回測報告的標準排版。
+//   合在一起才看得到「那一段漲上去的時候，其實正在水下」。
 function plot(t){
   const cv=$('cv_'+t); if(!cv||!cv.clientWidth){requestAnimationFrame(()=>plot(t));return;}
   const d=SIM[t],n=d?d.n:0;
   const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
-        h=Math.round(Math.min(400,Math.max(240,w*0.44)));
+        h=Math.round(Math.min(520,Math.max(320,w*0.60)));
   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
   const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
   if(!n){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
     x.fillText('這個區間沒有資料',w/2,h/2);return;}
-  const PL=68,PR=14,PT=16,PB=28,iw=w-PL-PR,ih=h-PT-PB;
+  const PL=68,PR=14,PT=16,PB=28,GAP=26;
+  const iw=w-PL-PR, avail=h-PT-PB-GAP;
+  const ihT=Math.round(avail*0.68), ihB=avail-ihT;      // 上 68% 成長、下 32% 回撤
+  const yT=PT, yB=PT+ihT+GAP;
+  const X=i=>n===1?PL+iw/2:PL+iw*i/(n-1);
+  // ── 上半：資產
   const max=Math.max(...d.A)*1.05;
-  const X=i=>n===1?PL+iw/2:PL+iw*i/(n-1),Y=v=>PT+ih-ih*v/max;
+  const Y=v=>yT+ihT-ihT*v/max;
   let stp=Math.pow(10,Math.floor(Math.log10(max)));
-  while(max/stp>6)stp*=2; while(max/stp<3)stp/=2;
+  while(max/stp>5)stp*=2; while(max/stp<3)stp/=2;
   x.font='11px "IBM Plex Mono",monospace';x.textAlign='right';
   for(let v=0;v<=max;v+=stp){const yy=Math.round(Y(v))+.5;
     x.strokeStyle=C('--rule2');x.lineWidth=1;x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
@@ -368,13 +376,45 @@ function plot(t){
     x.strokeStyle=c2;x.lineWidth=wd;x.lineJoin='round';x.stroke();};
   line(d.inv,C('--base'),2.0); line(d.Cv,C('--pr'),2.2);
   line(d.B,C('--cash'),2.2);   line(d.A,C('--tr'),2.9);
-  x.textAlign='center';x.fillStyle=C('--ink3');
-  const yrs=n/12,step=yrs>14?3:(yrs>7?2:1);
-  d.ym.forEach((m,i)=>{const[y,mo]=m.split('-');
-    if(mo==='01'&&(+y)%step===0)x.fillText(y,X(i),h-9);});
   x.textAlign='right';x.font='600 11.5px "IBM Plex Mono",monospace';
-  x.fillStyle=C('--tr');x.fillText(money(d.A[n-1]),w-PR-2,Math.max(PT+11,Y(d.A[n-1])-5));
-  x.fillStyle=C('--pr');x.fillText(money(d.Cv[n-1]),w-PR-2,Math.min(h-PB-2,Y(d.Cv[n-1])+14));
+  x.fillStyle=C('--tr');x.fillText(money(d.A[n-1]),w-PR-2,Math.max(yT+11,Y(d.A[n-1])-5));
+  x.fillStyle=C('--pr');x.fillText(money(d.Cv[n-1]),w-PR-2,Math.min(yT+ihT-2,Y(d.Cv[n-1])+14));
+  // ── 下半：回撤（口徑跟著 DDM 切換）
+  const r=ddSeries(t);
+  if(r){
+    const dd=r.dd;
+    let lo=Math.min(...dd); lo=Math.min(lo*1.1,-2);
+    const Y2=v=>yB+ihB*(v/lo);
+    let s2=Math.pow(10,Math.floor(Math.log10(-lo)));
+    while(-lo/s2>3)s2*=2; while(-lo/s2<1.5)s2/=2;
+    x.font='10.5px "IBM Plex Mono",monospace';x.textAlign='right';
+    for(let v=0;v>=lo;v-=s2){const yy=Math.round(Y2(v))+.5;
+      x.strokeStyle=v===0?C('--rule'):C('--rule2');x.lineWidth=v===0?1.4:1;
+      x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+      x.fillStyle=C('--ink3');x.fillText(Math.round(v)+'%',PL-8,yy+4);}
+    const m=dd.length, XX=i=>m===1?PL+iw/2:PL+iw*i/(m-1);
+    x.beginPath();x.moveTo(XX(0),Y2(0));
+    for(let i=0;i<m;i++)x.lineTo(XX(i),Y2(dd[i]));
+    x.lineTo(XX(m-1),Y2(0));x.closePath();
+    x.fillStyle=C('--tr');x.globalAlpha=.20;x.fill();x.globalAlpha=1;
+    x.beginPath();x.moveTo(XX(0),Y2(dd[0]));
+    for(let i=1;i<m;i++)x.lineTo(XX(i),Y2(dd[i]));
+    x.strokeStyle=C('--tr');x.lineWidth=1.7;x.lineJoin='round';x.stroke();
+    // 最深點
+    x.beginPath();x.arc(XX(r.mi),Y2(r.mn),3.4,0,7);x.fillStyle=C('--tr');x.fill();
+    x.font='700 10.5px "IBM Plex Mono",monospace';x.textAlign='center';
+    x.lineWidth=3;x.strokeStyle=C('--card');
+    const lb=r.mn.toFixed(1)+'%';
+    const ly=Math.min(yB+ihB-3,Y2(r.mn)+13);
+    x.strokeText(lb,XX(r.mi),ly);x.fillStyle=C('--tr');x.fillText(lb,XX(r.mi),ly);
+    x.textAlign='left';x.font='600 10px "IBM Plex Mono",monospace';x.fillStyle=C('--ink3');
+    x.fillText('回撤　'+(DDM==='dca'?'定期定額資產':'單筆買進持有'),PL+2,yB-7);
+  }
+  // ── 共用時間軸
+  x.textAlign='center';x.fillStyle=C('--ink3');x.font='11px "IBM Plex Mono",monospace';
+  const yrs=n/12,step=yrs>14?3:(yrs>7?2:1);
+  d.ym.forEach((mm,i)=>{const[y,mo]=mm.split('-');
+    if(mo==='01'&&(+y)%step===0)x.fillText(y,X(i),h-9);});
 }
 function plotPX(){
   const cv=$('cpx'); if(!cv.clientWidth){requestAnimationFrame(plotPX);return;}
@@ -453,7 +493,6 @@ function plotPX(){
 //   dca  ＝ 定期定額的資產淨值（持續投入會稀釋帳面回撤，這是實際感受）
 //   hold ＝ 總報酬指數（單筆買進持有，這才是標的本身的跌幅）
 let DDM="dca";
-let DDON=new Set();
 function ddSeries(t){
   const d=SIM[t]; if(!d||!d.n) return null;
   let arr, ym;
@@ -477,65 +516,16 @@ function ddSeries(t){
   return {dd,ym,mn,mi,best,bestS,under,last:dd[dd.length-1],
           ongoing:(run>0?run:0)};
 }
-function ddchips(){
-  $('ddchips').innerHTML=ORDER.map(t=>
-    `<button data-k="${t}" aria-pressed="${DDON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
-  $('ddchips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-    const t=b.dataset.k;
-    if(DDON.has(t)&&DDON.size>1) DDON.delete(t); else DDON.add(t);
-    ddchips(); plotDD();}));
-}
 function plotDD(){
-  const cv=$('cdd'); if(!cv.clientWidth){requestAnimationFrame(plotDD);return;}
-  const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
-        h=Math.round(Math.min(380,Math.max(230,w*0.40)));
-  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
-  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
-  const PL=58,PR=16,PT=16,PB=28,iw=w-PL-PR,ih=h-PT-PB;
-  const S={},rows=[];
-  for(const t of ORDER){ if(!DDON.has(t)) continue; const r=ddSeries(t); if(r) S[t]=r; }
-  const ks=Object.keys(S);
-  if(!ks.length){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
-    x.fillText('這個區間沒有資料',w/2,h/2);$('ddtb').innerHTML='';$('ddnote').textContent='';return;}
-  const n=Math.max(...ks.map(t=>S[t].dd.length));
-  let lo=Math.min(...ks.flatMap(t=>S[t].dd));
-  lo=Math.min(lo*1.08,-2);
-  const X=i=>n===1?PL+iw/2:PL+iw*i/(n-1), Y=v=>PT+ih*(v/lo);
-  let stp=Math.pow(10,Math.floor(Math.log10(-lo)));
-  while(-lo/stp>6)stp*=2; while(-lo/stp<3)stp/=2;
-  x.font='11px "IBM Plex Mono",monospace';x.textAlign='right';
-  for(let v=0;v>=lo;v-=stp){const yy=Math.round(Y(v))+.5;
-    x.strokeStyle=v===0?C('--rule'):C('--rule2');x.lineWidth=v===0?1.5:1;
-    x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
-    x.fillStyle=C('--ink3');x.fillText(Math.round(v)+'%',PL-8,yy+4);}
-  for(const t of ks){
-    const r=S[t],col=cc(t),m=r.dd.length;
-    const XX=i=>m===1?PL+iw/2:PL+iw*i/(m-1);
-    x.beginPath();x.moveTo(XX(0),Y(0));
-    for(let i=0;i<m;i++) x.lineTo(XX(i),Y(r.dd[i]));
-    x.lineTo(XX(m-1),Y(0));x.closePath();
-    x.fillStyle=col;x.globalAlpha=ks.length>2?.16:.22;x.fill();x.globalAlpha=1;
-    x.beginPath();x.moveTo(XX(0),Y(r.dd[0]));
-    for(let i=1;i<m;i++) x.lineTo(XX(i),Y(r.dd[i]));
-    x.strokeStyle=col;x.lineWidth=1.9;x.lineJoin='round';x.stroke();
-    // ★ 最深點標出來
-    x.beginPath();x.arc(XX(r.mi),Y(r.mn),3.6,0,7);x.fillStyle=col;x.fill();
-    x.font='700 10.5px "IBM Plex Mono",monospace';x.textAlign='center';
-    x.lineWidth=3;x.strokeStyle=C('--card');
-    const lb=r.mn.toFixed(1)+'%';
-    x.strokeText(lb,XX(r.mi),Y(r.mn)+14);x.fillStyle=col;x.fillText(lb,XX(r.mi),Y(r.mn)+14);
-  }
-  // 年份刻度（用第一檔的月份軸）
-  const ref=S[ks[0]];
-  x.textAlign='center';x.fillStyle=C('--ink3');x.font='11px "IBM Plex Mono",monospace';
-  const yrs=ref.dd.length/12, step=yrs>14?3:(yrs>7?2:1);
-  ref.ym.forEach((mm,i)=>{const[y,mo]=mm.split('-');
-    if(mo==='01'&&(+y)%step===0) x.fillText(y,PL+iw*i/Math.max(1,ref.dd.length-1),h-9);});
-  $('ddnote').textContent = DDM==="dca"
-    ? '★ 定期定額口徑：每月持續投入新錢，早期的帳面回撤會被稀釋 —— 這是你實際會經歷的感受。'
-    : '★ 單筆買進持有口徑：起點一次投入、之後不再加碼，這才是標的本身的跌幅。';
-  // 表格
-  $('ddtb').innerHTML=ORDER.filter(t=>S[t]).map(t=>{const r=S[t];
+  // ★ 圖已併入 plot()，這裡只負責「水下期間」表格與口徑提示
+  const S={};
+  for(const t of ORDER){const r=ddSeries(t); if(r) S[t]=r;}
+  $('ddnote').textContent = DDM==='dca'
+    ? '★ 每月持續投入新錢，早期的帳面回撤會被稀釋 —— 這是你實際會經歷的感受。'
+    : '★ 起點一次投入、之後不再加碼 —— 這才是標的本身的跌幅。';
+  const ks=ORDER.filter(t=>S[t]);
+  if(!ks.length){$('ddtb').innerHTML='';return;}
+  $('ddtb').innerHTML=ks.map(t=>{const r=S[t];
     const und = r.under ? `<span style="color:var(--tr)">${r.last.toFixed(1)}%</span>` : '已收復新高';
     const wl = r.best ? `${r.best} 個月${r.under&&r.ongoing===r.best?'（尚未收復）':''}` : '未曾跌破前高';
     return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>`+
@@ -547,7 +537,7 @@ function plotDD(){
 document.querySelectorAll('#ddseg .tb').forEach(b=>b.addEventListener('click',()=>{
   DDM=b.dataset.d;
   document.querySelectorAll('#ddseg .tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
-  plotDD();}));
+  ORDER.forEach(plot); plotDD();}));
 
 function pxchips(){
   $('pxchips').innerHTML=ORDER.map(t=>
@@ -607,7 +597,8 @@ function render(){
         <span><i style="background:var(--cash)"></i>含息 · 配息領現金</span>
         <span><i style="background:var(--pr)"></i>不含息 · 只看股價</span>
         <span><i style="background:var(--base)"></i>累計投入本金</span>
-        <span><span class="sw"></span>配息貢獻</span></div></div>`;}).join('');
+        <span><span class="sw"></span>配息貢獻</span>
+        <span style="color:var(--ink3)">下半：回撤（距歷史最高點）</span></div></div>`;}).join('');
   // 統計
   const NM={A:['A　含息 · 配息再投入','hi'],B:['B　含息 · 配息領現金',''],Cv:['C　不含息 · 只看股價','lo']};
   let h='';
@@ -660,8 +651,7 @@ function render(){
            `<td style="text-align:left;font-size:11px;color:var(--ink3)">${r.bm}<br>${r.bvol.toFixed(1)}%</td>`;}
       return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>${c1}${c2}</tr>`;}).join('');
   } else $('navsec').style.display='none';
-  if(!DDON.size) DDON=new Set(ORDER.slice(0,Math.min(3,ORDER.length)));
-  mtab(); pxchips(); ddchips(); ORDER.forEach(plot); plotPX(); plotDD();
+  mtab(); pxchips(); ORDER.forEach(plot); plotPX(); plotDD();
 }
 S0.addEventListener('change',render);S1.addEventListener('change',render);
 $('pre').addEventListener('click',e=>{const p=e.target.dataset&&e.target.dataset.p;if(!p)return;
