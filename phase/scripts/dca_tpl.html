@@ -192,8 +192,30 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
     <tbody id="navtb"></tbody>
   </table></div>
 </section>
+
 <section>
-  <div class="shead"><span class="snum">04</span><h2>價位 × 量能</h2></div>
+  <div class="shead"><span class="snum">04</span><h2>回撤曲線</h2></div>
+  <p>水平線是<b>歷史最高點</b>，線往下掉就是<b>正在虧損</b> —— 掉多深、被水淹多久，一眼看得到。
+    這張圖回答的是「<b>抱得住嗎</b>」，不是「賺多少」。</p>
+  <div class="panel">
+    <div class="seg" id="ddseg" style="margin-bottom:10px">
+      <button class="tb" data-d="dca" aria-pressed="true">定期定額資產</button>
+      <button class="tb" data-d="hold" aria-pressed="false">單筆買進持有</button>
+    </div>
+    <div class="pxchips" id="ddchips"></div>
+    <canvas id="cdd" role="img" aria-label="回撤曲線"></canvas>
+    <p style="font-size:12px;color:var(--ink3);margin:8px 2px 0" id="ddnote"></p>
+  </div>
+  <div class="tw"><table>
+    <caption>★ 兩種口徑差很多：<b>定期定額</b>因為持續投入新錢，帳面回撤會被稀釋（尤其前期）；
+      <b>單筆買進持有</b>才是這個標的本身的真實跌幅。前者是你會經歷的，後者是標的的性格。<br>
+      「水下期間」＝ 從跌破前高到重新站回前高所經過的月數；仍在水下者標示「尚未收復」。</caption>
+    <thead><tr><th>標的</th><th>最大回撤</th><th>發生時間</th><th>最長水下期間</th><th>目前距高點</th></tr></thead>
+    <tbody id="ddtb"></tbody>
+  </table></div>
+</section>
+<section>
+  <div class="shead"><span class="snum">05</span><h2>價位 × 量能</h2></div>
   <p>橫軸是<b>該月成交金額相對這段期間的平均</b>，縱軸是<b>相對起點的累計總報酬</b>。
     空心環是起點，實心點是現在。<b>這張圖回答的是「漲上來的時候，有沒有人在買」。</b></p>
   <div class="panel">
@@ -205,7 +227,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
 </section>
 
 <section>
-  <div class="shead"><span class="snum">05</span><h2>逐月數據</h2></div>
+  <div class="shead"><span class="snum">06</span><h2>逐月數據</h2></div>
   <p>每月第一個交易日買進。<b>配息欄是當月實際入帳的現金</b>；
     「配息再買入」是那筆現金在除息日收盤價買回的股數 —— 這一欄累積起來，
     就是兩條曲線分岔的全部原因。</p>
@@ -426,6 +448,107 @@ function plotPX(){
     x.strokeText('起 '+a.ym,X(a.rv),Y(a.ret)-11);x.fillText('起 '+a.ym,X(a.rv),Y(a.ret)-11);
   }
 }
+
+// ★★ 回撤曲線：y ＝ 距離「至今為止的歷史高點」百分比，永遠 ≤ 0
+//   dca  ＝ 定期定額的資產淨值（持續投入會稀釋帳面回撤，這是實際感受）
+//   hold ＝ 總報酬指數（單筆買進持有，這才是標的本身的跌幅）
+let DDM="dca";
+let DDON=new Set();
+function ddSeries(t){
+  const d=SIM[t]; if(!d||!d.n) return null;
+  let arr, ym;
+  if(DDM==="dca"){ arr=d.A.slice(); ym=d.ym.slice(); }
+  else{
+    const b=bounds(t); if(!b) return null;
+    const tri=D[t].tri, base=tri[b[0]];
+    arr=[]; ym=[];
+    for(let i=b[0];i<=b[1];i++){ arr.push(tri[i]/base); ym.push(D[t].m[i][0]); }
+  }
+  let pk=-Infinity; const dd=[];
+  for(const v of arr){ pk=Math.max(pk,v); dd.push((v-pk)/pk*100); }
+  // 最大回撤 + 最長水下期間
+  let mn=0,mi=0,run=0,best=0,bs=null,bestS=null,cur=null;
+  for(let i=0;i<dd.length;i++){
+    if(dd[i]<mn){mn=dd[i];mi=i;}
+    if(dd[i]<-0.05){ if(run===0) cur=i; run++; if(run>best){best=run;bestS=cur;} }
+    else run=0;
+  }
+  const under = dd[dd.length-1]<-0.05;
+  return {dd,ym,mn,mi,best,bestS,under,last:dd[dd.length-1],
+          ongoing:(run>0?run:0)};
+}
+function ddchips(){
+  $('ddchips').innerHTML=ORDER.map(t=>
+    `<button data-k="${t}" aria-pressed="${DDON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
+  $('ddchips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    const t=b.dataset.k;
+    if(DDON.has(t)&&DDON.size>1) DDON.delete(t); else DDON.add(t);
+    ddchips(); plotDD();}));
+}
+function plotDD(){
+  const cv=$('cdd'); if(!cv.clientWidth){requestAnimationFrame(plotDD);return;}
+  const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
+        h=Math.round(Math.min(380,Math.max(230,w*0.40)));
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  const PL=58,PR=16,PT=16,PB=28,iw=w-PL-PR,ih=h-PT-PB;
+  const S={},rows=[];
+  for(const t of ORDER){ if(!DDON.has(t)) continue; const r=ddSeries(t); if(r) S[t]=r; }
+  const ks=Object.keys(S);
+  if(!ks.length){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
+    x.fillText('這個區間沒有資料',w/2,h/2);$('ddtb').innerHTML='';$('ddnote').textContent='';return;}
+  const n=Math.max(...ks.map(t=>S[t].dd.length));
+  let lo=Math.min(...ks.flatMap(t=>S[t].dd));
+  lo=Math.min(lo*1.08,-2);
+  const X=i=>n===1?PL+iw/2:PL+iw*i/(n-1), Y=v=>PT+ih*(v/lo);
+  let stp=Math.pow(10,Math.floor(Math.log10(-lo)));
+  while(-lo/stp>6)stp*=2; while(-lo/stp<3)stp/=2;
+  x.font='11px "IBM Plex Mono",monospace';x.textAlign='right';
+  for(let v=0;v>=lo;v-=stp){const yy=Math.round(Y(v))+.5;
+    x.strokeStyle=v===0?C('--rule'):C('--rule2');x.lineWidth=v===0?1.5:1;
+    x.beginPath();x.moveTo(PL,yy);x.lineTo(w-PR,yy);x.stroke();
+    x.fillStyle=C('--ink3');x.fillText(Math.round(v)+'%',PL-8,yy+4);}
+  for(const t of ks){
+    const r=S[t],col=cc(t),m=r.dd.length;
+    const XX=i=>m===1?PL+iw/2:PL+iw*i/(m-1);
+    x.beginPath();x.moveTo(XX(0),Y(0));
+    for(let i=0;i<m;i++) x.lineTo(XX(i),Y(r.dd[i]));
+    x.lineTo(XX(m-1),Y(0));x.closePath();
+    x.fillStyle=col;x.globalAlpha=ks.length>2?.16:.22;x.fill();x.globalAlpha=1;
+    x.beginPath();x.moveTo(XX(0),Y(r.dd[0]));
+    for(let i=1;i<m;i++) x.lineTo(XX(i),Y(r.dd[i]));
+    x.strokeStyle=col;x.lineWidth=1.9;x.lineJoin='round';x.stroke();
+    // ★ 最深點標出來
+    x.beginPath();x.arc(XX(r.mi),Y(r.mn),3.6,0,7);x.fillStyle=col;x.fill();
+    x.font='700 10.5px "IBM Plex Mono",monospace';x.textAlign='center';
+    x.lineWidth=3;x.strokeStyle=C('--card');
+    const lb=r.mn.toFixed(1)+'%';
+    x.strokeText(lb,XX(r.mi),Y(r.mn)+14);x.fillStyle=col;x.fillText(lb,XX(r.mi),Y(r.mn)+14);
+  }
+  // 年份刻度（用第一檔的月份軸）
+  const ref=S[ks[0]];
+  x.textAlign='center';x.fillStyle=C('--ink3');x.font='11px "IBM Plex Mono",monospace';
+  const yrs=ref.dd.length/12, step=yrs>14?3:(yrs>7?2:1);
+  ref.ym.forEach((mm,i)=>{const[y,mo]=mm.split('-');
+    if(mo==='01'&&(+y)%step===0) x.fillText(y,PL+iw*i/Math.max(1,ref.dd.length-1),h-9);});
+  $('ddnote').textContent = DDM==="dca"
+    ? '★ 定期定額口徑：每月持續投入新錢，早期的帳面回撤會被稀釋 —— 這是你實際會經歷的感受。'
+    : '★ 單筆買進持有口徑：起點一次投入、之後不再加碼，這才是標的本身的跌幅。';
+  // 表格
+  $('ddtb').innerHTML=ORDER.filter(t=>S[t]).map(t=>{const r=S[t];
+    const und = r.under ? `<span style="color:var(--tr)">${r.last.toFixed(1)}%</span>` : '已收復新高';
+    const wl = r.best ? `${r.best} 個月${r.under&&r.ongoing===r.best?'（尚未收復）':''}` : '未曾跌破前高';
+    return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>`+
+      `<td class="num" style="color:var(--tr);font-weight:700">${r.mn.toFixed(1)}%</td>`+
+      `<td style="text-align:left;font-size:12.5px">${r.ym[r.mi]}</td>`+
+      `<td style="text-align:left;font-size:12.5px">${wl}</td>`+
+      `<td class="num">${und}</td></tr>`;}).join('');
+}
+document.querySelectorAll('#ddseg .tb').forEach(b=>b.addEventListener('click',()=>{
+  DDM=b.dataset.d;
+  document.querySelectorAll('#ddseg .tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
+  plotDD();}));
+
 function pxchips(){
   $('pxchips').innerHTML=ORDER.map(t=>
     `<button data-k="${t}" aria-pressed="${PXON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
@@ -537,14 +660,15 @@ function render(){
            `<td style="text-align:left;font-size:11px;color:var(--ink3)">${r.bm}<br>${r.bvol.toFixed(1)}%</td>`;}
       return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>${c1}${c2}</tr>`;}).join('');
   } else $('navsec').style.display='none';
-  mtab(); pxchips(); ORDER.forEach(plot); plotPX();
+  if(!DDON.size) DDON=new Set(ORDER.slice(0,Math.min(3,ORDER.length)));
+  mtab(); pxchips(); ddchips(); ORDER.forEach(plot); plotPX(); plotDD();
 }
 S0.addEventListener('change',render);S1.addEventListener('change',render);
 $('pre').addEventListener('click',e=>{const p=e.target.dataset&&e.target.dataset.p;if(!p)return;
   S1.value=ALL[ALL.length-1];
   S0.value = p==='all' ? ALL[0] : ALL[Math.max(0,ALL.length-(+p)*12)];
   render();});
-addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();});
+addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
 render();
 </script>
