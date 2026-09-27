@@ -149,6 +149,25 @@ def fx_series(pair="TWD=X"):
     return {f"{k[0]}-{k[1]:02d}": [round(sorted(v)[0][1], 4), round(sorted(v)[-1][1], 4)]
             for k, v in mo.items()}
 
+def nav_info(sym):
+    """★ ETF 折溢價 ＝ 市價 ÷ 淨值 − 1。
+       ⚠ 只拿得到「當下」的淨值：yfinance .info 的 navPrice 是快照，
+         沒有歷史序列。TWSE / TPEX / 投信官網的公開端點實測全部拿不到
+         （非 JSON 或需登入），所以★ 不做時間序列，只列當下一個數字。
+       ⚠ 個股沒有淨值，回 None。"""
+    try:
+        import yfinance as yf
+        i = yf.Ticker(sym).info
+        nav = i.get("navPrice"); px = i.get("regularMarketPrice") or i.get("previousClose")
+        if not (nav and px): return None
+        ts = i.get("regularMarketTime")
+        return dict(nav=round(float(nav), 4), px=round(float(px), 4),
+                    prem=round((float(px)/float(nav)-1)*100, 3),
+                    ts=(dt.datetime.fromtimestamp(ts, dt.UTC).strftime("%Y-%m-%d %H:%M UTC")
+                        if isinstance(ts, (int, float)) else None))
+    except Exception:
+        return None
+
 def build(code):
     cands = [code] if not code.isdigit() else [code+".TW", code+".TWO"]
     for sym in cands:
@@ -157,12 +176,17 @@ def build(code):
             if len(ser) < 250: continue
         except Exception:
             continue
-        # ★ Yahoo 對改制前的代碼會回 placeholder：價格不動、成交量 0
-        #   （元大金 2002-01 整月都是 14.52 且量 0，2002-02-04 才真正上市）
+        # ★★ Yahoo 對改制前的代碼會回 placeholder：★ 判準是「價格完全不動」，
+        #   不是「成交量為 0」—— 0056 在 2008 年價格真的在動（25.51→24.85→25.38）
+        #   只是 Yahoo 沒有量，用量當判準會丟掉一整年真實資料。
+        #   元大金 2002-01 則是整月固定 14.52，那才是 placeholder。
         st = 0
-        for i in range(len(ser)-1):
-            if ser[i][2] > 0 and ser[i][1] != ser[i+1][1]: st = i; break
-        if st: ser = ser[st:]; div = [x for x in div if x[0] >= ser[0][0]]; spl = [x for x in spl if x[0] >= ser[0][0]]
+        while st + 1 < len(ser) and ser[st][1] == ser[st+1][1]: st += 1
+        if st:
+            st += 1                       # 跳到第一個「價格開始變動」的交易日
+            ser = ser[st:]
+            div = [x for x in div if x[0] >= ser[0][0]]
+            spl = [x for x in spl if x[0] >= ser[0][0]]
         brks = find_break(ser)
         if brks: ser, div = fix(ser, div, brks)
         rec, vol = monthly(ser, div, spl)
@@ -177,9 +201,10 @@ def build(code):
         nm = f"{code} {TWN[code]}" if code in TWN else (f"{code} {name}"[:20] if code.isdigit() else code)
         tsp = 1.0
         for _, r_ in spl: tsp *= r_
+        NAV = nav_info(sym)
         return dict(t=code, sym=sym, nm=nm, ccy=ccy,
                     m=rec, v=vol, tri=tri, v0=v0,
-                    nsp=len(spl), tsp=round(tsp, 4),
+                    nsp=len(spl), tsp=round(tsp, 4), nav=NAV,
                     brk=[[str(b), r] for b, r, _ in brks]), None
     return None, f"{code} Yahoo 查不到或資料太短"
 
@@ -217,6 +242,7 @@ def main():
               f"　總報酬指數 {(d['tri'][-1]/d['tri'][0]-1)*100:+.0f}%"
               + (f"　★ 自動修正斷點 {d['brk']}" if d["brk"] else "")
               + (f"　（配股 {d['nsp']} 次 {d['tsp']}x，已含在還原價裡）" if d["nsp"] else "")
+              + (f"　淨值 {d['nav']['nav']} 折溢價 {d['nav']['prem']:+.3f}%" if d["nav"] else "")
               + (f"　★ 量能自 {d['v0']}" if d["v0"] and d["v0"] != d["m"][0][0] else ""))
     if not data: sys.exit("★ 全部失敗")
     ccys = sorted({d["ccy"] for d in data})
