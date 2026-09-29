@@ -41,7 +41,8 @@ UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
 # 3 支以上才回頭借用情境色 —— 那時只出現在散點圖，該區沒有情境線，且 chips 有文字標籤
 PAL = ["--c5", "--c6", "--tr", "--pr", "--cash", "--base"]
 MAXT = 6
-SPLITS = [2, 3, 4, 5, 6, 8, 10, 20]        # ★ 常見分割／合併比例
+SPLITS = [2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20]   # ★ 常見分割／合併比例（★ 原本漏了 7）
+EXTREME = 3.0                              # ★ 超過此倍數直接認定為斷點（見 find_break 註解）
 # ★ Yahoo 對台股 ETF 只回英文長名（0050 = "Yuanta/P-shares Taiwan Top 50 ETF"），
 #   塞進圖例會被截成「0050 Yuanta/」。常用的先查表，查不到才退回 Yahoo 的名字。
 TWN = {"0050":"台灣50","0051":"中型100","0052":"富邦科技","0055":"寶金融","0056":"高股息",
@@ -94,16 +95,30 @@ def find_break(ser):
         if not p0 or not p1: continue
         ratio = p0/p1
         if 0.8 < ratio < 1.25: continue                  # 正常波動
+        # ★★ 兩條路認定斷點，缺一不可地互補：
+        #   ① 比值接近常見分割比 → 再驗成交金額連續（擋掉真崩盤）
+        #   ② 比值 ≥ EXTREME → 直接認定，★ 不驗成交金額
+        #      理由：分割讓單價變親民，成交金額往往暴增而非持平
+        #      （0052 分割後成交金額是前 5 日均的 3.48 倍，卡在金額檢查過不了）
+        #   ★ EXTREME 門檻怎麼定：實測 18 檔標的的歷史最慘單日跌幅，
+        #     真崩盤最深是 GME −60.0%（比值 2.50）、AMC −56.6%（2.30）；
+        #     而真分割是 0050 −75.1%（4.01）、0052 −85.7%（6.99）。
+        #     取 3.0（跌 66.7%）落在兩者之間，兩側都有安全邊際。
         cand = next((s for s in SPLITS
                      if abs(ratio-s) < s*0.03 or abs(ratio-1/s) < (1/s)*0.03), None)
-        if not cand: continue
-        # ★ 成交金額必須連續（±40% 內）——這一關把真實崩盤擋掉
+        # ★★ 極端豁免只給「下跌」方向，★ 上漲不給 ——
+        #   價格單日暴漲 4 倍在真實市場會發生（AMC 2021-01-27 軋空 +301%，比值 0.249），
+        #   實測若雙向都豁免會把它誤判成合併。反向（合併）罕見，寧可漏抓也不要誤修。
+        extreme = ratio >= EXTREME
+        if not cand and not extreme: continue
+        # ★ 成交金額連續性：只用在「接近常見分割比」那條路上，擋掉真崩盤。
+        #   極端比值那條路不驗（見上），否則會漏掉流動性暴增的分割。
         w = 5
         a0 = [c*v for _, c, v in ser[max(0, i-w):i] if v]
         a1 = [c*v for _, c, v in ser[i:i+w] if v]
-        if not a0 or not a1: continue
-        amt = (st.mean(a1)/st.mean(a0)) if st.mean(a0) else 0
-        if not (0.6 < amt < 1.4): continue
+        amt = (st.mean(a1)/st.mean(a0)) if (a0 and a1 and st.mean(a0)) else 0
+        if not extreme:
+            if not amt or not (0.6 < amt < 1.4): continue
         out.append((ser[i][0], round(ratio, 4), round(amt, 3)))
     return out
 
