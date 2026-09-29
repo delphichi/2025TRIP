@@ -197,7 +197,10 @@ def nav_info(sym):
         return None
 
 def build(code):
-    cands = [code] if not code.isdigit() else [code+".TW", code+".TWO"]
+    # ★ 台股代碼判斷不能用 isdigit()：主動式 ETF 是 00981A 這種「數字開頭＋字母」，
+    #   "00981A".isdigit() 是 False，會被當成美股直接查而漏掉 .TW 後綴。
+    #   判準改為「開頭是數字」——美股代碼一律字母開頭。
+    cands = [code+".TW", code+".TWO"] if code[:1].isdigit() else [code]
     for sym in cands:
         try:
             ser, div, spl, ccy, name = chart(sym)

@@ -260,6 +260,26 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
     <tbody id="yldtb"></tbody>
   </table></div>
 
+
+  <h3 style="margin:30px 0 10px">殖利率歷史百分位</h3>
+  <p>個股用 <b>PE</b> 判斷貴不貴，ETF 沒有好用的 PE（各家算法不同，會被少數高 PE 成分股拉高）——
+    改用<b>殖利率的歷史位置</b>。兩者互為倒數：<b>PE 低＝便宜，殖利率高＝便宜</b>。</p>
+  <div class="panel">
+    <canvas id="cyld" role="img" aria-label="殖利率歷史百分位"></canvas>
+    <p style="font-size:12px;color:var(--ink3);margin:8px 2px 0">
+      箱子是歷史的 P25–P75，中間細線是中位數，<b>圓點是現在</b>。
+      圓點靠右＝殖利率高於多數時候＝相對便宜。</p>
+  </div>
+  <div class="tw"><table>
+    <caption>每個月都算一次「近 12 個月配息 ÷ 當月收盤」，得到一條殖利率的時間序列，
+      再看<b>現在落在這條序列的第幾百分位</b>。★ 需要至少 24 個月才算；
+      配息頻率改變（年配改季配）會讓早期與近期不完全可比。<br>
+      ⚠ <b>這是相對自己的歷史，不是相對別檔。</b>不同 ETF 的殖利率水準天生不同，
+      橫向比「誰的百分位高」沒有意義。</caption>
+    <thead><tr><th>標的</th><th>現在 TTM</th><th>歷史百分位</th><th>P25</th><th>中位數</th><th>P75</th><th>判讀</th></tr></thead>
+    <tbody id="yldptb"></tbody>
+  </table></div>
+
   <div class="warn" id="optverdict"></div>
 
   <h3 style="margin:26px 0 10px">檢驗一：換一段期間，最佳解會變嗎</h3>
@@ -943,6 +963,91 @@ document.querySelectorAll('#yseg .tb').forEach(b=>b.addEventListener('click',()=
   document.querySelectorAll('#yseg .tb').forEach(z=>z.setAttribute('aria-pressed',z===b));
   plotOPT();}));
 
+
+// ★★★ 殖利率歷史百分位 —— ETF 版的「PE 河流圖」
+//   每月算一次「近 12 個月配息 ÷ 當月收盤」，得到殖利率序列，再看現在落在第幾百分位。
+//   ⚠ 相對「自己的歷史」，不是相對別檔 —— 不同 ETF 的殖利率水準天生不同。
+//   ⚠ 至少要 24 個月；不足就不給數字，不硬算。
+//   ⚠ 配息頻率改過的（0056 2024 年起年配→季配）早期與近期不完全可比，會標注。
+function yldSeries(t){
+  const rec=D[t].m;
+  if(!rec||rec.length<24) return null;
+  const out=[];
+  for(let i=11;i<rec.length;i++){
+    let d=0;
+    for(let j=i-11;j<=i;j++) for(const [a] of rec[j][3]) d+=a;
+    if(rec[i][2]>0 && d>0) out.push({ym:rec[i][0], y:d/rec[i][2]*100});
+  }
+  if(out.length<24) return null;
+  const v=out.map(o=>o.y).sort((a,b)=>a-b);
+  const q=p=>v[Math.min(v.length-1,Math.floor(v.length*p))];
+  const now=out[out.length-1].y;
+  // ★ 配息頻率有沒有改過：用「近 3 年 vs 之前」比，不用「前半 vs 後半」——
+  //   後者會把改制稀釋掉（0056 2024 才改季配，用前後半算差距不到 1 次/年，抓不到）。
+  const rec3=Math.min(36,rec.length-12), h=rec.length-rec3;
+  const cnt=(a,b)=>{let c=0;for(let i=a;i<b;i++) c+=rec[i][3].length;return c;};
+  const f1=h>12?cnt(0,h)/(h/12):0, f2=cnt(h,rec.length)/(rec3/12);
+  return {now, n:out.length, pct:v.filter(x=>x<now).length/v.length*100,
+          p10:q(.10), p25:q(.25), med:q(.50), p75:q(.75), p90:q(.90),
+          lo:v[0], hi:v[v.length-1],
+          freqChg:(f1>0.5 && Math.abs(f2-f1)>=1)?[Math.round(f1*10)/10,Math.round(f2*10)/10]:null};
+}
+function plotYLD(){
+  const cv=$('cyld'); if(!cv||!cv.clientWidth){requestAnimationFrame(plotYLD);return;}
+  const ks=ORDER.filter(t=>OPTON.has(t));
+  const Y={}; for(const t of ks){const r=yldSeries(t); if(r) Y[t]=r;}
+  const kk=Object.keys(Y);
+  const rowH=46;
+  const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
+        h=Math.max(110, 40+rowH*Math.max(kk.length,1));
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  if(!kk.length){
+    x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
+    x.fillText('資料不足 24 個月，或所選標的沒有配息紀錄',w/2,h/2);
+    $('yldptb').innerHTML='<tr><td colspan="7" style="text-align:left;color:var(--ink3)">'+
+      '所選標的都不足 24 個月的配息資料 —— 新上市的 ETF 會落在這一類。</td></tr>';
+    return;}
+  const PL=Math.min(140,Math.max(90,w*0.20)),PR=54,iw=w-PL-PR;
+  // ★ 每檔各自一條軸（殖利率水準天生不同，共用軸會把低殖利率的擠成一點）
+  kk.forEach((t,i)=>{
+    const r=Y[t], cy=30+i*rowH;
+    const lo=0, hi=r.hi*1.12;
+    const X=v=>PL+iw*(v-lo)/(hi-lo);
+    x.font='600 12px "Noto Sans TC",sans-serif';x.textAlign='right';
+    x.fillStyle=C('--ink');x.fillText(D[t].nm,PL-10,cy+4);
+    // 全距
+    x.strokeStyle=C('--rule');x.lineWidth=1;
+    x.beginPath();x.moveTo(X(r.lo),cy);x.lineTo(X(r.hi),cy);x.stroke();
+    // P25–P75 箱
+    x.fillStyle=cc(t);x.globalAlpha=.22;
+    x.fillRect(X(r.p25),cy-9,X(r.p75)-X(r.p25),18);x.globalAlpha=1;
+    // 中位數
+    x.strokeStyle=cc(t);x.lineWidth=2;
+    x.beginPath();x.moveTo(X(r.med),cy-9);x.lineTo(X(r.med),cy+9);x.stroke();
+    // 現在
+    x.beginPath();x.arc(X(r.now),cy,6.5,0,7);x.fillStyle=cc(t);x.fill();
+    x.lineWidth=1.6;x.strokeStyle=C('--card');x.stroke();
+    x.font='700 11px "IBM Plex Mono",monospace';x.textAlign='left';
+    x.fillStyle=cc(t);x.fillText(r.now.toFixed(2)+'%',X(r.hi)+8,cy+4);
+  });
+  $('yldptb').innerHTML=kk.map(t=>{const r=Y[t];
+    const v = r.pct>=75 ? ['殖利率偏高 · 相對便宜','var(--base)']
+            : r.pct<=25 ? ['殖利率偏低 · 相對貴','var(--tr)']
+            : ['中間 · 沒有明顯訊號','var(--ink3)'];
+    const fc = r.freqChg ? `<br><span style="font-size:11px;color:var(--cash)">★ 配息頻率變過（早期 ${r.freqChg[0]} → 近 3 年 ${r.freqChg[1]} 次/年），早期與近期不完全可比</span>` : '';
+    return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}${fc}</td>`+
+      `<td class="num" style="font-weight:700">${r.now.toFixed(2)}%</td>`+
+      `<td class="num" style="color:${v[1]};font-weight:700">第 ${r.pct.toFixed(0)} 位</td>`+
+      `<td class="num">${r.p25.toFixed(2)}%</td><td class="num">${r.med.toFixed(2)}%</td>`+
+      `<td class="num">${r.p75.toFixed(2)}%</td>`+
+      `<td style="text-align:left;font-size:12.5px;color:${v[1]}">${v[0]}</td></tr>`;}).join('')
+    + ORDER.filter(t=>OPTON.has(t)&&!Y[t]).map(t=>
+      `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>`+
+      `<td colspan="6" style="text-align:left;color:var(--ink3);font-size:12.5px">`+
+      `配息資料不足 24 個月 —— 新上市的 ETF 需要時間累積才算得出歷史位置</td></tr>`).join('');
+}
+
 function optchips(){
   $('optchips').innerHTML=ORDER.map(t=>
     `<button data-k="${t}" aria-pressed="${OPTON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
@@ -960,7 +1065,7 @@ function plotOPT(){
   cv.width=w0*dpr;cv.height=h*dpr;cv.style.height=h+'px';
   const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w0,h);
   const O=optData();
-  const clr=()=>{['opttb','segtb','ostb','inctb','yldtb'].forEach(i=>$(i).innerHTML='');$('optverdict').innerHTML='';};
+  const clr=()=>{['opttb','segtb','ostb','inctb','yldtb','yldptb'].forEach(i=>$(i).innerHTML='');$('optverdict').innerHTML='';plotYLD();};
   if(!O){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
     x.fillText('至少需要兩檔標的、24 個共同月份',w0/2,h/2);clr();return;}
   const {ks,ym,R}=O, k=ks.length, rf=optRF();
@@ -1018,6 +1123,7 @@ function plotOPT(){
     hh+=row('單押 '+D[ks[i]].nm,w,pstat(R,w,rf),'');}
   $('opttb').innerHTML=hh;
   renderIncome(ks,best,minv,eqw);
+  plotYLD();
   // ── 檢驗一：分段
   const n=R.length, SEG=5, sl=Math.floor(n/SEG); let segs=[];
   for(let i=0;i<SEG;i++){
@@ -1211,7 +1317,7 @@ $('pre').addEventListener('click',e=>{const p=e.target.dataset&&e.target.dataset
   S1.value=ALL[ALL.length-1];
   S0.value = p==='all' ? ALL[0] : ALL[Math.max(0,ALL.length-(+p)*12)];
   render();});
-addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();plotCMP();plotOPT();});
+addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();plotCMP();plotOPT();plotYLD();});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
 render();
 </script>
