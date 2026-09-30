@@ -25,6 +25,52 @@ TWN = {"0050":"台灣50","0051":"中型100","0052":"富邦科技","0053":"電子
        "00918":"大華優利","00919":"群益精選高息","00929":"復華科技優息","00939":"統一高息",
        "00940":"元大價值高息","006208":"富邦台50","00692":"富邦公司治理"}
 
+def yield_pct(sym):
+    """★★ 殖利率歷史百分位 —— 每月算「近 12 個月配息 ÷ 當月收盤」，看現在排第幾。
+       ⚠ 這跟折溢價回答的是不同層次的問題：
+         折溢價 ＝ 成交價 vs 淨值（交易面，今天）
+         殖利率百分位 ＝ 現在 vs 自己的歷史（估值面，十年尺度）
+       兩者會矛盾 —— 0050 今天折價 −0.25%（交易面沒買貴）
+       但殖利率在第 4 百分位（估值面十三年來最貴）。矛盾本身就是資訊。
+       ⚠ 至少 24 個月才算；不足回 None，不硬算。"""
+    try:
+        import yfinance as yf, pandas as pd
+        tk = yf.Ticker(sym)
+        d = yf.download(sym, start="2008-01-01", progress=False,
+                        auto_adjust=False, threads=False)
+        if d is None or d.empty: return None
+        c = d["Close"]
+        c = (c.iloc[:, 0] if hasattr(c, "columns") else c).dropna().astype(float)
+        dv = tk.dividends
+        if dv is None or len(dv) == 0: return None
+        dv = dv.copy()
+        try: dv.index = dv.index.tz_localize(None)
+        except Exception: pass
+        # ★ 無償配股斷點：只修「跌 ≥ 66.7%」的，門檻同 dca_gen（見那邊的實測說明）
+        r = c.pct_change()
+        for ix in r.index[(r < -0.667)]:
+            prev = c.loc[:ix].iloc[-2] if len(c.loc[:ix]) > 1 else None
+            if not prev: continue
+            k = float(prev) / float(c.loc[ix])
+            c.loc[c.index < ix] = c.loc[c.index < ix] / k
+            dv.loc[dv.index < ix] = dv.loc[dv.index < ix] / k
+        m = c.resample("ME").last()
+        if len(m) < 24: return None
+        ser = []
+        for i in range(11, len(m)):
+            lo, hi = m.index[i-11], m.index[i]
+            t = float(dv[(dv.index > lo - pd.Timedelta(days=31)) & (dv.index <= hi)].sum())
+            if t > 0 and float(m.iloc[i]) > 0:
+                ser.append(t / float(m.iloc[i]) * 100)
+        if len(ser) < 24: return None
+        v = sorted(ser); now = ser[-1]
+        q = lambda x: v[min(len(v)-1, int(len(v)*x))]
+        return dict(now=round(now, 2), n=len(ser),
+                    pct=round(sum(1 for z in v if z < now) / len(v) * 100),
+                    p25=round(q(.25), 2), med=round(q(.5), 2), p75=round(q(.75), 2))
+    except Exception:
+        return None
+
 def quote(sym):
     """★ 用 yfinance 的 quoteSummary 取市價與淨值。
        ⚠ navPrice 是快照 —— 台股 ETF 的淨值一天只更新一次（收盤後），
@@ -66,37 +112,89 @@ def build_html(rows, warn, crit, hit):
         col = "#c0392b" if lv == 2 else ("#d9a119" if lv == 1 else "#7b8b9f")
         bg = "background:#fdf0ee;" if lv == 2 else ("background:#fdf8ea;" if lv == 1 else "")
         nm = TWN.get(r["code"], "")
+        y = r.get("yld")
+        if y:
+            # ★ 殖利率高＝相對便宜（與 PE 相反）。用文字寫清楚方向，不要讓人自己猜。
+            yc = ("#2f8a4f" if y["pct"] >= 75 else
+                  "#c0392b" if y["pct"] <= 25 else "#7b8b9f")
+            yl = ("便宜端" if y["pct"] >= 75 else
+                  "★ 貴端" if y["pct"] <= 25 else "中間")
+            ycell = (f'<td align="right" style="padding:9px 12px;border-bottom:1px solid #eee;'
+                     f'font-family:monospace">{y["now"]:.2f}%</td>'
+                     f'<td align="right" style="padding:9px 12px;border-bottom:1px solid #eee;'
+                     f'font-family:monospace;font-weight:700;color:{yc}">第 {y["pct"]} 位</td>'
+                     f'<td style="padding:9px 12px;border-bottom:1px solid #eee;'
+                     f'color:{yc};font-size:13px">{yl}</td>')
+        else:
+            ycell = ('<td colspan="3" style="padding:9px 12px;border-bottom:1px solid #eee;'
+                     'color:#aaa;font-size:12px">配息資料不足 24 個月</td>')
         return (f'<tr style="{bg}">'
                 f'<td style="padding:9px 12px;border-bottom:1px solid #eee"><b>{r["code"]}</b> '
-                f'<span style="color:#888;font-size:12px">{nm or r["name"][:22]}</span></td>'
+                f'<span style="color:#888;font-size:12px">{nm or r["name"][:20]}</span></td>'
                 f'<td align="right" style="padding:9px 12px;border-bottom:1px solid #eee;font-family:monospace">{r["px"]:.2f}</td>'
-                f'<td align="right" style="padding:9px 12px;border-bottom:1px solid #eee;font-family:monospace">{r["nav"]:.2f}</td>'
                 f'<td align="right" style="padding:9px 12px;border-bottom:1px solid #eee;'
                 f'font-family:monospace;font-weight:700;color:{col}">{r["prem"]:+.3f}%</td>'
-                f'<td style="padding:9px 12px;border-bottom:1px solid #eee;color:{col};font-size:13px">{lb}</td></tr>')
+                f'<td style="padding:9px 12px;border-bottom:1px solid #eee;color:{col};font-size:13px">{lb}</td>'
+                f'{ycell}</tr>')
     body = "".join(tr(r) for r in rows)
     head = (f'<h2 style="margin:0 0 4px">ETF 折溢價監控　{today}</h2>'
             f'<p style="color:#666;margin:0 0 16px;font-size:14px">'
             f'門檻：<b>±{warn}%</b> 提醒／<b>±{crit}%</b> 警示　·　'
-            f'共 {len(rows)} 檔，{hit} 檔觸發</p>')
+            f'共 {len(rows)} 檔，折溢價觸發 {hit} 檔'
+            f'{"，估值極端 " + str(sum(1 for r in rows if r.get("yhit"))) + " 檔" if any(r.get("yhit") for r in rows) else ""}</p>')
+    # ★★ 最該提醒的組合不是「折價 vs 貴」，而是「折溢價正常 但 估值極端」——
+    #   前者罕見且幅度通常很小；後者才是常態，而且最容易讓人放心買下去：
+    #   交易面沒有任何警訊，估值面卻站在十年極端。
+    quiet = [r for r in rows if r.get("yld") and r["lv"] == 0
+             and (r["yld"]["pct"] <= 10 or r["yld"]["pct"] >= 90)]
+    cf = ""
+    if quiet:
+        exp = [r for r in quiet if r["yld"]["pct"] <= 10]
+        chp = [r for r in quiet if r["yld"]["pct"] >= 90]
+        seg = []
+        if exp: seg.append("貴端：" + "、".join(
+            f'{r["code"]} 第 {r["yld"]["pct"]} 位' for r in exp))
+        if chp: seg.append("便宜端：" + "、".join(
+            f'{r["code"]} 第 {r["yld"]["pct"]} 位' for r in chp))
+        cf = ('<div style="margin-top:14px;padding:12px 15px;background:#fdf8ea;'
+              'border-left:3px solid #d9a119;font-size:13px;line-height:1.7;color:#555">'
+              f'<b style="color:#a8792a">★ 折溢價正常，但估值站在極端</b>　{"　".join(seg)}<br>'
+              '這是最容易被放過的組合 —— <b>交易面沒有任何警訊</b>'
+              '（買賣價貼著淨值、沒有溢價陷阱），<b>但估值面站在自己十年的極端</b>。<br>'
+              '★ 兩者量的是不同東西：折溢價問「今天這筆交易買貴了嗎」，'
+              '殖利率位置問「相對過去，現在算貴還是便宜」。'
+              '<b>今天沒吃虧，不等於長期划算。</b></div>')
     note = ('<div style="margin-top:18px;padding:12px 15px;background:#f7f7f5;'
-            'border-left:3px solid #d9a119;font-size:13px;line-height:1.7;color:#555">'
-            '<b>★ 怎麼讀</b><br>'
-            '折溢價 ＝ 市價 ÷ 淨值 − 1。<b>溢價買進等於多付錢</b>，那部分不會回到你身上。<br>'
-            '一般 ETF 應貼在 ±0.5% 內；<b>持續溢價 &gt;2% 通常代表該檔暫停或限制申購</b>，'
+            'border-left:3px solid #7b8b9f;font-size:13px;line-height:1.7;color:#555">'
+            '<b>★ 兩欄各自回答什麼</b><br>'
+            '<b>折溢價</b>（交易面）＝ 市價 ÷ 淨值 − 1。問的是「<b>今天這筆交易買貴了嗎</b>」。'
+            '正常應在 ±0.5% 內；持續溢價 &gt;2% 通常代表該檔暫停或限制申購，'
             '此時買進是在替別人的溢價買單。<br>'
-            '<b>⚠ 淨值是快照</b>：台股 ETF 的淨值一天只更新一次（收盤後結算），'
-            '盤中取到的可能是前一日值 —— 下表的時間戳可以對照。<br>'
-            '<b>⚠ 這不是買賣訊號</b>：折價不代表便宜、溢價不代表貴，它只反映「當下的成交價偏離持股價值多少」。'
-            '判斷貴不貴要看殖利率歷史位置，那是另一回事。</div>')
+            '<b>殖利率歷史位置</b>（估值面）＝ 每月算「近 12 個月配息 ÷ 當月收盤」，'
+            '看現在排在自己歷史的第幾百分位。問的是「<b>相對過去，現在算貴還是便宜</b>」。'
+            '★ 方向與 PE 相反 —— <b>殖利率高＝便宜</b>，所以百分位高才是便宜端。<br>'
+            '<b>⚠ 兩者可以矛盾，而且矛盾時最有資訊。</b>折價不代表便宜、溢價不代表貴；'
+            '同理殖利率在貴端也不影響今天的成交價是否合理。<br>'
+            '<b>⚠ 淨值是快照</b>：台股 ETF 一天只結算一次（收盤後），'
+            '盤中取到的可能是前一日值 —— 下方時間戳可對照。<br>'
+            '<b>⚠ 百分位是相對自己，不是相對別檔</b>：不同 ETF 的殖利率水準天生不同，'
+            '橫向比「誰的百分位高」沒有意義。</div>') + cf
     ts = "　".join(f"{r['code']} {r['ts']}" for r in rows if r.get("ts"))
     return (f'<div style="font-family:system-ui,\'Noto Sans TC\',sans-serif;max-width:760px">'
             f'{head}<table style="border-collapse:collapse;width:100%;font-size:14px">'
+            f'<tr style="background:#e8e8e4"><th style="padding:6px 12px"></th>'
+            f'<th style="padding:6px 12px"></th>'
+            f'<th colspan="2" align="center" style="padding:6px 12px;font-size:12px;color:#555;'
+            f'border-left:2px solid #fff">交易面 · 今天買貴了嗎</th>'
+            f'<th colspan="3" align="center" style="padding:6px 12px;font-size:12px;color:#555;'
+            f'border-left:2px solid #fff">估值面 · 相對自己的歷史</th></tr>'
             f'<tr style="background:#f0f0ee"><th align="left" style="padding:9px 12px">標的</th>'
             f'<th align="right" style="padding:9px 12px">市價</th>'
-            f'<th align="right" style="padding:9px 12px">淨值</th>'
-            f'<th align="right" style="padding:9px 12px">折溢價</th>'
-            f'<th align="left" style="padding:9px 12px">狀態</th></tr>{body}</table>'
+            f'<th align="right" style="padding:9px 12px;border-left:2px solid #fff">折溢價</th>'
+            f'<th align="left" style="padding:9px 12px">狀態</th>'
+            f'<th align="right" style="padding:9px 12px;border-left:2px solid #fff">TTM 殖利率</th>'
+            f'<th align="right" style="padding:9px 12px">歷史位置</th>'
+            f'<th align="left" style="padding:9px 12px">判讀</th></tr>{body}</table>'
             f'{note}<p style="color:#999;font-size:11px;margin-top:14px">報價時間　{ts}</p></div>')
 
 def send(subject, html):
@@ -152,27 +250,44 @@ def main():
             bad.append(c); print(f"  {c:<10}✗ 取不到淨值"); continue
         lv, lb = level(r["prem"], warn, crit)
         r["lv"], r["lb"] = lv, lb
+        r["yld"] = yield_pct(r["sym"])       # ★ 估值面，與折溢價並列
         rows.append(r)
         mark = "★★" if lv == 2 else ("★" if lv == 1 else "  ")
-        print(f"  {mark} {c:<8}市價 {r['px']:>9.2f}　淨值 {r['nav']:>9.2f}　"
-              f"折溢價 {r['prem']:+7.3f}%　{lb}")
+        y = r["yld"]
+        ys = (f"　殖利率 {y['now']:>5.2f}% 第 {y['pct']:>3} 位" if y else "　殖利率 —")
+        print(f"  {mark} {c:<8}市價 {r['px']:>9.2f}　折溢價 {r['prem']:+7.3f}%　{lb:<6}{ys}")
     if not rows: sys.exit("★ 全部取不到淨值")
-    rows.sort(key=lambda r: (-r["lv"], -abs(r["prem"])))
+    # ★ 估值站在極端（≤10 或 ≥90 百分位）也值得知道 —— 但它是「慢訊號」，
+    #   不像折溢價是當天的事，所以另外計數、不混進折溢價的 lv。
+    for r in rows:
+        y = r.get("yld")
+        r["yhit"] = bool(y and (y["pct"] <= 10 or y["pct"] >= 90))
+    rows.sort(key=lambda r: (-r["lv"], -int(r["yhit"]), -abs(r["prem"])))
     hit = sum(1 for r in rows if r["lv"] > 0)
-    print(f"\n★ {hit} 檔觸發門檻" + (f"　✗ {len(bad)} 檔取不到：{' '.join(bad)}" if bad else ""))
+    yhit = sum(1 for r in rows if r["yhit"])
+    print(f"\n★ 折溢價觸發 {hit} 檔　估值極端 {yhit} 檔"
+          + (f"　✗ {len(bad)} 檔取不到：{' '.join(bad)}" if bad else ""))
 
     (D/"_prem_last.json").write_text(json.dumps(
         {"date": dt.date.today().isoformat(), "rows": rows}, ensure_ascii=False))
 
-    if not hit and not always:
+    if not hit and not yhit and not always:
         # ★★ 沒事不寄 —— 每天都寄的通知，第三天起就沒人看了
-        print("★ 沒有標的觸發門檻 ⇒ 不寄信（要每天都收請加 --always）")
+        print("★ 折溢價與估值都沒有觸發 ⇒ 不寄信（要每天都收請加 --always）")
         return
     worst = rows[0]
     tag = "★★" if worst["lv"] == 2 else ("★" if worst["lv"] == 1 else "")
-    sub = (f"{tag} ETF 折溢價　{hit}/{len(rows)} 檔觸發　"
-           f"最大 {worst['code']} {worst['prem']:+.2f}%　{dt.date.today().isoformat()}"
-           if hit else f"ETF 折溢價日報　全部正常　{dt.date.today().isoformat()}")
+    today = dt.date.today().isoformat()
+    if hit:
+        sub = (f"{tag} ETF 折溢價 {hit} 檔異常"
+               + (f"／估值極端 {yhit} 檔" if yhit else "")
+               + f"　最大 {worst['code']} {worst['prem']:+.2f}%　{today}")
+    elif yhit:
+        ex = [r for r in rows if r["yhit"]][0]
+        sub = (f"★ ETF 估值極端 {yhit} 檔　{ex['code']} 殖利率第 {ex['yld']['pct']} 位"
+               f"（折溢價正常）　{today}")
+    else:
+        sub = f"ETF 折溢價日報　全部正常　{today}"
     send(sub, build_html(rows, warn, crit, hit))
 
 if __name__ == "__main__": main()
