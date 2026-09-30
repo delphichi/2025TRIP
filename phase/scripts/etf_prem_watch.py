@@ -25,6 +25,35 @@ TWN = {"0050":"台灣50","0051":"中型100","0052":"富邦科技","0053":"電子
        "00918":"大華優利","00919":"群益精選高息","00929":"復華科技優息","00939":"統一高息",
        "00940":"元大價值高息","006208":"富邦台50","00692":"富邦公司治理"}
 
+# ★★★ 分類門檻 —— 用同一組數字套所有 ETF 是錯的。
+#   實測 99 檔：折溢價 >2% 的 11 檔「全部」是商品期貨／海外／主題型，
+#   沒有一檔是台股主流股票型。原因是結構性的，不是誰出問題：
+#     · 商品期貨 ETF 追的是期貨不是現貨，正逆價差本來就會反映在折溢價
+#     · 海外股票 ETF 的淨值以當地收盤計算，台股盤中交易時那個淨值已經隔了一夜
+#     · 槓桿／反向每日重設，折溢價波動天生較大
+#   用單一門檻的話這 11 檔會天天觸發 ⇒ 變成雜訊信 ⇒ 你就不看了。
+CAT_TH = {
+    "tw":   (0.8, 1.5),    # 台股股票型：應該貼得很緊
+    "ovs":  (1.5, 3.0),    # 海外股票：時區錯開，淨值天生落後一個交易日
+    "cmdy": (2.5, 5.0),    # 商品期貨：正逆價差反映在折溢價，屬正常
+    "lev":  (2.0, 4.0),    # 槓桿／反向：每日重設
+    "bond": (1.0, 2.0),    # 債券
+}
+CAT_NM = {"tw":"台股股票","ovs":"海外股票","cmdy":"商品期貨","lev":"槓桿反向","bond":"債券"}
+_OVS = {"00646","00662","00757","00668","00652","00657","00735","00762","00770","00876",
+        "00885","00887","00893","00895","00896","00897","00903","00909","00916","00924",
+        "00945","0061","009805","009800","SPY","QQQ","VOO","VT","VTI","IVV","VXUS"}
+_CMDY = {"00635U","00642U","00738U"}
+_BOND = {"00865B","00679B","00687B","00694B","00695B","009806","009807","BND","AGG"}
+
+def category(code):
+    c = code.upper()
+    if c in _CMDY or c.endswith("U"): return "cmdy"
+    if c.endswith("L") or c.endswith("R"): return "lev"
+    if c in _BOND or c.endswith("B"): return "bond"
+    if c in _OVS: return "ovs"
+    return "tw"
+
 def yield_pct(sym):
     """★★ 殖利率歷史百分位 —— 每月算「近 12 個月配息 ÷ 當月收盤」，看現在排第幾。
        ⚠ 這跟折溢價回答的是不同層次的問題：
@@ -72,6 +101,10 @@ def yield_pct(sym):
         return None
 
 def quote(sym):
+    # ★ yfinance 對查不到的代碼會把 HTTP 錯誤印到 stdout，蓋掉整份報表版面。
+    #   這裡靜音掉 —— resolve() 本來就會逐一嘗試後綴，失敗是預期內的事。
+    import logging
+    logging.getLogger("yfinance").setLevel(logging.CRITICAL)
     """★ 用 yfinance 的 quoteSummary 取市價與淨值。
        ⚠ navPrice 是快照 —— 台股 ETF 的淨值一天只更新一次（收盤後），
          盤中拿到的可能是昨日值，所以下面會把兩邊的時間戳都印出來。"""
@@ -99,7 +132,11 @@ def resolve(code):
             continue
     return None
 
-def level(p, warn, crit):
+def level(p, warn, crit, cat=None, scale=1.0):
+    """★ cat 有給就用該分類的門檻；scale 讓 workflow 的 --warn/--crit 當成倍率微調。"""
+    if cat and cat in CAT_TH:
+        warn, crit = CAT_TH[cat]
+    warn *= scale; crit *= scale
     a = abs(p)
     if a >= crit: return 2, ("溢價過高" if p > 0 else "折價過深")
     if a >= warn: return 1, ("溢價偏高" if p > 0 else "折價偏深")
@@ -137,11 +174,18 @@ def build_html(rows, warn, crit, hit):
                 f'<td style="padding:9px 12px;border-bottom:1px solid #eee;color:{col};font-size:13px">{lb}</td>'
                 f'{ycell}</tr>')
     body = "".join(tr(r) for r in rows)
+    used = []
+    for k, v in CAT_TH.items():
+        if any(r.get("cat") == k for r in rows):
+            used.append(f'{CAT_NM[k]} ±{v[0]}/±{v[1]}')
     head = (f'<h2 style="margin:0 0 4px">ETF 折溢價監控　{today}</h2>'
-            f'<p style="color:#666;margin:0 0 16px;font-size:14px">'
-            f'門檻：<b>±{warn}%</b> 提醒／<b>±{crit}%</b> 警示　·　'
-            f'共 {len(rows)} 檔，折溢價觸發 {hit} 檔'
-            f'{"，估值極端 " + str(sum(1 for r in rows if r.get("yhit"))) + " 檔" if any(r.get("yhit") for r in rows) else ""}</p>')
+            f'<p style="color:#666;margin:0 0 6px;font-size:14px">'
+            f'共 {len(rows)} 檔，折溢價觸發 <b>{hit}</b> 檔'
+            f'{"，估值極端 <b>" + str(sum(1 for r in rows if r.get("yhit"))) + "</b> 檔" if any(r.get("yhit") for r in rows) else ""}</p>'
+            f'<p style="color:#888;margin:0 0 16px;font-size:12px">'
+            f'★ 分類門檻（提醒/警示）：{"　".join(used)}　'
+            f'—— 商品期貨追的是期貨、海外 ETF 的淨值隔一個交易日，'
+            f'用同一組門檻套全部會天天誤報</p>')
     # ★★ 最該提醒的組合不是「折價 vs 貴」，而是「折溢價正常 但 估值極端」——
     #   前者罕見且幅度通常很小；後者才是常態，而且最容易讓人放心買下去：
     #   交易面沒有任何警訊，估值面卻站在十年極端。
@@ -222,7 +266,9 @@ def main():
         return av[av.index(k)+1] if k in av and av.index(k)+1 < len(av) else d
     warn = float(opt("--warn", "1.0"))
     crit = float(opt("--crit", "2.0"))
-    always = "--always" in av              # ★ 沒觸發也寄（第一次設定時用來驗證信收得到）
+    always = "--always" in av
+    # ★ --warn/--crit 改為「倍率」：1.0 用分類預設，1.5 全面放寬五成
+    scale = float(opt("--scale", "1.0"))              # ★ 沒觸發也寄（第一次設定時用來驗證信收得到）
     lst = opt("--list", "")
     args = [a for a in av if not a.startswith("--")]
     for i, a in enumerate(av):
@@ -242,20 +288,25 @@ def main():
     codes = out
     if not codes: print(__doc__); sys.exit(1)
 
-    print(f"★★ ETF 折溢價監控　{len(codes)} 檔　門檻 ±{warn}% / ±{crit}%\n")
+    th = "　".join(f"{CAT_NM[k]} ±{v[0]}/±{v[1]}" for k, v in CAT_TH.items())
+    print(f"★★ ETF 折溢價監控　{len(codes)} 檔"
+          + (f"　倍率 ×{scale}" if scale != 1.0 else "") + f"\n   分類門檻　{th}\n")
     rows, bad = [], []
     for c in codes:
         r = resolve(c)
         if not r:
             bad.append(c); print(f"  {c:<10}✗ 取不到淨值"); continue
-        lv, lb = level(r["prem"], warn, crit)
+        r["cat"] = category(c)
+        lv, lb = level(r["prem"], warn, crit, r["cat"], scale)
         r["lv"], r["lb"] = lv, lb
+        r["th"] = CAT_TH[r["cat"]]
         r["yld"] = yield_pct(r["sym"])       # ★ 估值面，與折溢價並列
         rows.append(r)
         mark = "★★" if lv == 2 else ("★" if lv == 1 else "  ")
         y = r["yld"]
         ys = (f"　殖利率 {y['now']:>5.2f}% 第 {y['pct']:>3} 位" if y else "　殖利率 —")
-        print(f"  {mark} {c:<8}市價 {r['px']:>9.2f}　折溢價 {r['prem']:+7.3f}%　{lb:<6}{ys}")
+        print(f"  {mark} {c:<8}[{CAT_NM[r['cat']]:<4}]　折溢價 {r['prem']:+7.3f}%"
+              f"（門檻 ±{r['th'][0]}/±{r['th'][1]}）　{lb:<6}{ys}")
     if not rows: sys.exit("★ 全部取不到淨值")
     # ★ 估值站在極端（≤10 或 ≥90 百分位）也值得知道 —— 但它是「慢訊號」，
     #   不像折溢價是當天的事，所以另外計數、不混進折溢價的 lv。

@@ -1,20 +1,122 @@
-# ETF 折溢價監控清單　一行一檔，# 後面是註解
-# 台股市值型
-0050        # 元大台灣50
-006208      # 富邦台50
-0052        # 富邦科技
-# 台股高股息
-0056        # 元大高股息
-00878       # 國泰永續高息
-00919       # 群益精選高息
-00918       # 大華優利
-00713       # 元大低波高息
-# 台股金融／海外
-0055        # 元大寶金融
-00662       # 富邦NASDAQ
-00646       # 元大S&P500
-# 美股
+# ETF 折溢價監控清單
+# 一行一檔，# 後面是註解。改這個檔就能換標的。
+# ★ 只有觸發門檻才寄信，所以放多一點不會變成垃圾信。
+
+# ── 台股市值型（10 檔）
+0050     # Yuanta/P-shares Taiwan Top 50 　23,841 億
+006208   # Fubon FTSE TWSE Taiwan 50 ETF　4,546 億
+009800   # CTBC NASDAQ 100 ETF　38 億
+009804   # Union Taiwan 50 ETF　35 億
+009803   # E.SUN Taiwan Market Capitaliza　41 億
+006203   # Yuanta/P-shares MSCI Taiwan ET　20 億
+006204   # Sinopac TAIEX ETF　3 億
+0051     # Yuanta/P-shares Taiwan Mid-Cap　36 億
+00692    # Fubon TWSE Corporate Governanc　562 億
+00728    # FSITC Taiwan Industry Elite 30　28 億
+
+# ── 台股高股息（15 檔）
+0056     # Yuanta/P-shares Taiwan Dividen　7,740 億
+00878    # Cathay Sustainability High Div　6,301 億
+00919    # Capital Tip Customized Taiwan 　5,816 億
+00918    # UOB Taiwan High Dividend Recov　1,178 億
+00713    # Yuanta Taiwan High Dividend Lo　1,052 億
+00900    # Fubon Taiwan high dividend 30 　303 億
+00915    # KGI Taiwan Premium Selection H　164 億
+00907    # SinoPac Taiwan Superior Divide　26 億
+00921    # Mega Taiwan Market Leader Divi　13 億
+00939    # UPAMC Taiwan High Dividend Mom　271 億
+00940    # Yuanta Taiwan Value High Divid　673 億
+00934    # CTBC TIP Customized Taiwan Gro　127 億
+00936    # Taishin TIP Customized Taiwan 　42 億
+00929    # Fuh Hwa Taiwan Technology Divi　1,473 億
+00930    # SinoPac Taiwan ESG Low Carbon 　31 億
+
+# ── 台股科技／半導體（11 檔）
+0052     # Fubon Taiwan Technology Tracke　1,600 億
+0053     # Yuanta/P-shares Taiwan Electro　24 億
+00881    # Cathay Taiwan Technology Leade　1,485 億
+00891    # CTBC Taiwan ESG Leading Semico　660 億
+00892    # Fubon Taiwan Core Semi ETF　127 億
+00913    # Mega Taiwan Wafer Manufacture 　28 億
+00947    # Taishin Taiwan IC Design and M　107 億
+00935    # NEXT FUNDS - Nomura Taiwan Inn　486 億
+00830    # Cathay PHLX Semiconductor ETF　680 億
+00904    # Taishin TIP Taiwan Semiconduct　64 億
+00927    # Capital TIP Taiwan Semiconduct　486 億
+
+# ── 台股主動式（新）（5 檔）
+00980A   # Nomura Taiwan SMART Select Act　202 億
+00981A   # UPAMC Taiwan Growth Active ETF　2,824 億
+00982A   # Capital Taiwan Select Premium 　509 億
+00983A   # CTBC ARK Innovation Active ETF　11 億
+00984A   # Allianz Global Investors Taiwa　101 億
+
+# ── 台股 ESG／其他（16 檔）
+0055     # Yuanta/P-shares MSCI Taiwan Fi　39 億
+0057     # Fubon MSCI Taiwan ETF　5 億
+00850    # Yuanta FTSE4Good TIP Taiwan ES　381 億
+00851    # Taishin SG Global AI and Robot　4 億
+00923    # Capital Tip Customized Taiwan 　378 億
+00894    # CTBC TIP Customized Investor M　69 億
+00901    # SinoPac Taiwan Electric Vehicl　29 億
+00910    # FSITC Aerospace and Satellite 　66 億
+00912    # CTBC TIP Customized Taiwan Sma　20 億
+00733    # Fubon Taiwan Small-Mid Cap Alp　43 億
+00730    # Fubon Dow Jones Taiwan High-Qu　20 億
+00731    # Fuh Hwa FTSE Taiwan High Div L　19 億
+00737    # Cathay Nasdaq CTA Artificial I　9 億
+00922    # Cathay Taiwan Leaders 50 ETF　889 億
+00926    # KGI Global Industry Elite 55 E　27 億
+00932    # Mega Taiwan ESG High Dividend 　20 億
+
+# ── ★ 槓桿／反向（折溢價常見異常）（5 檔）
+00631L   # Yuanta Daily Taiwan 50 Bull 2X　2,639 億
+00632R   # Yuanta Daily Taiwan 50 Bear -1　279 億
+00675L   # Fubon TAIEX Daily 2X Leveraged　345 億
+00647L   # Yuanta Daily S&P 500 Bull 2X E　9 億
+00673R   # Yuanta S&P GSCI Crude Oil 1x I　76 億
+
+# ── ★ 商品期貨（折溢價常見異常）（3 檔）
+00635U   # Yuanta S&P GSCI Gold ER Future　149 億
+00642U   # Yuanta S&P GSCI Crude Oil ER F　20 億
+00738U   # Yuanta DJCI Silver ER Futures 　127 億
+
+# ── 海外股票（22 檔）
+00646    # Yuanta S&P 500 ETF　469 億
+00662    # Fubon NASDAQ-100 Index ETF　1,086 億
+00757    # UPAMC NYSE FANG+ ETF　374 億
+00668    # Cathay DJIA ETF　5 億
+00652    # Fubon NIFTY ETF　20 億
+00657    # Cathay Nikkei 225 Currency-hed　5 億
+00735    # Cathay Korea/Taiwan IT Premier　128 億
+00762    # Yuanta STOXX Global Artificial　52 億
+00770    # Cathay S&P North Amrcn Tchnlgy　53 億
+00876    # Yuanta Global 5G & NexGen Tele　82 億
+00885    # Fubon FTSE Vietnam ETF　113 億
+00887    # SinoPac Global High Quality ET　73 億
+00893    # Cathay Global Autonomous and E　154 億
+00895    # Fubon MSCI ACWI IMI Select Fut　72 億
+00896    # CTBC TIP Customized Taiwan Gre　110 億
+00897    # Fubon NYSE FactSet Global Geno　17 億
+00903    # Fubon Solactive Metaverse ETF　10 億
+00909    # Cathay Global Digital Payment 　49 億
+00916    # Cathay Global Top 50 Brands ET　29 億
+00924    # Fuh Hwa US S&P 500 Growth ETF　143 億
+0061     # W.I.S.E. Yuanta/P-shares CSI 3　24 億
+009805   # Taishin US Electricity Infrast　89 億
+
+# ── 債券（3 檔）
+00865B   # Cathay US Short Term Treasury 　150 億
+009806   # Taishin S&P 500 ETF　2 億
+009807   # Taishin S&P Technology Select 　2 億
+
+# ── 美股
 SPY
 QQQ
 VOO
 VT
+VTI
+IVV
+VXUS
+BND
+AGG

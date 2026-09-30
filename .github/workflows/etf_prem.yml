@@ -15,14 +15,10 @@ on:
         description: '標的（留空＝用 phase/assets/etf_watch.txt 全清單）'
         required: false
         default: ''
-      warn:
-        description: '提醒門檻 %（絕對值）'
+      scale:
+        description: '門檻倍率（1.0＝分類預設　1.5＝全面放寬五成　0.7＝收緊）'
         required: false
         default: '1.0'
-      crit:
-        description: '警示門檻 %（絕對值）'
-        required: false
-        default: '2.0'
       always:
         description: '沒觸發也寄（第一次設定時勾起來驗證信收得到）'
         required: false
@@ -35,7 +31,7 @@ permissions:
 jobs:
   watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -70,18 +66,15 @@ jobs:
           set -e
           # ★ #518：workflow_dispatch 輸入常混入 ﻿ 等不可見字元
           TK=$(printf '%s' "${{ inputs.tickers }}" | tr ',;' '  ' | tr -cd 'A-Za-z0-9.\- ' | sed 's/^ *//; s/ *$//')
-          WARN=$(printf '%s' "${{ inputs.warn }}" | tr -cd '0-9.')
-          CRIT=$(printf '%s' "${{ inputs.crit }}" | tr -cd '0-9.')
+          SCALE=$(printf '%s' "${{ inputs.scale }}" | tr -cd '0-9.')
           ARGS=""
           [ "${{ inputs.always }}" = "true" ] && ARGS="--always"
           # ★ 排程觸發時沒有 inputs，一律走全清單 + 預設門檻 + 只有觸發才寄
           if [ -z "$TK" ]; then
             python3 phase/scripts/etf_prem_watch.py \
-              --list phase/assets/etf_watch.txt \
-              --warn "${WARN:-1.0}" --crit "${CRIT:-2.0}" $ARGS
+              --list phase/assets/etf_watch.txt --scale "${SCALE:-1.0}" $ARGS
           else
-            python3 phase/scripts/etf_prem_watch.py $TK \
-              --warn "${WARN:-1.0}" --crit "${CRIT:-2.0}" $ARGS
+            python3 phase/scripts/etf_prem_watch.py $TK --scale "${SCALE:-1.0}" $ARGS
           fi
 
       - name: 摘要
@@ -90,7 +83,8 @@ jobs:
           {
             echo "### ETF 折溢價監控"
             echo ""
-            echo "- 門檻：\`±${{ inputs.warn || '1.0' }}%\` 提醒 / \`±${{ inputs.crit || '2.0' }}%\` 警示"
+            echo "- ★ 分類門檻：台股 ±0.8/±1.5、債券 ±1.0/±2.0、海外 ±1.5/±3.0、槓桿反向 ±2.0/±4.0、商品期貨 ±2.5/±5.0"
+            echo "- 倍率：\`×${{ inputs.scale || '1.0' }}\`"
             echo "- ★ 排程執行時**只有觸發門檻才寄信** —— 每天都寄的通知第三天起就沒人看了"
             echo "- 清單：\`phase/assets/etf_watch.txt\`（改這個檔就能換標的）"
           } >> "$GITHUB_STEP_SUMMARY"
