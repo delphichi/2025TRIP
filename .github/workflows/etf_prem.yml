@@ -1,0 +1,96 @@
+name: ETF 折溢價監控（每日 Email）
+
+# ★ 排程時間的考量：
+#   台股 13:30 收盤（05:30 UTC），投信約 17:00-18:00 公告當日淨值 → 用 10:30 UTC 抓
+#   美股 16:00 ET 收盤（21:00 UTC 夏令 / 22:00 冬令）→ 用 23:30 UTC 抓
+#   兩段都跑，台股那段只看台股、美股那段只看美股，避免抓到還沒更新的淨值。
+
+on:
+  schedule:
+    - cron: '30 10 * * 1-5'     # 台股盤後（UTC）＝ 台灣 18:30
+    - cron: '30 23 * * 1-5'     # 美股盤後（UTC）＝ 台灣隔日 07:30
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: '標的（留空＝用 phase/assets/etf_watch.txt 全清單）'
+        required: false
+        default: ''
+      warn:
+        description: '提醒門檻 %（絕對值）'
+        required: false
+        default: '1.0'
+      crit:
+        description: '警示門檻 %（絕對值）'
+        required: false
+        default: '2.0'
+      always:
+        description: '沒觸發也寄（第一次設定時勾起來驗證信收得到）'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝相依
+        run: pip install --quiet yfinance
+
+      - name: 檢查 SMTP 設定
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          if [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASS" ]; then
+            echo "::error::缺少 repo secret SMTP_USER / SMTP_PASS。"
+            echo "到 Settings → Secrets and variables → Actions 新增："
+            echo "  SMTP_USER    你的 Gmail 位址"
+            echo "  SMTP_PASS    Google 應用程式密碼（不是登入密碼）"
+            echo "  NOTIFY_EMAIL 收件者（留空則寄給自己）"
+            exit 1
+          fi
+          echo "SMTP 已設定（$SMTP_USER）"
+
+      - name: 監控折溢價
+        env:
+          SMTP_USER:    ${{ secrets.SMTP_USER }}
+          SMTP_PASS:    ${{ secrets.SMTP_PASS }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+        run: |
+          set -e
+          # ★ #518：workflow_dispatch 輸入常混入 ﻿ 等不可見字元
+          TK=$(printf '%s' "${{ inputs.tickers }}" | tr ',;' '  ' | tr -cd 'A-Za-z0-9.\- ' | sed 's/^ *//; s/ *$//')
+          WARN=$(printf '%s' "${{ inputs.warn }}" | tr -cd '0-9.')
+          CRIT=$(printf '%s' "${{ inputs.crit }}" | tr -cd '0-9.')
+          ARGS=""
+          [ "${{ inputs.always }}" = "true" ] && ARGS="--always"
+          # ★ 排程觸發時沒有 inputs，一律走全清單 + 預設門檻 + 只有觸發才寄
+          if [ -z "$TK" ]; then
+            python3 phase/scripts/etf_prem_watch.py \
+              --list phase/assets/etf_watch.txt \
+              --warn "${WARN:-1.0}" --crit "${CRIT:-2.0}" $ARGS
+          else
+            python3 phase/scripts/etf_prem_watch.py $TK \
+              --warn "${WARN:-1.0}" --crit "${CRIT:-2.0}" $ARGS
+          fi
+
+      - name: 摘要
+        if: always()
+        run: |
+          {
+            echo "### ETF 折溢價監控"
+            echo ""
+            echo "- 門檻：\`±${{ inputs.warn || '1.0' }}%\` 提醒 / \`±${{ inputs.crit || '2.0' }}%\` 警示"
+            echo "- ★ 排程執行時**只有觸發門檻才寄信** —— 每天都寄的通知第三天起就沒人看了"
+            echo "- 清單：\`phase/assets/etf_watch.txt\`（改這個檔就能換標的）"
+          } >> "$GITHUB_STEP_SUMMARY"
