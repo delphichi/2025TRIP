@@ -280,6 +280,23 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
     <tbody id="yldptb"></tbody>
   </table></div>
 
+
+  <h3 style="margin:30px 0 10px">持股集中度</h3>
+  <p>「ETF 就是分散投資」是一句<b>要用數字檢驗的話</b>。
+    橫條是前十大成分股的權重，<b>第一段越長代表越集中在單一公司</b>。</p>
+  <div class="panel">
+    <canvas id="chld" role="img" aria-label="持股集中度"></canvas>
+    <p style="font-size:12px;color:var(--ink3);margin:8px 2px 0" id="hldnote"></p>
+  </div>
+  <div class="tw"><table>
+    <caption>Yahoo 只提供前十大持股，所以「前 10 大合計」是<b>下界</b>，不是全貌。
+      ★ 集中度高不等於不好 —— 它解釋了為什麼某些 ETF 的 Beta 和回撤幾乎等同大盤：
+      <b>你買的其實是那一兩檔權值股</b>。<br>
+      對照：文藝復興科技（RenTec）持有 3,149 檔，<b>最大單一持股不到 2%</b>，那是另一個量級的分散。</caption>
+    <thead><tr><th>標的</th><th>最大單一</th><th>前 5 大</th><th>前 10 大</th><th>最大持股是誰</th></tr></thead>
+    <tbody id="hldtb"></tbody>
+  </table></div>
+
   <div class="warn" id="optverdict"></div>
 
   <h3 style="margin:26px 0 10px">檢驗一：換一段期間，最佳解會變嗎</h3>
@@ -1048,6 +1065,58 @@ function plotYLD(){
       `配息資料不足 24 個月 —— 新上市的 ETF 需要時間累積才算得出歷史位置</td></tr>`).join('');
 }
 
+
+// ★★★ 持股集中度：前十大成分股的權重堆疊條。
+//   ⚠ Yahoo 只給前十大 ⇒ 「前 10 大合計」是下界，剩下的攤平畫成灰色「其餘」。
+//   ⚠ 個股沒有成分股（hld 為 null），整區自動隱藏。
+function plotHLD(){
+  const cv=$('chld'); if(!cv||!cv.clientWidth){requestAnimationFrame(plotHLD);return;}
+  const ks=ORDER.filter(t=>OPTON.has(t)&&D[t].hld);
+  const rowH=40;
+  const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,
+        h=Math.max(90, 28+rowH*Math.max(ks.length,1));
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  if(!ks.length){
+    x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
+    x.fillText('所選標的沒有成分股資料（個股不適用）',w/2,h/2);
+    $('hldtb').innerHTML='';$('hldnote').textContent='';return;}
+  const PL=Math.min(140,Math.max(88,w*0.20)),PR=46,iw=w-PL-PR;
+  ks.forEach((t,i)=>{
+    const H=D[t].hld, cy=22+i*rowH, bh=20;
+    x.font='600 12px "Noto Sans TC",sans-serif';x.textAlign='right';
+    x.fillStyle=C('--ink');x.fillText(D[t].nm,PL-10,cy+bh/2+4);
+    let cx=PL;
+    H.top.forEach((o,j)=>{
+      const bw=iw*o[2]/100;
+      x.fillStyle=cc(t);x.globalAlpha=j===0?.95:Math.max(.18,.75-j*0.07);
+      x.fillRect(cx,cy,bw,bh);x.globalAlpha=1;
+      if(j===0&&bw>42){                       // 只有最大那段標得下字
+        x.font='700 11px "IBM Plex Mono",monospace';x.textAlign='center';
+        x.fillStyle=C('--card');x.fillText(o[2].toFixed(1)+'%',cx+bw/2,cy+bh/2+4);}
+      cx+=bw;});
+    // 其餘（Yahoo 沒給的部分）
+    if(cx<PL+iw){
+      x.fillStyle=C('--rule');x.globalAlpha=.5;
+      x.fillRect(cx,cy,PL+iw-cx,bh);x.globalAlpha=1;}
+    x.font='600 11px "IBM Plex Mono",monospace';x.textAlign='left';
+    x.fillStyle=C('--ink2');x.fillText(H.w10.toFixed(0)+'%',PL+iw+7,cy+bh/2+4);
+  });
+  $('hldnote').innerHTML='右側數字＝前十大合計。灰色是 Yahoo 未提供的其餘持股。'+
+    '　<b style="color:var(--cash)">對照：RenTec 3,149 檔、最大單一 &lt;2%</b>';
+  $('hldtb').innerHTML=ks.map(t=>{const H=D[t].hld;
+    const col = H.w1>=40 ? 'var(--tr)' : (H.w1>=20 ? 'var(--cash)' : 'var(--ink)');
+    return `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>`+
+      `<td class="num" style="color:${col};font-weight:700">${H.w1.toFixed(1)}%</td>`+
+      `<td class="num">${H.w5.toFixed(1)}%</td><td class="num">${H.w10.toFixed(1)}%</td>`+
+      `<td style="text-align:left;font-size:12.5px">${H.top[0][0]}　`+
+      `<span style="color:var(--ink3)">${H.top[0][1]}</span></td></tr>`;}).join('')
+    + ORDER.filter(t=>OPTON.has(t)&&!D[t].hld).map(t=>
+      `<tr><td><i class="sw" style="background:${cc(t)}"></i>${D[t].nm}</td>`+
+      `<td colspan="4" style="text-align:left;color:var(--ink3);font-size:12.5px">`+
+      `沒有成分股資料 —— 個股不適用</td></tr>`).join('');
+}
+
 function optchips(){
   $('optchips').innerHTML=ORDER.map(t=>
     `<button data-k="${t}" aria-pressed="${OPTON.has(t)}" style="color:${cc(t)}"><i></i>${D[t].nm}</button>`).join('');
@@ -1065,7 +1134,7 @@ function plotOPT(){
   cv.width=w0*dpr;cv.height=h*dpr;cv.style.height=h+'px';
   const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w0,h);
   const O=optData();
-  const clr=()=>{['opttb','segtb','ostb','inctb','yldtb','yldptb'].forEach(i=>$(i).innerHTML='');$('optverdict').innerHTML='';plotYLD();};
+  const clr=()=>{['opttb','segtb','ostb','inctb','yldtb','yldptb','hldtb'].forEach(i=>$(i).innerHTML='');$('optverdict').innerHTML='';plotYLD();plotHLD();};
   if(!O){x.fillStyle=C('--ink3');x.font='13px system-ui,sans-serif';x.textAlign='center';
     x.fillText('至少需要兩檔標的、24 個共同月份',w0/2,h/2);clr();return;}
   const {ks,ym,R}=O, k=ks.length, rf=optRF();
@@ -1124,6 +1193,7 @@ function plotOPT(){
   $('opttb').innerHTML=hh;
   renderIncome(ks,best,minv,eqw);
   plotYLD();
+  plotHLD();
   // ── 檢驗一：分段
   const n=R.length, SEG=5, sl=Math.floor(n/SEG); let segs=[];
   for(let i=0;i<SEG;i++){
@@ -1317,7 +1387,7 @@ $('pre').addEventListener('click',e=>{const p=e.target.dataset&&e.target.dataset
   S1.value=ALL[ALL.length-1];
   S0.value = p==='all' ? ALL[0] : ALL[Math.max(0,ALL.length-(+p)*12)];
   render();});
-addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();plotCMP();plotOPT();plotYLD();});
+addEventListener('resize',()=>{ORDER.forEach(plot);plotPX();plotDD();plotCMP();plotOPT();plotYLD();plotHLD();});
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
 render();
 </script>

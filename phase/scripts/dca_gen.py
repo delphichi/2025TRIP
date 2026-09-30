@@ -192,6 +192,26 @@ def risk_stats(ser, ccy):
                 vol=round((va**0.5)*(252**0.5)*100, 1),
                 bvol=round((vb**0.5)*(252**0.5)*100, 1), n=len(ra))
 
+def holdings(sym):
+    """★★ 持股集中度：前十大成分股的權重。
+       「ETF ＝ 分散投資」是一句要用數字檢驗的話 ——
+       0050 的台積電佔 57.4%，十塊錢裡有近六塊押在同一家公司。
+       ⚠ 個股沒有成分股，yfinance 會拋 YFDataException，要接住回 None。
+       ⚠ 只給前十大（Yahoo 就只給這些），所以「前 10 大合計」是下界不是全貌。"""
+    try:
+        import yfinance as yf
+        th = yf.Ticker(sym).funds_data.top_holdings
+        if th is None or not len(th): return None
+        w = [float(x) for x in th["Holding Percent"]]
+        nm = list(th["Name"]); sy = list(th.index)
+        if not w or sum(w) <= 0: return None
+        return dict(top=[[sy[i], (nm[i] or "")[:26], round(w[i]*100, 2)] for i in range(len(w))],
+                    w1=round(w[0]*100, 1),
+                    w5=round(sum(w[:5])*100, 1),
+                    w10=round(sum(w)*100, 1))
+    except Exception:
+        return None
+
 def nav_info(sym):
     """★ ETF 折溢價 ＝ 市價 ÷ 淨值 − 1。
        ⚠ 只拿得到「當下」的淨值：yfinance .info 的 navPrice 是快照，
@@ -249,9 +269,10 @@ def build(code):
         for _, r_ in spl: tsp *= r_
         NAV = nav_info(sym)
         RSK = risk_stats(ser, ccy)
+        HLD = holdings(sym)
         return dict(t=code, sym=sym, nm=nm, ccy=ccy,
                     m=rec, v=vol, tri=tri, v0=v0,
-                    nsp=len(spl), tsp=round(tsp, 4), nav=NAV, rsk=RSK,
+                    nsp=len(spl), tsp=round(tsp, 4), nav=NAV, rsk=RSK, hld=HLD,
                     brk=[[str(b), r] for b, r, _ in brks]), None
     return None, f"{code} Yahoo 查不到或資料太短"
 
@@ -291,6 +312,7 @@ def main():
               + (f"　（配股 {d['nsp']} 次 {d['tsp']}x，已含在還原價裡）" if d["nsp"] else "")
               + (f"　淨值 {d['nav']['nav']} 折溢價 {d['nav']['prem']:+.3f}%" if d["nav"] else "")
               + (f"　β {d['rsk']['beta']} (R² {d['rsk']['r2']}) 波動 {d['rsk']['vol']}%" if d["rsk"] else "")
+              + (f"　★ 最大持股 {d['hld']['top'][0][0]} {d['hld']['w1']}%（前5大 {d['hld']['w5']}%）" if d["hld"] else "")
               + (f"　★ 量能自 {d['v0']}" if d["v0"] and d["v0"] != d["m"][0][0] else ""))
     if not data: sys.exit("★ 全部失敗")
     ccys = sorted({d["ccy"] for d in data})
