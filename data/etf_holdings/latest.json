@@ -1,67 +1,55 @@
 {
-  "date": "2026-09-29",
-  "generated_at": "2026-09-30T00:34:52+08:00",
-  "consensus_date": "2026-09-29",
+  "date": "2026-09-30",
+  "generated_at": "2026-10-01T00:27:50+08:00",
+  "consensus_date": "2026-09-30",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20260929.csv",
-      "snapshot_date": "2026-09-29",
+      "snapshot": "00991A_20260930.csv",
+      "snapshot_date": "2026-09-30",
       "holdings_count": 50,
       "actions": {
-        "new": [],
-        "drop": [],
+        "new": [
+          {
+            "code": "6505",
+            "name": "台塑石化",
+            "weight": 0.499
+          }
+        ],
+        "drop": [
+          {
+            "code": "1216",
+            "name": "統一企業",
+            "weight": 0.0
+          }
+        ],
         "add": [
-          {
-            "code": "2330",
-            "name": "台灣積體",
-            "pct": 5.263157894736842,
-            "weight": 12.781
-          },
-          {
-            "code": "2454",
-            "name": "聯發科技",
-            "pct": 4.62962962962963,
-            "weight": 7.163
-          },
           {
             "code": "1303",
             "name": "南亞塑膠",
-            "pct": 4.477611940298507,
-            "weight": 2.232
+            "pct": 14.285714285714285,
+            "weight": 2.62
           },
           {
-            "code": "8046",
-            "name": "南亞電路",
-            "pct": 3.0303030303030303,
-            "weight": 5.574
-          },
-          {
-            "code": "3189",
-            "name": "景碩科技",
-            "pct": 2.272727272727273,
-            "weight": 5.548
+            "code": "2330",
+            "name": "台灣積體",
+            "pct": 5.0,
+            "weight": 13.349
           }
         ],
         "reduce": [
           {
-            "code": "2345",
-            "name": "智邦科技",
-            "pct": -41.891891891891895,
-            "weight": 1.005
-          },
-          {
             "code": "6223",
             "name": "旺矽科技",
-            "pct": -40.0,
-            "weight": 1.004
+            "pct": -99.33333333333333,
+            "weight": 0.007
           },
           {
-            "code": "2327",
-            "name": "國巨股份",
-            "pct": -10.44776119402985,
-            "weight": 4.245
+            "code": "2345",
+            "name": "智邦科技",
+            "pct": -53.48837209302325,
+            "weight": 0.455
           }
         ],
         "build": []
@@ -134,62 +122,44 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20260929.csv",
-      "snapshot_date": "2026-09-29",
+      "snapshot": "00403A_20260930.csv",
+      "snapshot_date": "2026-09-30",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
         "add": [
           {
-            "code": "3189",
-            "name": "景碩",
-            "pct": 7.75,
-            "weight": 2.79
-          },
-          {
-            "code": "8046",
-            "name": "南電",
-            "pct": 4.693140794223827,
-            "weight": 2.42
+            "code": "8996",
+            "name": "高力",
+            "pct": 4.615384615384616,
+            "weight": 1.85
           }
         ],
         "reduce": [
           {
-            "code": "7769",
-            "name": "鴻勁",
-            "pct": -98.75,
-            "weight": 0.0
-          },
-          {
             "code": "2360",
             "name": "致茂",
-            "pct": -34.04255319148936,
-            "weight": 0.48
+            "pct": -54.83870967741935,
+            "weight": 0.21
           },
           {
-            "code": "1303",
-            "name": "南亞",
-            "pct": -25.925925925925924,
-            "weight": 1.6
+            "code": "3017",
+            "name": "奇鋐",
+            "pct": -12.280701754385964,
+            "weight": 5.84
           },
           {
-            "code": "2303",
-            "name": "聯電",
-            "pct": -13.333333333333334,
-            "weight": 5.38
+            "code": "3443",
+            "name": "創意",
+            "pct": -5.572755417956656,
+            "weight": 3.32
           },
           {
-            "code": "2383",
-            "name": "台光電",
-            "pct": -12.5,
-            "weight": 4.75
-          },
-          {
-            "code": "2330",
-            "name": "台積電",
-            "pct": -8.333333333333332,
-            "weight": 12.81
+            "code": "2345",
+            "name": "智邦",
+            "pct": -5.263157894736842,
+            "weight": 2.24
           }
         ],
         "build": []
@@ -198,71 +168,34 @@
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20260929.csv",
-      "snapshot_date": "2026-09-29",
-      "holdings_count": 8,
+      "snapshot": "00988A_20260930.csv",
+      "snapshot_date": "2026-09-30",
+      "holdings_count": 7,
       "actions": {
         "new": [],
-        "drop": [],
-        "add": [
-          {
-            "code": "3017",
-            "name": "奇鋐",
-            "pct": 15.909090909090908,
-            "weight": 3.31
-          }
-        ],
-        "reduce": [
+        "drop": [
           {
             "code": "4979",
             "name": "華星光",
-            "pct": -50.0,
             "weight": 0.5
           }
         ],
+        "add": [],
+        "reduce": [],
         "build": []
       }
     }
   ],
-  "consensus_buy": [
+  "consensus_buy": [],
+  "consensus_sell": [
     {
-      "stock_id": "8046",
+      "stock_id": "2345",
       "funds": [
         "復華未來50",
         "統一升級50"
       ],
-      "name": "南亞電路"
-    },
-    {
-      "stock_id": "3189",
-      "funds": [
-        "復華未來50",
-        "統一升級50"
-      ],
-      "name": "景碩科技"
+      "name": "智邦科技"
     }
   ],
-  "consensus_sell": [],
-  "divergence": [
-    {
-      "stock_id": "1303",
-      "buy_funds": [
-        "復華未來50"
-      ],
-      "sell_funds": [
-        "統一升級50"
-      ],
-      "name": "南亞塑膠"
-    },
-    {
-      "stock_id": "2330",
-      "buy_funds": [
-        "復華未來50"
-      ],
-      "sell_funds": [
-        "統一升級50"
-      ],
-      "name": "台灣積體"
-    }
-  ]
+  "divergence": []
 }
