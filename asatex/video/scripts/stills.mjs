@@ -6,7 +6,7 @@ import path from "node:path";
 const [outDir, ...frames] = process.argv.slice(2);
 const browserExecutable = process.env.REMOTION_BROWSER;
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
-const composition = await selectComposition({ serveUrl, id: "PantyDeRed", browserExecutable });
+const composition = await selectComposition({ serveUrl, id: process.env.COMP || "PantyDeRed", browserExecutable });
 for (const f of frames) {
   await renderStill({
     composition, serveUrl, browserExecutable, frame: Number(f), scale: 0.4,

@@ -72,8 +72,9 @@ def rot(p, ang, c):
     return (c[0] + x * math.cos(a) - y * math.sin(a), c[1] + x * math.sin(a) + y * math.cos(a))
 
 
-def world(uid, route_done=0.0, show_route=False, flood=None, extra=""):
-    """整張城市（地圖座標）。route_done：已走過的比例，route 前方畫虛線。"""
+def world(uid, route_done=0.0, show_route=False, flood=None, extra="", static=False):
+    """整張城市（地圖座標）。route_done：已走過的比例，route 前方畫虛線。
+    static=True：只輸出不會動、沒有文字的部分，給影片當快取底圖（文字要用網頁字體，放活動層）。"""
     rnd = random.Random(2603)
     out = [f'<defs><filter id="blur-{uid}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="40"/></filter>']
     for k, (name, poly, *_r) in enumerate(DISTRICTS):
@@ -96,14 +97,16 @@ def world(uid, route_done=0.0, show_route=False, flood=None, extra=""):
     x, y, w, h = STORE
     out.append(f'<rect x="{x}" y="{y + 14}" width="{w}" height="{h}" rx="10" fill="#b9ab95" stroke="{INK}" stroke-width="3"/>'
                f'<rect x="{x}" y="{y - 10}" width="{w}" height="{h}" rx="10" fill="{SAND}" stroke="{INK}" stroke-width="3"/>'
-               f'<rect x="{x + 16}" y="{y + 6}" width="{w - 32}" height="34" rx="6" fill="{RED}"/>'
-               f'<text x="{x + w / 2}" y="{y + 31}" text-anchor="middle" font-family="{MONO}" font-size="20" font-weight="700" fill="#fff" letter-spacing="2">ASATEX</text>')
+               f'<rect x="{x + 16}" y="{y + 84}" width="{w - 32}" height="34" rx="6" fill="{RED}"/>'
+               + ("" if static else f'<text x="{x + w / 2}" y="{y + 109}" text-anchor="middle" font-family="{MONO}" font-size="20" font-weight="700" fill="#fff" letter-spacing="2">ASATEX</text>'))
     # 海岸（伊基克在太平洋岸）＋ 碼頭
     out.append(f'<path d="M-600,-600 L430,-600 C350,200 480,620 400,1050 S300,1750 430,2250 S360,3000 410,3800 L-600,3800Z" fill="{WATER}" stroke="#86b9da" stroke-width="4"/>')
     out.append(f'<rect x="230" y="880" width="200" height="40" rx="6" fill="{SAND}" stroke="{CASING}" stroke-width="3"/>'
                f'<rect x="250" y="1300" width="170" height="34" rx="6" fill="{SAND}" stroke="{CASING}" stroke-width="3"/>')
     for wx, wy in [(120, 600), (220, 1500), (90, 2100), (260, 2600), (150, 400)]:
         out.append(f'<path d="M{wx},{wy} q14,-10 28,0 q14,10 28,0" fill="none" stroke="#fff" stroke-width="4" opacity=".7"/>')
+    if static:
+        return "".join(out)
     # 船（航行中，尾跡）
     out.append(f'<g transform="translate(250 1180) rotate(-8)"><path d="M-14,60 L0,0 L14,60" fill="none" stroke="#fff" stroke-width="4" opacity=".8"/>'
                f'<path d="M-16,-30 L16,-30 L12,26 L-12,26Z" fill="#fff" stroke="{INK}" stroke-width="3"/><rect x="-8" y="-18" width="16" height="22" fill="{PIN}" stroke="{INK}" stroke-width="2"/></g>')
