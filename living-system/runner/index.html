@@ -1,0 +1,808 @@
+<title>今天，先別把自己摺壞</title>
+<meta name="description" content="紙雕動畫短片《今天，先別把自己摺壞》的預告遊戲：幫小沐跑過一堆待辦事項，撿起本、能、身、脈、留。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,800&family=Geist:wght@500&family=Geist+Mono:wght@500;700&family=Noto+Sans+TC:wght@500;900&display=swap">
+<style>
+/* 版面：雙色海報。上半是巨大的倒數數字站在一條細線上，下半是 canvas 跑道；右緣一條直排小字。
+   刻意只有一種外觀（蒂芬尼綠＋墨），不跟隨深色模式。 */
+:root {
+  --field: #81D8D0;          /* 蒂芬尼綠：場地 */
+  --ink: #0A0A0A;            /* 唯一的墨色 */
+  --paper: #FFFFFF;          /* 障礙物的白 */
+  --runner: #FF7A1A;         /* 小沐：全頁唯一的暖色 */
+  --rule: rgba(10, 10, 10, .14);
+  --display: "Bricolage Grotesque", "Arial Narrow", sans-serif;
+  --body: "Geist", "Noto Sans TC", system-ui, sans-serif;
+  --zh: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { background: var(--field); color: var(--ink); }
+body { font-family: var(--zh); padding-inline: 16px; padding-block: 0; }
+.poster { position: relative; max-width: 1120px; margin: 0 auto; padding-block: 28px 40px; padding-right: 34px; }
+
+/* 右緣直排小字 */
+.rail { position: absolute; top: 28px; right: 0; bottom: 40px; display: flex; align-items: flex-start; }
+.rail span { writing-mode: vertical-rl; transform: rotate(180deg); font: 500 10px/1 var(--mono); letter-spacing: .24em; text-transform: uppercase; white-space: nowrap; }
+
+.eyebrow { font: 500 11px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+/* 海報頭：巨大的數字＋片名 */
+.head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 36px; align-items: end; margin-top: 14px; }
+.count { position: relative; }
+.count .label { font: 700 11px/1 var(--mono); letter-spacing: .18em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+.count .num { display: block; font-family: var(--display); font-weight: 800; font-stretch: 75%; font-variation-settings: "wdth" 75, "opsz" 96; font-size: clamp(150px, 30vw, 360px); line-height: .78; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.count::after { content: ""; display: block; height: 1px; background: var(--ink); margin-top: 6px; }
+.copy { min-width: 0; padding-bottom: 10px; border-bottom: 1px solid var(--ink); }
+h1 { font: 900 clamp(30px, 5vw, 60px)/1.08 var(--zh); margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.lede { font: 500 clamp(16px, 1.8vw, 19px)/1.6 var(--zh); margin: 14px 0 20px; max-width: 34em; }
+.lede .en { font-family: var(--body); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 22px; border-radius: 999px; border: 1.5px solid var(--ink); font: 900 16px/1 var(--zh); cursor: pointer; text-decoration: none; }
+.pill.ink { background: var(--ink); color: var(--field); }
+.pill.line { background: transparent; color: var(--ink); }
+.pill:focus-visible, .stage:focus-visible, .close:focus-visible { outline: 3px solid var(--runner); outline-offset: 3px; }
+.pill .tri { width: 0; height: 0; border-left: 9px solid currentColor; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
+
+/* 跑道 */
+.stage-wrap { position: relative; margin-top: 26px; }
+.stage { position: relative; display: block; width: 100%; height: clamp(300px, 44vw, 500px); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); cursor: pointer; touch-action: manipulation; }
+canvas { display: block; width: 100%; height: 100%; }
+.hud { position: absolute; top: 12px; left: 0; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; max-width: calc(100% - 12px); }
+.chip { display: inline-flex; align-items: baseline; gap: 6px; height: 26px; padding: 0 12px; border-radius: 999px; background: var(--ink); color: var(--field); font: 700 12px/26px var(--mono); letter-spacing: .08em; text-transform: uppercase; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip b { font: 900 12px/26px var(--zh); letter-spacing: .04em; }
+.chip.fx { background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); }
+.mode { position: absolute; top: 12px; right: 0; pointer-events: none; }
+.mode .chip { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }
+
+/* 折折的對白與按鈕（撞到後彈出） */
+.talk { position: absolute; right: 4%; top: 18%; width: min(330px, 62%); display: grid; gap: 10px; justify-items: start; transform-origin: 85% 100%; }
+.bubble { position: relative; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 16px; padding: 12px 16px 13px; font: 500 16px/1.55 var(--zh); }
+.bubble .who { position: absolute; top: -11px; left: 14px; background: var(--ink); color: var(--field); font: 900 12px/20px var(--zh); padding: 0 9px; border-radius: 999px; }
+.bubble strong { font-weight: 900; }
+.talk .actions .pill { height: 38px; font-size: 14px; padding: 0 16px; }
+
+.hint { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-top: 10px; font: 500 12px/1.5 var(--mono); letter-spacing: .06em; }
+.hint .zh { font-family: var(--zh); letter-spacing: 0; }
+kbd { font: 700 11px/1 var(--mono); border: 1.5px solid var(--ink); border-radius: 6px; padding: 2px 6px; }
+
+/* 五元：直欄格線 */
+.five { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 30px; border-top: 2px solid var(--ink); }
+.five > div { padding: 14px 14px 4px 0; border-left: 1px solid var(--rule); padding-left: 14px; min-width: 0; }
+.five > div:first-child { border-left: 0; padding-left: 0; }
+.five .ch { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: var(--field); font: 900 20px/1 var(--zh); }
+.five h3 { font: 900 16px/1.3 var(--zh); margin: 10px 0 4px; }
+.five p { font: 500 13.5px/1.6 var(--zh); margin: 0; }
+.five q { display: block; margin-top: 8px; font: 500 12px/1.5 var(--zh); quotes: "「" "」"; opacity: .75; }
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; margin-top: 28px; padding-top: 10px; border-top: 1px solid var(--ink); font: 500 11px/1.6 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.foot .zh { font-family: var(--zh); text-transform: none; letter-spacing: .02em; }
+
+/* 紙雕預告播放層 */
+.player { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(10, 10, 10, .88); padding: 16px; }
+.player .box { position: relative; width: min(420px, 100%); }
+.player video { display: block; width: 100%; max-height: calc(100vh - 120px); aspect-ratio: 9 / 16; background: var(--ink); border-radius: 10px; }
+.player .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; color: var(--field); font: 900 15px/1.4 var(--zh); }
+.close { height: 36px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--field); background: transparent; color: var(--field); font: 900 14px/1 var(--zh); cursor: pointer; }
+.still-note { position: absolute; left: 0; bottom: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font: 500 13px/1.4 var(--zh); }
+
+@media (max-width: 720px) {
+  .head { grid-template-columns: 1fr; }
+  .five { grid-template-columns: 1fr 1fr; }
+  .five > div { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); }
+  .five > div:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--rule); }
+  .talk { right: 3%; top: 14%; width: min(300px, 70%); }
+}
+@media (max-width: 480px) {
+  .poster { padding-right: 22px; }
+  .five { grid-template-columns: 1fr; }
+  .five > div:nth-child(even) { padding-left: 0; border-left: 0; }
+  .hint { font-size: 11px; }
+}
+</style>
+
+<div class="poster">
+  <div class="rail" aria-hidden="true"><span>EP.01 · Today, don't fold yourself · 本 能 身 脈 留 · 調 驗 · Space to jump · Hold to go higher · Paper-cut animation · 5–6 min</span></div>
+
+  <div class="eyebrow"><span>紙雕動畫短片 · 預告遊戲</span><span>國中至高中 · 親子共看</span><span>5–6 MIN</span></div>
+
+  <header class="head">
+    <div class="count" aria-live="polite">
+      <span class="label" id="dayLabel">創意節倒數 · Days left</span>
+      <span class="num" id="days">3</span>
+    </div>
+    <div class="copy">
+      <h1>今天，先別把自己摺壞</h1>
+      <p class="lede">創意節只剩三天，小沐越跑越快，事情卻越來越亂。<br>這次不用逼她更努力，幫她跑得更好：撿起本、能、身、脈、留。</p>
+      <div class="actions">
+        <button class="pill ink" id="startBtn" type="button"><span class="tri" aria-hidden="true"></span><span id="startLabel">開始跑</span></button>
+        <button class="pill line" id="trailerBtn" type="button">看紙雕預告</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="stage-wrap">
+    <div class="stage" id="stage" tabindex="0" role="application" aria-label="跑酷遊戲。按空白鍵或點擊跳躍，長按跳得更高。">
+      <canvas id="cv"></canvas>
+      <div class="hud" id="hud">
+        <span class="chip"><b>距離</b><span id="dist">0000</span> M</span>
+        <span class="chip"><b>最佳</b><span id="best">0000</span> M</span>
+        <span class="chip"><b>速度</b><span id="speed">1.0</span>×</span>
+        <span id="fx"></span>
+      </div>
+      <div class="mode"><span class="chip" id="modeChip">示範中 · 點擊接手</span></div>
+      <div class="talk" id="talk" hidden>
+        <div class="bubble"><span class="who">折折</span><span id="line"></span></div>
+        <div class="actions">
+          <button class="pill ink" id="againBtn" type="button">再跑一次</button>
+          <button class="pill line" id="trailerBtn2" type="button" style="background:var(--paper)">看紙雕預告</button>
+        </div>
+      </div>
+      <div class="still-note" id="stillNote" hidden>
+        <span>系統已開啟「減少動態」，這裡顯示靜態畫面。</span>
+        <button class="pill line" id="playAnyway" type="button" style="height:34px;font-size:13px">仍要開始</button>
+      </div>
+    </div>
+    <div class="hint">
+      <span><kbd>SPACE</kbd> <span class="zh">或點擊跳躍</span> · <span class="zh">長按最多 0.18 秒跳更高</span></span>
+      <span class="zh">滑鼠移到跑道上或按 Tab 選取後，空白鍵才有作用</span>
+    </div>
+  </div>
+
+  <section class="five" aria-label="五個道具">
+    <div><span class="ch">本</span><h3>指南針・找到方向</h3><p>8 秒內障礙變少，只留重要的事。</p><q>先問為什麼，再決定做什麼。</q></div>
+    <div><span class="ch">能</span><h3>同學・盤點能力</h3><p>下一個撞上的障礙，由同學幫你搬走。</p><q>盤點自己的能力，也學會運用別人的能力。</q></div>
+    <div><span class="ch">身</span><h3>電池・照顧自己</h3><p>速度降回 1.0×，從頭慢慢加速。</p><q>認識自己的限制，才能走得更遠。</q></div>
+    <div><span class="ch">脈</span><h3>虛線・根據回饋調整</h3><p>10 秒內畫出點按與長按的跳躍弧線。</p><q>行動、觀察、調整，再試一次。</q></div>
+    <div><span class="ch">留</span><h3>旗子・保留成果</h3><p>插一面旗；下次撞到，從旗子接著跑，不必歸零。</p><q>讓今天學到的，成為明天的起點。</q></div>
+  </section>
+
+  <footer class="foot"><span>Ep.01 · Teaser game</span><span class="zh">撞到時，折折會告訴你這一局最缺哪一個字。</span></footer>
+</div>
+
+<div class="player" id="player" hidden>
+  <div class="box">
+    <div class="bar"><span>紙雕預告 · 15 秒</span><button class="close" id="closePlayer" type="button">關閉</button></div>
+    <video id="video" controls playsinline preload="none"></video>
+  </div>
+</div>
+
+<script>
+(() => {
+  // 發布版把影片放在同一層；repo 裡的版本找不到時，改讀 完成檔/ 裡的那支
+  const TEASER_SRC = "teaser.mp4";
+  const TEASER_FALLBACK = "../完成檔/今天先別把自己摺壞-預告-v1.mp4";
+  const C = { field: "#81D8D0", ink: "#0A0A0A", paper: "#FFFFFF", runner: "#FF7A1A" };
+  const $ = (id) => document.getElementById(id);
+  const cv = $("cv"), ctx = cv.getContext("2d"), stage = $("stage");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ── 物理常數（單位：舞台高度 h、秒）──────────────────────────
+  const GROUND = 0.70;          // 地面線在舞台高度的 70%
+  const G = 3.6;                // 重力 3.6 h/s²
+  const V0 = Math.sqrt(2 * G * 0.165); // 點一下跳 16.5% h
+  const HOLD = 0.18, HOLD_G = 0.42;    // 長按：0.18 秒內重力降到 42%
+  const BASE = 0.6, RAMP = 75, MAXM = 1.9; // 世界速度 0.6 h/s → 75 秒升到 1.9×
+  const RX = 0.34, RW = 0.07, RH = 0.17;   // 小沐的位置與碰撞框
+
+  let W = 1, H = 1, dpr = 1, ww = 1; // ww = 舞台寬度（以 h 為單位）
+  function resize() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = cv.clientWidth; H = cv.clientHeight; ww = W / H;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr * H, 0, 0, dpr * H, 0, 0); // 之後全部用 h 單位畫
+  }
+
+  // ── 狀態 ─────────────────────────────────────────────────────
+  let S;
+  let best = 0;
+  try { best = +localStorage.getItem("fold-best") || 0; } catch (e) {}
+  let deaths = 0;       // 玩家這次瀏覽的撞擊次數（第三次說「明天記得睡覺」）
+  const seedRand = (s) => () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  let rnd = seedRand(7);
+
+  function newRun(mode, keep) {
+    S = {
+      mode,                 // demo | play
+      phase: "run",         // run | hitstop | tumble | dazed
+      t: 0, tRamp: 0, dist: keep ? keep.dist : 0, scroll: keep ? keep.scroll : 0,
+      y: 0, vy: 0, holdLeft: 0, holding: false, grounded: true,
+      sq: 0, sqv: 0, cycle: 0, rot: 0, flip: 0, phaseT: 0,
+      obs: [], picks: [], nextObs: 1.6, nextPick: 3.5, pickIdx: 0,
+      fx: { ben: 0, neng: false, mai: 0, liu: keep ? keep.liu : null },
+      spawned: 0, got: new Set(), burst: null, carry: null, deer: 0, missAt: mode === "demo" ? 5 + Math.floor(rnd() * 3) : -1, passed: 0,
+    };
+    $("talk").hidden = true;
+    $("modeChip").textContent = mode === "demo" ? "示範中 · 點擊接手" : "遊戲中";
+    $("startLabel").textContent = mode === "demo" ? "開始跑" : "重新開始";
+  }
+
+  // ── 障礙物：小沐的待辦事項（墨線＋白底）────────────────────
+  const KINDS = [
+    { k: "exam", w: 0.15, h: 0.08 },
+    { k: "books", w: 0.11, h: 0.19 },
+    { k: "clock", w: 0.13, h: 0.13, roll: 0.35 },
+    { k: "phone", w: 0.065, h: 0.13 },
+    { k: "bubble", w: 0.19, h: 0.075, lift: 0.035 },
+    { k: "crumple", w: 0.085, h: 0.075 },
+  ];
+  const ELEMENTS = [
+    { ch: "本", key: "ben", tip: "本：先問為什麼，再決定做什麼。" },
+    { ch: "能", key: "neng", tip: "能：盤點自己的能力，也學會運用別人的能力。" },
+    { ch: "身", key: "shen", tip: "身：認識自己的限制，才能走得更遠。" },
+    { ch: "脈", key: "mai", tip: "脈：行動、觀察、調整，再試一次。" },
+    { ch: "留", key: "liu", tip: "留：讓今天學到的，成為明天的起點。" },
+  ];
+
+  const mult = () => 1 + (MAXM - 1) * Math.min(1, S.tRamp / RAMP);
+  const speed = () => BASE * mult();
+
+  function spawnObstacle() {
+    const kind = KINDS[Math.floor(rnd() * KINDS.length)];
+    S.obs.push({ ...kind, x: ww + 0.2, fold: 1, id: S.spawned++, spin: 0 });
+  }
+  function spawnPick() {
+    const el = ELEMENTS[S.pickIdx < 5 ? S.pickIdx : Math.floor(rnd() * 5)];
+    S.pickIdx++;
+    S.picks.push({ el, x: ww + 0.2, y: rnd() < 0.5 ? 0.07 : 0.23, taken: 0 });
+  }
+
+  // ── 跳躍模擬：自動駕駛與「脈」的弧線都用它 ────────────────
+  function simulate(hold, o, sp, step = 1 / 120) {
+    let y = 0, vy = V0, left = hold, t = 0, ox = o.x;
+    const pts = [];
+    while (t < 1.5) {
+      const g = left > 0 && vy > 0 ? G * HOLD_G : G;
+      left -= step; vy -= g * step; y += vy * step; t += step;
+      ox -= (sp + (o.roll || 0)) * step;
+      pts.push([t, y]);
+      if (o && hit(y, ox, o)) return { ok: false, pts };
+      if (y <= 0) break;
+    }
+    return { ok: true, pts };
+  }
+  function hit(y, ox, o) {
+    const pad = 0.012;
+    const ax0 = RX - RW / 2 + pad, ax1 = RX + RW / 2 - pad, ay0 = y, ay1 = y + RH - pad;
+    const bx0 = ox + pad, bx1 = ox + o.w - pad, by0 = (o.lift || 0), by1 = (o.lift || 0) + o.h - pad;
+    return ax0 < bx1 && ax1 > bx0 && ay0 < by1 && ay1 > by0;
+  }
+  const HOLDS = [0, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18];
+
+  function autopilot() {
+    if (!S.grounded) return;
+    const o = S.obs.find((o) => o.x + o.w > RX - RW / 2 && o.fold > 0.5);
+    if (!o) return;
+    if (o.id === S.missAt) return; // 故意漏跳這一個
+    const sp = speed();
+    const gap = o.x - (RX + RW / 2);
+    const airDist = sp * (2 * V0 / G);
+    if (gap > airDist * 0.5) return;
+    for (const h of HOLDS) {
+      if (simulate(h, { ...o }, sp).ok) { jump(); S.autoRelease = h; return; }
+    }
+    if (gap < airDist * 0.15) { jump(); S.autoRelease = HOLD; }
+  }
+
+  // ── 輸入 ─────────────────────────────────────────────────────
+  function jump() {
+    if (!S.grounded || S.phase !== "run") return;
+    S.grounded = false; S.vy = V0; S.holdLeft = HOLD; S.holding = true;
+    S.sqv += 4; beep(520, 0.06);
+  }
+  function release() { S.holding = false; }
+  function press() {
+    if (S.mode === "demo") { newRun("play"); return; }
+    if (S.phase === "dazed" && !$("talk").hidden) { newRun("play"); return; }
+    if (S.phase === "run") jump();
+  }
+
+  let hovered = false;
+  stage.addEventListener("pointerenter", () => (hovered = true));
+  stage.addEventListener("pointerleave", () => (hovered = false));
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("button")) return;
+    stage.focus({ preventScroll: true });
+    unlockAudio(); press();
+  });
+  stage.addEventListener("pointerup", release);
+  stage.addEventListener("pointercancel", release);
+  document.addEventListener("keydown", (e) => {
+    if (e.code !== "Space") return;
+    const focused = document.activeElement === stage;
+    if (!hovered && !focused) return;          // 空白鍵只在滑鼠移到跑道上或選取時有效
+    if (e.target.closest && e.target.closest("button")) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    unlockAudio(); press();
+  });
+  document.addEventListener("keyup", (e) => { if (e.code === "Space") release(); });
+
+  $("startBtn").addEventListener("click", () => { unlockAudio(); newRun("play"); stage.focus({ preventScroll: true }); if (reduced) startAnyway(); });
+  $("againBtn").addEventListener("click", () => { newRun("play"); stage.focus({ preventScroll: true }); });
+  const openTrailer = () => {
+    const v = $("video");
+    if (!v.getAttribute("src")) {
+      v.addEventListener("error", () => { if (v.getAttribute("src") === TEASER_SRC) { v.setAttribute("src", TEASER_FALLBACK); v.play().catch(() => {}); } }, { once: true });
+      v.setAttribute("src", TEASER_SRC);
+    }
+    $("player").hidden = false; paused = true;
+    v.play().catch(() => {});
+    $("closePlayer").focus();
+  };
+  const closeTrailer = () => { const v = $("video"); v.pause(); $("player").hidden = true; paused = false; kick(); $("trailerBtn").focus(); };
+  $("trailerBtn").addEventListener("click", openTrailer);
+  $("trailerBtn2").addEventListener("click", openTrailer);
+  $("closePlayer").addEventListener("click", closeTrailer);
+  $("player").addEventListener("click", (e) => { if (e.target.id === "player") closeTrailer(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("player").hidden) closeTrailer(); });
+
+  // ── 聲音（預設關閉；第一次互動後才開）──────────────────────
+  let ac = null;
+  function unlockAudio() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch (e) {} }
+  function beep(f, d, type = "triangle", g = 0.06) {
+    if (!ac) return;
+    try {
+      const o = ac.createOscillator(), a = ac.createGain();
+      o.type = type; o.frequency.value = f;
+      a.gain.setValueAtTime(g, ac.currentTime); a.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d);
+      o.connect(a).connect(ac.destination); o.start(); o.stop(ac.currentTime + d);
+    } catch (e) {}
+  }
+
+  // ── 更新 ─────────────────────────────────────────────────────
+  function update(dt) {
+    S.t += dt; S.phaseT += dt;
+    // 落地壓扁：彈簧 k 420、d 15
+    const acc = -420 * S.sq - 15 * S.sqv; S.sqv += acc * dt; S.sq += S.sqv * dt;
+    if (S.burst) S.burst.t += dt;
+    if (S.carry) S.carry.t += dt;
+
+    if (S.phase === "hitstop") { if (S.phaseT >= 0.08) { S.phase = "tumble"; S.phaseT = 0; S.vy = 0.9; S.grounded = false; } return; }
+    if (S.phase === "tumble") {
+      S.vy -= G * dt; S.y += S.vy * dt; S.flip = Math.min(1, S.phaseT / 0.55);
+      if (S.y <= 0 && S.phaseT > 0.2) { S.y = 0; S.phase = "dazed"; S.phaseT = 0; S.sqv -= 5; }
+      return;
+    }
+    if (S.phase === "dazed") {
+      S.deer = Math.min(1, S.deer + dt / 0.5);
+      if (S.phaseT > 0.45 && $("talk").hidden) showTalk();
+      if (S.mode === "demo" && S.phaseT > 3.4) newRun("demo");
+      return;
+    }
+
+    // 奔跑
+    S.tRamp += dt;
+    const sp = speed();
+    S.scroll += sp * dt; S.dist += sp * dt * 10; S.cycle += sp * dt / 0.34;
+    if (S.fx.ben > 0) S.fx.ben -= dt;
+    if (S.fx.mai > 0) S.fx.mai -= dt;
+    if (!S.grounded) {
+      if (S.mode === "demo" && S.holding && S.autoRelease !== undefined && HOLD - S.holdLeft >= S.autoRelease) S.holding = false;
+      const g = S.holding && S.holdLeft > 0 && S.vy > 0 ? G * HOLD_G : G;
+      if (S.holding) S.holdLeft -= dt;
+      S.vy -= g * dt; S.y += S.vy * dt;
+      if (S.y <= 0) { S.y = 0; S.grounded = true; S.sqv -= 2.2 + Math.abs(S.vy) * 2.2; S.vy = 0; }
+    }
+    // 生成
+    S.nextObs -= dt; S.nextPick -= dt;
+    if (S.nextObs <= 0) { spawnObstacle(); S.nextObs = (1.05 + rnd() * 0.9) * (S.fx.ben > 0 ? 1.9 : 1) / Math.sqrt(mult()); }
+    if (S.nextPick <= 0) { spawnPick(); S.nextPick = 5 + rnd() * 3; }
+    for (const o of S.obs) { o.x -= (sp + (o.roll || 0)) * dt; o.spin += ((sp + (o.roll || 0)) * dt) / (o.w / 2); if (o.folding) o.fold = Math.max(0, o.fold - dt * 4); }
+    while (S.obs.length && S.obs[0].x + S.obs[0].w < -0.3) { S.obs.shift(); S.passed++; }
+    for (const p of S.picks) { p.x -= sp * dt; if (p.taken) p.taken += dt; }
+    S.picks = S.picks.filter((p) => p.x > -0.3 && p.taken < 0.4);
+    // 本：前方遠處的障礙摺起來
+    if (S.fx.ben > 0) for (const o of S.obs) if (o.x > RX + 0.9 && o.x < ww && !o.keep) { if (o.k !== "books" || rnd() < 0.5) o.folding = true; else o.keep = true; }
+    S.obs = S.obs.filter((o) => o.fold > 0);
+
+    if (S.mode === "demo") autopilot();
+
+    // 撿道具
+    for (const p of S.picks) {
+      if (p.taken) continue;
+      const cx = RX, cy = S.y + RH * 0.55;
+      if (Math.abs(p.x - cx) < 0.07 && Math.abs(p.y - cy) < 0.1) { p.taken = 0.001; collect(p.el); }
+    }
+    // 碰撞
+    for (const o of S.obs) {
+      if (o.fold < 1 || o.gone) continue;
+      if (hit(S.y, o.x, o)) {
+        if (S.fx.neng) { S.fx.neng = false; o.gone = true; S.carry = { o, t: 0 }; beep(660, 0.12); continue; }
+        return crash(o);
+      }
+    }
+    S.obs = S.obs.filter((o) => !(o.gone && S.carry && S.carry.t > 0.8 && S.carry.o === o));
+  }
+
+  function collect(el) {
+    S.got.add(el.key); beep(880, 0.1, "sine", 0.07);
+    if (el.key === "ben") S.fx.ben = 8;
+    if (el.key === "neng") S.fx.neng = true;
+    if (el.key === "shen") S.tRamp = 0;
+    if (el.key === "mai") S.fx.mai = 10;
+    if (el.key === "liu") S.fx.liu = { dist: S.dist, scroll: S.scroll };
+  }
+
+  function crash(o) {
+    if (S.fx.liu && S.mode === "play") {
+      // 留：從旗子接著跑
+      const keep = { dist: S.fx.liu.dist, scroll: S.fx.liu.scroll, liu: null };
+      S.burst = { x: o.x, y: S.y + RH * 0.6, t: 0 };
+      beep(220, 0.15, "square", 0.05);
+      const b = S.burst; newRun("play", keep); S.burst = b; S.got.add("liu-used");
+      return;
+    }
+    S.phase = "hitstop"; S.phaseT = 0; S.vy = 0;
+    S.burst = { x: RX + RW / 2, y: S.y + RH * 0.6, t: 0 };
+    beep(150, 0.25, "square", 0.07);
+    if (S.mode === "play") {
+      deaths++;
+      if (S.dist > best) { best = S.dist; try { localStorage.setItem("fold-best", String(Math.round(best))); } catch (e) {} }
+    }
+  }
+
+  function showTalk() {
+    let line;
+    if (S.mode === "demo") line = "我是折折。<br>專門幫助那些快把自己摺壞的人。<br><strong>點一下，換你來跑。</strong>";
+    else if (deaths % 3 === 0) line = "<strong>明天記得睡覺。</strong>";
+    else {
+      // 這一局最缺哪一個字
+      const order = mult() > 1.55 ? ["shen", "mai", "ben", "neng", "liu"] : S.t < 8 ? ["mai", "ben", "neng", "shen", "liu"] : ["ben", "neng", "shen", "mai", "liu"];
+      const miss = order.find((k) => !S.got.has(k)) || order[deaths % 5];
+      const el = ELEMENTS.find((e) => e.key === miss);
+      line = `跑了 <strong>${Math.round(S.dist)} M</strong>。這一局少了「${el.ch}」。<br>${el.tip}`;
+    }
+    $("line").innerHTML = line;
+    $("talk").hidden = false;
+    $("againBtn").textContent = S.mode === "demo" ? "換我跑" : "再跑一次";
+    springIn($("talk"));
+  }
+  function springIn(el) {
+    let x = 0.6, v = 0, last = performance.now();
+    const step = (now) => {
+      const dt = Math.min(0.033, (now - last) / 1000); last = now;
+      v += (-260 * (x - 1) - 14 * v) * dt; x += v * dt;
+      el.style.transform = `scale(${x.toFixed(4)})`;
+      if (Math.abs(x - 1) > 0.001 || Math.abs(v) > 0.01) requestAnimationFrame(step); else el.style.transform = "";
+    };
+    requestAnimationFrame(step);
+  }
+
+  // ── 繪圖（座標單位：h）────────────────────────────────────
+  const lw = (px) => px / H; // 像素線寬換成 h 單位
+  /** 在像素座標畫字（canvas 在 h 單位下的極小字級會被捨入，字會變形）。 */
+  function label(str, x, y, px, font, align = "start", base = "top") {
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = font.replace("{px}", px + "px"); ctx.textAlign = align; ctx.textBaseline = base;
+    ctx.fillText(str, x * H, y * H); ctx.restore();
+  }
+  const gy = (y) => GROUND - y; // 高度 → 畫面 y
+
+  function drawWorld() {
+    ctx.fillStyle = C.field; ctx.fillRect(0, 0, ww, 1);
+    // 直欄格線（慢速視差）
+    ctx.strokeStyle = "rgba(10,10,10,.10)"; ctx.lineWidth = lw(1);
+    const col = 0.42, off = (S.scroll * 0.15) % col;
+    for (let x = -off; x < ww; x += col) { ctx.beginPath(); ctx.moveTo(x, 0.08); ctx.lineTo(x, GROUND); ctx.stroke(); }
+    // 墨線天際線（紙城市）
+    ctx.strokeStyle = C.ink; ctx.lineWidth = lw(1); ctx.beginPath();
+    const seg = 0.11, sOff = (S.scroll * 0.35) % (seg * 23);
+    let first = true;
+    for (let i = -1; i < ww / seg + 24; i++) {
+      const x = i * seg - sOff;
+      const n = ((i % 23) + 23) % 23;
+      const h = 0.07 + ((n * 37) % 11) / 11 * 0.16 + (n % 5 === 0 ? 0.06 : 0);
+      const top = GROUND - 0.02 - h;
+      if (first) { ctx.moveTo(x, top); first = false; } else ctx.lineTo(x, top);
+      if (n % 5 === 0) { ctx.lineTo(x + seg / 2, top - 0.04); ctx.lineTo(x + seg, top); } else ctx.lineTo(x + seg, top);
+      const nh = 0.07 + ((((n + 1) % 23) * 37) % 11) / 11 * 0.16 + ((n + 1) % 23 % 5 === 0 ? 0.06 : 0);
+      ctx.lineTo(x + seg, GROUND - 0.02 - nh);
+    }
+    ctx.stroke();
+    // 窗：小點
+    ctx.fillStyle = C.ink;
+    // 地面 2px
+    ctx.fillRect(0, GROUND, ww, lw(2));
+    // 距離尺
+    const m0 = S.dist;
+    const pxPerM = 0.1; // 10 m = 1 h
+    const startM = Math.floor((m0 - RX / pxPerM) );
+    for (let m = startM; m < m0 + (ww - RX) / pxPerM + 2; m++) {
+      const x = RX + (m - m0) * pxPerM;
+      const big = m % 10 === 0;
+      ctx.fillRect(x, GROUND + lw(2), lw(1), big ? 0.05 : 0.022);
+      if (big && m >= 0) label(String(m).padStart(4, "0"), x + lw(3), GROUND + 0.055, 10, '500 {px} "Geist Mono", ui-monospace, monospace');
+    }
+    // 最佳紀錄與「留」旗子
+    const flag = (m, text) => {
+      const x = RX + (m - m0) * pxPerM;
+      if (x < -0.1 || x > ww + 0.1) return;
+      ctx.fillRect(x, GROUND - 0.16, lw(1.5), 0.16);
+      ctx.beginPath(); ctx.moveTo(x, GROUND - 0.16); ctx.lineTo(x + 0.06, GROUND - 0.14); ctx.lineTo(x, GROUND - 0.12); ctx.fill();
+      label(text, x + lw(4), GROUND - 0.115, 11, '900 {px} "Noto Sans TC", sans-serif');
+    };
+    if (best > 0) flag(best, "最佳");
+    if (S.fx.liu) flag(S.fx.liu.dist, "留");
+  }
+
+  function shapeObstacle(o) {
+    const x = o.x, base = gy(o.lift || 0);
+    ctx.save();
+    ctx.translate(x + o.w / 2, base); ctx.scale(1, o.fold); ctx.translate(-(x + o.w / 2), -base);
+    if (o.gone && S.carry && S.carry.o === o) { const t = S.carry.t; ctx.translate(0, -t * t * 0.9); ctx.globalAlpha = Math.max(0, 1 - t * 1.2); }
+    ctx.lineWidth = lw(2); ctx.strokeStyle = C.ink; ctx.fillStyle = C.paper; ctx.lineJoin = "round"; ctx.lineCap = "round";
+    const top = base - o.h;
+    const rect = (x0, y0, w, h, r = 0.008) => { ctx.beginPath(); ctx.roundRect(x0, y0, w, h, r); ctx.fill(); ctx.stroke(); };
+    const line = (x0, y0, x1, y1) => { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); };
+    if (o.k === "exam") {
+      rect(x, top, o.w, o.h);
+      for (let i = 1; i < 4; i++) line(x + 0.018, top + i * 0.018, x + o.w - (i === 3 ? 0.07 : 0.018), top + i * 0.018);
+      ctx.beginPath(); ctx.arc(x + o.w - 0.03, top + o.h - 0.025, 0.016, 0, 7); ctx.stroke();
+    } else if (o.k === "books") {
+      const n = 4, bh = o.h / n;
+      for (let i = 0; i < n; i++) rect(x + (i % 2 ? 0.006 : -0.004), base - (i + 1) * bh, o.w - (i % 2 ? 0.01 : 0), bh, 0.004);
+      for (let i = 0; i < n; i++) line(x + 0.02, base - (i + 0.5) * bh, x + o.w - 0.03, base - (i + 0.5) * bh);
+    } else if (o.k === "clock") {
+      const r = o.w / 2, cx = x + r, cy = base - r;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(-o.spin);
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.283; line(Math.cos(a) * r * 0.78, Math.sin(a) * r * 0.78, Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9); }
+      line(0, 0, 0, -r * 0.6); line(0, 0, r * 0.42, 0.01);
+      ctx.restore();
+    } else if (o.k === "phone") {
+      rect(x, top, o.w, o.h, 0.012);
+      ctx.strokeRect(x + 0.014, top + 0.03, o.w - 0.028, 0.022);
+      ctx.fillStyle = C.ink; ctx.fillRect(x + 0.017, top + 0.033, 0.008, 0.016);
+      ctx.fillRect(x + o.w - 0.012, top + 0.036, 0.004, 0.01);
+    } else if (o.k === "bubble") {
+      ctx.beginPath(); ctx.roundRect(x, top, o.w, o.h, 0.03); ctx.moveTo(x + 0.03, base); ctx.lineTo(x + 0.02, base + 0.03); ctx.lineTo(x + 0.06, base); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.ink;
+      const m = ctx.getTransform(); // 目前含摺疊縮放，換回像素座標畫字
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.font = `500 ${Math.round(0.034 * H * dpr)}px "Noto Sans TC", sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.translate(m.a * (x + o.w / 2) + m.c * (top + o.h / 2) + m.e, m.b * (x + o.w / 2) + m.d * (top + o.h / 2) + m.f);
+      ctx.scale(1, o.fold); ctx.fillText("進度呢？", 0, 0); ctx.restore();
+    } else if (o.k === "crumple") {
+      const cx = x + o.w / 2, cy = base - o.h / 2;
+      ctx.beginPath();
+      for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.283, r = (o.w / 2) * (0.78 + ((i * 7) % 5) / 18); ctx[i ? "lineTo" : "moveTo"](cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.9); }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      line(cx - 0.02, cy - 0.01, cx + 0.005, cy + 0.012); line(cx + 0.005, cy + 0.012, cx + 0.025, cy - 0.015);
+    }
+    ctx.restore();
+  }
+
+  function drawPick(p) {
+    const s = p.taken ? 1 + p.taken * 3 : 1 + Math.sin(S.t * 5 + p.x * 9) * 0.05;
+    ctx.save(); ctx.globalAlpha = p.taken ? Math.max(0, 1 - p.taken * 2.5) : 1;
+    ctx.translate(p.x, gy(p.y)); ctx.scale(s, s);
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, 0, 0.042, 0, 7); ctx.fill();
+    ctx.restore();
+    ctx.save(); ctx.globalAlpha = p.taken ? Math.max(0, 1 - p.taken * 2.5) : 1; ctx.fillStyle = C.field;
+    label(p.el.ch, p.x, gy(p.y) + 0.003, Math.round(0.046 * H * s), '900 {px} "Noto Sans TC", sans-serif', "center", "middle");
+    ctx.restore();
+  }
+
+  // 小沐：原點在腳底，設計單位 100 高
+  function drawRunner() {
+    const s = RH / 100;
+    const sq = Math.max(-0.35, Math.min(0.35, S.sq));
+    ctx.save();
+    ctx.translate(RX, gy(S.y));
+    ctx.scale(s * (1 + sq * 0.6), s * (1 - sq));
+    const ink = C.ink, orange = C.runner;
+    const limb = (pts, w) => {
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = ink; ctx.lineWidth = w + 5; ctx.beginPath(); pts.forEach((p, i) => ctx[i ? "lineTo" : "moveTo"](p[0], p[1])); ctx.stroke();
+      ctx.strokeStyle = orange; ctx.lineWidth = w; ctx.stroke();
+    };
+    const leg = (foot, hip, kneeFwd = 1) => {
+      // 兩段 IK：大腿 26、小腿 26，膝蓋朝前
+      const L1 = 26, L2 = 26, dx = foot[0] - hip[0], dy = foot[1] - hip[1];
+      const d = Math.min(L1 + L2 - 0.01, Math.hypot(dx, dy));
+      const a = Math.atan2(dy, dx), b = Math.acos((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d));
+      const knee = [hip[0] + L1 * Math.cos(a - b * kneeFwd), hip[1] + L1 * Math.sin(a - b * kneeFwd)];
+      return [hip, knee, foot];
+    };
+    if (S.phase === "dazed") {
+      // 坐在地上，腿往前伸
+      ctx.translate(-6, 0);
+      limb([[0, -6], [24, -4], [40, -2]], 7); limb([[2, -8], [26, -10], [42, -6]], 7);
+      drawBody(0, -8, 0, true);
+      ctx.restore();
+      drawDazed();
+      return;
+    }
+    const tumbling = S.phase === "tumble" || S.phase === "hitstop";
+    if (tumbling) { ctx.translate(0, -50); ctx.rotate(-S.flip * Math.PI * 2); ctx.translate(0, 50); }
+    const lean = S.phase === "run" ? (11 * Math.PI) / 180 * (0.7 + 0.3 * (mult() - 1) / 0.9) : 0;
+    const hip = [0, -50];
+    ctx.save(); ctx.translate(0, -50); ctx.rotate(lean); ctx.translate(0, 50);
+    let feet;
+    if (!S.grounded || tumbling) {
+      feet = [[14, -16], [-10, -22]];
+    } else {
+      // 跑步：站姿腳貼地往後滑（腳掌不打滑），擺動腳抬起往前
+      feet = [0, 0.5].map((o) => {
+        const ph = (S.cycle + o) % 1;
+        if (ph < 0.5) { const t = ph / 0.5; return [22 - 44 * t, 0]; }
+        const t = (ph - 0.5) / 0.5; return [-22 + 44 * t, -18 * Math.sin(Math.PI * t)];
+      });
+    }
+    ctx.restore();
+    // 腿在傾斜前畫（腳要踩在地上）
+    const hipW = [hip[0] + Math.sin(lean) * 0, hip[1]];
+    limb(leg(feet[1], hipW), 7);
+    ctx.save(); ctx.translate(0, -50); ctx.rotate(lean); ctx.translate(0, 50);
+    const swing = Math.sin(S.cycle * Math.PI * 2);
+    limb(arm(-swing), 6);
+    drawBody(0, -50, 0, false);
+    ctx.restore();
+    limb(leg(feet[0], hipW), 7);
+    ctx.save(); ctx.translate(0, -50); ctx.rotate(lean); ctx.translate(0, 50);
+    limb(arm(swing), 6);
+    ctx.restore();
+    ctx.restore();
+    function arm(k) {
+      const sh = [0, -80];
+      const a = (Math.PI / 2) + k * 0.9; // 上臂前後擺
+      const el = [sh[0] + Math.cos(a) * 18, sh[1] + Math.sin(a) * 18];
+      const b = a - 1.4;
+      return [sh, el, [el[0] + Math.cos(b) * 16, el[1] + Math.sin(b) * 16]];
+    }
+  }
+  function drawBody(x, y, rot, dazed) {
+    // 身體（橘色毛衣）＋頭（白臉、墨色鮑伯頭、耳後鉛筆）
+    ctx.lineWidth = 2.5; ctx.strokeStyle = C.ink;
+    ctx.fillStyle = C.runner; ctx.beginPath(); ctx.roundRect(x - 13, y - 34, 26, 36, 9); ctx.fill(); ctx.stroke();
+    const hx = x + 2, hy = y - 50;
+    ctx.fillStyle = C.paper; ctx.beginPath(); ctx.arc(hx, hy, 13, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = C.ink; ctx.beginPath();
+    ctx.moveTo(hx - 15, hy + 4); ctx.quadraticCurveTo(hx - 16, hy - 17, hx + 1, hy - 16); ctx.quadraticCurveTo(hx + 16, hy - 16, hx + 15, hy + 2);
+    ctx.lineTo(hx + 10, hy - 3); ctx.quadraticCurveTo(hx + 3, hy - 10, hx - 8, hy - 6); ctx.lineTo(hx - 10, hy + 6); ctx.closePath(); ctx.fill();
+    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(hx + 10, hy - 10); ctx.lineTo(hx + 19, hy - 20); ctx.stroke();
+    if (dazed) {
+      ctx.lineWidth = 1.8;
+      for (const ex of [hx + 1, hx + 8]) { ctx.beginPath(); ctx.arc(ex, hy + 1, 2.4, 0, 5.2); ctx.stroke(); }
+    } else { ctx.beginPath(); ctx.arc(hx + 7, hy, 1.9, 0, 7); ctx.fill(); }
+  }
+  function star(cx, cy, r, n, inner) {
+    ctx.beginPath();
+    for (let i = 0; i < n * 2; i++) { const a = (i / (n * 2)) * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? r * inner : r; ctx[i ? "lineTo" : "moveTo"](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+    ctx.closePath();
+  }
+  function drawDazed() {
+    // 頭上繞圈的星星
+    const hx = RX - 0.004, hy = gy(0) - RH * 0.63;
+    ctx.fillStyle = C.paper; ctx.strokeStyle = C.ink; ctx.lineWidth = lw(1.5);
+    for (let i = 0; i < 3; i++) {
+      const a = S.t * 4 + (i * Math.PI * 2) / 3;
+      const x = hx + Math.cos(a) * 0.05, y = hy - 0.012 + Math.sin(a) * 0.014;
+      star(x, y, 0.012, 5, 0.45); ctx.fill(); ctx.stroke();
+    }
+  }
+  function drawBurst() {
+    const b = S.burst; if (!b || b.t > 0.45) return;
+    const k = Math.min(1, b.t / 0.12), fade = b.t < 0.25 ? 1 : 1 - (b.t - 0.25) / 0.2;
+    ctx.save(); ctx.globalAlpha = fade;
+    ctx.fillStyle = C.paper; ctx.strokeStyle = C.ink; ctx.lineWidth = lw(2);
+    star(b.x, gy(b.y), 0.075 * k, 10, 0.45); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  function drawDeer() {
+    if (S.deer <= 0) return;
+    // 折折：白紙、墨線摺痕，從右邊彈進來
+    const k = S.deer, e = 1 + Math.sin(k * Math.PI) * 0.12 * (1 - k);
+    const x = Math.min(ww - 0.16, RX + 0.62), base = GROUND;
+    const s = 0.0011 * e * (0.4 + 0.6 * k);
+    ctx.save(); ctx.translate(x, base); ctx.scale(s, s);
+    ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.fillStyle = C.paper; ctx.lineJoin = "round";
+    const poly = (pts) => { ctx.beginPath(); pts.forEach((p, i) => ctx[i ? "lineTo" : "moveTo"](p[0], p[1])); ctx.closePath(); ctx.fill(); ctx.stroke(); };
+    for (const lx of [-58, -30, 34, 60]) poly([[lx - 6, 0], [lx - 4, -96], [lx + 5, -96], [lx + 6, 0]]);
+    poly([[-80, -90], [-40, -150], [50, -150], [84, -96], [40, -80], [-50, -78]]);
+    ctx.beginPath(); ctx.moveTo(-40, -150); ctx.lineTo(-50, -78); ctx.moveTo(50, -150); ctx.lineTo(40, -80); ctx.stroke();
+    poly([[40, -150], [70, -226], [96, -220], [76, -146]]);
+    ctx.save(); ctx.translate(84, -238);
+    ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.beginPath();
+    ctx.moveTo(-6, -24); ctx.lineTo(-18, -78); ctx.moveTo(-14, -60); ctx.lineTo(-36, -74);
+    ctx.moveTo(14, -24); ctx.lineTo(22, -82); ctx.moveTo(20, -62); ctx.lineTo(42, -76); ctx.stroke();
+    ctx.lineWidth = 3; poly([[-28, -26], [30, -30], [58, 6], [20, 26], [-24, 10]]); poly([[-28, -26], [-56, -44], [-40, -12]]);
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(12, -6, 6, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(54, 6, 6, 0, 7); ctx.fill();
+    ctx.restore(); ctx.restore();
+  }
+  function drawArcs() {
+    // 脈：畫出點按與長按的跳躍弧線（同一個模擬）
+    if (!(S.fx.mai > 0) || !S.grounded || S.phase !== "run") return;
+    const sp = speed();
+    ctx.save(); ctx.strokeStyle = C.ink; ctx.lineWidth = lw(1.5); ctx.setLineDash([lw(3), lw(5)]);
+    for (const h of [0, HOLD]) {
+      const { pts } = simulate(h, { x: 99, w: 0, h: 0 }, sp, 1 / 60);
+      ctx.beginPath();
+      pts.forEach(([t, y], i) => ctx[i ? "lineTo" : "moveTo"](RX + sp * t, gy(Math.max(0, y) + RH * 0.5)));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawCarry() {
+    if (!S.carry || S.carry.t > 0.8) return;
+    // 能：同學把障礙物舉走（墨線小人）
+    const o = S.carry.o, t = S.carry.t, x = o.x + o.w / 2, y = gy(0) - t * t * 0.9;
+    ctx.save(); ctx.strokeStyle = C.ink; ctx.fillStyle = C.paper; ctx.lineWidth = lw(2); ctx.globalAlpha = Math.max(0, 1 - t * 1.2);
+    ctx.beginPath(); ctx.arc(x, y - o.h - 0.05, 0.022, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, y - o.h - 0.028); ctx.lineTo(x, y - o.h + 0.02); ctx.moveTo(x - 0.03, y - o.h - 0.002); ctx.lineTo(x + 0.03, y - o.h - 0.002); ctx.stroke();
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.setTransform(dpr * H, 0, 0, dpr * H, 0, 0);
+    drawWorld();
+    for (const o of S.obs) shapeObstacle(o);
+    for (const p of S.picks) drawPick(p);
+    drawCarry();
+    drawArcs();
+    drawRunner();
+    drawBurst();
+    drawDeer();
+  }
+
+  // ── HUD 與海報上的倒數 ─────────────────────────────────────
+  let lastHud = "";
+  function hud() {
+    const d = String(Math.round(S.dist)).padStart(4, "0");
+    const b = String(Math.round(best)).padStart(4, "0");
+    const sp = mult().toFixed(1);
+    const fx = [];
+    if (S.fx.ben > 0) fx.push(`本 · 精簡 ${Math.ceil(S.fx.ben)}s`);
+    if (S.fx.neng) fx.push("能 · 同學待命");
+    if (S.fx.mai > 0) fx.push(`脈 · 弧線 ${Math.ceil(S.fx.mai)}s`);
+    if (S.fx.liu) fx.push("留 · 旗子");
+    const key = d + b + sp + fx.join("|");
+    if (key === lastHud) return;
+    lastHud = key;
+    $("dist").textContent = d; $("best").textContent = b; $("speed").textContent = sp;
+    $("fx").innerHTML = fx.map((t) => `<span class="chip fx"><b>${t}</b></span>`).join(" ");
+    // 創意節倒數：每跑 25 秒少一天
+    const left = Math.max(0, 3 - Math.floor(S.t / 25));
+    $("days").textContent = String(left);
+    $("dayLabel").textContent = left > 0 ? "創意節倒數 · Days left" : "創意節開始 · Festival day";
+  }
+
+  // ── 迴圈：離開畫面、切走分頁就暫停 ─────────────────────────
+  let raf = 0, last = 0, visible = true, paused = false;
+  function frame(now) {
+    raf = 0;
+    if (!S || !visible || paused || document.hidden) return;
+    const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+    update(dt); render(); hud();
+    raf = requestAnimationFrame(frame);
+  }
+  function kick() { if (S && !raf && visible && !paused && !document.hidden && !stillMode) { last = 0; raf = requestAnimationFrame(frame); } }
+  new IntersectionObserver((es) => { visible = es[0].isIntersecting; kick(); }, { threshold: 0.05 }).observe(stage);
+  document.addEventListener("visibilitychange", kick);
+  window.addEventListener("resize", () => { resize(); if (stillMode) drawStill(); });
+
+  // ── 減少動態：靜態畫面 ─────────────────────────────────────
+  let stillMode = reduced;
+  function drawStill() {
+    newRun("demo"); S.dist = 412; S.scroll = 3; S.cycle = 0.18; S.fx.mai = 5;
+    S.obs = [{ ...KINDS[1], x: RX + 0.5, fold: 1, spin: 0 }, { ...KINDS[4], x: RX + 1.05, fold: 1, spin: 0 }];
+    S.picks = [{ el: ELEMENTS[2], x: RX + 0.82, y: 0.23, taken: 0 }];
+    render(); hud();
+  }
+  function startAnyway() { stillMode = false; $("stillNote").hidden = true; kick(); }
+  $("playAnyway").addEventListener("click", () => { newRun("play"); startAnyway(); stage.focus({ preventScroll: true }); });
+
+  // 檢視器熱更新時保留最佳紀錄
+  window.claude?.hot?.snapshot?.(() => ({ best }));
+  const boot = (data) => {
+    if (data && data.best > best) best = data.best;
+    resize();
+    newRun("demo");
+    if (stillMode) { $("stillNote").hidden = false; drawStill(); } else kick();
+  };
+  const start = (data) => (document.fonts && document.fonts.ready ? document.fonts.ready.then(() => boot(data)) : boot(data));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
