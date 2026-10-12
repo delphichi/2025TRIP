@@ -6,8 +6,10 @@
 | `remotion-*`（12 個） | [remotion-dev/skills](https://github.com/remotion-dev/skills) | 用 React 程式碼合成影片（時間軸、轉場、字幕、資料動畫、輸出 MP4） |
 | `impeccable` | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | 前端設計品質：審查、批評、打磨、動畫、配色、字體排印 |
 | `visual-worlds` | 本專案自製 | 七套可套用的網頁視覺世界（版面＋字體＋已驗算對比的色票） |
+| `hyperframes*` 等 22 個 | [heygen-com/hyperframes](https://github.com/heygen-com/hyperframes) | 用 HTML＋GSAP 做影片；總入口 `/hyperframes`（2026-10-12 安裝） |
+| `review-animations` 等 6 個 | [emilkowalski/skills](https://github.com/emilkowalski/skills) | 動畫審查與打磨：`review-animations`、`apple-design`、`improve-animations`、`animation-vocabulary`、`emil-design-eng`、`animate` |
 
-兩者互補：**FAL 生素材 → Remotion 組裝成完整影片**。
+分工：**FAL 生素材 → Remotion 或 HyperFrames 組裝 → Emil 審動畫**。選哪個工具見根目錄 `影片工具選擇SOP.md`。
 
 ## Remotion 技能清單
 
