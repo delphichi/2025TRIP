@@ -418,7 +418,7 @@ export const Trailer: React.FC = () => {
           <Progress />
         </Sequence>
       </div>
-      <Audio src={staticFile("trailer/score.wav")} />
+      <Audio src={staticFile("trailer/mix.wav")} />
     </AbsoluteFill>
   );
 };
