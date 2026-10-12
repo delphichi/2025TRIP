@@ -1,6 +1,6 @@
 """Panty de Red CK2603L 分解說明廣告：配樂＋音效＋旁白混音，一支腳本做完。
 
-優雅極簡的科技感：玻璃鈴聲（閃鑽）、低頻重擊（爆開／組回）、介面提示音（標註線）、計數聲（0→100）。
+優雅極簡的科技感：玻璃鈴聲（閃鑽）、低頻重擊（爆開／組回）、介面提示音（標註線）、第 8 格傳單重點的提示鈴。
 時間表與 src/Exploded.tsx 的 SHOTS 相同。旁白在 public/ck/vo/（Piper es_MX-ald-medium）。
 輸出 public/ck/mix.wav（48 kHz 立體聲，31 秒）。執行：python3 scripts/score3.py
 """
@@ -20,7 +20,6 @@ CUTS = [3.0, 5.5, 9.0, 12.5, 15.3, 21.4, 23.9, 27.4]
 EXPLODE = 5.85   # 部件分開
 REASSEMBLE = 21.4
 CALLOUTS = [6.6, 7.0, 7.4]
-COUNT = (24.6, 26.0)  # 0→100
 VO = [("k1", 0.4), ("k2", 3.2), ("k3", 5.7), ("k4", 9.2), ("k5", 12.6), ("k6f", 15.4), ("k7", 21.6), ("k8f", 24.0), ("k9", 27.6)]
 
 L = np.zeros(N)
@@ -141,11 +140,10 @@ add(np.sin(2 * np.pi * (220 * t + 30 * np.sin(2 * np.pi * 6 * t) / (2 * np.pi * 
 # 顏色切換：三個鈴
 for k, n in enumerate([81, 85, 88]):
     add(bell(n, 1.6, 0.9), 22.0 + k * 0.6)
-# 計數 0→100：越來越快的滴答，到 100 一聲鈴
-cnt = np.linspace(0, 1, 26) ** 0.6
-for c in cnt:
-    add(tick(0.8), COUNT[0] + c * (COUNT[1] - COUNT[0]))
-add(bell(98, 2.0, 1.0), COUNT[1])
+# 第 8 格（傳單照片）：型號框出一聲輕鈴，「100 DOCENAS」徽章框出一聲亮鈴
+add(bell(93, 1.6, 0.7), 24.05)
+add(bell(98, 2.2, 1.0), 25.6)
+add(bell(102, 1.8, 0.6), 25.75)
 # 轉場呼嘯
 for c in CUTS:
     if abs(c - REASSEMBLE) > 0.1:

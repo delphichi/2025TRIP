@@ -1,5 +1,5 @@
 // Panty de Red #CK2603L 分解說明廣告（像手機內部結構廣告）：9:16，31 秒，30 fps。
-// 五個 3D 場景（主分解台、閃鑽、網格、纖維、裝箱），鏡頭在其間切換；標註線用 3D→螢幕投影對準真實位置。
+// 四個 3D 場景（主分解台、閃鑽、網格、纖維）＋第 8 格傳單照片運鏡（裝箱 3D 台保留未用），鏡頭在其間切換；標註線用 3D→螢幕投影對準真實位置。
 // 聲音：scripts/score3.py → public/ck/mix.wav。分鏡來源：分鏡桌專案 ck2603l。
 import React, { useMemo } from "react";
 import { AbsoluteFill, Audio, Easing, Img, interpolate, random, spring, staticFile, useCurrentFrame } from "remotion";
@@ -622,36 +622,87 @@ const Overlays: React.FC = () => {
           </div>
         </div>
       )}
-      {inR(T.s8, T.s9) && (
-        <>
-          <div style={{ position: "absolute", top: 280, left: 80, right: 80 }}>
-            <Rise at={fr(T.s8 + 0.2)}><Tag size={30}>MODELO</Tag><Big size={96} weight={900}>#CK2603L</Big></Rise>
-            <Rise at={fr(T.s8 + 0.6)}>
-              <div style={{ display: "flex", gap: 22, marginTop: 22, fontFamily: MONO, fontSize: 26, color: "#fff", letterSpacing: 2 }}>
-                <span>CADA DOCENA:</span>
-                {[["6", COLORS[0]], ["3", COLORS[1]], ["3", COLORS[2]]].map(([n, c]) => (
-                  <span key={(c as { name: string }).name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <i style={{ width: 22, height: 22, borderRadius: 11, background: (c as { c: string }).c, border: "2px solid rgba(255,255,255,.5)", display: "inline-block" }} />
-                    {n as string} {(c as { name: string }).name}
-                  </span>
-                ))}
-              </div>
-            </Rise>
-          </div>
-          <div style={{ position: "absolute", bottom: 300, left: 0, right: 0, textAlign: "center" }}>
-            {(() => {
-              const n = Math.round(100 * interpolate(f, [fr(24.6), fr(26.0)], [0, 1], { ...clamp, easing: Easing.out(Easing.quad) }));
-              return (
-                <Rise at={fr(24.4)}>
-                  <div style={{ fontFamily: SANS, fontWeight: 900, fontSize: 220, color: "#fff", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{n}</div>
-                  <Tag size={40} color={GOLD}>DOCENAS POR CAJA</Tag>
-                </Rise>
-              );
-            })()}
-          </div>
-        </>
-      )}
       {t >= T.s9 && <EndCard />}
+    </AbsoluteFill>
+  );
+};
+
+
+// ── 第 7 格：真人照片，三色（黑＝原圖、紅／膚＝scripts/recolor_legs.py 重新上色）用金色掃描線切換 ──
+const COLOR_IMGS = ["ck/legs.jpg", "ck/legs_rojo.jpg", "ck/legs_piel.jpg"];
+const COLOR_AT = [T.s7, 22.6, 23.2];
+const ColorShot: React.FC = () => {
+  const f = useCurrentFrame();
+  const t = f / E_FPS;
+  if (t < T.s7 || t >= T.s8) return null;
+  const z = interpolate(t, [T.s7, T.s8], [1.08, 1.2]);
+  return (
+    <AbsoluteFill style={{ background: "#0b0c0f", overflow: "hidden" }}>
+      {COLOR_IMGS.map((src, i) => {
+        // 新顏色由上往下掃進來（0.3 秒）
+        const k = i === 0 ? 1 : interpolate(t, [COLOR_AT[i], COLOR_AT[i] + 0.3], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
+        if (k <= 0) return null;
+        return (
+          <AbsoluteFill key={src} style={{ clipPath: `inset(0 0 ${(1 - k) * 100}% 0)` }}>
+            <AbsoluteFill style={{ transform: `scale(${z})`, transformOrigin: "60% 62%" }}>
+              <Img src={staticFile(src)} style={{ width: W, height: H }} />
+            </AbsoluteFill>
+          </AbsoluteFill>
+        );
+      })}
+      {COLOR_AT.slice(1).map((a) => {
+        const k = interpolate(t, [a, a + 0.3], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
+        if (k <= 0 || k >= 1) return null;
+        return <div key={a} style={{ position: "absolute", left: 0, right: 0, top: k * H - 3, height: 6, background: GOLD, boxShadow: `0 0 30px 8px ${GOLD}` }} />;
+      })}
+      <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 55%, rgba(0,0,0,.75) 100%)" }} />
+    </AbsoluteFill>
+  );
+};
+
+// ── 第 8 格：傳單照片上的運鏡，依旁白框出型號、配色、100 打 ──
+const FLY_W = 1086, FLY_H = 1448, FK = W / FLY_W, FTOP = (H - FLY_H * FK) / 2;
+const FLY_KEYS: [number, number, number, number][] = [
+  // [秒（相對第 8 格）, 傳單 x, 傳單 y, 放大]
+  [0, 748, 580, 2.4],
+  [1.0, 752, 588, 2.2],
+  [1.6, 790, 1112, 1.8],
+  [2.4, 796, 1118, 1.7],
+  [3.5, 543, 724, 1.0],
+];
+const FlyerShot: React.FC = () => {
+  const f = useCurrentFrame();
+  const t = f / E_FPS;
+  if (t < T.s8 || t >= T.s9) return null;
+  const lt = t - T.s8;
+  const ks = FLY_KEYS;
+  const pick = (j: number) => interpolate(lt, ks.map((k) => k[0]), ks.map((k) => k[j]), { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const px = pick(1), py = pick(2), z = pick(3);
+  const bx = px * FK, by = FTOP + py * FK;
+  const tx = W / 2 - bx * z, ty = H / 2 - by * z;
+  const box = (x0: number, y0: number, x1: number, y1: number, a: number, b: number) => {
+    const k = interpolate(lt, [a, a + 0.35], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
+    const out = interpolate(lt, [b - 0.25, b], [1, 0], clamp);
+    const per = 2 * (x1 - x0 + y1 - y0);
+    return (
+      <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} rx={14} fill="none" stroke={GOLD} strokeWidth={5}
+        strokeDasharray={per} strokeDashoffset={per * (1 - k)} opacity={out} style={{ filter: `drop-shadow(0 0 10px ${GOLD})` }} />
+    );
+  };
+  const ring = interpolate(lt, [1.75, 2.1], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
+  const ringOut = interpolate(lt, [2.9, 3.2], [1, 0], clamp);
+  const pulse = 1 + 0.06 * Math.max(0, Math.sin((lt - 1.75) * 9)) * ring;
+  return (
+    <AbsoluteFill style={{ background: "#0b0c0f", overflow: "hidden" }}>
+      <div style={{ position: "absolute", left: 0, top: FTOP, width: W, height: FLY_H * FK, transformOrigin: `0 ${-FTOP}px`, transform: `translate(${tx}px, ${ty}px) scale(${z})` }}>
+        <Img src={staticFile("ck/flyer.png")} style={{ width: W, height: FLY_H * FK, display: "block" }} />
+        <svg width={W} height={FLY_H * FK} viewBox={`0 0 ${FLY_W} ${FLY_H}`} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+          {box(532, 547, 962, 612, 0.15, 1.35)}
+          {box(528, 1038, 818, 1206, 1.5, 2.7)}
+          <circle cx={950} cy={1118} r={112 * pulse} fill="none" stroke={GOLD} strokeWidth={6} opacity={ring * ringOut} style={{ filter: `drop-shadow(0 0 14px ${GOLD})` }} />
+        </svg>
+      </div>
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 62%, rgba(0,0,0,.45) 100%)" }} />
     </AbsoluteFill>
   );
 };
@@ -692,7 +743,7 @@ const EndCard: React.FC = () => {
 const Hud: React.FC = () => {
   const f = useCurrentFrame();
   const t = f / E_FPS;
-  if (t < T.s3 || t >= T.s9) return null;
+  if (t < T.s3 || t >= T.s7) return null;
   const line = `2px solid ${GOLD}88`;
   const c = (s: React.CSSProperties) => ({ position: "absolute" as const, width: 40, height: 40, ...s });
   return (
@@ -722,7 +773,9 @@ export const Exploded: React.FC = () => (
     <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%)", pointerEvents: "none" }} />
     <Opening />
     <ScanLine />
+    <ColorShot />
     <Overlays />
+    <FlyerShot />
     <Hud />
     <CutFlash />
     <Audio src={staticFile("ck/mix.wav")} />
