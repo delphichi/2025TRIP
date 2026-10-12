@@ -1,0 +1,30 @@
+{
+  "name": "asatex-ad",
+  "version": "1.0.0",
+  "description": "ASATEX 睡衣 15 秒直式廣告（InfiniteTalk 唱歌鏡頭＋Remotion 組裝）",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "@remotion/fonts": "4.0.534",
+    "@remotion/media": "4.0.534",
+    "@remotion/motion-blur": "4.0.534",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.534"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.534",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "9.39.5",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "lint": "tsc",
+    "render": "remotion render Ad out/ad.mp4 --codec=h264 --crf=18"
+  }
+}

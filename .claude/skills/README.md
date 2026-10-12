@@ -8,6 +8,7 @@
 | `visual-worlds` | 本專案自製 | 七套可套用的網頁視覺世界（版面＋字體＋已驗算對比的色票） |
 | `hyperframes*` 等 22 個 | [heygen-com/hyperframes](https://github.com/heygen-com/hyperframes) | 用 HTML＋GSAP 做影片；總入口 `/hyperframes`（2026-10-12 安裝） |
 | `review-animations` 等 6 個 | [emilkowalski/skills](https://github.com/emilkowalski/skills) | 動畫審查與打磨：`review-animations`、`apple-design`、`improve-animations`、`animation-vocabulary`、`emil-design-eng`、`animate` |
+| `ad-creative-video`、`launch-video`、`testimonial-video` | [iart-ai/ad-video-skills](https://github.com/iart-ai/ad-video-skills) | 廣告影片：開頭抓眼球→行動呼籲對應、直式安全區、一個模板配 CSV 批次做 A/B 版本（Remotion）。2026-10-12 安裝，第一支作品 `asatex/ad/` |
 
 分工：**FAL 生素材 → Remotion 或 HyperFrames 組裝 → Emil 審動畫**。選哪個工具見根目錄 `影片工具選擇SOP.md`。
 
