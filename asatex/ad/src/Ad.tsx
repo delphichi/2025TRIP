@@ -1,13 +1,14 @@
 // ASATEX 15 秒直式廣告（1080×1920，25 fps，配合 InfiniteTalk 唱歌鏡頭的 25 fps）。
-// 歌：minimax-music 生成的整首 32 秒，從 14.5 秒處切入，讓唱歌鏡頭（原歌 17.5 秒起）剛好落在第 3 秒。
+// 歌：minimax-music 生成的整首 38 秒（品牌名在歌詞裡寫成「啊沙爹斯」才唱得準），從 19 秒處切入，
+// 讓唱歌鏡頭（原歌 22.2 秒起）剛好落在第 3.2 秒。
 // 歌詞時間來自 whisper 轉寫（換算成廣告時間）：大標題就是正在唱的那句，逐字變亮。
 import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 
 export const FPS = 25;
-export const DURATION = 390; // 15.6 秒：最後一句唱完再收
+export const DURATION = 430; // 17.2 秒：最後一句唱完再收
 
-const SONG_OFFSET = 14.5; // 秒
+const SONG_OFFSET = 19; // 秒
 const NAVY = "#1d2846";
 const RED = "#d8343a";
 const FONT = '"PingFang TC", "Heiti TC", sans-serif';
@@ -15,16 +16,16 @@ const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 // 歌詞（廣告時間，秒）
 const LYRICS = [
-  { start: 0.33, end: 3.21, lines: ["穿上睡衣", "好好睡一覺"] },
-  { start: 3.21, end: 8.45, lines: ["ASATEX 陪你", "一夜好眠到天亮"] },
-  { start: 8.45, end: 11.37, lines: ["穿上睡衣", "好好睡一覺"] },
-  { start: 11.37, end: 15.1, lines: ["ASATEX 陪你", "一夜好眠到天亮"] },
+  { start: 0.36, end: 3.4, lines: ["穿上睡衣", "好好睡一覺"] },
+  { start: 3.4, end: 7.6, lines: ["ASATEX 陪你", "一夜好眠到天亮"] },
+  { start: 8.76, end: 11.76, lines: ["穿上睡衣", "好好睡一覺"] },
+  { start: 11.76, end: 16.56, lines: ["ASATEX 陪你", "一夜好眠到天亮"] },
 ];
 
 // 場景切點（格）
-const S2 = 75; // 唱歌鏡頭
-const S3 = 212; // 商品
-const S4 = 284; // 收尾 CTA
+const S2 = 80; // 唱歌鏡頭
+const S3 = 197; // 商品
+const S4 = 294; // 收尾 CTA
 
 // 原圖 1024×1024，鋪滿 1920 高 → 放大 1.875
 const K = 1920 / 1024;
@@ -133,12 +134,12 @@ const SceneSing: React.FC = () => {
 // 第 3 幕：由左往右帶過店內商品，標籤釘在原圖座標上
 const TAGS = [
   { x: 150, y: 520, text: "睡衣", at: 4 },
-  { x: 760, y: 470, text: "睡袍", at: 46 },
-  { x: 915, y: 560, text: "寢具", at: 56 },
+  { x: 760, y: 470, text: "睡袍", at: 52 },
+  { x: 915, y: 560, text: "寢具", at: 64 },
 ];
 const SceneProducts: React.FC = () => {
   const frame = useCurrentFrame();
-  const x0 = interpolate(frame, [14, 62], [0, 448], { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const x0 = interpolate(frame, [14, 70], [0, 448], { ...clamp, easing: Easing.inOut(Easing.cubic) });
   return (
     <Store x0={x0} zoom={1}>
       {TAGS.map((t) => {
