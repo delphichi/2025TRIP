@@ -74,12 +74,12 @@ def light(u, mode):
         out += f'<path d="{beam}" fill="url(#beam-{u})" filter="url(#soft-{u})" style="mix-blend-mode:screen" opacity="{.75 if mode == "day" else .35}"/>'
         out += f'<path d="{patch}" fill="#FFE6B0" filter="url(#soft-{u})" style="mix-blend-mode:screen" opacity="{.45 if mode == "day" else .2}"/>'
         if mode == "dim":
-            out += f'<rect width="{W}" height="{H}" fill="#5a4a3a" style="mix-blend-mode:multiply" opacity=".35"/>'
+            out += f'<rect x="-2000" y="-2000" width="6000" height="6000" fill="#5a4a3a" style="mix-blend-mode:multiply" opacity=".35"/>'
     elif mode == "dawn":
         out += f'<path d="M45,200 L232,250 L1180,920 L660,960Z" fill="url(#dawn-{u})" filter="url(#soft-{u})" style="mix-blend-mode:screen" opacity=".8"/>'
-        out += f'<rect width="{W}" height="{H}" fill="#FFD9B8" style="mix-blend-mode:multiply" opacity=".18"/>'
+        out += f'<rect x="-2000" y="-2000" width="6000" height="6000" fill="#FFD9B8" style="mix-blend-mode:multiply" opacity=".18"/>'
     elif mode in ("night", "lamp"):
-        out += f'<rect width="{W}" height="{H}" fill="#1d2a45" style="mix-blend-mode:multiply" opacity=".62"/>'
+        out += f'<rect x="-2000" y="-2000" width="6000" height="6000" fill="#1d2a45" style="mix-blend-mode:multiply" opacity=".62"/>'
         out += f'<path d="{beam}" fill="url(#moon-{u})" filter="url(#soft-{u})" style="mix-blend-mode:screen" opacity=".55"/>'
         if mode == "lamp":
             out += f'<ellipse cx="600" cy="580" rx="460" ry="330" fill="url(#lamp-{u})" style="mix-blend-mode:screen" opacity=".7"/>'
@@ -292,45 +292,148 @@ def bed_lying(u):
             + cut("M1340,548 Q1470,530 1600,548 V650 H1340Z", BLANKET, 3, u))
 
 
-# ── 十三個關鍵格 ──────────────────────────────────────────────
-def k1():
-    u = "a"
-    body = (room(u) + bed_lying(u) + light(u, "day")
-            + cal(690, 560, 1.4, u, -8) + pop_lines(690, 560, 80)
-            + subtitle("今天有點累……明天再寫吧。", "小哲")
-            + badge(690, 420, 1) + arrow("M690,620 L690,540", u))
-    return frame(u, body)
+# ── 鏡頭：遠景／中景／近景／特寫 ─────────────────────────────────
+# 同一個紙模型房間，用「推近」取景：(cx, cy) 是畫面中心對準的房間座標，z 是放大倍率。
+# 紙的投影也跟著放大——就像真的把攝影機往模型靠近。字幕、編號、箭頭畫在鏡頭外（螢幕座標）。
+SIZE = {"遠": ("遠景", "#3A4E78", 0), "中": ("中景", "#4E7D63", 1), "近": ("近景", "#C98A1E", 2), "特": ("特寫", CALRED, 3)}
 
 
-def k2():
-    u = "b"
+def cam(inner, cx=960, cy=540, z=1.0, blur=None):
+    if z == 1 and cx == 960 and cy == 540:
+        return inner
+    f = f' filter="url(#{blur})"' if blur else ""
+    return f'<g{f}><g transform="translate(960 540) scale({z}) translate({-cx} {-cy})">{inner}</g></g>'
+
+
+def dust(u, n=40, seed=2):
+    r = random.Random(seed)
+    out = []
+    for _ in range(n):
+        t, k = r.random(), r.random()
+        x = 140 + t * 820 + k * 160
+        y = 220 + t * 760 - k * 40
+        out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{r.uniform(1.5, 4):.1f}" fill="#FFF4D8" opacity="{r.uniform(.35, .85):.2f}"/>')
+    return "".join(out)
+
+
+def note(x, y, s, u, rot=0, text="數學…"):
+    return (f'<g transform="translate({x} {y}) rotate({rot}) scale({s})">' + cut("M-40,-26 L38,-30 L42,24 L-36,28Z", "#FFF6D6", 2, u)
+            + f'<text x="0" y="8" text-anchor="middle" font-family="{SERIF}" font-weight="900" font-size="20" fill="{INK}">{text}</text></g>')
+
+
+# 各段的房間（世界座標）
+def w_s1(u, pop):
+    return (room(u) + bed_lying(u) + light(u, "day") + dust(u)
+            + (cal(690, 560, 1.4, u, -8) + pop_lines(690, 560, 80) if pop else ""))
+
+
+def w_s2(u):
     rain = "".join(cal(x, y, 1.1, u, r) for x, y, r in ((860, 380, -14), (1040, 260, 10), (1240, 420, -6), (700, 300, 18), (1420, 300, 6)))
-    body = (room(u) + zhe(980, 960, 1.1, u, "point", "open") + light(u, "day")
-            + cal(640, 600, 1.0, u, -8) + cal(600, 900, 1.0, u, 12)
-            + rain
-            + subtitle("英文、運動、吉他……明天全部開始！", "小哲")
-            + badge(1560, 230, 2) + arrow("M1500,240 L1300,300", u))
+    return room(u) + zhe(980, 960, 1.1, u, "point", "open") + light(u, "day") + cal(640, 600, 1.0, u, -8) + cal(600, 900, 1.0, u, 12) + rain
+
+
+def w_s4(u, pages=18, open_=1.0, arm="open", face="shock"):
+    return room(u) + zhe(560, 990, 1.05, u, "stand", face) + mister(1080, 1000, 1.25, u, pages, open_=open_, arm=arm) + light(u, "night")
+
+
+def w_s10(u):
+    plane = f'<g transform="translate(1080 470) scale(-1 1) rotate(-8)">' + cut("M0,0 L140,30 L0,60 L30,30Z", PAPER, 4, u) + cut("M30,30 L140,30 L0,60Z", "#EDE5D5", 4, u) + "</g>"
+    return (room(u) + mountain(u, .6, 9) + zhe(640, 900, 1.0, u, "sit", "smile") + mister(1300, 960, 1.1, u, 22, arm="up")
+            + plane + f'<path d="M1250,540 Q1180,560 1100,520" fill="none" stroke="{PAPER}" stroke-width="4" stroke-dasharray="10 12"/>'
+            + light(u, "lamp"))
+
+
+def w_s12(u):
+    blank = (f'<g transform="translate(250 480) rotate(-6) scale(.8)">' + cut("M-46,-56 H46 V56 H-46Z", PAPER, 3, u) + cut("M-46,-56 H46 V-30 H-46Z", CALRED, 1, u)
+             + f'<text x="0" y="36" text-anchor="middle" font-family="{SERIF}" font-weight="900" font-size="64" fill="{INK}">?</text></g>')
+    return room(u) + mister(150, 560, .42, u, 4, arm="up", hat=True) + blank + zhe(640, 900, 1.0, u, "write", "open") + light(u, "dawn")
+
+
+# ── 二十三個關鍵格 ────────────────────────────────────────────
+def k1a():  # 遠景：開場全景
+    u = "a1"
+    return frame(u, w_s1(u, False))
+
+
+def k1b():  # 近景：躺在床上的臉
+    u = "a2"
+    return frame(u, cam(w_s1(u, False), 1360, 570, 3.0) + subtitle("今天有點累……明天再寫吧。", "小哲"))
+
+
+def k1c():  # 特寫：啪！
+    u = "a3"
+    return frame(u, cam(w_s1(u, True), 690, 600, 3.6) + badge(1400, 260, 1) + arrow("M1260,820 Q1180,620 1100,500", u))
+
+
+def k2a():  # 特寫：手機
+    u = "b1"
+    phone = ("M800,130 H1120 Q1160,130 1160,170 V960 Q1160,1000 1120,1000 H800 Q760,1000 760,960 V170 Q760,130 800,130Z")
+    screen = (cut("M786,190 H1134 V940 H786Z", "#F7F1E6", 1, u)
+              + cut("M786,700 H1134 V940 H786Z", SAGE, 1, u)
+              + cut("M1060,300 a34,34 0 1 0 68,0 a34,34 0 1 0 -68,0Z", MUSTARD, 1, u)
+              + f'<g transform="translate(-10 0)">{zhe(960, 770, .9, u, "point", "smile")}</g>'
+              + f'<text x="960" y="250" text-anchor="middle" font-family="{SERIF}" font-weight="900" font-size="40" fill="{INK}">30 天跑步挑戰</text>'
+              + cut("M870,860 H1050 Q1074,860 1074,884 Q1074,908 1050,908 H870 Q846,908 846,884 Q846,860 870,860Z", CALRED, 1, u)
+              + f'<text x="960" y="896" text-anchor="middle" font-family="{SERIF}" font-weight="900" font-size="30" fill="{PAPER}">開始</text>')
+    body = (cam(room(u) + light(u, "day"), 980, 600, 2.0, blur=f"soft-{u}")
+            + f'<path d="M1500,1180 L1180,760" stroke="{HOODIE}" stroke-width="180" stroke-linecap="round" filter="url(#d4-{u})"/>'
+            + cut(phone, INK, 4, u) + screen
+            + cut("M1110,700 a62,62 0 1 0 124,0 a62,62 0 1 0 -124,0Z", SKIN, 4, u)
+            + cal(1460, 360, 1.6, u, 12) + pop_lines(1460, 360, 100)
+            + subtitle("好！明天開始運動！", "小哲"))
     return frame(u, body)
 
 
-def k3():
-    u = "c"
+def k2b():  # 中景：三連啪
+    u = "b2"
+    return frame(u, cam(w_s2(u), 980, 560, 1.55) + subtitle("英文、運動、吉他……明天全部開始！", "小哲")
+                 + badge(1640, 170, 2) + arrow("M1600,220 L1430,290", u))
+
+
+def k3a():  # 遠景：夜，桌上的日曆在抖
+    u = "c1"
+    shake = "".join(f'<path d="M{690 + sx * 64},{580 + k * 26} q{sx * 12},10 0,20" fill="none" stroke="{PAPER}" stroke-width="5" stroke-linecap="round"/>'
+                    for sx in (-1, 1) for k in range(2))
+    return frame(u, room(u, books_on_desk=False) + bed_lying(u) + light(u, "night") + cal(690, 600, 1.3, u, -4) + shake)
+
+
+def k3b():  # 近景：一張張摺起來
+    u = "c2"
     pieces = (cal(980, 700, 1.4, u, -20, "") + cal(820, 820, 1.2, u, 30, "") + cal(1150, 860, 1.2, u, -40, "")
               + f'<g transform="rotate(-8 980 760)" opacity=".92">{mister(980, 960, .82, u, 6, arm="down", hat=False)}</g>')
-    body = (room(u, books_on_desk=False) + bed_lying(u) + pieces + light(u, "night")
-            + badge(1200, 360, 3) + arrow("M800,860 Q840,760 900,720", u) + arrow("M1180,900 Q1120,800 1060,760", u))
+    world = room(u, books_on_desk=False) + bed_lying(u) + pieces + light(u, "night")
+    return frame(u, cam(world, 980, 770, 2.3) + badge(200, 200, 3)
+                 + arrow("M520,820 Q600,600 760,520", u) + arrow("M1420,880 Q1300,640 1160,560", u))
+
+
+def k4a():  # 中景：雙人，第一次見面
+    u = "d1"
+    return frame(u, cam(w_s4(u, 14, 0, "down"), 820, 640, 1.45) + subtitle("聽說，你有很多事情要交給我？", "明天先生"))
+
+
+def k4b():  # 特寫：胸前那頁打開
+    u = "d2"
+    return frame(u, cam(w_s4(u), 1150, 720, 3.4) + subtitle("你沒做完的事，全部都交給我保管！", "明天先生") + badge(1700, 180, 4))
+
+
+def k4c():  # 中景：規則——說「明天」，他就長高
+    u = "d3"
+    z, cx, cy = 1.3, 860, 560
+    sx = 960 + z * (1080 - cx)
+    head = lambda pages: 540 + z * (1000 - 1.25 * (100 + 60 + pages * 12 + 120) - cy)
+    old_top, new_top = head(18), head(26)
+    x0 = sx + 150
+    body = (cam(w_s4(u, 26, 0, "up", "open"), cx, cy, z)
+            + f'<path d="M{x0:.0f},{old_top:.0f} h120" stroke="{PAPER}" stroke-width="5" stroke-dasharray="12 8"/>'
+            + f'<path d="M{x0:.0f},{new_top:.0f} h120" stroke="{PAPER}" stroke-width="5"/>'
+            + f'<text x="{x0 + 130:.0f}" y="{old_top + 12:.0f}" font-family="{SERIF}" font-weight="900" font-size="34" fill="{PAPER}">剛才</text>'
+            + arrow(f"M{x0 + 60:.0f},{old_top - 8:.0f} L{x0 + 60:.0f},{new_top + 30:.0f}", u)
+            + f'<text x="{x0 + 130:.0f}" y="{new_top + 60:.0f}" font-family="{SERIF}" font-weight="900" font-size="64" fill="{PAPER}">咻！</text>'
+            + subtitle("那……明天再說好了。", "小哲"))
     return frame(u, body)
 
 
-def k4():
-    u = "d"
-    body = (room(u) + zhe(560, 990, 1.05, u, "stand", "shock") + mister(1080, 1000, 1.25, u, 18, open_=1, arm="open") + light(u, "night")
-            + subtitle("我是明天先生。你沒做完的事，全部都交給我保管！", "明天先生")
-            + badge(1340, 300, 4))
-    return frame(u, body)
-
-
-def k5():
+def k5():  # 遠景：時間流逝
     u = "e"
     body = (room(u) + mountain(u, .55, 5) + light(u, "dim")
             + f'<g transform="translate(1560 160)"><rect x="-120" y="-50" width="240" height="90" rx="10" fill="{INK}" opacity=".75"/>'
@@ -339,15 +442,18 @@ def k5():
     return frame(u, body)
 
 
-def k6():
-    u = "f"
-    body = (room(u) + mountain(u, .95, 7) + zhe(820, 470, 1.0, u, "reach", "open")
-            + cal(930, 220, 2.2, u, 6, "下週/一定開始") + light(u, "dim")
-            + badge(1080, 200, 6))
-    return frame(u, body)
+def k6a():  # 特寫插入：吉他被壓在下面
+    u = "f1"
+    return frame(u, cam(room(u) + mountain(u, .8, 7) + light(u, "dim"), 1690, 700, 3.0))
 
 
-def k7():
+def k6b():  # 中景：爬紙山
+    u = "f2"
+    world = room(u) + mountain(u, .95, 7) + zhe(820, 470, 1.0, u, "reach", "open") + cal(930, 220, 2.2, u, 6, "下週/一定開始") + light(u, "dim")
+    return frame(u, cam(world, 880, 340, 1.6) + badge(1560, 200, 6))
+
+
+def k7():  # 遠景：最遠、最安靜
     u = "g"
     body = (room(u) + mountain(u, .95, 7) + mister(1380, 900, 1.25, u, 30, bend=34, face="worry", arm="down", hat=True)
             + zhe(700, 470, .8, u, "stand", "shock") + light(u, "dim")
@@ -356,8 +462,14 @@ def k7():
     return frame(u, body)
 
 
-def k8():
-    u = "h"
+def k8a():  # 近景：坐在紙山裡，發現紙條
+    u = "h1"
+    world = room(u) + mountain(u, .6, 9) + zhe(760, 680, 1.0, u, "sit", "tired") + note(760, 592, 1.0, u, -8) + light(u, "night")
+    return frame(u, cam(world, 780, 520, 2.6))
+
+
+def k8b():  # 特寫：雙手攤平紙條
+    u = "h2"
     sleeve = lambda ax, ay, bx, by: (f'<path d="M{ax},{ay} L{bx},{by}" stroke="{HOODIE}" stroke-width="120" stroke-linecap="round" filter="url(#d4-{u})"/>')
     creases = "".join(f'<path d="{d}" fill="none" stroke="{INK}" stroke-opacity=".10" stroke-width="3"/>'
                       for d in ("M600,560 L820,700 L760,880", "M1320,540 L1100,660 L1180,890", "M700,520 L960,600 L1240,520"))
@@ -375,7 +487,7 @@ def k8():
     return frame(u, body)
 
 
-def k9():
+def k9():  # 特寫：第一題（9 秒不切）
     u = "i"
     lines = "".join(f'<path d="M520,{360 + k * 70} H1420" stroke="{INK}" stroke-opacity=".18" stroke-width="3"/>' for k in range(8))
     body = (f'<rect width="{W}" height="{H}" fill="{WOOD}"/>'
@@ -394,19 +506,19 @@ def k9():
     return frame(u, body)
 
 
-def k10():
-    u = "j"
-    plane = f'<g transform="translate(1280 300) rotate(-12)">' + cut("M0,0 L140,30 L0,60 L30,30Z", PAPER, 4, u) + cut("M30,30 L140,30 L0,60Z", "#EDE5D5", 4, u) + "</g>"
-    body = (room(u) + mountain(u, .6, 9) + zhe(640, 900, 1.0, u, "sit", "smile") + mister(1300, 960, 1.1, u, 26, arm="up")
-            + plane + f'<path d="M1240,360 Q1180,420 1120,380" fill="none" stroke="{PAPER}" stroke-width="4" stroke-dasharray="10 12"/>'
-            + light(u, "lamp")
-            + subtitle("那……今天是不是有一件事，不用交給我了？", "明天先生")
-            + badge(1460, 230, 10))
-    return frame(u, body)
+def k10a():  # 近景：第一次笑
+    u = "j1"
+    return frame(u, cam(w_s10(u), 620, 640, 2.8) + subtitle("原來開始，沒有我想的那麼難。", "小哲"))
 
 
-def k11():
-    u = "k"
+def k10b():  # 中景：紙飛機
+    u = "j2"
+    return frame(u, cam(w_s10(u), 980, 560, 1.35) + subtitle("那……今天是不是有一件事，不用交給我了？", "明天先生")
+                 + badge(1780, 380, 10))
+
+
+def k11a():  # 遠景：清晨，三個紙盒
+    u = "k1"
     body = (room(u) + mountain(u, .25, 11)
             + box(560, 960, "現在開始", "#4E7D63", u) + box(960, 980, "可以放掉", "#8A8A8A", u) + box(1360, 960, "排到可行的日子", HOODIE, u)
             + zhe(1700, 990, .95, u, "hug", "open") + cal(1630, 830, 1.0, u, -10, "明天")
@@ -415,18 +527,29 @@ def k11():
     return frame(u, body)
 
 
-def k12():
-    u = "l"
-    blank = f'<g transform="translate(250 480) rotate(-6) scale(.8)">' + cut("M-46,-56 H46 V56 H-46Z", PAPER, 3, u) + cut("M-46,-56 H46 V-30 H-46Z", CALRED, 1, u) + f'<text x="0" y="36" text-anchor="middle" font-family="{SERIF}" font-weight="900" font-size="64" fill="{INK}">?</text></g>'
-    body = (room(u, books_on_desk=True) + mister(150, 560, .42, u, 4, arm="up", hat=True) + blank
-            + zhe(640, 900, 1.0, u, "write", "open")
-            + light(u, "dawn")
-            + subtitle("你可以幫我提醒，明天還有新的事情。", "小哲")
-            + badge(420, 220, 12))
+def k11b():  # 特寫：日記
+    u = "k2"
+    lines = "".join(f'<path d="M{x0},{300 + k * 80} H{x0 + 560}" stroke="{INK}" stroke-opacity=".15" stroke-width="3"/>' for x0 in (300, 1000) for k in range(7))
+    body = (f'<rect width="{W}" height="{H}" fill="{WOOD}"/>'
+            + cut("M240,170 H1680 V960 H240Z", ORANGE, 3, u)
+            + cut("M270,190 H950 V940 H270Z M970,190 H1650 V940 H970Z", PAPER, 2, u) + lines
+            + f'<path d="M960,190 V940" stroke="{INK}" stroke-opacity=".25" stroke-width="6"/>'
+            + f'<text x="320" y="270" font-family="{SERIF}" font-weight="700" font-size="40" fill="#999">十月十三日</text>'
+            + f'<text x="320" y="370" font-family="{SERIF}" font-weight="700" font-size="40" fill="#bbb" text-decoration="line-through">明天開始讀書</text>'
+            + f'<text x="1020" y="270" font-family="{SERIF}" font-weight="700" font-size="40" fill="#999">十月十四日</text>'
+            + f'<text x="1020" y="372" font-family="{SERIF}" font-weight="900" font-size="58" fill="{INK}">今天：數學第一題。</text>'
+            + f'<path d="M1040,410 Q1250,430 1500,404" fill="none" stroke="{CALRED}" stroke-width="6" stroke-linecap="round"/>'
+            + f'<g transform="translate(1480 640) rotate(-30)">' + cut("M0,-14 H360 V14 H0Z", MUSTARD, 4, u) + cut("M0,-14 L-50,0 L0,14Z", "#E8D3B0", 4, u) + "</g>"
+            + f'<path d="M0,0 L700,0 L1500,1080 L0,1080Z" fill="url(#dawn-{u})" filter="url(#soft-{u})" style="mix-blend-mode:screen" opacity=".55"/>')
     return frame(u, body)
 
 
-def k13():
+def k12():  # 近景：窗台上的小明天先生
+    u = "l"
+    return frame(u, cam(w_s12(u), 200, 470, 3.2) + subtitle("你可以幫我提醒，明天還有新的事情。", "小哲") + badge(1640, 180, 12))
+
+
+def k13():  # 遠景：拉到最遠
     u = "m"
     bird = f'<g transform="translate(1180 230) rotate(-10)">' + cut("M0,0 L-80,-40 L-20,-6 L-60,-80 L10,-10 L70,-24 L30,8 L90,0 L20,22Z", PAPER, 3, u) + "</g>"
     inner = f'<g transform="translate(560 260) scale(.42)">{room(u)}{zhe(640, 900, 1.0, u, "write", "open")}{mister(150, 560, .42, u, 4, arm="up")}</g>'
@@ -439,83 +562,104 @@ def k13():
 
 
 # ── 分鏡表 ────────────────────────────────────────────────────
+# frames：(畫面, 切入秒數, 關鍵格秒數, 景別)
 SHOTS = [
-    dict(n="S1", name="第一個明天", t=(0, 4), act="一", light="day", frames=[(k1, 2.8)],
-         visual="開場不慢慢鋪陳：一秒內就看到房間全景，午後陽光從左牆的窗斜射進來，落在地板上。小哲躺在床上盯著桌上的習題。",
-         motion=["0:00 房間全景，光束裡有浮塵慢慢飄（唯一一直在動的東西，讓靜止的紙景有空氣）",
-                 "① 0:01.5 台詞「今天有點累……明天再寫吧。」；0:02.5 習題闔上——啪！一張紙日曆從書裡彈出來，旋轉落在桌上，四條速度線"],
+    dict(n="S1", name="第一個明天", t=(0, 4), act="一", light="day",
+         frames=[(k1a, 0, .5, "遠"), (k1b, 1.0, 1.6, "近"), (k1c, 2.3, 2.8, "特")],
+         visual="開場就用三個景別把觀眾帶進房間：遠景交代整間房和午後的光，近景看見小哲累了，特寫「啪」——第一個「明天」彈出來。",
+         motion=["0:00 遠景：光束裡有浮塵慢慢飄（唯一一直在動的東西，讓靜止的紙景有空氣）",
+                 "0:01 近景：躺著的小哲，「今天有點累……明天再寫吧。」",
+                 "① 0:02.3 特寫：習題闔上——啪！一張紙日曆從書裡彈出來，旋轉落在桌上，四條速度線"],
          sound="啪：紙張彈開＋木琴一個上揚音（之後每個「明天」都用同一個音，觀眾會開始期待它）"),
-    dict(n="S2", name="啪！啪！啪！", t=(4, 15), act="一", light="day", frames=[(k2, 12.5)],
-         visual="手機上的運動影片（插入特寫）→「好！明天開始運動！」第二張日曆落在鞋子旁。接著他指著英文書、吉他：「英文、運動、吉他……明天全部開始！」日曆一張接一張從天花板落下。",
-         motion=["0:04–0:07 手機特寫：紙手機螢幕上一個剪紙小人在跑步",
-                 "② 0:10–0:12 三連啪：日曆卡在節拍上掉落，每張落地都彈一下",
-                 "0:12–0:15 旁白「小哲不是沒有計畫。／他的計畫，全部都在明天。」鏡頭緩慢推近桌上那疊日曆"],
+    dict(n="S2", name="啪！啪！啪！", t=(4, 15), act="一", light="day",
+         frames=[(k2a, 4, 5.5, "特"), (k2b, 7, 11, "中")],
+         visual="特寫手機上的跑步挑戰 →「好！明天開始運動！」啪，第二張日曆。切中景：他指著英文書、吉他：「英文、運動、吉他……明天全部開始！」日曆一張接一張從天花板落下。",
+         motion=["0:04 特寫：紙手機螢幕上一個剪紙小人在跑步，日曆從畫面右邊彈進來",
+                 "② 0:10–0:12 中景三連啪：日曆卡在節拍上掉落，每張落地都彈一下",
+                 "0:12–0:15 旁白「小哲不是沒有計畫。／他的計畫，全部都在明天。」中景慢慢拉回遠景，看見地上已經散了好幾張"],
          sound="輕快木琴＋彈跳節奏；三連啪落在三個拍子上"),
-    dict(n="S3", name="日曆站起來", t=(15, 21), act="二", light="night", frames=[(k3, 18)],
-         visual="夜。房間轉成冷藍色，月光從窗戶斜照。桌上的日曆開始自己動：一張摺成手臂、一張摺成腿、厚厚的紙頁疊成身體。",
-         motion=["③ 照劇本製作指引：不直接切成完整角色，讓紙片在鏡頭前一張張摺起、插接（每 2 格動一次）",
-                 "最後一張紙摺成帽子戴上，帽子上寫著「明天」"],
+    dict(n="S3", name="日曆站起來", t=(15, 21), act="二", light="night",
+         frames=[(k3a, 15, 15.5, "遠"), (k3b, 17, 18.5, "近")],
+         visual="夜。遠景：房間轉成冷藍色，小哲睡著了，桌上一張日曆開始發抖。切近景：日曆一張張摺起來——一張摺成手臂、一張摺成腿、厚厚的紙頁疊成身體。",
+         motion=["0:15 遠景停 1 秒，只有那張日曆在抖，讓觀眾自己找到它",
+                 "③ 近景：照劇本製作指引，不直接切成完整角色，讓紙片在鏡頭前一張張摺起、插接（每 2 格動一次）；最後一張紙摺成帽子戴上，寫著「明天」"],
          sound="紙張摺疊的清脆聲，一聲接一聲加快；組好時一聲低音大提琴（幽默，不恐怖）"),
-    dict(n="S4", name="明天先生", t=(21, 30), act="二", light="night", frames=[(k4, 26)],
-         visual="仰角。明天先生低頭看小哲：「聽說，你有很多事情要交給我？」他得意地打開胸前那頁，裡面塞滿紙條：開始讀書、每天運動、早點睡覺、學好英文、整理房間。",
-         motion=["④ 胸前的日曆頁像門一樣打開，五張紙條依序彈出",
-                 "<b>規則在這裡交代清楚</b>：小哲脫口而出「那……明天再說好了」，明天先生當場「咻」地長高一截——之後每次長高，觀眾都知道為什麼",
-                 "0:28「是啊！而且我每天都會幫你收新的！」再長高一截"],
+    dict(n="S4", name="明天先生", t=(21, 30), act="二", light="night",
+         frames=[(k4a, 21, 22.5, "中"), (k4b, 24.5, 26, "特"), (k4c, 27.5, 28.5, "中")],
+         visual="中景雙人：明天先生低頭看小哲：「聽說，你有很多事情要交給我？」特寫胸前那頁打開，裡面塞滿紙條：開始讀書、每天運動、早點睡覺、學好英文、整理房間。回到中景：小哲脫口「那……明天再說好了」，明天先生當場長高一截。",
+         motion=["0:21 中景：攝影機略低，讓明天先生顯得高大",
+                 "④ 0:24.5 特寫：胸前的日曆頁像門一樣打開，五張紙條依序彈出",
+                 "<b>0:27.5 規則在這裡交代清楚</b>：中景，小哲一說「明天」，明天先生「咻」地長高一截（虛線是原本的高度）——之後每次長高，觀眾都知道為什麼"],
          sound="長高的「咻」用滑音笛；台詞間留空拍給笑點"),
-    dict(n="S5", name="日子一天天過去", t=(30, 38), act="三", light="dim", frames=[(k5, 34)],
-         visual="鏡頭固定不動，光束像日晷一樣掃過房間：白天、夜晚、白天……日曆一張張增加，從桌面漫到床鋪、地板。牆角的字卡翻著星期一、星期二、星期三。",
+    dict(n="S5", name="日子一天天過去", t=(30, 38), act="三", light="dim", frames=[(k5, 30, 34, "遠")],
+         visual="遠景，鏡頭固定不動。光束像日晷一樣掃過房間：白天、夜晚、白天……日曆一張張增加，從桌面漫到床鋪、地板。牆角的字卡翻著星期一、星期二、星期三。",
          motion=["⑤ 定格手法：每一格多一兩張紙（劇本製作指引），光束角度每 0.25 秒變一次",
                  "房間越來越暗：紙堆擋住光，地板上的光斑變小"],
          sound="紙張拍打、翻頁，加入機械般的節奏；時鐘滴答越來越快"),
-    dict(n="S6", name="下週一定開始", t=(38, 44), act="三", light="dim", frames=[(k6, 41)],
-         visual="快速插入：找不到數學作業、吉他被壓在下面、運動鞋只露出兩個角。小哲爬上紙山，抓住最上面一張日曆——「下週一定開始」。",
-         motion=["三個 0.6 秒的插入鏡頭（作業、吉他、鞋）",
-                 "⑥ 爬紙山：紙堆在腳下塌陷、滑動；抓到那張日曆時拉成特寫"],
+    dict(n="S6", name="下週一定開始", t=(38, 44), act="三", light="dim",
+         frames=[(k6a, 38, 38.6, "特"), (k6b, 40, 41.5, "中")],
+         visual="三個快速特寫：找不到數學作業、吉他被壓在下面、運動鞋只露出兩個角。切中景：小哲爬上紙山，抓住最上面一張日曆——「下週一定開始」。",
+         motion=["0:38–0:40 三個 0.6 秒的特寫插入（作業、吉他、鞋）",
+                 "⑥ 中景：紙堆在腳下塌陷、滑動；抓到那張日曆時舉到鏡頭前"],
          sound="紙山崩塌的沙沙聲"),
-    dict(n="S7", name="怎麼反而什麼都沒做", t=(44, 48), act="三", light="dim", frames=[(k7, 46)],
-         visual="小哲站在紙山頂上低頭看房間。明天先生已經高到頭撞天花板、彎著腰：「嗯……你交給我的工作，好像真的有點多。」",
+    dict(n="S7", name="怎麼反而什麼都沒做", t=(44, 48), act="三", light="dim", frames=[(k7, 44, 46, "遠")],
+         visual="突然退到遠景：小哲變得很小，站在紙山頂上。明天先生已經高到頭撞天花板、彎著腰：「嗯……你交給我的工作，好像真的有點多。」",
          motion=["⑦ 音樂停：只剩紙張緩緩飄落（每 3 格落一張）",
+                 "前一鏡還是中景，這裡一刀切到全片最遠的距離——用距離講孤單",
                  "明天先生的頭沿著天花板彎下來，帽子被擠歪"],
          sound="全片第一次安靜。只有紙張落下的細聲"),
-    dict(n="S8", name="數學：第一題", t=(48, 55), act="四", light="lamp", frames=[(k8, 51)],
-         visual="小哲坐在紙山中央，看見角落一張被壓住的小紙條，撿起來慢慢攤平：「數學：第一題」。檯燈亮起，房間第一次有暖色的光。",
-         motion=["⑧ 雙手把皺紙條往兩邊攤平（皺摺線一條條消失）",
-                 "「我不需要今天把全部事情做完。／我只要先寫第一題。」"],
+    dict(n="S8", name="數學：第一題", t=(48, 55), act="四", light="lamp",
+         frames=[(k8a, 48, 49, "近"), (k8b, 50.5, 52, "特")],
+         visual="從這裡開始鏡頭一路往前推。近景：小哲坐在紙山中央，手上是一張被壓在角落的小紙條。特寫：雙手慢慢攤平——「數學：第一題」。檯燈亮起，房間第一次有暖色的光。",
+         motion=["0:48 近景：藍色的夜，只有紙條是亮的",
+                 "⑧ 0:50.5 特寫：雙手把皺紙條往兩邊攤平（皺摺線一條條消失）；「我不需要今天把全部事情做完。／我只要先寫第一題。」"],
          sound="紙條攤平的輕響；檯燈開關「喀」"),
-    dict(n="S9", name="第一題", t=(55, 64), act="四", light="lamp", frames=[(k9, 60)],
-         visual="俯拍特寫，全片最慢的一段：鉛筆寫下第一行、停一下、擦掉一個錯的數字、重新計算——寫完。叮！一盞小紙燈亮了。",
-         motion=["⑨ 和前半段的快速剪接相反：一個鏡頭 9 秒不切，鉛筆每 2 格前進一點",
+    dict(n="S9", name="第一題", t=(55, 64), act="四", light="lamp", frames=[(k9, 55, 60, "特")],
+         visual="俯拍特寫，全片最慢、最近的一段：鉛筆寫下第一行、停一下、擦掉一個錯的數字、重新計算——寫完。叮！一盞小紙燈亮了。",
+         motion=["⑨ 和前半段的快速剪接相反：一個特寫 9 秒不切，鉛筆每 2 格前進一點",
                  "擦掉的「4」用橡皮擦屑表現；寫完後停半秒才「叮」"],
          sound="鉛筆沙沙聲；音樂暫停半秒，再一個清脆的木琴音（劇本：成功提示）"),
-    dict(n="S10", name="不用交給我了", t=(64, 70), act="四", light="lamp", frames=[(k10, 67)],
-         visual="小哲露出一點笑容：「原來開始，沒有我想的那麼難。」明天先生身上的一張日曆飄下來，摺成一架小紙飛機。「那……今天是不是有一件事，不用交給我了？」「對。這一件，今天就做完了。」",
-         motion=["⑩ 日曆從明天先生身上剝離、在空中摺成紙飛機（6 格完成），沿虛線滑翔",
-                 "明天先生縮矮一截——規則反過來：做完一件，他就變小一點"],
+    dict(n="S10", name="不用交給我了", t=(64, 70), act="四", light="lamp",
+         frames=[(k10a, 64, 65, "近"), (k10b, 66.5, 68, "中")],
+         visual="近景：小哲露出一點笑容：「原來開始，沒有我想的那麼難。」退到中景：明天先生身上的一張日曆飄下來，摺成一架小紙飛機。「那……今天是不是有一件事，不用交給我了？」「對。這一件，今天就做完了。」",
+         motion=["0:64 近景：全片第一次看清楚他笑，檯燈光打在臉上",
+                 "⑩ 中景：日曆從明天先生身上剝離、在空中摺成紙飛機（6 格完成），沿虛線滑翔；明天先生縮矮一截——規則反過來：做完一件，他就變小一點"],
          sound="紙飛機滑翔的輕柔風聲"),
-    dict(n="S11", name="三個紙盒", t=(70, 80), act="五", light="dawn", frames=[(k11, 75)],
-         visual="清晨，金色的光重新照進房間。小哲把紙山裡的日曆一張張拿出來，分進三個紙盒：「現在開始」「可以放掉」「排到可行的日子」。他沒有一口氣做完所有事，只是清出桌面、收好吉他，在日記寫下「今天：數學第一題。」",
-         motion=["⑪ 每張日曆被拿起、看一眼、丟進其中一個紙盒（每個約 0.8 秒），盒子上的字卡要讓觀眾看清楚",
-                 "紙山逐漸變矮，地板的光斑一格一格變大"],
+    dict(n="S11", name="三個紙盒", t=(70, 80), act="五", light="dawn",
+         frames=[(k11a, 70, 75, "遠"), (k11b, 77, 78, "特")],
+         visual="清晨，遠景：金色的光重新照進房間。小哲把紙山裡的日曆一張張拿出來，分進三個紙盒：「現在開始」「可以放掉」「排到可行的日子」。特寫：日記上寫下「今天：數學第一題。」",
+         motion=["⑪ 遠景：每張日曆被拿起、看一眼、丟進其中一個紙盒（每個約 0.8 秒），盒子上的字卡要讓觀眾看清楚；紙山逐漸變矮，地板的光斑一格一格變大",
+                 "0:77 特寫：左頁是劃掉的「明天開始讀書」，右頁是「今天：數學第一題。」"],
          sound="開場旋律回來，速度稍慢；每張日曆落進盒子一聲輕敲"),
-    dict(n="S12", name="空白的日曆", t=(80, 86), act="五", light="dawn", frames=[(k12, 83)],
-         visual="明天先生縮成小小的紙人，坐在窗台上。「你以後不用幫我保管這麼多事了。」「那我以後要做什麼？」「你可以幫我提醒，明天還有新的事情。」他拿出一張空白日曆，上面只有一個問號。",
-         motion=["⑫ 明天先生從大縮到小：身體的日曆頁一頁頁翻走",
+    dict(n="S12", name="空白的日曆", t=(80, 86), act="五", light="dawn", frames=[(k12, 80, 83, "近")],
+         visual="近景：明天先生縮成小小的紙人，坐在窗台上。「你以後不用幫我保管這麼多事了。」「那我以後要做什麼？」「你可以幫我提醒，明天還有新的事情。」他拿出一張空白日曆，上面只有一個問號。",
+         motion=["⑫ 明天先生從大縮到小：身體的日曆頁一頁頁翻走；小哲的台詞從畫外傳來",
                  "空白日曆翻過來，問號露出"],
          sound="溫暖的木琴＋弦樂"),
-    dict(n="S13", name="結尾", t=(86, 90), act="五", light="dawn", frames=[(k13, 88.5)],
-         visual="鏡頭拉遠，房間變成黑暗中的一個紙模型。桌前的小哲正在寫下一題，窗台上的明天先生看著窗外，一隻紙鳥飛過。只留一句字幕，接片名。",
+    dict(n="S13", name="結尾", t=(86, 90), act="五", light="dawn", frames=[(k13, 86, 88.5, "遠")],
+         visual="從窗台的近景一口氣拉到全片最遠：房間變成黑暗中的一個紙模型。桌前的小哲正在寫下一題，窗台上的明天先生看著窗外，一隻紙鳥飛過。只留一句字幕，接片名。",
          motion=["⑬ 拉遠：整個房間縮成畫面中央的紙盒（像參考圖那樣是一個實體模型）",
                  "字幕只留一句：「只要做一件，今天真的做得到的事。」接片名"],
          sound="開場旋律完整收尾；最後一個音是 S1 那個「明天」音的反向（下行），故事完成一個循環"),
 ]
 
 
+def tc(t):
+    return f"{int(t // 60)}:{t % 60:04.1f}"
+
+
+def chip(size):
+    name, color, _ = SIZE[size]
+    return f'<span class="sz" style="background:{color}">{name}</span>'
+
+
 def shot_html(sh):
     a, b = sh["t"]
-    thumbs = "".join(f'<figure><div class="thumb">{fn()}</div><figcaption>{int(t // 60)}:{t % 60:04.1f}</figcaption></figure>' for fn, t in sh["frames"])
+    thumbs = "".join(f'<figure><div class="thumb">{fn()}</div><figcaption>{chip(sz)} {tc(t)}</figcaption></figure>' for fn, _, t, sz in sh["frames"])
+    sizes = "→".join(SIZE[f[3]][0] for f in sh["frames"])
     li = "".join(f"<li>{m}</li>" for m in sh["motion"])
     return f'''<article class="shot"><header><span class="sn">{sh["n"]}</span><h3>{sh["name"]}</h3>
-<span class="time">第{sh["act"]}幕 · {a // 60}:{a % 60:02d}–{b // 60}:{b % 60:02d} · {b - a} 秒 · 光：{LIGHT_NAME[sh["light"]]}</span></header>
+<span class="time">第{sh["act"]}幕 · {a // 60}:{a % 60:02d}–{b // 60}:{b % 60:02d} · {b - a} 秒 · {sizes} · 光：{LIGHT_NAME[sh["light"]]}</span></header>
 <div class="body"><div class="thumbs">{thumbs}</div><dl><dt>畫面</dt><dd>{sh["visual"]}</dd><dt>動態</dt><dd><ul>{li}</ul></dd>
 <dt>聲音</dt><dd>{sh["sound"]}</dd></dl></div></article>'''
 
@@ -524,27 +668,57 @@ LIGHT_NAME = {"day": "午後斜陽", "night": "夜・月光", "dim": "被紙堆�
 LIGHT_COLOR = {"day": "#E8B65A", "night": "#3A4E78", "dim": "#8A7560", "lamp": "#E9A23B", "dawn": "#F0A07A"}
 
 
+def cuts():
+    """每一刀：(開始, 結束, 景別)。"""
+    out = []
+    for sh in SHOTS:
+        fr = sh["frames"]
+        for k, f in enumerate(fr):
+            end = fr[k + 1][1] if k + 1 < len(fr) else sh["t"][1]
+            out.append((f[1], end, f[3]))
+    return out
+
+
 def timeline():
-    Wt, Ht, top = 1000, 170, 30
+    Wt, Ht, top = 1000, 230, 30
     px = Wt / 90
-    s = [f'<svg viewBox="0 0 {Wt} {Ht}" class="tl" role="img" aria-label="90 秒節奏與光線">']
+    s = [f'<svg viewBox="0 0 {Wt} {Ht}" class="tl" role="img" aria-label="90 秒節奏、景別與光線">']
     for sec in range(0, 91, 5):
         x = sec * px
-        s.append(f'<line x1="{x:.1f}" y1="{top - 6}" x2="{x:.1f}" y2="{top + 88}" stroke="currentColor" stroke-opacity="{.45 if sec % 15 == 0 else .15}"/>')
+        s.append(f'<line x1="{x:.1f}" y1="{top - 6}" x2="{x:.1f}" y2="{Ht - 4}" stroke="currentColor" stroke-opacity="{.45 if sec % 15 == 0 else .12}"/>')
         if sec % 15 == 0 and sec < 90:
             s.append(f'<text x="{x + 3:.1f}" y="{top - 10}" class="tl-t">{sec // 60}:{sec % 60:02d}</text>')
     for sh in SHOTS:
         a, b = sh["t"]
-        s.append(f'<rect x="{a * px + 1:.1f}" y="{top + 4}" width="{(b - a) * px - 2:.1f}" height="34" rx="4" fill="#2A2522"/>')
+        s.append(f'<rect x="{a * px + 1:.1f}" y="{top + 4}" width="{(b - a) * px - 2:.1f}" height="30" rx="4" fill="#2A2522"/>')
         if b - a >= 4:
-            s.append(f'<text x="{(a + b) / 2 * px:.1f}" y="{top + 26}" text-anchor="middle" class="tl-s">{sh["n"]}</text>')
-        s.append(f'<rect x="{a * px:.1f}" y="{top + 42}" width="{(b - a) * px:.1f}" height="14" fill="{LIGHT_COLOR[sh["light"]]}"/>')
+            s.append(f'<text x="{(a + b) / 2 * px:.1f}" y="{top + 24}" text-anchor="middle" class="tl-s">{sh["n"]}</text>')
+        s.append(f'<rect x="{a * px:.1f}" y="{top + 38}" width="{(b - a) * px:.1f}" height="10" fill="{LIGHT_COLOR[sh["light"]]}"/>')
+    # 景別：越近越高（遠景在下、特寫在上）
+    base, step = top + 132, 24
+    for k, name in enumerate(("遠", "中", "近", "特")):
+        y = base - SIZE[name][2] * step
+        s.append(f'<line x1="0" y1="{y}" x2="{Wt}" y2="{y}" stroke="currentColor" stroke-opacity=".08"/>')
+    for a, b, sz in cuts():
+        y = base - SIZE[sz][2] * step
+        s.append(f'<rect x="{a * px + .5:.1f}" y="{y - 8}" width="{max(2, (b - a) * px - 1):.1f}" height="16" rx="3" fill="{SIZE[sz][1]}"/>')
+        if (b - a) * px > 26:
+            s.append(f'<text x="{(a + b) / 2 * px:.1f}" y="{y + 5}" text-anchor="middle" class="tl-z">{SIZE[sz][0]}</text>')
     # 紙堆高度（雜亂程度）
     pts = [(0, .05), (4, .1), (15, .25), (21, .3), (30, .4), (38, .85), (44, 1), (48, 1), (64, .9), (70, .8), (80, .3), (90, .15)]
-    y0, hh = Ht - 8, 60
+    y0, hh = Ht - 6, 50
     d = " ".join(f"{'M' if i == 0 else 'L'}{t * px:.1f},{y0 - v * hh:.1f}" for i, (t, v) in enumerate(pts))
-    s.append(f'<path d="{d}" fill="none" stroke="{CALRED}" stroke-width="2.5"/><text x="4" y="{y0 - hh - 2}" class="tl-t">日曆數量</text></svg>')
+    s.append(f'<path d="{d}" fill="none" stroke="{CALRED}" stroke-width="2.5" stroke-dasharray="6 4"/><text x="4" y="{y0 - 4}" class="tl-t">日曆數量</text></svg>')
     return "".join(s)
+
+
+def size_stats():
+    tot = {k: 0.0 for k in SIZE}
+    n = {k: 0 for k in SIZE}
+    for a, b, sz in cuts():
+        tot[sz] += b - a
+        n[sz] += 1
+    return "".join(f'<span class="lt">{chip(k)} {n[k]} 刀・{tot[k]:.0f} 秒</span>' for k in SIZE)
 
 
 CHANGES = [
@@ -587,6 +761,8 @@ body{{font-family:'Noto Serif TC','Noto Sans TC',serif}}
 h1{{font-family:'Noto Serif TC',serif;font-weight:900;letter-spacing:.03em}} h1 em{{color:{CALRED};font-style:normal}}
 .thumb{{width:384px;aspect-ratio:16/9}} .frame{{width:1920px;height:1080px;transform:scale(.2)}}
 .thumbs{{flex-direction:column}}
+.sz{{display:inline-block;color:#fff;font:700 12px/1 'Noto Sans TC',sans-serif;padding:4px 7px;border-radius:4px;vertical-align:1px;margin-right:4px}}
+.tl-z{{font:700 9px 'Noto Sans TC',sans-serif;fill:#fff}}
 .cast{{width:100%;height:auto;display:block;background:#F4EFE6;border:1px solid var(--line);border-radius:8px;margin:10px 0}}
 .chg td{{vertical-align:top;font-size:14px}} .chg td:first-child{{width:auto;color:var(--mute)}}
 .lts{{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;margin:8px 0}} .lt i{{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px}}
@@ -602,7 +778,7 @@ h1{{font-family:'Noto Serif TC',serif;font-weight:900;letter-spacing:.03em}} h1 
 <style>{css}</style></head><body><main>
 <div class="kicker">PAPER-CRAFT SHORT · STORYBOARD v1 待確認</div>
 <h1>每次都說<br><em>明天</em>開始的男孩</h1>
-<ul class="meta"><li>90 秒</li><li>16:9 · 1920×1080</li><li>24 fps · 動作一拍兩格</li><li>13 鏡 · 13 個關鍵格</li><li>國高中生・成人</li></ul>
+<ul class="meta"><li>90 秒</li><li>16:9 · 1920×1080</li><li>24 fps · 動作一拍兩格</li><li>13 鏡 · {len(cuts())} 刀 · 遠／中／近／特寫</li><li>國高中生・成人</li></ul>
 
 <h2>和劇本不同的地方 <small>CHANGES</small></h2>
 <p>以下是我在分鏡裡做的調整，都是建議，你不同意的我改回原劇本。</p>
@@ -620,7 +796,16 @@ h1{{font-family:'Noto Serif TC',serif;font-weight:900;letter-spacing:.03em}} h1 
 
 <h2>節奏 <small>TIMING</small></h2>
 {timeline()}
-<p>上排是鏡頭，中間色條是光線，紅線是日曆的數量：在 0:44–0:48 達到最高，正是全片唯一完全安靜的時刻。之後一路下降，和光線一起變亮。</p>
+<p>由上往下：鏡頭、光線、景別（越高越近）、日曆數量（紅虛線）。日曆在 0:44–0:48 最多，正是全片唯一完全安靜的時刻；之後一路下降，和光線一起變亮。</p>
+
+<h2>景別 <small>SHOT SIZE</small></h2>
+<p class="lead">四種景別各有分工，而且<b>鏡頭離小哲多近，就是觀眾和他的心離多近</b>。</p>
+<table class="chg"><tr><td>{chip("遠")}</td><td>交代空間、時間流逝、孤單感</td><td>開場全景、夜裡的房間、日子一天天過去、0:44 站在紙山頂、清晨分盒子、結尾的紙模型</td></tr>
+<tr><td>{chip("中")}</td><td>對話與動作</td><td>三連啪、和明天先生的雙人戲、爬紙山、紙飛機</td></tr>
+<tr><td>{chip("近")}</td><td>情緒</td><td>躺著的累、日曆摺成人、坐在紙山裡、第一次笑、窗台上的小明天先生</td></tr>
+<tr><td>{chip("特")}</td><td>有意義的物件</td><td>啪出來的日曆、手機、胸前的紙條、被壓住的吉他、攤平的紙條、鉛筆、日記</td></tr></table>
+<p><b>節奏</b>：前半段景別跳得快（每 1–3 秒換一次，遠→近→特→特→中），讓「明天」越堆越熱鬧；0:44 一刀切到全片最遠，小哲變得很小；0:48 之後鏡頭一路往前推，推到第一題的特寫，9 秒不切；最後從窗台的近景一口氣拉到最遠，房間變回一個紙模型。</p>
+<div class="lts">{size_stats()}</div>
 
 <h2>分鏡 <small>SHOTS</small></h2>
 <p><span class="note">藍色編號與虛線</span>是動態註記，對應各鏡「動態」欄的圈號；黑底字幕條是暫定位置。關鍵格是用來確認構圖和光線的示意，正式畫面的房間會換成下面的 AI 底圖。</p>
