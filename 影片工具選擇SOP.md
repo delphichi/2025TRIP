@@ -64,6 +64,8 @@
 - **HyperFrames render 預設是 30 fps**，要跟 24 fps 的片子對齊就加 `--fps 24`。
 - 本機的 ffmpeg 沒有 `drawtext` 濾鏡，影片上的標籤要先用 Python PIL 做成 PNG 再疊上去。
 - 每次 commit 前，`._*` 檔已經在 `.gitignore` 裡排除了。
+- **要真鏡頭語言（遠中近景、俯仰角、推拉搖移、滑動變焦）就用 Remotion＋Three.js（`@remotion/three`）**，例：`asatex/ad/src/Showroom.tsx`。輸出要加 `--gl=angle`；貼圖要在 ThreeCanvas **外面**載入、載好才畫 3D，否則畫面不會重畫、貼圖空白；logo 這類要原色的貼圖用 `meshBasicMaterial toneMapped={false}`。30 秒 1080p 約 35 秒輸出完。
+- **FAL 沒額度時的免費替代**：配樂用 numpy 合成（`asatex/ad/scripts/score.py` 史詩、`score2.py` 流行電子），音效點能精準對畫面；旁白用 Piper TTS（`es_MX-ald-medium` 等開源聲音，espeak 資料要放短路徑如 `~/.cache/piper/`）。品質低於付費版，當樣板夠用。
 
 ## 六、標準流程
 
