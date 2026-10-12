@@ -1,0 +1,621 @@
+<title>分鏡桌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+/* 版面：桌面兩欄（左：專案／劇本／角色，右：分鏡表），手機單欄；底部固定一條「片長＋交給 Claude」 */
+:root {
+  --bg: #eef0f2;
+  --surface: #ffffff;
+  --sunk: #f6f7f8;
+  --ink: #16191e;
+  --muted: #5d6470;
+  --line: #d9dde3;
+  --accent: #e9b516;      /* 場記板黃 */
+  --accent-ink: #16191e;
+  --s-draft: #7a818c;
+  --s-ready: #2f6fdb;
+  --s-gen: #c98400;
+  --s-done: #1f8a5b;
+  --s-fail: #c8382e;
+  --warn-bg: #fff4d6;
+  --warn-ink: #7a5300;
+  --f-display: "Noto Serif TC", "Songti TC", serif;
+  --f-body: "Noto Sans TC", "PingFang TC", "Heiti TC", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --surface: #1a1d22; --sunk: #15171b; --ink: #eceef1; --muted: #9aa1ad; --line: #2c3139;
+    --accent: #f0c02a; --accent-ink: #15171b;
+    --s-draft: #8d94a0; --s-ready: #6b9cf0; --s-gen: #e3a531; --s-done: #3fb27f; --s-fail: #e5675d;
+    --warn-bg: #3a2f10; --warn-ink: #f3d27a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --surface: #1a1d22; --sunk: #15171b; --ink: #eceef1; --muted: #9aa1ad; --line: #2c3139;
+  --accent: #f0c02a; --accent-ink: #15171b;
+  --s-draft: #8d94a0; --s-ready: #6b9cf0; --s-gen: #e3a531; --s-done: #3fb27f; --s-fail: #e5675d;
+  --warn-bg: #3a2f10; --warn-ink: #f3d27a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--s-ready); outline-offset: 2px; }
+
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+.brand b { font-family: var(--f-display); font-weight: 900; font-size: 22px; letter-spacing: 2px; }
+.brand span { color: var(--muted); font-size: 13px; }
+.clap { width: 22px; height: 16px; align-self: center; border-radius: 3px; background: repeating-linear-gradient(135deg, var(--ink) 0 5px, var(--accent) 5px 10px); }
+select.proj { min-width: 0; max-width: 60vw; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 700; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.danger { color: var(--s-fail); }
+.btn[disabled] { opacity: .5; cursor: default; }
+
+main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding-inline: 16px; padding-block: 16px 110px; max-width: 1360px; margin: 0 auto; }
+@media (min-width: 1080px) { main { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); align-items: start; } .left { position: sticky; top: 72px; max-height: calc(100vh - 170px); overflow: auto; } }
+.left, .right { display: grid; gap: 16px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.panel h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+label.f { display: grid; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
+label.f > input, label.f > textarea, label.f > select { font-size: 15px; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+textarea { resize: vertical; line-height: 1.6; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > * { flex: 1 1 120px; }
+input.title-in { font-family: var(--f-display); font-weight: 700; font-size: 22px !important; }
+.script { min-height: 220px; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.ai-out { font-size: 13px; color: var(--muted); }
+
+.chars { display: grid; gap: 10px; }
+.char { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); }
+.char .ref { width: 64px; height: 64px; border-radius: 8px; background: var(--line); overflow: hidden; display: grid; place-items: center; font-size: 11px; color: var(--muted); text-align: center; cursor: pointer; border: 0; padding: 0; }
+.char .ref img { width: 100%; height: 100%; object-fit: cover; }
+.char .body { display: grid; gap: 6px; min-width: 0; }
+.char input, .char textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 100%; min-width: 0; font-size: 14px; }
+.char input.name { font-weight: 700; }
+
+.final { display: grid; gap: 8px; }
+.final video { width: 100%; max-height: 70vh; border-radius: 8px; background: #000; }
+.note { font-size: 13px; padding: 10px 12px; border-radius: 8px; background: var(--sunk); border: 1px dashed var(--line); white-space: pre-wrap; }
+
+.board-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.board-head h2 { margin: 0; font-size: 13px; letter-spacing: 1.5px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); }
+.shots { display: grid; gap: 12px; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--r); background: var(--surface); }
+
+.shot { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); display: grid; grid-template-columns: 74px minmax(0, 1fr); overflow: hidden; }
+.shot .rail { background: var(--sunk); border-right: 1px solid var(--line); padding: 10px 8px; display: grid; align-content: start; gap: 6px; justify-items: center; }
+.shot .no { font-family: var(--f-mono); font-weight: 500; font-size: 22px; line-height: 1; }
+.shot .tc { font-family: var(--f-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: center; line-height: 1.3; }
+.shot .moves { display: flex; gap: 2px; }
+.shot .moves button { width: 28px; height: 26px; padding: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; cursor: pointer; }
+.shot .main { padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.shot .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.shot .meta select, .shot .meta input { background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 14px; }
+.shot .meta input.dur { width: 74px; font-family: var(--f-mono); }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.st-draft { color: var(--s-draft); } .st-ready { color: var(--s-ready); } .st-generating { color: var(--s-gen); } .st-done { color: var(--s-done); } .st-failed { color: var(--s-fail); }
+.tool { font-size: 12px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+@media (min-width: 700px) { .grid2 { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+.shot textarea, .shot input.txt { width: 100%; min-width: 0; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font-size: 14px; }
+.shot .lab { font-size: 11px; color: var(--muted); letter-spacing: 1px; display: grid; gap: 3px; min-width: 0; }
+.cast { display: flex; flex-wrap: wrap; gap: 6px; }
+.cast button { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.cast button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.warn { font-size: 12px; background: var(--warn-bg); color: var(--warn-ink); border-radius: 6px; padding: 6px 10px; }
+.result { display: grid; gap: 6px; }
+.result video, .result img { width: 100%; max-width: 420px; max-height: 420px; object-fit: contain; border-radius: 8px; background: #000; }
+.cnote { font-size: 12px; color: var(--muted); white-space: pre-wrap; }
+.confirm { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface); border-top: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+}
+.stat { font-size: 13px; color: var(--muted); }
+.stat b { font-family: var(--f-mono); font-size: 16px; color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.bar .spacer { flex: 1 1 auto; }
+.handoff { font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.handoff code { font-family: var(--f-mono); background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; overflow-wrap: anywhere; }
+.toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 9; }
+.banner { padding: 10px 16px; background: var(--warn-bg); color: var(--warn-ink); font-size: 13px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<header class="top">
+  <div class="brand"><i class="clap" aria-hidden="true"></i><b>分鏡桌</b><span>你寫劇本、排分鏡，Claude 生素材、組成片</span></div>
+  <select class="proj" id="projSel" aria-label="選擇專案"></select>
+  <button class="btn" id="newProj" type="button">＋ 新專案</button>
+</header>
+<div class="banner" id="offline" hidden>這個頁面需要在 claude.ai 裡打開才能存檔；現在看到的是唯讀畫面。</div>
+
+<main>
+  <section class="left">
+    <div class="panel" id="infoPanel">
+      <h2>專案</h2>
+      <label class="f">片名<input id="p-title" class="title-in" placeholder="例如：ASATEX 睡衣廣告"></label>
+      <div class="row">
+        <label class="f">畫面比例
+          <select id="p-format">
+            <option value="9:16">9:16 直式（Reels、TikTok）</option>
+            <option value="16:9">16:9 橫式（YouTube）</option>
+            <option value="1:1">1:1 方形</option>
+            <option value="4:5">4:5（FB 動態）</option>
+          </select>
+        </label>
+        <label class="f">目標片長（秒）<input id="p-target" type="number" min="3" max="600" step="1" inputmode="numeric"></label>
+      </div>
+      <label class="f">風格<input id="p-style" placeholder="例如：溫暖寫實、紙雕動畫、手繪"></label>
+      <label class="f">一句話故事<input id="p-logline" placeholder="這支片在講什麼"></label>
+      <div class="final" id="finalBox" hidden>
+        <h2>成片</h2>
+        <video id="finalVid" controls playsinline preload="metadata"></video>
+      </div>
+      <div class="note" id="projNote" hidden></div>
+      <div class="row" style="flex-wrap: nowrap; justify-content: flex-end;">
+        <span id="delProjWrap"><button class="btn ghost danger" id="delProj" type="button">刪除專案</button></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>劇本 <button class="btn" id="splitBtn" type="button" hidden>讓 Claude 拆分鏡</button></h2>
+      <textarea id="p-script" class="script" placeholder="寫下劇本：場景、角色做什麼、說什麼。&#10;寫完可以按「讓 Claude 拆分鏡」，也可以在右邊自己一格一格排。"></textarea>
+      <p class="ai-out" id="splitOut" hidden></p>
+    </div>
+
+    <div class="panel">
+      <h2>角色 <button class="btn" id="addChar" type="button">＋ 角色</button></h2>
+      <p class="hint">要讓角色講話或唱歌，請上傳一張正面清楚的照片當參考圖。</p>
+      <div class="chars" id="chars"></div>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="board-head">
+      <h2>分鏡</h2>
+      <div class="legend">
+        <span class="pill st-draft">草稿</span><span class="pill st-ready">待生成</span><span class="pill st-generating">生成中</span><span class="pill st-done">完成</span><span class="pill st-failed">失敗</span>
+      </div>
+    </div>
+    <div class="shots" id="shots"></div>
+    <div><button class="btn" id="addShot" type="button">＋ 新增一格</button></div>
+  </section>
+</main>
+
+<footer class="bar">
+  <span class="stat">片長 <b id="sumDur">0.0</b> 秒</span>
+  <span class="stat">分鏡 <b id="sumShots">0</b> 格</span>
+  <span class="stat" title="只算 InfiniteTalk 每秒 $0.2（480p）；其他做法另計">說話鏡頭約 <b id="sumCost">$0.0</b></span>
+  <span class="spacer"></span>
+  <span class="handoff" id="handoff" hidden>到 Claude Code 說 <code id="handoffCmd"></code><button class="btn" id="copyCmd" type="button">複製</button></span>
+  <span class="pill" id="projStatus" hidden></span>
+  <button class="btn primary" id="submit" type="button">交給 Claude</button>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const METHODS = {
+    seedance: { label: "真實畫面", tool: "FAL Seedance 2.0", hint: "空鏡、氛圍、質感。劇情重點的文字和數字不要交給它。" },
+    talk: { label: "角色說話／唱歌", tool: "FAL InfiniteTalk", hint: "角色照片＋台詞或歌詞，嘴型會對上聲音。" },
+    code: { label: "程式動畫", tool: "Remotion", hint: "文字、數字、日期、圖表、既有角色；免費、改了就能重出。" },
+    image: { label: "靜態圖", tool: "FAL Nano Banana", hint: "插圖、背景、標題卡。" },
+  };
+  const STATUS = { draft: "草稿", ready: "待生成", generating: "生成中", done: "完成", failed: "失敗" };
+  const PSTATUS = { editing: "編輯中", submitted: "已交給 Claude", generating: "Claude 製作中", done: "成片完成" };
+  const TALK_RATE = 0.2;
+
+  let db = null, assets = null, sample = null;
+  let projects = [];
+  let pid = null;
+  let project = null;
+  let shots = [];
+  let chars = [];
+  let unsubs = [];
+  const shotEls = new Map();
+  const charEls = new Map();
+
+  function remember(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function recall(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function toast(msg) {
+    const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
+    document.body.append(t); setTimeout(() => t.remove(), 2200);
+  }
+  const fmtTC = (s) => { const m = Math.floor(s / 60); const r = s - m * 60; return String(m).padStart(2, "0") + ":" + r.toFixed(1).padStart(4, "0"); };
+  const blobUrl = (id) => "/_blob/" + id;
+  const now = () => new Date().toISOString();
+
+  // 每份文件一次只寫一筆：合併短時間內的修改，前一筆寫完再送下一筆
+  const queues = new Map();
+  function queueWrite(ref, patch, delay = 500) {
+    let q = queues.get(ref.path);
+    if (!q) { q = { patch: {}, timer: null, busy: false }; queues.set(ref.path, q); }
+    Object.assign(q.patch, patch);
+    clearTimeout(q.timer);
+    q.timer = setTimeout(() => flush(ref, q), delay);
+  }
+  async function flush(ref, q) {
+    if (q.busy) { q.timer = setTimeout(() => flush(ref, q), 200); return; }
+    const p = q.patch; q.patch = {};
+    if (!Object.keys(p).length) return;
+    q.busy = true;
+    try { await ref.update(p); }
+    catch (e) { toast(e && e.code === "quota_exceeded" ? "空間滿了，刪掉一些舊專案再試。" : "沒存到，請再改一次。"); }
+    finally { q.busy = false; }
+  }
+
+  function bindField(el, getRef, field, parse = (v) => v) {
+    el.addEventListener("input", () => { const ref = getRef(); if (ref) queueWrite(ref, { [field]: parse(el.value), updatedAt: now() }); });
+  }
+  function setVal(el, v) { if (document.activeElement !== el && el.value !== String(v ?? "")) el.value = v ?? ""; }
+
+  // ── 專案 ──
+  const projRef = () => (pid && db ? db.doc("projects/" + pid) : null);
+  bindField($("p-title"), projRef, "title");
+  bindField($("p-target"), projRef, "target", (v) => Number(v) || 0);
+  bindField($("p-style"), projRef, "style");
+  bindField($("p-logline"), projRef, "logline");
+  bindField($("p-script"), projRef, "script");
+  $("p-format").addEventListener("change", () => { const r = projRef(); if (r) queueWrite(r, { format: $("p-format").value, updatedAt: now() }, 0); });
+
+  function renderProjects() {
+    const sel = $("projSel");
+    sel.textContent = "";
+    if (!projects.length) { const o = new Option("還沒有專案", ""); sel.append(o); sel.disabled = true; return; }
+    sel.disabled = false;
+    for (const p of projects) sel.append(new Option((p.title || "未命名") + "　·　" + (PSTATUS[p.status] || "編輯中"), p.id));
+    sel.value = pid || "";
+  }
+  $("projSel").addEventListener("change", () => openProject($("projSel").value));
+
+  function renderProject() {
+    const p = project || {};
+    setVal($("p-title"), p.title); setVal($("p-target"), p.target || ""); setVal($("p-style"), p.style);
+    setVal($("p-logline"), p.logline); setVal($("p-script"), p.script);
+    if (document.activeElement !== $("p-format")) $("p-format").value = p.format || "9:16";
+    const fin = p.finalAssetId;
+    $("finalBox").hidden = !fin;
+    if (fin && $("finalVid").getAttribute("src") !== blobUrl(fin)) $("finalVid").src = blobUrl(fin);
+    $("projNote").hidden = !p.claudeNote;
+    $("projNote").textContent = p.claudeNote ? "Claude：" + p.claudeNote : "";
+    const st = p.status || "editing";
+    const ps = $("projStatus");
+    ps.hidden = st === "editing";
+    ps.textContent = PSTATUS[st] || st;
+    ps.className = "pill " + ({ submitted: "st-ready", generating: "st-generating", done: "st-done" }[st] || "st-draft");
+    $("handoff").hidden = st === "editing" || st === "done";
+    $("handoffCmd").textContent = "分鏡桌：做《" + (p.title || "未命名") + "》";
+    $("submit").textContent = st === "editing" ? "交給 Claude" : "再交一次";
+    renderTotals();
+  }
+
+  async function newProject() {
+    if (!db) return;
+    const ref = db.collection("projects").doc();
+    try {
+      await ref.set({ title: "新專案", format: "9:16", target: 15, style: "", logline: "", script: "", status: "editing", createdAt: now(), updatedAt: now() });
+      openProject(ref.id);
+      setTimeout(() => { $("p-title").focus(); $("p-title").select(); }, 300);
+    } catch (e) { toast("建立失敗，請再試一次。"); }
+  }
+  $("newProj").addEventListener("click", newProject);
+
+  $("delProj").addEventListener("click", () => {
+    const wrap = $("delProjWrap");
+    wrap.innerHTML = '<span class="confirm">連分鏡和角色一起刪？<button class="btn danger" type="button" id="delYes">刪除</button><button class="btn" type="button" id="delNo">取消</button></span>';
+    $("delNo").onclick = () => { wrap.innerHTML = ""; wrap.append(delBtn); };
+    $("delYes").onclick = async () => {
+      const ref = projRef(); if (!ref) return;
+      for (const s of shots) await ref.collection("shots").doc(s.id).delete().catch(() => {});
+      for (const c of chars) await ref.collection("characters").doc(c.id).delete().catch(() => {});
+      await ref.delete().catch(() => {});
+      wrap.innerHTML = ""; wrap.append(delBtn);
+      pid = null; remember("sb-pid", "");
+      const next = projects.find((p) => p.id !== ref.id);
+      openProject(next ? next.id : null);
+    };
+  });
+  const delBtn = $("delProj");
+
+  function openProject(id) {
+    unsubs.forEach((u) => u()); unsubs = [];
+    pid = id || null; project = null; shots = []; chars = [];
+    shotEls.forEach((el) => el.remove()); shotEls.clear();
+    charEls.forEach((el) => el.remove()); charEls.clear();
+    remember("sb-pid", pid || "");
+    renderProjects(); renderProject(); renderShots(); renderChars();
+    const enabled = !!(pid && db);
+    for (const el of document.querySelectorAll("#infoPanel input, #infoPanel select, #p-script, #addChar, #addShot, #submit, #delProj")) el.disabled = !enabled;
+    if (!enabled) return;
+    const ref = db.doc("projects/" + pid);
+    unsubs.push(ref.onSnapshot((s) => { project = s.exists ? s.data() : null; renderProject(); }, () => {}));
+    unsubs.push(ref.collection("shots").orderBy("order").onSnapshot((q) => { shots = q.docs.map((d) => ({ id: d.id, ...d.data() })); renderShots(); }, () => {}));
+    unsubs.push(ref.collection("characters").orderBy("order").onSnapshot((q) => { chars = q.docs.map((d) => ({ id: d.id, ...d.data() })); renderChars(); renderShots(); }, () => {}));
+  }
+
+  // ── 角色 ──
+  $("addChar").addEventListener("click", async () => {
+    const ref = projRef(); if (!ref) return;
+    const order = chars.reduce((m, c) => Math.max(m, c.order || 0), 0) + 1;
+    await ref.collection("characters").add({ name: "", look: "", voice: "", order, createdAt: now() }).catch(() => toast("新增失敗。"));
+  });
+  function charRef(cid) { const r = projRef(); return r ? r.collection("characters").doc(cid) : null; }
+  function buildChar(c) {
+    const el = document.createElement("div"); el.className = "char";
+    el.innerHTML = '<button class="ref" type="button" aria-label="上傳參考圖"></button><input type="file" accept="image/*" hidden>' +
+      '<div class="body"><input class="name" placeholder="角色名"><textarea rows="2" class="look" placeholder="外觀：年紀、髮型、服裝"></textarea><input class="voice" placeholder="聲音：男聲、溫暖、台灣腔…"></div>';
+    const [refBtn, file] = [el.querySelector(".ref"), el.querySelector("input[type=file]")];
+    const name = el.querySelector(".name"), look = el.querySelector(".look"), voice = el.querySelector(".voice");
+    name.id = "c-" + c.id + "-name"; look.id = "c-" + c.id + "-look"; voice.id = "c-" + c.id + "-voice"; file.id = "c-" + c.id + "-file";
+    bindField(name, () => charRef(c.id), "name"); bindField(look, () => charRef(c.id), "look"); bindField(voice, () => charRef(c.id), "voice");
+    refBtn.addEventListener("click", () => { if (assets) file.click(); else toast("只有能編輯的人可以上傳圖片。"); });
+    file.addEventListener("change", async () => {
+      const f = file.files && file.files[0]; if (!f || !assets) return;
+      refBtn.textContent = "上傳中…";
+      try { const r = await assets.upload(f); await charRef(c.id).update({ refAsset: r.id }); }
+      catch (e) { toast("上傳失敗：圖片太大或格式不支援。"); patchChar(el, c); }
+      file.value = "";
+    });
+    return el;
+  }
+  function patchChar(el, c) {
+    setVal(el.querySelector(".name"), c.name); setVal(el.querySelector(".look"), c.look); setVal(el.querySelector(".voice"), c.voice);
+    const refBtn = el.querySelector(".ref");
+    if (c.refAsset) { if (!refBtn.querySelector("img") || refBtn.querySelector("img").getAttribute("src") !== blobUrl(c.refAsset)) refBtn.innerHTML = '<img alt="" src="' + blobUrl(c.refAsset) + '">'; }
+    else refBtn.textContent = assets ? "上傳參考圖" : "沒有參考圖";
+  }
+  function renderChars() {
+    const box = $("chars");
+    const seen = new Set();
+    for (const c of chars) {
+      seen.add(c.id);
+      let el = charEls.get(c.id);
+      if (!el) { el = buildChar(c); charEls.set(c.id, el); }
+      patchChar(el, c);
+      box.append(el);
+    }
+    for (const [id, el] of charEls) if (!seen.has(id)) { el.remove(); charEls.delete(id); }
+  }
+
+  // ── 分鏡 ──
+  function shotRef(sid) { const r = projRef(); return r ? r.collection("shots").doc(sid) : null; }
+  $("addShot").addEventListener("click", () => addShot({}));
+  async function addShot(fields) {
+    const ref = projRef(); if (!ref) return;
+    const order = shots.reduce((m, s) => Math.max(m, s.order || 0), 0) + 1;
+    await ref.collection("shots").add({ duration: 3, method: "seedance", visual: "", camera: "", dialogue: "", text: "", characters: [], status: "draft", createdAt: now(), ...fields, order }).catch(() => toast("新增失敗。"));
+  }
+  function buildShot(s) {
+    const el = document.createElement("article"); el.className = "shot";
+    const opts = Object.entries(METHODS).map(([k, m]) => '<option value="' + k + '">' + m.label + "</option>").join("");
+    el.innerHTML =
+      '<div class="rail"><div class="no"></div><div class="tc"></div><div class="moves"><button type="button" class="up" aria-label="往前移">↑</button><button type="button" class="down" aria-label="往後移">↓</button></div></div>' +
+      '<div class="main">' +
+        '<div class="meta"><select class="method" aria-label="做法">' + opts + '</select>' +
+          '<input class="dur" type="number" min="1" max="60" step="0.5" aria-label="秒數"><span class="tool"></span><span class="pill status"></span>' +
+          '<span style="margin-left:auto" class="delwrap"><button class="btn ghost danger del" type="button">刪除</button></span></div>' +
+        '<div class="grid2">' +
+          '<label class="lab">畫面<textarea rows="3" class="visual" placeholder="鏡頭裡看到什麼"></textarea></label>' +
+          '<div style="display:grid;gap:8px;min-width:0">' +
+            '<label class="lab">台詞／歌詞<textarea rows="2" class="dialogue" placeholder="沒有就留空"></textarea></label>' +
+            '<label class="lab">畫面文字<input class="txt text" placeholder="字幕、標題、數字"></label>' +
+            '<label class="lab">鏡頭<input class="txt camera" placeholder="推近、平移、固定…"></label>' +
+          '</div>' +
+        '</div>' +
+        '<div class="cast"></div><div class="warns"></div><div class="result"></div>' +
+      '</div>';
+    const q = (c) => el.querySelector("." + c);
+    for (const f of ["method", "dur", "visual", "dialogue", "text", "camera"]) q(f).id = "s-" + s.id + "-" + f;
+    q("method").addEventListener("change", () => queueWrite(shotRef(s.id), { method: q("method").value }, 0));
+    bindField(q("dur"), () => shotRef(s.id), "duration", (v) => Math.max(0, Number(v) || 0));
+    bindField(q("visual"), () => shotRef(s.id), "visual");
+    bindField(q("dialogue"), () => shotRef(s.id), "dialogue");
+    bindField(q("text"), () => shotRef(s.id), "text");
+    bindField(q("camera"), () => shotRef(s.id), "camera");
+    q("up").addEventListener("click", () => move(s.id, -1));
+    q("down").addEventListener("click", () => move(s.id, 1));
+    const delBtnS = q("del");
+    delBtnS.addEventListener("click", () => {
+      const w = q("delwrap");
+      w.innerHTML = '<span class="confirm">刪掉這格？<button class="btn danger" type="button">刪除</button><button class="btn" type="button">取消</button></span>';
+      const [yes, no] = w.querySelectorAll("button");
+      no.onclick = () => { w.textContent = ""; w.append(delBtnS); };
+      yes.onclick = () => shotRef(s.id).delete().catch(() => toast("刪除失敗。"));
+    });
+    return el;
+  }
+  async function move(sid, dir) {
+    const i = shots.findIndex((s) => s.id === sid), j = i + dir;
+    if (i < 0 || j < 0 || j >= shots.length) return;
+    const a = shots[i], b = shots[j];
+    await shotRef(a.id).update({ order: b.order }).catch(() => {});
+    await shotRef(b.id).update({ order: a.order }).catch(() => {});
+  }
+  function warnings(s) {
+    const w = [];
+    if (s.method !== "code" && /\d/.test(s.text || "")) w.push("畫面文字有數字。AI 影片常把數字弄錯，SOP 建議這格改用「程式動畫」，或把數字留給後製疊上去。");
+    if (s.method === "talk" && !(s.characters || []).length) w.push("說話鏡頭要選一個角色，Claude 才知道用哪張照片。");
+    if (s.method === "talk" && (s.characters || []).length) {
+      const c = chars.find((x) => x.id === s.characters[0]);
+      if (c && !c.refAsset) w.push("「" + (c.name || "這個角色") + "」還沒有參考照片。");
+    }
+    if (s.method === "talk" && !(s.dialogue || "").trim()) w.push("說話鏡頭需要台詞或歌詞。");
+    if (/[A-Za-z]{3,}/.test(s.dialogue || "") && s.method === "talk") w.push("台詞裡有英文字。AI 唱英文品牌名常唸錯，建議寫成中文諧音（例如 ASATEX → 啊沙爹斯）。");
+    return w;
+  }
+  function patchShot(el, s, idx, start) {
+    const q = (c) => el.querySelector("." + c);
+    q("no").textContent = String(idx + 1).padStart(2, "0");
+    q("tc").textContent = fmtTC(start) + "\n→ " + fmtTC(start + (Number(s.duration) || 0));
+    q("tc").style.whiteSpace = "pre";
+    if (document.activeElement !== q("method")) q("method").value = METHODS[s.method] ? s.method : "seedance";
+    setVal(q("dur"), s.duration);
+    setVal(q("visual"), s.visual); setVal(q("dialogue"), s.dialogue); setVal(q("text"), s.text); setVal(q("camera"), s.camera);
+    const m = METHODS[s.method] || METHODS.seedance;
+    q("tool").textContent = m.tool; q("tool").title = m.hint;
+    const st = s.status || "draft";
+    q("status").className = "pill status st-" + st; q("status").textContent = STATUS[st] || st;
+    q("up").disabled = idx === 0; q("down").disabled = idx === shots.length - 1;
+    const cast = q("cast"); cast.textContent = "";
+    for (const c of chars) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = c.name || "未命名角色";
+      const on = (s.characters || []).includes(c.id); b.setAttribute("aria-pressed", String(on));
+      b.onclick = () => {
+        const cur = new Set(s.characters || []); on ? cur.delete(c.id) : cur.add(c.id);
+        queueWrite(shotRef(s.id), { characters: [...cur] }, 0);
+      };
+      cast.append(b);
+    }
+    const ws = q("warns"); ws.textContent = "";
+    for (const t of warnings(s)) { const d = document.createElement("div"); d.className = "warn"; d.textContent = t; ws.append(d); }
+    const res = q("result");
+    const key = (s.assetId || "") + "|" + (s.claudeNote || "");
+    if (res.dataset.key !== key) {
+      res.dataset.key = key; res.textContent = "";
+      if (s.assetId) {
+        const isImg = (s.assetType || "").startsWith("image");
+        const m2 = document.createElement(isImg ? "img" : "video");
+        m2.src = blobUrl(s.assetId);
+        if (!isImg) { m2.controls = true; m2.playsInline = true; m2.preload = "metadata"; } else m2.alt = "第 " + (idx + 1) + " 格的成品";
+        res.append(m2);
+      }
+      if (s.claudeNote) { const n = document.createElement("div"); n.className = "cnote"; n.textContent = "Claude：" + s.claudeNote; res.append(n); }
+    }
+  }
+  function renderShots() {
+    const box = $("shots");
+    const seen = new Set();
+    let t = 0;
+    shots.forEach((s, i) => {
+      seen.add(s.id);
+      let el = shotEls.get(s.id);
+      if (!el) { el = buildShot(s); shotEls.set(s.id, el); }
+      patchShot(el, s, i, t);
+      t += Number(s.duration) || 0;
+      if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
+    });
+    for (const [id, el] of shotEls) if (!seen.has(id)) { el.remove(); shotEls.delete(id); }
+    let empty = box.querySelector(".empty");
+    if (!shots.length) {
+      if (!empty) { empty = document.createElement("div"); empty.className = "empty"; box.append(empty); }
+      empty.textContent = pid ? "還沒有分鏡。按下面「＋ 新增一格」自己排，或寫好劇本後讓 Claude 拆。" : "先在右上角建立一個專案。";
+    } else if (empty) empty.remove();
+    renderTotals();
+  }
+  function renderTotals() {
+    const dur = shots.reduce((a, s) => a + (Number(s.duration) || 0), 0);
+    const talk = shots.filter((s) => s.method === "talk").reduce((a, s) => a + (Number(s.duration) || 0), 0);
+    $("sumDur").textContent = dur.toFixed(1);
+    $("sumShots").textContent = String(shots.length);
+    $("sumCost").textContent = "$" + (talk * TALK_RATE).toFixed(1);
+  }
+
+  // ── 交給 Claude ──
+  $("submit").addEventListener("click", async () => {
+    const ref = projRef(); if (!ref) return;
+    if (!shots.length) { toast("先排至少一格分鏡。"); return; }
+    $("submit").disabled = true;
+    try {
+      for (const s of shots) if ((s.status || "draft") === "draft" || s.status === "failed") await shotRef(s.id).update({ status: "ready" });
+      await ref.update({ status: "submitted", submittedAt: now(), updatedAt: now() });
+      toast("已標記為待生成。到 Claude Code 說一聲就開工。");
+    } catch (e) { toast("沒送出，請再按一次。"); }
+    finally { $("submit").disabled = false; }
+  });
+  $("copyCmd").addEventListener("click", async () => {
+    const t = $("handoffCmd").textContent;
+    try { await navigator.clipboard.writeText(t); toast("已複製"); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($("handoffCmd")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("已選取，請手動複製"); }
+  });
+
+  // ── 讓 Claude 拆分鏡（用看的人自己的 Claude 額度） ──
+  let splitCtl = null;
+  $("splitBtn").addEventListener("click", async () => {
+    if (splitCtl) { splitCtl.abort(); return; }
+    const p = project || {};
+    const script = (p.script || "").trim();
+    if (!script) { toast("先寫劇本。"); return; }
+    const castList = chars.map((c) => "- " + (c.name || "未命名") + "：" + (c.look || "") + (c.voice ? "（聲音：" + c.voice + "）" : "")).join("\n") || "（沒有角色）";
+    const prompt =
+      "你是短片分鏡師。把下面的劇本拆成分鏡，每格 2 到 6 秒" + (p.target ? "，總長盡量接近 " + p.target + " 秒" : "") + "。\n" +
+      "畫面比例 " + (p.format || "9:16") + "；風格：" + (p.style || "未指定") + "。\n角色：\n" + castList + "\n\n" +
+      "每格選一種做法 method：\n" +
+      "- seedance：真實畫面、空鏡、氛圍、質感。畫面裡不能有劇情重點的文字或數字。\n" +
+      "- talk：一個角色看鏡頭說話或唱歌，必須有台詞。台詞裡的英文品牌名改寫成中文諧音。\n" +
+      "- code：文字、數字、日期、圖表、標題卡，或需要精準控制的畫面。\n" +
+      "- image：靜態插圖或背景。\n\n" +
+      "劇本：\n\"\"\"\n" + script.slice(0, 12000) + "\n\"\"\"\n\n" +
+      '只回一個 JSON 陣列，每格一個物件：{"duration":秒數,"method":"seedance|talk|code|image","visual":"畫面描述","camera":"鏡頭運動","dialogue":"台詞或歌詞，沒有就空字串","text":"畫面上要出現的字，沒有就空字串","characters":["角色名"]}';
+    splitCtl = new AbortController();
+    const out = $("splitOut");
+    out.hidden = false; out.textContent = "Claude 正在讀劇本、拆分鏡…（按按鈕可停止）";
+    $("splitBtn").textContent = "停止";
+    try {
+      const arr = await sample.json(prompt, { signal: splitCtl.signal });
+      if (!Array.isArray(arr) || !arr.length) throw { code: "invalid_json" };
+      const byName = new Map(chars.map((c) => [c.name, c.id]));
+      for (const x of arr) {
+        await addShot({
+          duration: Math.max(1, Math.min(60, Number(x.duration) || 3)),
+          method: METHODS[x.method] ? x.method : "seedance",
+          visual: String(x.visual || ""), camera: String(x.camera || ""),
+          dialogue: String(x.dialogue || ""), text: String(x.text || ""),
+          characters: (Array.isArray(x.characters) ? x.characters : []).map((n) => byName.get(String(n))).filter(Boolean),
+        });
+      }
+      out.textContent = "加了 " + arr.length + " 格到分鏡表最後面。逐格檢查做法和秒數再交給 Claude。";
+    } catch (e) {
+      const code = e && e.code;
+      out.textContent = code === "cancelled" ? "已停止。" :
+        code === "not_granted" || code === "sampling_disabled" ? "這個頁面沒有被允許使用 Claude，請在右邊自己排分鏡。" :
+        code === "rate_limited" ? "用得太頻繁了，等一下再試。" :
+        code === "invalid_json" ? "Claude 回的格式讀不懂，再按一次試試，或把劇本分段。" :
+        "沒有拆成功，再按一次試試。";
+      if (code === "not_granted" || code === "sampling_disabled") $("splitBtn").hidden = true;
+    } finally {
+      splitCtl = null; $("splitBtn").textContent = "讓 Claude 拆分鏡";
+    }
+  });
+
+  // ── 啟動 ──
+  renderProjects(); renderShots(); renderChars();
+  for (const el of document.querySelectorAll("#infoPanel input, #infoPanel select, #p-script, #addChar, #addShot, #submit, #delProj, #newProj")) el.disabled = true;
+  (async () => {
+    if (!window.claude || !window.claude.use) { $("offline").hidden = false; return; }
+    db = await window.claude.use("db");
+    if (!db) { $("offline").hidden = false; return; }
+    $("newProj").disabled = false;
+    window.claude.use("assets").then((a) => { assets = a; renderChars(); });
+    window.claude.use("sample").then((s) => { sample = s; $("splitBtn").hidden = !s; });
+    db.collection("projects").orderBy("updatedAt", "desc").onSnapshot((q) => {
+      projects = q.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (!pid || !projects.some((p) => p.id === pid)) {
+        const want = recall("sb-pid");
+        const pick = projects.find((p) => p.id === want) || projects[0];
+        if (pick) { openProject(pick.id); return; }
+        if (pid) openProject(null);
+      }
+      renderProjects();
+    }, () => { $("offline").hidden = false; });
+  })();
+})();
+</script>

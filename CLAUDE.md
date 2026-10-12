@@ -17,3 +17,14 @@
 - `參考圖/`：放參考圖。`完成檔/`：所有生成或 render 好的成品
 - 每支片一個資料夾（如 `tomorrow/`），裡面放分鏡腳本、`video/`（Remotion）或 `hf-*/`（HyperFrames）
 - 技能清單見 `.claude/skills/README.md`
+
+## 分鏡桌（App）交接流程
+
+App：https://claude.ai/artifact/NK5Y1ptZDS4d3ywGTbf5pM（原始檔 `storyboard-app/分鏡桌.html`，改完用 Artifact 帶這個 url 重新發布）。
+使用者在 App 寫劇本、排分鏡，按「交給 Claude」後，對 Claude 說「分鏡桌：做《片名》」。收到後：
+
+1. `ArtifactData` 讀 `projects`（找 status=submitted 的片名）→ `projects/<id>/shots`、`projects/<id>/characters`。
+2. 逐格照 `method` 生素材：`seedance` → fal_image.py（Seedance 2.0）；`talk` → MiniMax Music／配音＋InfiniteTalk（`.claude/skills/fal-image-gen/scripts/fal_run.py`）；`image` → Nano Banana；`code` → Remotion。角色參考圖在 asset `/_blob/<refAsset>`，用 Artifact read path 下載。
+3. 每格做之前把 shot 改 `status: "generating"`；完成後把成品上傳成該 artifact 的 asset，寫回 `assetId`、`assetType`、`claudeNote`、`status: "done"`（失敗寫 `failed`＋原因）。
+4. 全部完成用 Remotion 組成片（專案放 `<片名>/`），成片上傳後寫 project 的 `finalAssetId`、`claudeNote`、`status: "done"`；mp4 也放 `完成檔/`，commit＋push。
+5. 花錢的步驟（FAL）開工前先跟使用者報總價。
