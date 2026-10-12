@@ -62,7 +62,7 @@ export const S11: React.FC = () => {
           {BOXES.map((b, i) => (
             <Box key={i} {...b} items={2 + counts[i]} bump={bump(i)} />
           ))}
-          <Mister x={1420} y={600} s={0.55} pages={12} face="soft" f={f} />
+          <Mister x={1420} y={600} s={0.55} pages={12} face="soft" f={f} date={f < 24 ? "16" : "17"} tear={{ k: (f - 24) / 12, date: "16" }} />
           <Zhe x={1700} y={990} s={0.95} arms={POSE.hug} armsR={armsR} face="open" f={f} tilt={throwing ? -6 : 0} />
           {flying}
           <Light dawn={dawn} night={1 - dawn} moon={(1 - dawn) * 0.5} lamp={(1 - dawn) * 0.6} />
@@ -94,14 +94,17 @@ const Diary: React.FC<{ f: number }> = ({ f }) => {
           )}
           <path d="M960,190 V940" stroke={C.ink} strokeOpacity={0.25} strokeWidth={6} />
           <text x={320} y={270} fontFamily={SERIF} fontWeight={700} fontSize={40} fill="#999">
-            十月十三日
+            十月十五日
           </text>
           <text x={320} y={370} fontFamily={SERIF} fontWeight={700} fontSize={40} fill="#bbb" textDecoration="line-through">
             明天開始讀書
           </text>
           <path d="M316,356 H566" stroke="#bbb" strokeWidth={4} />
+          <text x={320} y={450} fontFamily={SERIF} fontWeight={700} fontSize={40} fill="#777">
+            數學第一題　完成
+          </text>
           <text x={1020} y={270} fontFamily={SERIF} fontWeight={700} fontSize={40} fill="#999">
-            十月十四日
+            十月十六日
           </text>
           <Written id="diary" x={1020} y={372} text={TEXT} size={58} k={k} weight={900} />
           {under > 0 ? <path d={`M1040,410 Q1250,430 ${lerp(1040, 1500, under)},${lerp(410, 404, under)}`} fill="none" stroke={C.calred} strokeWidth={6} strokeLinecap="round" /> : null}
@@ -118,7 +121,7 @@ const WinWorld: React.FC<{ f: number; sec: number; pages: number; card: number; 
   <>
     <Room sky={DAWN_SKY} />
     <Zhe x={640} y={900} s={1} seated face="focus" f={f} arms={[-40, 20 + writeArm * 15]} armsR={[220, 160]} tilt={8} />
-    <Mister x={150} y={560} s={0.42} pages={pages} face="soft" talk={speaking("明天先生", sec)} f={f} armR={[lerp(-56, 50, armUp), lerp(-82, 74, armUp)]} />
+    <Mister x={150} y={560} s={0.42} pages={pages} face="soft" talk={speaking("明天先生", sec)} f={f} armR={[lerp(-56, 50, armUp), lerp(-82, 74, armUp)]} date="17" />
     {card > 0 ? (
       <g transform={`translate(${lerp(170, 250, armUp)} ${lerp(530, 470, armUp)}) rotate(-6) scale(${0.8 * card * Math.cos(flipping * Math.PI)} ${0.8 * card})`}>
         <Cut d="M-46,-56 H46 V56 H-46Z" fill={C.paper} depth={3} />

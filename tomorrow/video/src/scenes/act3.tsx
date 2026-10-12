@@ -7,7 +7,8 @@ import { Cal, FloorCals, Light, Mountain, Room, mountainY } from "../room";
 import { BedLying, useClock } from "./common";
 import { speaking } from "../subs";
 
-const DAYS = ["星期一", "星期二", "星期三", "星期四"];
+// 故事從 10/12（星期一）晚上開始；縮時是接下來的星期二、三、四。明天先生胸前永遠是「明天」的日期。
+const DAYS = ["星期二", "星期三", "星期四"];
 
 // ── S5：定格縮時，每 3 格更新一次 ────────────────────────────────
 export const S5: React.FC = () => {
@@ -47,7 +48,7 @@ export const S5: React.FC = () => {
           ) : (
             <BedLying face="sleep" f={f} />
           )}
-          <Mister x={1480} y={1010} s={0.95} pages={pages} face="proud" f={f} />
+          <Mister x={1480} y={1010} s={0.95} pages={pages} face="proud" f={f} date={String(14 + day)} tear={{ k: (f - day * CYCLE) / 12, date: String(13 + day) }} />
           <Light sun={dayK} sweep={sweep} night={1 - dayK} moon={1 - dayK} dim={level * 0.9} />
         </Cam>
         {/* 牆角的日子字卡：每一天翻一頁 */}
@@ -175,7 +176,7 @@ export const S7: React.FC = () => {
         <Cam cx={960} cy={540} z={z}>
           <Room />
           <Mountain level={0.95} />
-          <Mister x={1380} y={900} s={1.25} pages={30} bend={34 + Math.sin(f / 20) * 2} face="worry" talk={speaking("明天先生", sec)} f={f} />
+          <Mister x={1380} y={900} s={1.25} pages={30} bend={34 + Math.sin(f / 20) * 2} face="worry" talk={speaking("明天先生", sec)} f={f} date="16" />
           <Zhe x={700} y={mountainY(0.95, 700) + 14} s={0.8} face={sec < 46.5 ? "worry" : "shock"} talk={speaking("小哲", sec)} f={f} arms={sec < 46.5 ? POSE.shrug : POSE.stand} />
           {/* 紙張緩緩飄落 */}
           {Array.from({ length: 5 }, (_, i) => {

@@ -189,7 +189,8 @@ export const Mister: React.FC<{
   f?: number;
   date?: string;
   hold?: React.ReactNode; // 右手拿的東西
-}> = ({ x, y, s = 1, pages = 12, open = 0, bend = 0, face = "smile", armL = [-124, -98], armR, hat = true, asm = 1, talk, f = 0, date = "13", hold }) => {
+  tear?: { k: number; date: string }; // 撕下一頁：k 0–1，date 是被撕走的舊日期
+}> = ({ x, y, s = 1, pages = 12, open = 0, bend = 0, face = "smile", armL = [-124, -98], armR, hat = true, asm = 1, talk, f = 0, date = "13", hold, tear }) => {
   const bh = 60 + pages * 12;
   const top = -100 - bh;
   const right = armR ?? mirror(armL);
@@ -277,6 +278,21 @@ export const Mister: React.FC<{
             );
           })
         : null}
+      {tear && tear.k > 0 && tear.k < 1 ? (
+        <g
+          transform={`translate(${-tear.k * 240} ${-tear.k * 220 + tear.k * tear.k * 360}) rotate(${-tear.k * 220} 0 ${top + 115})`}
+          opacity={1 - tear.k ** 3}
+        >
+          <Cut d={`M-70,${top + 30} H70 V${top + 200} H-70Z`} fill={C.paper} depth={4} />
+          <path d={`M-70,${top + 30} H70 V${top + 64} H-70Z`} fill={C.calred} />
+          <text x={0} y={top + 58} textAnchor="middle" fontFamily={SERIF} fontWeight={900} fontSize={24} fill={C.paper}>
+            十月
+          </text>
+          <text x={0} y={top + 168} textAnchor="middle" fontFamily={SERIF} fontWeight={900} fontSize={92} fill={C.ink}>
+            {tear.date}
+          </text>
+        </g>
+      ) : null}
       {hold && hands[1] ? <g transform={`translate(${hands[1][0]} ${hands[1][1]})`}>{hold}</g> : null}
       {/* 頭（彎腰時繞頸部旋轉） */}
       {pHead > 0 ? (

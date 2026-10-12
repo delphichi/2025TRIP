@@ -534,9 +534,9 @@ def k11b():  # 特寫：日記
             + cut("M240,170 H1680 V960 H240Z", ORANGE, 3, u)
             + cut("M270,190 H950 V940 H270Z M970,190 H1650 V940 H970Z", PAPER, 2, u) + lines
             + f'<path d="M960,190 V940" stroke="{INK}" stroke-opacity=".25" stroke-width="6"/>'
-            + f'<text x="320" y="270" font-family="{SERIF}" font-weight="700" font-size="40" fill="#999">十月十三日</text>'
+            + f'<text x="320" y="270" font-family="{SERIF}" font-weight="700" font-size="40" fill="#999">十月十五日</text>'
             + f'<text x="320" y="370" font-family="{SERIF}" font-weight="700" font-size="40" fill="#bbb" text-decoration="line-through">明天開始讀書</text>'
-            + f'<text x="1020" y="270" font-family="{SERIF}" font-weight="700" font-size="40" fill="#999">十月十四日</text>'
+            + f'<text x="1020" y="270" font-family="{SERIF}" font-weight="700" font-size="40" fill="#999">十月十六日</text>'
             + f'<text x="1020" y="372" font-family="{SERIF}" font-weight="900" font-size="58" fill="{INK}">今天：數學第一題。</text>'
             + f'<path d="M1040,410 Q1250,430 1500,404" fill="none" stroke="{CALRED}" stroke-width="6" stroke-linecap="round"/>'
             + f'<g transform="translate(1480 640) rotate(-30)">' + cut("M0,-14 H360 V14 H0Z", MUSTARD, 4, u) + cut("M0,-14 L-50,0 L0,14Z", "#E8D3B0", 4, u) + "</g>"

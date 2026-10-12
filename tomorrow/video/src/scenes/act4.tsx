@@ -169,7 +169,7 @@ export const S10: React.FC = () => {
           <Room sky={NIGHT_SKY} lampOn={1} />
           <Mountain level={0.6} />
           <Zhe x={640} y={900} s={1} seated face="smile" talk={speaking("小哲", sec)} f={f} arms={POSE.sit} tilt={close ? -4 : 6} />
-          <Mister x={1300} y={960} s={1.1} pages={shrink} face="soft" talk={speaking("明天先生", sec)} f={f} armR={[50, 74]} />
+          <Mister x={1300} y={960} s={1.1} pages={shrink} face="soft" talk={speaking("明天先生", sec)} f={f} armR={[50, 74]} date="16" />
           {q >= P0 ? <Plane x={px} y={py} s={1.1} rot={prot} k={fold} flip /> : null}
           <Light night={0.85} moon={0.5} lamp={0.75} />
         </Cam>
