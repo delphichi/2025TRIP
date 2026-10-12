@@ -130,11 +130,11 @@ export const S6: React.FC = () => {
   const grabbed = q >= at(42.4);
   const lift = tw(q, at(42.4), at(42.9), 0, 1);
   const arms: [number, number] = climbing ? [110 + sw * 30, 100 + sw * 20] : grabbed ? [...POSE.stand] : [...POSE.reach];
-  const armsR: [number, number] | undefined = climbing ? [70 - sw * 30, 80 - sw * 20] : grabbed ? [lerp(-60, 75, lift), lerp(-40, 85, lift)] : undefined;
+  const armsR: [number, number] | undefined = climbing ? [70 - sw * 30, 80 - sw * 20] : grabbed ? [lerp(-60, 25, lift), lerp(-40, 55, lift)] : undefined;
   const cam = camAt(f, [
     { f: 48, cx: 520, cy: 520, z: 1.6 },
     { f: at(42.3), cx: 860, cy: 360, z: 1.6 },
-    { f: 144, cx: 880, cy: 330, z: 1.75 },
+    { f: 144, cx: 900, cy: 300, z: 1.6 },
   ]);
   const hh = handheld(f, 0.9);
   return (
@@ -155,7 +155,7 @@ export const S6: React.FC = () => {
             face={grabbed ? "smile" : "focus"}
             talk={speaking("小哲", sec)}
             f={f}
-            holdR={grabbed ? <Cal x={0} y={-60} s={1.4 + lift * 0.8} rot={-6} text="下週/一定開始" depth={4} /> : undefined}
+            holdR={grabbed ? <Cal x={30} y={-30} s={1.4 + lift * 0.6} rot={-6} text="下週/一定開始" depth={4} /> : undefined}
           />
           <Light sun={0.6} dim={0.85} />
         </Cam>
