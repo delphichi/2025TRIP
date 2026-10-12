@@ -12,3 +12,6 @@ venv/
 # 系統檔
 .DS_Store
 Thumbs.db
+
+# macOS 在 exFAT 外接碟產生的 AppleDouble 檔
+._*
