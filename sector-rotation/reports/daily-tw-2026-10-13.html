@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>台股產業鏈資金雷達 · 2026-10-13</title>
+<style>
+  :root {
+    --navy:#1b2a4a; --navy-d:#0f1930; --gold:#c9a24b; --gold-l:#e8d9ae;
+    --bg:#f4f5f7; --card:#ffffff; --line:#e2e5ea;
+    --text:#2a2f3a; --muted:#6b7280;
+    --green:#1e8449; --red:#c0392b; --amber:#d97706; --blue:#2563eb;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:24px; background:var(--bg);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--text); line-height:1.55;
+  }
+  .sheet { max-width:1180px; margin:0 auto; }
+  .up { color:var(--green); font-weight:700; }
+  .down { color:var(--red); font-weight:700; }
+  .flat { color:var(--muted); font-weight:600; }
+  .dim { color:var(--muted); font-size:12px; }
+  .header {
+    background:var(--card); border-radius:10px; padding:22px 26px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:14px;
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+  }
+  .logo {
+    width:56px; height:56px; border-radius:50%;
+    background:linear-gradient(135deg,var(--navy),var(--navy-d));
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold-l); font-weight:800; font-size:22px; border:2px solid var(--gold);
+  }
+  .htitle { flex:1; min-width:280px; }
+  .htitle .tag {
+    display:inline-block; background:var(--navy); color:var(--gold-l);
+    font-size:11px; padding:2px 10px; border-radius:12px; margin-bottom:6px; letter-spacing:1px;
+  }
+  .htitle h1 { margin:0 0 6px 0; font-size:22px; color:var(--navy); }
+  .htitle p { margin:0; font-size:13px; color:var(--muted); }
+  .tldr {
+    background:linear-gradient(90deg,#0f1930,#1b2a4a); color:#fef3c7;
+    padding:16px 22px; border-radius:10px; margin-bottom:14px;
+    font-size:14px; line-height:1.7; border-left:4px solid var(--gold);
+  }
+  .tldr b { color:#fff; }
+  .snap {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:10px; margin-bottom:14px;
+  }
+  .snap-cell {
+    background:var(--card); padding:12px 14px; border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .snap-cell .l { font-size:10.5px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }
+  .snap-cell .v { font-size:20px; font-weight:800; color:var(--navy); margin-top:2px; }
+  .snap-cell .s { font-size:11px; color:var(--muted); margin-top:2px; }
+  .card {
+    background:var(--card); border-radius:10px; overflow:hidden; margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  .card-h {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .card-h .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  .card-b { padding:14px 18px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th {
+    text-align:left; padding:8px 10px; background:#f9fafb; color:var(--muted);
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.5px;
+    border-bottom:2px solid var(--line); font-weight:600;
+  }
+  td { padding:7px 10px; border-bottom:1px solid var(--line); }
+  td.n { text-align:right; font-variant-numeric:tabular-nums; }
+  tr:last-child td { border-bottom:none; }
+  .empty { text-align:center; padding:16px; color:var(--muted); font-style:italic; }
+  .alert { background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:10px; font-size:11px; }
+  tr.thin-sector { font-style:italic; color:var(--muted); }
+  tr.thin-sector td { color:var(--muted); }
+  tr.thin-sector .cpd, tr.thin-sector .up, tr.thin-sector .down { opacity:.7; }
+  .dow {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .dow-long { background:#dcfce7; color:#166534; }
+  .dow-short { background:#fee2e2; color:#991b1b; }
+  .dow-squeeze { background:#fef3c7; color:#92400e; }
+  .dow-broaden { background:#ede9fe; color:#6d28d9; }
+  .dow-none { color:#94a3b8; font-size:10px; }
+  .dow-sig { font-size:10px; color:var(--muted); margin-left:4px; }
+  .pv {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .pv-strong { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .pv-warn { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+  .pv-weak { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+  .pv-early { background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }
+  .pv-neutral { background:#f3f4f6; color:#6b7280; }
+  .exp {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700;
+    white-space:nowrap;
+  }
+  .exp-boom { background:#fef3c7; color:#92400e; border:1px solid #fbbf24; }
+  .exp-cand { background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
+  .exp-risk { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+  .exp-none { color:#94a3b8; }
+  .cpd {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .cpd-confirmed { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .cpd-leading { background:#fef3c7; color:#92400e; border:1px solid #fbbf24; }
+  .cpd-warn { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+  .cpd-weak { background:#f3f4f6; color:#6b7280; }
+  .cpd-overheat { background:#fecaca; color:#7f1d1d; border:1px solid #ef4444; font-weight:700; }
+  .trans { display:inline-block; padding:1px 6px; border-radius:8px; font-size:11px; font-weight:700; }
+  .trans-adv { background:#dcfce7; color:#166534; }
+  .trans-rev { background:#fee2e2; color:#991b1b; }
+  .trans-steady { background:#f3f4f6; color:#6b7280; }
+  .trans-new { background:#f3f4f6; color:#9ca3af; }
+  .cpdcols { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+  @media(max-width:640px) { .cpdcols { grid-template-columns:1fr; } }
+  .cpdcol { background:#f9fafb; border-radius:8px; padding:10px 12px; border-left:3px solid var(--muted); }
+  .cpdcol.leading { border-left-color:#f59e0b; background:#fffbeb; }
+  .cpdcol.confirmed { border-left-color:#22c55e; background:#f0fdf4; }
+  .cpdcol.warn { border-left-color:#ef4444; background:#fef2f2; }
+  .cpdcol.weak { border-left-color:#94a3b8; background:#f9fafb; }
+  .cpdcol.overheat { border-left-color:#b91c1c; background:#fef2f2; }
+  .cpdcol h4 { margin:0 0 6px 0; font-size:13px; color:var(--navy); }
+  .cpdcol .cnt { font-size:11px; color:var(--muted); margin-left:6px; }
+  .cpdcol ul { margin:0; padding-left:0; list-style:none; font-size:12px; }
+  .cpdcol li { padding:2px 0; display:flex; justify-content:space-between; }
+  .cpdcol .empty { color:var(--muted); font-style:italic; font-size:11px; }
+  .expcols { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  @media(max-width:800px) { .expcols { grid-template-columns:1fr; } }
+  .expcol { background:#f9fafb; border-radius:8px; padding:10px 12px; border-left:3px solid var(--muted); }
+  .expcol.boom { border-left-color:#f59e0b; background:#fffbeb; }
+  .expcol.cand { border-left-color:#3b82f6; background:#eff6ff; }
+  .expcol.risk { border-left-color:#ef4444; background:#fef2f2; }
+  .expcol h4 { margin:0 0 6px 0; font-size:13px; color:var(--navy); }
+  .expcol .cnt { font-size:11px; color:var(--muted); margin-left:6px; }
+  .expcol ul { margin:0; padding-left:0; list-style:none; font-size:12px; }
+  .expcol li { padding:2px 0; display:flex; justify-content:space-between; }
+  .expcol .sec { color:var(--muted); font-size:10.5px; }
+  .expcol .empty { color:var(--muted); font-style:italic; font-size:11px; }
+  .deplist { margin:0; padding:0; list-style:none; font-size:13px; }
+  .deplist li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; }
+  .deplist li:last-child { border-bottom:none; }
+  .deplist li > span:last-child { margin-left:auto; font-weight:700; }
+  .foot {
+    background:var(--card); border-radius:10px; padding:16px 20px;
+    margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);
+    text-align:center; font-size:12px; color:var(--muted);
+  }
+  .foot a { color:var(--navy); text-decoration:none; border-bottom:1px dotted var(--navy); }
+
+  /* 首頁「決策儀表板」區塊：TODAY'S SIGNAL / MONEY IS MOVING / RISK /
+     OPPORTUNITY / SECTOR MAP。跟下面 <details> 的「證據層」共用 .card 外觀，
+     只是內容精簡很多，不是另一套視覺語言。 */
+  .fpgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  @media(max-width:800px) { .fpgrid { grid-template-columns:1fr; } }
+  .fpsignal { margin:0; padding:0; list-style:none; font-size:13px; }
+  .fpsignal li { padding:6px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .fpsignal li:last-child { border-bottom:none; }
+  .fpsignal li > b { flex:1; }
+  .fpnames { margin:0; padding:0; list-style:none; font-size:13px; columns:2; column-gap:16px; }
+  .fpnames li { padding:4px 0; display:flex; align-items:center; justify-content:space-between; gap:8px; break-inside:avoid; }
+  .fpsectormap { columns:3; }
+  @media(max-width:800px) { .fpsectormap { columns:2; } }
+  @media(max-width:500px) { .fpnames { columns:1; } .fpsectormap { columns:1; } }
+
+  /* <details> 證據層：跟 .card 同一套外觀，summary 取代 .card-h 當摺疊把手。 */
+  details.card { padding:0; }
+  details.card > summary {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; cursor:pointer; list-style:none; display:flex; align-items:center;
+    justify-content:space-between; gap:8px;
+  }
+  details.card > summary::-webkit-details-marker { display:none; }
+  details.card > summary::after { content:"點擊展開 ▾"; font-size:11px; font-weight:400; opacity:.75; }
+  details.card[open] > summary::after { content:"收合 ▴"; }
+  details.card > summary .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  details.card > .card-b { padding:14px 18px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">TW</div>
+    <div class="htitle">
+      <span class="tag">PHASE 2.1 · BETA</span>
+      <h1>🇹🇼 台股產業鏈資金雷達 · 2026-10-13</h1>
+      <p>資料源：FinMind + yfinance · 首頁只回答「今天要注意什麼」，完整證據收在下方
+         各張「點擊展開」的卡片裡，資料完全沒有刪減</p>
+    </div>
+  </div>
+
+  <div class="snap">
+    <div class="snap-cell">
+      <div class="l">0050（TAIEX 代理）</div>
+      <div class="v">113.00</div>
+      <div class="s">60d +12.83% · 🟢</div>
+    </div>
+    <div class="snap-cell">
+      <div class="l">Market Universe</div>
+      <div class="v">100</div>
+      <div class="s">22 個 industry_category（Phase 1，全部參與）</div>
+    </div>
+    <div class="snap-cell">
+      <div class="l">Chain Universe</div>
+      <div class="v">76 / 100</div>
+      <div class="s">Phase 2 策略性研究池（不是資料缺失）</div>
+    </div>
+  </div>
+
+  <div class="tldr"><b>TL;DR</b>　領先板塊：塑膠工業（point 92.5） · 落後板塊：電子通路業（point 16.6）</div>
+
+  <div class="card">
+    <div class="card-h">🔥 TODAY'S SIGNAL<span class="n" title="今天 Point 最高的前 5 條供應鏈，附狀態與 Transition 方向——哪些產業鏈正在形成，不是哪個 Point 最高就買哪個">Top 5 供應鏈</span></div>
+    <div class="card-b">
+      <ul class="fpsignal"><li><b>CCL / High-Speed Materials</b><span class="n">109.7</span><span class="cpd cpd-confirmed">🚀 Confirmed</span><span class="dim">→</span></li><li><b>Passive Components</b><span class="n">93.7</span><span class="cpd cpd-confirmed">🚀 Confirmed</span><span class="dim">→</span></li><li><b>Display &amp; Optical</b><span class="n">85.8</span><span class="cpd cpd-warn">⚠️ Price Leading</span><span class="dim">→</span></li><li><b>AI / HPC Semiconductor</b><span class="n">55.0</span><span class="cpd cpd-warn">⚠️ Price Leading</span><span class="dim">→</span></li><li><b>Thermal / Liquid Cooling</b><span class="n">49.2</span><span class="cpd cpd-confirmed">🚀 Confirmed</span><span class="dim">→</span></li></ul>
+    </div>
+  </div>
+
+  <div class="fpgrid">
+    <div class="card">
+      <div class="card-h">💰 MONEY IS MOVING<span class="n" title="資金已經進場、價格還沒完全反映——CPD 狀態為 Capital Leading 的鏈">早期階段</span></div>
+      <div class="card-b"><ul class="fpnames"><li>Semiconductor Equipment &amp; Materials</li><li>Robotics / Automation</li><li>Shipping / Logistics</li><li>Data Center Power / PSU</li><li>EV / Auto Electronics</li><li>Smart Grid / Transformer</li><li>Energy Storage / Battery</li><li>Steel</li></ul></div>
+    </div>
+    <div class="card">
+      <div class="card-h">⚠️ RISK<span class="n" title="Price Leading（價格已動、法人沒跟）+ Overheated（過熱/出貨徵兆）——小心，不是進場訊號">追高風險</span></div>
+      <div class="card-b"><ul class="fpnames"><li>Display &amp; Optical</li><li>AI / HPC Semiconductor</li></ul></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🎯 OPPORTUNITY<span class="n" title="🚀 突破：explosive_verdict=暴漲中（Layer 2 純價量訊號）；🎯 早期：Price Lag 標記 EARLY（鏈已確認、股票鏈內還沒漲上來）。合併既有兩個訊號，不是新公式，不構成買賣建議">突破 + 早期機會</span></div>
+    <div class="card-b" style="padding:0;">
+      
+    <table>
+      <thead><tr><th>Stock</th><th>Chain</th><th class="n">4W / Point</th><th>Signal</th></tr></thead>
+      <tbody><tr><td><b>1301</b> <span class="dim">台塑</span></td><td>塑膠工業</td><td class="n">+25.2%</td><td>🚀</td></tr><tr><td><b>2368</b> <span class="dim">金像電</span></td><td>PCB / HDI / IC Substrate</td><td class="n">+13.6%</td><td>🚀</td></tr><tr><td><b>1802</b> <span class="dim">台玻</span></td><td>CCL / High-Speed Materials</td><td class="n">+7.9</td><td>🎯</td></tr><tr><td><b>2383</b> <span class="dim">台光電</span></td><td>CCL / High-Speed Materials</td><td class="n">+48.7</td><td>🎯</td></tr><tr><td><b>2308</b> <span class="dim">台達電</span></td><td>Thermal / Liquid Cooling</td><td class="n">+9.9</td><td>🎯</td></tr><tr><td><b>6515</b> <span class="dim">穎崴</span></td><td>Advanced Packaging</td><td class="n">-20.4</td><td>🎯</td></tr><tr><td><b>2313</b> <span class="dim">華通</span></td><td>PCB / HDI / IC Substrate</td><td class="n">-0.5</td><td>🎯</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 SECTOR MAP<span class="n" title="板塊名稱 + 狀態圖示，數字在下方「Sector Detail」裡">22 板塊</span></div>
+    <div class="card-b">
+      <ul class="fpnames fpsectormap"><li>光電業<span class="cpd cpd-warn">⚠️ Price Leading</span></li><li>油電燃氣業<span class="cpd cpd-confirmed">🚀 Confirmed</span></li><li>塑膠工業<span class="cpd cpd-confirmed">🚀 Confirmed</span></li><li>電子零組件業<span class="cpd cpd-confirmed">🚀 Confirmed</span></li><li>生技醫療業<span class="cpd cpd-confirmed">🚀 Confirmed</span></li><li>電子工業<span class="cpd cpd-warn">⚠️ Price Leading</span></li><li>半導體業<span class="cpd cpd-confirmed">🚀 Confirmed</span></li><li>電腦及週邊設備業<span class="cpd cpd-warn">⚠️ Price Leading</span></li><li>金融保險<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>航運業<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>電器電纜<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>電機機械<span class="cpd cpd-weak">❄️ Weak</span></li><li>其他電子業<span class="cpd cpd-weak">❄️ Weak</span></li><li>電子通路業<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>水泥工業<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>汽車工業<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>紡織纖維<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>玻璃陶瓷<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>食品工業<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>其他<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>鋼鐵工業<span class="cpd cpd-leading">💰 Capital Leading</span></li><li>貿易百貨<span class="cpd cpd-leading">💰 Capital Leading</span></li></ul>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>📊 Sector Detail<span class="n">22 板塊完整數據 + CPD 象限</span></summary>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector</th><th class="n">Point</th>
+              <th class="n" title="今日 point - 過去 5 日 point 均值 · 首次執行前 5 天沒歷史資料會是 —">加速度</th>
+              <th class="n" title="板塊內 4W 累報 > 0 的股票比例">寬度</th>
+              <th class="n" title="板塊內所有個股三大法人 20 日淨買賣加總（依最新收盤價換算金額）">法人 20d 淨買（金額）</th>
+              <th class="n" title="法人 20d 淨買金額 ÷ 板塊成分股數——原始總額板塊間不能直接比大小（成分股數量差很多），這欄才是可以跨板塊比較的正規化指標">平均每檔淨買</th>
+              <th title="CPD = Z(法人金額) - Z(SectorPoint)，跨板塊橫斷面相對排名，非嚴謹統計顯著性。💰 Capital Leading = 資金先進、價格尚未反映（狩獵區）· 🔥 Overheated = 連兩日 Confirmed 但寬度下滑，過熱/出貨徵兆">狀態</th>
+              <th title="Transition Sensor：昨天 → 今天板塊移動到哪個狀態，比單看今天排名更早看出正在推進還是退燒">轉移</th></tr>
+        </thead>
+        <tbody>
+        <tr class="thin-sector">
+          <td><b>光電業</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">142.9</td>
+          <td class="n up">+22.1</td>
+          <td class="n">100%</td>
+          <td class="n down">-247.62億元</td>
+          <td class="n down">-247.62億元</td>
+          <td><span class="cpd cpd-warn" title="CPD = Z(法人金額) - Z(SectorPoint)：-3.48">⚠️ Price Leading</span></td>
+          <td><span class="trans trans-new">·</span> <span class="dim">(無前一日資料)</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>油電燃氣業</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">93.3</td>
+          <td class="n up">+19.6</td>
+          <td class="n">100%</td>
+          <td class="n up">+42.40億元</td>
+          <td class="n up">+42.40億元</td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：-1.51">🚀 Confirmed</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">🚀 Confirmed（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>塑膠工業</b> <span class="dim">n=3</span></td>
+          <td class="n">92.5</td>
+          <td class="n up">+9.9</td>
+          <td class="n">100%</td>
+          <td class="n up">+339.28億元</td>
+          <td class="n up">+113.09億元</td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：-0.89">🚀 Confirmed</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">🚀 Confirmed（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>電子零組件業</b> <span class="dim">n=12</span></td>
+          <td class="n">55.3</td>
+          <td class="n down">-18.1</td>
+          <td class="n">92%</td>
+          <td class="n up">+677.08億元</td>
+          <td class="n up">+56.42億元</td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.84">🚀 Confirmed</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">🚀 Confirmed（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>生技醫療業</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">46.8</td>
+          <td class="n down">-4.5</td>
+          <td class="n">0%</td>
+          <td class="n down">-33.50億元</td>
+          <td class="n down">-33.50億元</td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：-0.38">🚀 Confirmed</span></td>
+          <td><span class="trans trans-new">·</span> <span class="dim">(無前一日資料)</span></td>
+        </tr>
+        <tr>
+          <td><b>電子工業</b> <span class="dim">n=33</span></td>
+          <td class="n">44.7</td>
+          <td class="n down">-6.1</td>
+          <td class="n">67%</td>
+          <td class="n down">-2028.45億元</td>
+          <td class="n down">-61.47億元</td>
+          <td><span class="cpd cpd-warn" title="CPD = Z(法人金額) - Z(SectorPoint)：-4.38">⚠️ Price Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">⚠️ Price Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>半導體業</b> <span class="dim">n=4</span></td>
+          <td class="n">37.4</td>
+          <td class="n down">-11.9</td>
+          <td class="n">75%</td>
+          <td class="n up">+180.85億元</td>
+          <td class="n up">+45.21億元</td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.32">🚀 Confirmed</span></td>
+          <td><span class="trans trans-adv">🔼</span> <span class="dim">⚠️ Price Leading → 🚀 Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><b>電腦及週邊設備業</b> <span class="dim">n=8</span></td>
+          <td class="n">35.3</td>
+          <td class="n up">+2.2</td>
+          <td class="n">50%</td>
+          <td class="n down">-369.09億元</td>
+          <td class="n down">-46.14億元</td>
+          <td><span class="cpd cpd-warn" title="CPD = Z(法人金額) - Z(SectorPoint)：-0.74">⚠️ Price Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">⚠️ Price Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>金融保險</b> <span class="dim">n=15</span></td>
+          <td class="n">32.1</td>
+          <td class="n up">+2.0</td>
+          <td class="n">80%</td>
+          <td class="n up">+332.18億元</td>
+          <td class="n up">+22.15億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.78">💰 Capital Leading</span></td>
+          <td><span class="trans trans-rev">🔽</span> <span class="dim">🚀 Confirmed → 💰 Capital Leading</span></td>
+        </tr>
+        <tr>
+          <td><b>航運業</b> <span class="dim">n=5</span></td>
+          <td class="n">24.2</td>
+          <td class="n up">+3.0</td>
+          <td class="n">80%</td>
+          <td class="n up">+215.09億元</td>
+          <td class="n up">+43.02億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.76">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>電器電纜</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">18.6</td>
+          <td class="n down">-0.1</td>
+          <td class="n">100%</td>
+          <td class="n up">+32.21億元</td>
+          <td class="n up">+32.21億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.54">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>電機機械</b> <span class="dim">n=4</span></td>
+          <td class="n">18.6</td>
+          <td class="n down">-12.8</td>
+          <td class="n">50%</td>
+          <td class="n down">-72.76億元</td>
+          <td class="n down">-18.19億元</td>
+          <td><span class="cpd cpd-weak" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.33">❄️ Weak</span></td>
+          <td><span class="trans trans-rev">🔽</span> <span class="dim">🚀 Confirmed → ❄️ Weak</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>其他電子業</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">18.0</td>
+          <td class="n down">-15.8</td>
+          <td class="n">100%</td>
+          <td class="n down">-51.20億元</td>
+          <td class="n down">-51.20億元</td>
+          <td><span class="cpd cpd-weak" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.39">❄️ Weak</span></td>
+          <td><span class="trans trans-rev">🔽</span> <span class="dim">💰 Capital Leading → ❄️ Weak</span></td>
+        </tr>
+        <tr>
+          <td><b>電子通路業</b> <span class="dim">n=3</span></td>
+          <td class="n">16.6</td>
+          <td class="n down">-0.9</td>
+          <td class="n">100%</td>
+          <td class="n up">+51.23億元</td>
+          <td class="n up">+17.07億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.63">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>水泥工業</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">12.7</td>
+          <td class="n up">+2.2</td>
+          <td class="n">100%</td>
+          <td class="n up">+16.02億元</td>
+          <td class="n up">+16.02億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.67">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>汽車工業</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">10.6</td>
+          <td class="n up">+3.7</td>
+          <td class="n">100%</td>
+          <td class="n up">+2.14億元</td>
+          <td class="n up">+2.14億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.70">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>紡織纖維</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">8.8</td>
+          <td class="n up">+2.2</td>
+          <td class="n">0%</td>
+          <td class="n up">+3.22億元</td>
+          <td class="n up">+3.22億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.75">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>玻璃陶瓷</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">7.9</td>
+          <td class="n down">-0.4</td>
+          <td class="n">100%</td>
+          <td class="n up">+37.70億元</td>
+          <td class="n up">+37.70億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.85">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>食品工業</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">6.6</td>
+          <td class="n up">+2.9</td>
+          <td class="n">100%</td>
+          <td class="n up">+21.57億元</td>
+          <td class="n up">+21.57億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.85">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>其他</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">1.0</td>
+          <td class="n up">+1.3</td>
+          <td class="n">0%</td>
+          <td class="n down">-35.74億元</td>
+          <td class="n down">-35.74億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.89">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>鋼鐵工業</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">0.8</td>
+          <td class="n up">+0.9</td>
+          <td class="n">100%</td>
+          <td class="n up">+12.83億元</td>
+          <td class="n up">+12.83億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.99">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr class="thin-sector">
+          <td><b>貿易百貨</b> <span class="dim">n=1 ⚠️樣本過少</span></td>
+          <td class="n">-3.2</td>
+          <td class="n down">-0.0</td>
+          <td class="n">0%</td>
+          <td class="n up">+9.54億元</td>
+          <td class="n up">+9.54億元</td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+1.10">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr></tbody>
+      </table>
+    </div>
+    <div class="card-b">
+      <h4 style="margin:0 0 10px;color:var(--navy);">🧭 資金-價格背離象限（CPD）· 跨板塊橫斷面相對排名</h4>
+      <div class="cpdcols">
+        <div class="cpdcol leading">
+          <h4>💰 Capital Leading<span class="cnt">12</span></h4>
+          <ul><li><b>貿易百貨</b> <span>point -3.2 · +9.54億元</span></li><li><b>鋼鐵工業</b> <span>point 0.8 · +12.83億元</span></li><li><b>其他</b> <span>point 1.0 · -35.74億元</span></li><li><b>玻璃陶瓷</b> <span>point 7.9 · +37.70億元</span></li><li><b>食品工業</b> <span>point 6.6 · +21.57億元</span></li><li><b>金融保險</b> <span>point 32.1 · +332.18億元</span></li><li><b>航運業</b> <span>point 24.2 · +215.09億元</span></li><li><b>紡織纖維</b> <span>point 8.8 · +3.22億元</span></li><li><b>汽車工業</b> <span>point 10.6 · +2.14億元</span></li><li><b>水泥工業</b> <span>point 12.7 · +16.02億元</span></li><li><b>電子通路業</b> <span>point 16.6 · +51.23億元</span></li><li><b>電器電纜</b> <span>point 18.6 · +32.21億元</span></li></ul>
+        </div>
+        <div class="cpdcol confirmed">
+          <h4>🚀 Confirmed<span class="cnt">5</span></h4>
+          <ul><li><b>油電燃氣業</b> <span>point 93.3 · +42.40億元</span></li><li><b>塑膠工業</b> <span>point 92.5 · +339.28億元</span></li><li><b>電子零組件業</b> <span>point 55.3 · +677.08億元</span></li><li><b>生技醫療業</b> <span>point 46.8 · -33.50億元</span></li><li><b>半導體業</b> <span>point 37.4 · +180.85億元</span></li></ul>
+        </div>
+        <div class="cpdcol warn">
+          <h4>⚠️ Price Leading<span class="cnt">3</span></h4>
+          <ul><li><b>電子工業</b> <span>point 44.7 · -2028.45億元</span></li><li><b>光電業</b> <span>point 142.9 · -247.62億元</span></li><li><b>電腦及週邊設備業</b> <span>point 35.3 · -369.09億元</span></li></ul>
+        </div>
+        <div class="cpdcol weak">
+          <h4>❄️ Weak<span class="cnt">2</span></h4>
+          <ul><li><b>其他電子業</b> <span>point 18.0 · -51.20億元</span></li><li><b>電機機械</b> <span>point 18.6 · -72.76億元</span></li></ul>
+        </div>
+        <div class="cpdcol overheat">
+          <h4>🔥 Overheated<span class="cnt">0</span></h4>
+          <ul><li class="empty">今日無</li></ul>
+        </div></div>
+    </div>
+  </details>
+
+  <div class="card">
+    <div class="card-h">🔗 產業鏈雷達（Phase 2 · IndustryMappingTable）<span class="n">20</span></div>
+    <div class="card-b" style="padding:0;">
+      
+    <table>
+      <thead>
+        <tr><th>Supply Chain</th><th class="n">Point</th>
+            <th class="n" title="鏈內個股 4W 累報 > 0 的比例">寬度</th>
+            <th class="n" title="鏈內所有股票三大法人 20 日淨買賣加總（同一檔股票若掛多條鏈，會分別計入每一條）">法人 20d 淨買</th>
+            <th class="n" title="法人 20d 淨買金額 ÷ 鏈內股票數，跨鏈可比較的正規化指標">平均每檔淨買</th>
+            <th title="Node Resonance：鏈內有幾個不同節點（chain_node）平均 point 轉正——比個股 Breadth 更能看出是單一環節帶動還是全鏈擴散">節點共振</th>
+            <th title="CPD = Z(法人金額) - Z(ChainPoint)，跨產業鏈橫斷面相對排名">狀態</th>
+            <th title="Chain Transition Sensor：昨天 → 今天這條鏈移動到哪個狀態">轉移</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>CCL / High-Speed Materials</b> <span class="dim">n=4</span></td>
+          <td class="n">109.7</td>
+          <td class="n">100%</td>
+          <td class="n up">+185.02億元</td>
+          <td class="n">+46.25億元</td>
+          <td><span class="up">100%</span> <span class="dim">(3 節點)</span></td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：-1.84">🚀 Confirmed</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">🚀 Confirmed（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Passive Components</b> <span class="dim">n=2</span></td>
+          <td class="n">93.7</td>
+          <td class="n">100%</td>
+          <td class="n up">+69.62億元</td>
+          <td class="n">+34.81億元</td>
+          <td><span class="up">100%</span> <span class="dim">(2 節點)</span></td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：-1.51">🚀 Confirmed</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">🚀 Confirmed（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Display &amp; Optical</b> <span class="dim">n=3</span></td>
+          <td class="n">85.8</td>
+          <td class="n">100%</td>
+          <td class="n down">-311.09億元</td>
+          <td class="n">-103.70億元</td>
+          <td><span class="up">100%</span> <span class="dim">(2 節點)</span></td>
+          <td><span class="cpd cpd-warn" title="CPD = Z(法人金額) - Z(SectorPoint)：-2.00">⚠️ Price Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">⚠️ Price Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>AI / HPC Semiconductor</b> <span class="dim">n=9</span></td>
+          <td class="n">55.0</td>
+          <td class="n">67%</td>
+          <td class="n down">-1698.70億元</td>
+          <td class="n">-188.75億元</td>
+          <td><span class="up">100%</span> <span class="dim">(8 節點)</span></td>
+          <td><span class="cpd cpd-warn" title="CPD = Z(法人金額) - Z(SectorPoint)：-3.73">⚠️ Price Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">⚠️ Price Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Thermal / Liquid Cooling</b> <span class="dim">n=5</span></td>
+          <td class="n">49.2</td>
+          <td class="n">80%</td>
+          <td class="n down">-19.75億元</td>
+          <td class="n">-3.95億元</td>
+          <td><span class="up">100%</span> <span class="dim">(3 節點)</span></td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：-0.13">🚀 Confirmed</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">🚀 Confirmed（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Biotech / Innovative Drug / CDMO</b> <span class="dim">n=1</span></td>
+          <td class="n">46.8</td>
+          <td class="n">0%</td>
+          <td class="n down">-33.50億元</td>
+          <td class="n">-33.50億元</td>
+          <td><span class="dim" title="只有 1 個節點，跟自己比沒有意義">單一節點</span></td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：-0.08">🚀 Confirmed</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">🚀 Confirmed（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>PCB / HDI / IC Substrate</b> <span class="dim">n=10</span></td>
+          <td class="n">46.6</td>
+          <td class="n">100%</td>
+          <td class="n up">+1000.09億元</td>
+          <td class="n">+100.01億元</td>
+          <td><span class="up">86%</span> <span class="dim">(7 節點)</span></td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：+2.02">🚀 Confirmed</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">🚀 Confirmed（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Advanced Packaging</b> <span class="dim">n=8</span></td>
+          <td class="n">45.4</td>
+          <td class="n">88%</td>
+          <td class="n down">-109.96億元</td>
+          <td class="n">-13.74億元</td>
+          <td><span class="up">67%</span> <span class="dim">(3 節點)</span></td>
+          <td><span class="cpd cpd-confirmed" title="CPD = Z(法人金額) - Z(SectorPoint)：-0.18">🚀 Confirmed</span></td>
+          <td><span class="trans trans-adv">🔼</span> <span class="dim">⚠️ Price Leading → 🚀 Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><b>AI Server / ODM</b> <span class="dim">n=13</span></td>
+          <td class="n">38.9</td>
+          <td class="n">46%</td>
+          <td class="n down">-708.63億元</td>
+          <td class="n">-54.51億元</td>
+          <td><span class="up">100%</span> <span class="dim">(6 節點)</span></td>
+          <td><span class="cpd cpd-weak" title="CPD = Z(法人金額) - Z(SectorPoint)：-1.16">❄️ Weak</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">❄️ Weak（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Semiconductor Equipment &amp; Materials</b> <span class="dim">n=9</span></td>
+          <td class="n">36.0</td>
+          <td class="n">89%</td>
+          <td class="n down">-47.92億元</td>
+          <td class="n">-5.32億元</td>
+          <td><span class="up">100%</span> <span class="dim">(7 節點)</span></td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.27">💰 Capital Leading</span></td>
+          <td><span class="trans trans-rev">🔽</span> <span class="dim">🚀 Confirmed → 💰 Capital Leading</span></td>
+        </tr>
+        <tr>
+          <td><b>Robotics / Automation</b> <span class="dim">n=3</span></td>
+          <td class="n">30.1</td>
+          <td class="n">67%</td>
+          <td class="n down">-5.97億元</td>
+          <td class="n">-1.99億元</td>
+          <td><span class="up">100%</span> <span class="dim">(2 節點)</span></td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.56">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Shipping / Logistics</b> <span class="dim">n=4</span></td>
+          <td class="n">29.8</td>
+          <td class="n">100%</td>
+          <td class="n up">+222.90億元</td>
+          <td class="n">+55.73億元</td>
+          <td><span class="up">100%</span> <span class="dim">(2 節點)</span></td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+1.04">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Memory / HBM</b> <span class="dim">n=5</span></td>
+          <td class="n">29.2</td>
+          <td class="n">0%</td>
+          <td class="n down">-292.71億元</td>
+          <td class="n">-58.54億元</td>
+          <td><span class="up">80%</span> <span class="dim">(5 節點)</span></td>
+          <td><span class="cpd cpd-weak" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.02">❄️ Weak</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">❄️ Weak（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Data Center Power / PSU</b> <span class="dim">n=4</span></td>
+          <td class="n">28.7</td>
+          <td class="n">75%</td>
+          <td class="n up">+8.48億元</td>
+          <td class="n">+2.12億元</td>
+          <td><span class="up">100%</span> <span class="dim">(4 節點)</span></td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.64">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Cloud / Data Center / Cybersecurity</b> <span class="dim">n=8</span></td>
+          <td class="n">24.9</td>
+          <td class="n">62%</td>
+          <td class="n down">-453.23億元</td>
+          <td class="n">-56.65億元</td>
+          <td><span class="up">100%</span> <span class="dim">(4 節點)</span></td>
+          <td><span class="cpd cpd-weak" title="CPD = Z(法人金額) - Z(SectorPoint)：-0.16">❄️ Weak</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">❄️ Weak（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>EV / Auto Electronics</b> <span class="dim">n=4</span></td>
+          <td class="n">16.2</td>
+          <td class="n">100%</td>
+          <td class="n up">+47.35億元</td>
+          <td class="n">+11.84億元</td>
+          <td><span class="up">100%</span> <span class="dim">(3 節點)</span></td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+1.16">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Smart Grid / Transformer</b> <span class="dim">n=4</span></td>
+          <td class="n">13.3</td>
+          <td class="n">75%</td>
+          <td class="n up">+8.65億元</td>
+          <td class="n">+2.16億元</td>
+          <td><span class="up">100%</span> <span class="dim">(3 節點)</span></td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+1.18">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Optical Communication / AI Networking</b> <span class="dim">n=1</span></td>
+          <td class="n">11.5</td>
+          <td class="n">100%</td>
+          <td class="n down">-170.09億元</td>
+          <td class="n">-170.09億元</td>
+          <td><span class="dim" title="只有 1 個節點，跟自己比沒有意義">單一節點</span></td>
+          <td><span class="cpd cpd-weak" title="CPD = Z(法人金額) - Z(SectorPoint)：+0.88">❄️ Weak</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">❄️ Weak（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Energy Storage / Battery</b> <span class="dim">n=1</span></td>
+          <td class="n">9.9</td>
+          <td class="n">100%</td>
+          <td class="n up">+49.03億元</td>
+          <td class="n">+49.03億元</td>
+          <td><span class="dim" title="只有 1 個節點，跟自己比沒有意義">單一節點</span></td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+1.38">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr>
+        <tr>
+          <td><b>Steel</b> <span class="dim">n=1</span></td>
+          <td class="n">0.8</td>
+          <td class="n">100%</td>
+          <td class="n up">+12.83億元</td>
+          <td class="n">+12.83億元</td>
+          <td><span class="dim" title="只有 1 個節點，跟自己比沒有意義">單一節點</span></td>
+          <td><span class="cpd cpd-leading" title="CPD = Z(法人金額) - Z(SectorPoint)：+1.63">💰 Capital Leading</span></td>
+          <td><span class="trans trans-steady">→</span> <span class="dim">💰 Capital Leading（持平）</span></td>
+        </tr></tbody>
+    </table><p class="dim" style="margin:8px 18px 0;">Phase 2 產業鏈研究池：76 檔／100 檔市場池。Phase 2 僅納入具產業鏈研究價值與流動性的核心股票；其餘股票仍完整參與 Phase 1 市場／板塊／個股感測，未納入不代表資料缺失。</p>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>🔬 Chain Diagnostics<span class="n" title="Node Resonance / Upstream Coherence / Price Lag 三個既有指標合併成同一條鏈的完整診斷檔案">同步度 + 共振 + Price Lag 合併</span></summary>
+    <div class="card-b" style="padding:0;">
+      
+    <table>
+      <thead>
+        <tr><th>Chain</th><th title="CPD 象限狀態">State</th>
+            <th class="n" title="鏈內不同節點類型有幾成平均 point 轉正">Node Resonance</th>
+            <th class="n" title="上游依賴鏈的加權確認度（WeightedCoherence）">Upstream Coherence</th>
+            <th class="n" title="鏈內成分股 Price Lag 平均值 + 幾檔標記 EARLY">Price Lag（平均）</th></tr>
+      </thead>
+      <tbody><tr><td><b>CCL / High-Speed Materials</b></td><td><span class="cpd cpd-confirmed">🚀 Confirmed</span></td><td class="n">100%</td><td class="n">—</td><td class="n">+2.44（2 檔 EARLY）</td></tr><tr><td><b>Passive Components</b></td><td><span class="cpd cpd-confirmed">🚀 Confirmed</span></td><td class="n">100%</td><td class="n">—</td><td class="n">—</td></tr><tr><td><b>Display &amp; Optical</b></td><td><span class="cpd cpd-warn">⚠️ Price Leading</span></td><td class="n">100%</td><td class="n">100%</td><td class="n">+1.60（0 檔 EARLY）</td></tr><tr><td><b>AI / HPC Semiconductor</b></td><td><span class="cpd cpd-warn">⚠️ Price Leading</span></td><td class="n">100%</td><td class="n">100%</td><td class="n">+0.52（0 檔 EARLY）</td></tr><tr><td><b>Thermal / Liquid Cooling</b></td><td><span class="cpd cpd-confirmed">🚀 Confirmed</span></td><td class="n">100%</td><td class="n">—</td><td class="n">+0.32（2 檔 EARLY）</td></tr><tr><td><b>Biotech / Innovative Drug / CDMO</b></td><td><span class="cpd cpd-confirmed">🚀 Confirmed</span></td><td class="n">單一節點</td><td class="n">—</td><td class="n">—</td></tr><tr><td><b>PCB / HDI / IC Substrate</b></td><td><span class="cpd cpd-confirmed">🚀 Confirmed</span></td><td class="n">86%</td><td class="n">100%</td><td class="n">+0.23（5 檔 EARLY）</td></tr><tr><td><b>Advanced Packaging</b></td><td><span class="cpd cpd-confirmed">🚀 Confirmed</span></td><td class="n">67%</td><td class="n">100%</td><td class="n">+0.19（4 檔 EARLY）</td></tr><tr><td><b>AI Server / ODM</b></td><td><span class="cpd cpd-weak">❄️ Weak</span></td><td class="n">100%</td><td class="n">65%</td><td class="n">-0.04（0 檔 EARLY）</td></tr><tr><td><b>Semiconductor Equipment &amp; Materials</b></td><td><span class="cpd cpd-leading">💰 Capital Leading</span></td><td class="n">100%</td><td class="n">—</td><td class="n">-0.14（7 檔 EARLY）</td></tr><tr><td><b>Robotics / Automation</b></td><td><span class="cpd cpd-leading">💰 Capital Leading</span></td><td class="n">100%</td><td class="n">42%</td><td class="n">-0.35（2 檔 EARLY）</td></tr><tr><td><b>Shipping / Logistics</b></td><td><span class="cpd cpd-leading">💰 Capital Leading</span></td><td class="n">100%</td><td class="n">—</td><td class="n">-0.36（2 檔 EARLY）</td></tr><tr><td><b>Memory / HBM</b></td><td><span class="cpd cpd-weak">❄️ Weak</span></td><td class="n">80%</td><td class="n">100%</td><td class="n">-0.38（0 檔 EARLY）</td></tr><tr><td><b>Data Center Power / PSU</b></td><td><span class="cpd cpd-leading">💰 Capital Leading</span></td><td class="n">100%</td><td class="n">100%</td><td class="n">-0.40（3 檔 EARLY）</td></tr><tr><td><b>Cloud / Data Center / Cybersecurity</b></td><td><span class="cpd cpd-weak">❄️ Weak</span></td><td class="n">100%</td><td class="n">0%</td><td class="n">-0.53（0 檔 EARLY）</td></tr><tr><td><b>EV / Auto Electronics</b></td><td><span class="cpd cpd-leading">💰 Capital Leading</span></td><td class="n">100%</td><td class="n">73%</td><td class="n">-0.84（2 檔 EARLY）</td></tr><tr><td><b>Smart Grid / Transformer</b></td><td><span class="cpd cpd-leading">💰 Capital Leading</span></td><td class="n">100%</td><td class="n">100%</td><td class="n">-0.94（2 檔 EARLY）</td></tr><tr><td><b>Optical Communication / AI Networking</b></td><td><span class="cpd cpd-weak">❄️ Weak</span></td><td class="n">單一節點</td><td class="n">—</td><td class="n">—</td></tr><tr><td><b>Energy Storage / Battery</b></td><td><span class="cpd cpd-leading">💰 Capital Leading</span></td><td class="n">單一節點</td><td class="n">—</td><td class="n">—</td></tr><tr><td><b>Steel</b></td><td><span class="cpd cpd-leading">💰 Capital Leading</span></td><td class="n">單一節點</td><td class="n">—</td><td class="n">—</td></tr></tbody>
+    </table>
+    </div>
+  </details>
+
+  <div class="card">
+    <div class="card-h">🎯 早期機會（Price Lag）<span class="n" title="PriceLag = Z(鏈強度，vs. 其他鏈) − Z(股票鏈內強度，vs. 鏈內同儕)。只列鏈本身已經 🚀 Confirmed／💰 Capital Leading、但這檔股票在鏈內還沒漲上來的組合——鏈的論點還在，股票還沒反映，不是買賣建議">Phase 2.1</span></div>
+    <div class="card-b">
+      <ul class="deplist"><li><b>1802 台玻</b> <span class="dim">[CCL / High-Speed Materials]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=2.44</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-1.06</span><span class="up">3.50</span></li><li><b>2383 台光電</b> <span class="dim">[CCL / High-Speed Materials]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=2.44</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.63</span><span class="up">3.07</span></li><li><b>2308 台達電</b> <span class="dim">[Thermal / Liquid Cooling]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.32</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-1.52</span><span class="flat">1.84</span></li><li><b>6515 穎崴</b> <span class="dim">[Advanced Packaging]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.19</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-1.57</span><span class="flat">1.76</span></li><li><b>2313 華通</b> <span class="dim">[PCB / HDI / IC Substrate]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.23</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-1.29</span><span class="flat">1.52</span></li><li><b>3533 嘉澤</b> <span class="dim">[PCB / HDI / IC Substrate]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.23</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-1.27</span><span class="flat">1.50</span></li><li><b>2368 金像電</b> <span class="dim">[PCB / HDI / IC Substrate]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.23</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.75</span><span class="flat">0.98</span></li><li><b>2449 京元電子</b> <span class="dim">[Advanced Packaging]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.19</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.73</span><span class="flat">0.92</span></li><li><b>6805 富世達</b> <span class="dim">[PCB / HDI / IC Substrate]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.23</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.62</span><span class="flat">0.85</span></li><li><b>3036 文曄</b> <span class="dim">[Semiconductor Equipment &amp; Materials]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=-0.14</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.98</span><span class="flat">0.84</span></li><li><b>2330 台積電</b> <span class="dim">[Advanced Packaging]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.19</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.63</span><span class="flat">0.82</span></li><li><b>2618 長榮航</b> <span class="dim">[Shipping / Logistics]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=-0.36</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-1.05</span><span class="flat">0.69</span></li><li><b>3017 奇鋐</b> <span class="dim">[Thermal / Liquid Cooling]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.32</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.33</span><span class="flat">0.65</span></li><li><b>2308 台達電</b> <span class="dim">[Data Center Power / PSU]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=-0.4</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.99</span><span class="flat">0.59</span></li><li><b>6239 力成</b> <span class="dim">[Advanced Packaging]</span><span class="dim" title="鏈的橫斷面 Z-score，vs. 今天其他所有鏈">鏈z=0.19</span><span class="dim" title="股票在鏈內的橫斷面 Z-score，vs. 鏈內同儕">股z=-0.38</span><span class="flat">0.57</span></li></ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💥 暴漲候選池（Top 5 / 桶）</div>
+    <div class="card-b">
+      <div class="expcols">
+        <div class="expcol boom">
+          <h4>🚀 暴漲中<span class="cnt">2</span></h4>
+          <ul><li><b>1301</b> <span class="sec">台塑</span><span>+25.2%</span></li><li><b>2368</b> <span class="sec">金像電</span><span>+13.6%</span></li></ul>
+        </div>
+        <div class="expcol cand">
+          <h4>🎯 潛在暴漲<span class="cnt">0</span></h4>
+          <ul><li class="empty">今日無</li></ul>
+        </div>
+        <div class="expcol risk">
+          <h4>🔥 追高風險<span class="cnt">21</span></h4>
+          <ul><li><b>6213</b> <span class="sec">聯茂</span><span>+56.2%</span></li><li><b>1303</b> <span class="sec">南亞</span><span>+36.0%</span></li><li><b>2492</b> <span class="sec">華新科</span><span>+25.8%</span></li><li><b>3443</b> <span class="sec">創意</span><span>+32.3%</span></li><li><b>3532</b> <span class="sec">台勝科</span><span>+5.0%</span></li></ul>
+        </div></div>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>💥 暴漲候選池（完整清單）<span class="n">全股票池</span></summary>
+    <div class="card-b">
+      
+        <h4 style="margin:12px 0 4px;">🚀 暴漲中（2 檔）</h4>
+        <table>
+          <thead><tr><th>Stock</th><th>Sector</th><th class="n">4W</th><th class="n">26W</th></tr></thead>
+          <tbody><tr><td><b>1301</b> <span class="dim">台塑</span></td><td>塑膠工業</td><td class="n">+25.2%</td><td class="n">+71.9%</td></tr><tr><td><b>2368</b> <span class="dim">金像電</span></td><td>電子零組件業</td><td class="n">+13.6%</td><td class="n">+27.1%</td></tr></tbody>
+        </table><h4 style="margin:12px 0 4px;">🎯 潛在暴漲（0 檔）</h4><p class="empty">今日無</p>
+        <h4 style="margin:12px 0 4px;">🔥 追高風險（21 檔）</h4>
+        <table>
+          <thead><tr><th>Stock</th><th>Sector</th><th class="n">4W</th><th class="n">26W</th></tr></thead>
+          <tbody><tr><td><b>6213</b> <span class="dim">聯茂</span></td><td>電子工業</td><td class="n">+56.2%</td><td class="n">+328.7%</td></tr><tr><td><b>1303</b> <span class="dim">南亞</span></td><td>塑膠工業</td><td class="n">+36.0%</td><td class="n">+298.2%</td></tr><tr><td><b>2492</b> <span class="dim">華新科</span></td><td>電子零組件業</td><td class="n">+25.8%</td><td class="n">+245.7%</td></tr><tr><td><b>3443</b> <span class="dim">創意</span></td><td>電子工業</td><td class="n">+32.3%</td><td class="n">+243.8%</td></tr><tr><td><b>3532</b> <span class="dim">台勝科</span></td><td>電子工業</td><td class="n">+5.0%</td><td class="n">+241.0%</td></tr><tr><td><b>3008</b> <span class="dim">大立光</span></td><td>光電業</td><td class="n">+9.2%</td><td class="n">+238.3%</td></tr><tr><td><b>2059</b> <span class="dim">川湖</span></td><td>電子零組件業</td><td class="n">-16.7%</td><td class="n">+218.0%</td></tr><tr><td><b>2454</b> <span class="dim">聯發科</span></td><td>電子工業</td><td class="n">-1.3%</td><td class="n">+209.7%</td></tr><tr><td><b>3189</b> <span class="dim">景碩</span></td><td>電子工業</td><td class="n">+26.5%</td><td class="n">+190.6%</td></tr><tr><td><b>4958</b> <span class="dim">臻鼎-KY</span></td><td>電子零組件業</td><td class="n">+11.5%</td><td class="n">+147.0%</td></tr><tr><td><b>2303</b> <span class="dim">聯電</span></td><td>電子工業</td><td class="n">+0.7%</td><td class="n">+146.9%</td></tr><tr><td><b>2408</b> <span class="dim">南亞科</span></td><td>電子工業</td><td class="n">-1.0%</td><td class="n">+137.7%</td></tr><tr><td><b>2327</b> <span class="dim">國巨*</span></td><td>電子零組件業</td><td class="n">+10.1%</td><td class="n">+135.7%</td></tr><tr><td><b>8046</b> <span class="dim">南電</span></td><td>電子零組件業</td><td class="n">+33.3%</td><td class="n">+131.2%</td></tr><tr><td><b>2395</b> <span class="dim">研華</span></td><td>電子工業</td><td class="n">+6.5%</td><td class="n">+127.4%</td></tr><tr><td><b>6505</b> <span class="dim">台塑化</span></td><td>油電燃氣業</td><td class="n">+42.3%</td><td class="n">+114.3%</td></tr><tr><td><b>2409</b> <span class="dim">友達</span></td><td>電子工業</td><td class="n">+13.1%</td><td class="n">+113.8%</td></tr><tr><td><b>3481</b> <span class="dim">群創</span></td><td>電子工業</td><td class="n">+4.8%</td><td class="n">+112.7%</td></tr><tr><td><b>3711</b> <span class="dim">日月光投控</span></td><td>半導體業</td><td class="n">+19.7%</td><td class="n">+112.2%</td></tr><tr><td><b>3037</b> <span class="dim">欣興</span></td><td>電子零組件業</td><td class="n">+20.8%</td><td class="n">+109.7%</td></tr><tr><td><b>6446</b> <span class="dim">藥華藥</span></td><td>生技醫療業</td><td class="n">-9.0%</td><td class="n">+102.8%</td></tr></tbody>
+        </table>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>📈 Stock Detail<span class="n">各板塊 Top 3 · 37 檔</span></summary>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th>
+              <th class="n">4W</th><th class="n">13W</th><th class="n">26W</th><th>Alert</th>
+              <th title="Dow Theory 頭頭低/底底高">Dow</th><th>量價象限</th><th>暴漲判定</th>
+              <th class="n" title="三大法人 20 日淨買賣（依最新收盤價換算金額）">法人 20d</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td><b>1301</b><a href="../../valuation/index.html?ticker=1301.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">台塑</span></td>
+          <td>塑膠工業</td>
+          <td class="n">54.2</td>
+          <td class="n">100</td>
+          <td class="n">+25.2%</td>
+          <td class="n">+47.6%</td>
+          <td class="n">+71.9%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 多頭確認">📈 多頭</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-strong">⭐⭐⭐ 完美多頭</span></td>
+          <td><span class="exp exp-boom">🚀 暴漲中</span></td>
+          <td class="n up">+114.33億元</td>
+        </tr>
+        <tr>
+          <td><b>1326</b><a href="../../valuation/index.html?ticker=1326.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">台化</span></td>
+          <td>塑膠工業</td>
+          <td class="n">46.4</td>
+          <td class="n">100</td>
+          <td class="n">+10.8%</td>
+          <td class="n">+29.7%</td>
+          <td class="n">+72.6%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高">📈 多頭</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+57.22億元</td>
+        </tr>
+        <tr>
+          <td><b>2383</b><a href="../../valuation/index.html?ticker=2383.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">台光電</span></td>
+          <td>電子零組件業</td>
+          <td class="n">48.7</td>
+          <td class="n">86</td>
+          <td class="n">+3.4%</td>
+          <td class="n">+5.2%</td>
+          <td class="n">+93.1%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 空轉多預警">📈 多頭</span><span class="dow-sig">空轉多預警</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-84.96億元</td>
+        </tr>
+        <tr>
+          <td><b>2313</b><a href="../../valuation/index.html?ticker=2313.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">華通</span></td>
+          <td>電子零組件業</td>
+          <td class="n">-0.5</td>
+          <td class="n">96</td>
+          <td class="n">+9.9%</td>
+          <td class="n">+9.2%</td>
+          <td class="n">-10.6%</td>
+          <td><span class="alert">剛爆發</span></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多轉空預警 / 多頭確認">🔺 收斂</span><span class="dow-sig">多轉空預警 / 多頭確認</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+67.59億元</td>
+        </tr>
+        <tr>
+          <td><b>3044</b><a href="../../valuation/index.html?ticker=3044.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">健鼎</span></td>
+          <td>電子零組件業</td>
+          <td class="n">42.4</td>
+          <td class="n">100</td>
+          <td class="n">+12.6%</td>
+          <td class="n">+27.5%</td>
+          <td class="n">+64.7%</td>
+          <td><span class="alert">剛爆發</span></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 空轉多預警 / 多頭確認">📈 多頭</span><span class="dow-sig">空轉多預警 / 多頭確認</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+28.15億元</td>
+        </tr>
+        <tr>
+          <td><b>2449</b><a href="../../valuation/index.html?ticker=2449.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">京元電子</span></td>
+          <td>電子工業</td>
+          <td class="n">15.0</td>
+          <td class="n">100</td>
+          <td class="n">+16.0%</td>
+          <td class="n">+4.2%</td>
+          <td class="n">+19.9%</td>
+          <td><span class="alert">剛爆發</span></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高">📈 多頭</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-39.31億元</td>
+        </tr>
+        <tr>
+          <td><b>3653</b><a href="../../valuation/index.html?ticker=3653.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">健策</span></td>
+          <td>電子工業</td>
+          <td class="n">78.7</td>
+          <td class="n">95</td>
+          <td class="n">+21.2%</td>
+          <td class="n">+119.5%</td>
+          <td class="n">+87.1%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高">📈 多頭</span></td>
+          <td><span class="pv pv-weak">⚠️ 量能衰竭</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-26.34億元</td>
+        </tr>
+        <tr>
+          <td><b>2379</b><a href="../../valuation/index.html?ticker=2379.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">瑞昱</span></td>
+          <td>電子工業</td>
+          <td class="n">28.9</td>
+          <td class="n">100</td>
+          <td class="n">+7.7%</td>
+          <td class="n">-6.6%</td>
+          <td class="n">+57.3%</td>
+          <td><span class="alert">剛爆發</span></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高">📈 多頭</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+102.10億元</td>
+        </tr>
+        <tr>
+          <td><b>6531</b><a href="../../valuation/index.html?ticker=6531.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">愛普*</span></td>
+          <td>半導體業</td>
+          <td class="n">47.4</td>
+          <td class="n">64</td>
+          <td class="n">-6.3%</td>
+          <td class="n">+0.4%</td>
+          <td class="n">+97.7%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高">📈 多頭</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-65.33億元</td>
+        </tr>
+        <tr>
+          <td><b>6415</b><a href="../../valuation/index.html?ticker=6415.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">矽力*-KY</span></td>
+          <td>半導體業</td>
+          <td class="n">23.3</td>
+          <td class="n">87</td>
+          <td class="n">+6.9%</td>
+          <td class="n">-18.1%</td>
+          <td class="n">+52.2%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 空轉多預警">🔺 收斂</span><span class="dow-sig">空轉多預警</span></td>
+          <td><span class="pv pv-warn">⚠️ 量能背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+3.82億元</td>
+        </tr>
+        <tr>
+          <td><b>6789</b><a href="../../valuation/index.html?ticker=6789.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">采鈺</span></td>
+          <td>半導體業</td>
+          <td class="n">15.7</td>
+          <td class="n">79</td>
+          <td class="n">+1.7%</td>
+          <td class="n">-11.9%</td>
+          <td class="n">+36.5%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多轉空預警">🔺 收斂</span><span class="dow-sig">多轉空預警</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+5.01億元</td>
+        </tr>
+        <tr>
+          <td><b>3231</b><a href="../../valuation/index.html?ticker=3231.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">緯創</span></td>
+          <td>電腦及週邊設備業</td>
+          <td class="n">36.0</td>
+          <td class="n">90</td>
+          <td class="n">+0.8%</td>
+          <td class="n">+29.4%</td>
+          <td class="n">+57.0%</td>
+          <td></td>
+          <td><span class="dow dow-short" title="頭頭低·底底低">📉 空頭</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-7.98億元</td>
+        </tr>
+        <tr>
+          <td><b>2357</b><a href="../../valuation/index.html?ticker=2357.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">華碩</span></td>
+          <td>電腦及週邊設備業</td>
+          <td class="n">54.9</td>
+          <td class="n">82</td>
+          <td class="n">+4.5%</td>
+          <td class="n">+41.2%</td>
+          <td class="n">+86.8%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多轉空預警">🔺 收斂</span><span class="dow-sig">多轉空預警</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+26.04億元</td>
+        </tr>
+        <tr>
+          <td><b>4938</b><a href="../../valuation/index.html?ticker=4938.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">和碩</span></td>
+          <td>電腦及週邊設備業</td>
+          <td class="n">27.9</td>
+          <td class="n">100</td>
+          <td class="n">+12.6%</td>
+          <td class="n">+23.9%</td>
+          <td class="n">+37.5%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多頭確認">🔺 收斂</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+19.20億元</td>
+        </tr>
+        <tr>
+          <td><b>2881</b><a href="../../valuation/index.html?ticker=2881.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">富邦金</span></td>
+          <td>金融保險</td>
+          <td class="n">53.4</td>
+          <td class="n">92</td>
+          <td class="n">+7.7%</td>
+          <td class="n">+28.5%</td>
+          <td class="n">+88.6%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 多頭確認">📈 多頭</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+34.19億元</td>
+        </tr>
+        <tr>
+          <td><b>2892</b><a href="../../valuation/index.html?ticker=2892.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">第一金</span></td>
+          <td>金融保險</td>
+          <td class="n">30.9</td>
+          <td class="n">94</td>
+          <td class="n">+4.1%</td>
+          <td class="n">+25.2%</td>
+          <td class="n">+47.1%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 空轉多預警">📈 多頭</span><span class="dow-sig">空轉多預警</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+36.75億元</td>
+        </tr>
+        <tr>
+          <td><b>2880</b><a href="../../valuation/index.html?ticker=2880.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">華南金</span></td>
+          <td>金融保險</td>
+          <td class="n">35.7</td>
+          <td class="n">95</td>
+          <td class="n">+7.6%</td>
+          <td class="n">+32.5%</td>
+          <td class="n">+51.4%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 多頭確認">📈 多頭</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+14.68億元</td>
+        </tr>
+        <tr>
+          <td><b>2603</b><a href="../../valuation/index.html?ticker=2603.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">長榮</span></td>
+          <td>航運業</td>
+          <td class="n">32.2</td>
+          <td class="n">100</td>
+          <td class="n">+12.6%</td>
+          <td class="n">+35.7%</td>
+          <td class="n">+40.2%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多轉空預警 / 多頭確認">🔺 收斂</span><span class="dow-sig">多轉空預警 / 多頭確認</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+105.05億元</td>
+        </tr>
+        <tr>
+          <td><b>2609</b><a href="../../valuation/index.html?ticker=2609.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">陽明</span></td>
+          <td>航運業</td>
+          <td class="n">24.7</td>
+          <td class="n">100</td>
+          <td class="n">+8.6%</td>
+          <td class="n">+30.2%</td>
+          <td class="n">+29.9%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多轉空預警 / 多頭確認">🔺 收斂</span><span class="dow-sig">多轉空預警 / 多頭確認</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+77.67億元</td>
+        </tr>
+        <tr>
+          <td><b>2615</b><a href="../../valuation/index.html?ticker=2615.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">萬海</span></td>
+          <td>航運業</td>
+          <td class="n">44.3</td>
+          <td class="n">100</td>
+          <td class="n">+8.5%</td>
+          <td class="n">+51.1%</td>
+          <td class="n">+58.8%</td>
+          <td></td>
+          <td><span class="dow dow-broaden" title="頭頭高·底底低">🔻 擴散</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+11.49億元</td>
+        </tr>
+        <tr>
+          <td><b>1605</b><a href="../../valuation/index.html?ticker=1605.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">華新</span></td>
+          <td>電器電纜</td>
+          <td class="n">18.6</td>
+          <td class="n">90</td>
+          <td class="n">+3.1%</td>
+          <td class="n">+12.1%</td>
+          <td class="n">+29.7%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高">🔺 收斂</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+32.21億元</td>
+        </tr>
+        <tr>
+          <td><b>8996</b><a href="../../valuation/index.html?ticker=8996.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">高力</span></td>
+          <td>電機機械</td>
+          <td class="n">62.0</td>
+          <td class="n">100</td>
+          <td class="n">+28.9%</td>
+          <td class="n">+39.4%</td>
+          <td class="n">+89.7%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 多頭確認">📈 多頭</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-warn">⚠️ 量能背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-8.99億元</td>
+        </tr>
+        <tr>
+          <td><b>1590</b><a href="../../valuation/index.html?ticker=1590.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">亞德客-KY</span></td>
+          <td>電機機械</td>
+          <td class="n">4.1</td>
+          <td class="n">67</td>
+          <td class="n">-8.9%</td>
+          <td class="n">-6.6%</td>
+          <td class="n">+16.0%</td>
+          <td></td>
+          <td><span class="dow dow-short" title="頭頭低·底底低 · 多轉空預警">📉 空頭</span><span class="dow-sig">多轉空預警</span></td>
+          <td><span class="pv pv-warn">⚠️ 中期出貨</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-45.64億元</td>
+        </tr>
+        <tr>
+          <td><b>1519</b><a href="../../valuation/index.html?ticker=1519.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">華城</span></td>
+          <td>電機機械</td>
+          <td class="n">-3.7</td>
+          <td class="n">79</td>
+          <td class="n">-6.9%</td>
+          <td class="n">+2.9%</td>
+          <td class="n">-5.5%</td>
+          <td></td>
+          <td><span class="dow dow-short" title="頭頭低·底底低 · 多轉空預警 / 空頭確認">📉 空頭</span><span class="dow-sig">多轉空預警 / 空頭確認</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-17.30億元</td>
+        </tr>
+        <tr>
+          <td><b>1504</b><a href="../../valuation/index.html?ticker=1504.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">東元</span></td>
+          <td>電機機械</td>
+          <td class="n">12.0</td>
+          <td class="n">89</td>
+          <td class="n">+0.3%</td>
+          <td class="n">+3.3%</td>
+          <td class="n">+22.1%</td>
+          <td></td>
+          <td><span class="dow dow-short" title="頭頭低·底底低 · 多轉空預警">📉 空頭</span><span class="dow-sig">多轉空預警</span></td>
+          <td><span class="pv pv-weak">⚠️ 量能衰竭</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-8320萬元</td>
+        </tr>
+        <tr>
+          <td><b>6139</b><a href="../../valuation/index.html?ticker=6139.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">亞翔</span></td>
+          <td>其他電子業</td>
+          <td class="n">18.0</td>
+          <td class="n">81</td>
+          <td class="n">+1.3%</td>
+          <td class="n">-15.4%</td>
+          <td class="n">+43.1%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 空轉多預警">🔺 收斂</span><span class="dow-sig">空轉多預警</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-51.20億元</td>
+        </tr>
+        <tr>
+          <td><b>3036</b><a href="../../valuation/index.html?ticker=3036.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">文曄</span></td>
+          <td>電子通路業</td>
+          <td class="n">0.5</td>
+          <td class="n">100</td>
+          <td class="n">+10.7%</td>
+          <td class="n">+0.0%</td>
+          <td class="n">-4.4%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多轉空預警 / 空轉多預警 / 多頭確認">🔺 收斂</span><span class="dow-sig">多轉空預警 / 空轉多預警 / 多頭確認</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-10.00億元</td>
+        </tr>
+        <tr>
+          <td><b>3702</b><a href="../../valuation/index.html?ticker=3702.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">大聯大</span></td>
+          <td>電子通路業</td>
+          <td class="n">24.4</td>
+          <td class="n">93</td>
+          <td class="n">+10.3%</td>
+          <td class="n">+14.2%</td>
+          <td class="n">+36.5%</td>
+          <td></td>
+          <td><span class="dow dow-broaden" title="頭頭高·底底低">🔻 擴散</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+41.86億元</td>
+        </tr>
+        <tr>
+          <td><b>2347</b><a href="../../valuation/index.html?ticker=2347.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">聯強</span></td>
+          <td>電子通路業</td>
+          <td class="n">25.0</td>
+          <td class="n">100</td>
+          <td class="n">+12.9%</td>
+          <td class="n">+19.2%</td>
+          <td class="n">+33.9%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 多頭確認">📈 多頭</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+19.36億元</td>
+        </tr>
+        <tr>
+          <td><b>1101</b><a href="../../valuation/index.html?ticker=1101.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">台泥</span></td>
+          <td>水泥工業</td>
+          <td class="n">12.7</td>
+          <td class="n">100</td>
+          <td class="n">+7.5%</td>
+          <td class="n">+16.1%</td>
+          <td class="n">+13.6%</td>
+          <td></td>
+          <td><span class="dow dow-broaden" title="頭頭高·底底低">🔻 擴散</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+16.02億元</td>
+        </tr>
+        <tr>
+          <td><b>2207</b><a href="../../valuation/index.html?ticker=2207.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">和泰車</span></td>
+          <td>汽車工業</td>
+          <td class="n">10.6</td>
+          <td class="n">87</td>
+          <td class="n">+0.6%</td>
+          <td class="n">+11.9%</td>
+          <td class="n">+14.9%</td>
+          <td></td>
+          <td><span class="dow dow-short" title="頭頭低·底底低 · 多轉空預警">📉 空頭</span><span class="dow-sig">多轉空預警</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+2.14億元</td>
+        </tr>
+        <tr>
+          <td><b>1402</b><a href="../../valuation/index.html?ticker=1402.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">遠東新</span></td>
+          <td>紡織纖維</td>
+          <td class="n">8.8</td>
+          <td class="n">79</td>
+          <td class="n">-0.2%</td>
+          <td class="n">+9.3%</td>
+          <td class="n">+13.0%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高">📈 多頭</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+3.22億元</td>
+        </tr>
+        <tr>
+          <td><b>1802</b><a href="../../valuation/index.html?ticker=1802.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">台玻</span></td>
+          <td>玻璃陶瓷</td>
+          <td class="n">7.9</td>
+          <td class="n">78</td>
+          <td class="n">+6.2%</td>
+          <td class="n">-4.9%</td>
+          <td class="n">+15.1%</td>
+          <td></td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多頭確認">🔺 收斂</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+37.70億元</td>
+        </tr>
+        <tr>
+          <td><b>1216</b><a href="../../valuation/index.html?ticker=1216.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">統一</span></td>
+          <td>食品工業</td>
+          <td class="n">6.6</td>
+          <td class="n">87</td>
+          <td class="n">+2.8%</td>
+          <td class="n">+2.3%</td>
+          <td class="n">+10.6%</td>
+          <td></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 空轉多預警">📈 多頭</span><span class="dow-sig">空轉多預警</span></td>
+          <td><span class="pv pv-warn">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+21.57億元</td>
+        </tr>
+        <tr>
+          <td><b>5871</b><a href="../../valuation/index.html?ticker=5871.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">中租-KY</span></td>
+          <td>其他</td>
+          <td class="n">1.0</td>
+          <td class="n">71</td>
+          <td class="n">-4.9%</td>
+          <td class="n">-0.7%</td>
+          <td class="n">+4.8%</td>
+          <td></td>
+          <td><span class="dow dow-short" title="頭頭低·底底低 · 多轉空預警 / 空頭確認">📉 空頭</span><span class="dow-sig">多轉空預警 / 空頭確認</span></td>
+          <td><span class="pv pv-weak">😴 弱勢縮量</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n down">-35.74億元</td>
+        </tr>
+        <tr>
+          <td><b>2002</b><a href="../../valuation/index.html?ticker=2002.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">中鋼</span></td>
+          <td>鋼鐵工業</td>
+          <td class="n">0.8</td>
+          <td class="n">88</td>
+          <td class="n">+1.3%</td>
+          <td class="n">+4.0%</td>
+          <td class="n">-1.0%</td>
+          <td></td>
+          <td><span class="dow dow-short" title="頭頭低·底底低">📉 空頭</span></td>
+          <td><span class="pv pv-neutral">➡️ 中性</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+12.83億元</td>
+        </tr>
+        <tr>
+          <td><b>2912</b><a href="../../valuation/index.html?ticker=2912.TW" target="_blank" title="開啟估值分析器（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">統一超</span></td>
+          <td>貿易百貨</td>
+          <td class="n">-3.2</td>
+          <td class="n">72</td>
+          <td class="n">-0.2%</td>
+          <td class="n">-6.9%</td>
+          <td class="n">-2.9%</td>
+          <td></td>
+          <td><span class="dow dow-short" title="頭頭低·底底低">📉 空頭</span></td>
+          <td><span class="pv pv-weak">😴 弱勢縮量</span></td>
+          <td><span style="color:var(--muted)">—</span></td>
+          <td class="n up">+9.54億元</td>
+        </tr></tbody>
+      </table>
+    </div>
+  </details>
+
+  
+  <div class="card">
+    <div class="card-h">💵 三大法人 20 日淨買賣 Top 10<span class="n">依金額排序</span></div>
+    <div class="card-b" style="padding:0;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+        <div>
+          <table><thead><tr><th>淨買超</th><th>Sector</th><th class="n">20d 淨買（金額）</th></tr></thead>
+          <tbody><tr>
+              <td><b>3037</b> <span class="dim">欣興</span></td>
+              <td>電子零組件業</td>
+              <td class="n up">+357.86億元</td>
+            </tr><tr>
+              <td><b>3189</b> <span class="dim">景碩</span></td>
+              <td>電子工業</td>
+              <td class="n up">+334.76億元</td>
+            </tr><tr>
+              <td><b>8046</b> <span class="dim">南電</span></td>
+              <td>電子零組件業</td>
+              <td class="n up">+296.09億元</td>
+            </tr><tr>
+              <td><b>3711</b> <span class="dim">日月光投控</span></td>
+              <td>半導體業</td>
+              <td class="n up">+237.35億元</td>
+            </tr><tr>
+              <td><b>1303</b> <span class="dim">南亞</span></td>
+              <td>塑膠工業</td>
+              <td class="n up">+167.72億元</td>
+            </tr><tr>
+              <td><b>2412</b> <span class="dim">中華電</span></td>
+              <td>電子工業</td>
+              <td class="n up">+129.46億元</td>
+            </tr><tr>
+              <td><b>1301</b> <span class="dim">台塑</span></td>
+              <td>塑膠工業</td>
+              <td class="n up">+114.33億元</td>
+            </tr><tr>
+              <td><b>2603</b> <span class="dim">長榮</span></td>
+              <td>航運業</td>
+              <td class="n up">+105.05億元</td>
+            </tr><tr>
+              <td><b>2379</b> <span class="dim">瑞昱</span></td>
+              <td>電子工業</td>
+              <td class="n up">+102.10億元</td>
+            </tr><tr>
+              <td><b>2609</b> <span class="dim">陽明</span></td>
+              <td>航運業</td>
+              <td class="n up">+77.67億元</td>
+            </tr></tbody></table>
+        </div>
+        <div>
+          <table><thead><tr><th>淨賣超</th><th>Sector</th><th class="n">20d 淨賣（金額）</th></tr></thead>
+          <tbody><tr>
+              <td><b>2330</b> <span class="dim">台積電</span></td>
+              <td>電子工業</td>
+              <td class="n down">-1140.56億元</td>
+            </tr><tr>
+              <td><b>2454</b> <span class="dim">聯發科</span></td>
+              <td>電子工業</td>
+              <td class="n down">-631.03億元</td>
+            </tr><tr>
+              <td><b>3008</b> <span class="dim">大立光</span></td>
+              <td>光電業</td>
+              <td class="n down">-247.62億元</td>
+            </tr><tr>
+              <td><b>6669</b> <span class="dim">緯穎</span></td>
+              <td>電腦及週邊設備業</td>
+              <td class="n down">-246.63億元</td>
+            </tr><tr>
+              <td><b>2317</b> <span class="dim">鴻海</span></td>
+              <td>電子工業</td>
+              <td class="n down">-243.45億元</td>
+            </tr><tr>
+              <td><b>2303</b> <span class="dim">聯電</span></td>
+              <td>電子工業</td>
+              <td class="n down">-175.10億元</td>
+            </tr><tr>
+              <td><b>2345</b> <span class="dim">智邦</span></td>
+              <td>電子工業</td>
+              <td class="n down">-170.09億元</td>
+            </tr><tr>
+              <td><b>6515</b> <span class="dim">穎崴</span></td>
+              <td>電子工業</td>
+              <td class="n down">-153.75億元</td>
+            </tr><tr>
+              <td><b>2408</b> <span class="dim">南亞科</span></td>
+              <td>電子工業</td>
+              <td class="n down">-148.57億元</td>
+            </tr><tr>
+              <td><b>2059</b> <span class="dim">川湖</span></td>
+              <td>電子零組件業</td>
+              <td class="n down">-100.72億元</td>
+            </tr></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>📊 更多統計：量漲/量跌總結<span class="n">Phase 1 全市場 + Phase 2 供應鏈 × 量漲價漲/量漲價跌</span></summary>
+    <div class="card-b" style="padding:0;">
+      <h4 style="margin:14px 18px 4px;color:var(--navy);">📊 Phase 1 全市場量漲價漲</h4>
+      
+    <table>
+      <thead>
+        <tr><th>官方產業（Phase 1）</th><th class="n">量漲價漲檔數</th>
+            <th class="n">平均 Point</th><th class="n">平均 4W 報酬</th>
+            <th class="n" title="有進入 Phase 2 IndustryMappingTable 的檔數">Phase2 內</th>
+            <th class="n" title="不在 Phase 2 IndustryMappingTable 的檔數（中小型股機會）">Phase2 外</th>
+            <th class="n" title="這個產業的量漲價漲訊號，有多少比例落在 Phase 2 核心池之外">未映射%</th></tr>
+      </thead>
+      <tbody><tr><td>電子工業</td><td class="n">11</td><td class="n">40.67</td><td class="n">14.34%</td><td class="n">11</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>電子零組件業</td><td class="n">5</td><td class="n">55.59</td><td class="n">12.78%</td><td class="n">5</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>金融保險</td><td class="n">3</td><td class="n">34.82</td><td class="n">3.69%</td><td class="n">0</td><td class="n">3</td><td class="n" style="color:#b91c1c;font-weight:700;">100%</td></tr><tr><td>油電燃氣業</td><td class="n">1</td><td class="n">93.32</td><td class="n">42.34%</td><td class="n">0</td><td class="n">1</td><td class="n" style="color:#b91c1c;font-weight:700;">100%</td></tr><tr><td>塑膠工業</td><td class="n">1</td><td class="n">54.18</td><td class="n">25.23%</td><td class="n">0</td><td class="n">1</td><td class="n" style="color:#b91c1c;font-weight:700;">100%</td></tr><tr><td>鋼鐵工業</td><td class="n">1</td><td class="n">0.83</td><td class="n">1.32%</td><td class="n">1</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>汽車工業</td><td class="n">1</td><td class="n">10.57</td><td class="n">0.57%</td><td class="n">1</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>電腦及週邊設備業</td><td class="n">1</td><td class="n">27.90</td><td class="n">12.64%</td><td class="n">1</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>玻璃陶瓷</td><td class="n">1</td><td class="n">7.86</td><td class="n">6.19%</td><td class="n">1</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>電器電纜</td><td class="n">1</td><td class="n">18.65</td><td class="n">3.07%</td><td class="n">1</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>其他電子業</td><td class="n">1</td><td class="n">18.04</td><td class="n">1.27%</td><td class="n">1</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>電子通路業</td><td class="n">1</td><td class="n">24.98</td><td class="n">12.92%</td><td class="n">1</td><td class="n">0</td><td class="n">0%</td></tr></tbody>
+    </table><p class="dim" style="margin:10px 18px 4px;font-weight:600;">前 5 大類・每類前 3 家代表股</p><ul class="deplist" style="margin:0 18px 8px;"><li><b>電子工業</b><span class="dim" title="量漲價漲檔數">（11 檔）</span><span class="dim">6213 聯茂（205.0）、2409 友達（62.8）、6239 力成（29.3）</span></li><li><b>電子零組件業</b><span class="dim" title="量漲價漲檔數">（5 檔）</span><span class="dim">2492 華新科（125.4）、4958 臻鼎-KY（74.8）、2383 台光電（48.7）</span></li><li><b>金融保險</b><span class="dim" title="量漲價漲檔數">（3 檔）</span><span class="dim">2883 凱基金（55.4）、2801 彰銀（29.3）、2891 中信金（19.8）</span></li><li><b>油電燃氣業</b><span class="dim" title="量漲價漲檔數">（1 檔）</span><span class="dim">6505 台塑化（93.3）</span></li><li><b>塑膠工業</b><span class="dim" title="量漲價漲檔數">（1 檔）</span><span class="dim">1301 台塑（54.2）</span></li></ul><p class="dim" style="margin:8px 18px 0;">全市場量漲價漲（P+V+，4 週價漲且量增）共 28 檔——23 檔在 Phase 2 產業鏈研究池內、<b>5 檔在核心池之外</b>（多為中小型股，Phase 1 板塊層級已經確認訊號，但目前沒有供應鏈脈絡可查，不是資料缺失）。「未映射%」≥50% 標紅，代表該產業的量漲價漲訊號主要來自 Phase 2 尚未觸及的股票。</p>
+      <h4 style="margin:18px 18px 4px;color:var(--navy);">🔗 Phase 2 供應鏈量漲價漲</h4>
+      
+    <table>
+      <thead>
+        <tr><th>Supply Chain（Phase 2）</th><th class="n">量漲價漲檔數</th>
+            <th class="n">平均 Point</th><th class="n">平均 4W 報酬</th></tr>
+      </thead>
+      <tbody><tr><td>Semiconductor Equipment &amp; Materials</td><td class="n">4</td><td class="n">22.69</td><td class="n">7.37%</td></tr><tr><td>EV / Auto Electronics</td><td class="n">4</td><td class="n">16.19</td><td class="n">8.13%</td></tr><tr><td>Advanced Packaging</td><td class="n">3</td><td class="n">21.13</td><td class="n">9.34%</td></tr><tr><td>PCB / HDI / IC Substrate</td><td class="n">3</td><td class="n">47.56</td><td class="n">9.49%</td></tr><tr><td>CCL / High-Speed Materials</td><td class="n">3</td><td class="n">87.19</td><td class="n">21.91%</td></tr><tr><td>AI / HPC Semiconductor</td><td class="n">2</td><td class="n">23.32</td><td class="n">7.36%</td></tr><tr><td>Data Center Power / PSU</td><td class="n">2</td><td class="n">18.11</td><td class="n">5.71%</td></tr><tr><td>Smart Grid / Transformer</td><td class="n">2</td><td class="n">22.49</td><td class="n">2.46%</td></tr><tr><td>Cloud / Data Center / Cybersecurity</td><td class="n">2</td><td class="n">11.46</td><td class="n">6.78%</td></tr><tr><td>AI Server / ODM</td><td class="n">2</td><td class="n">22.94</td><td class="n">16.59%</td></tr><tr><td>Thermal / Liquid Cooling</td><td class="n">1</td><td class="n">9.88</td><td class="n">9.57%</td></tr><tr><td>Optical Communication / AI Networking</td><td class="n">1</td><td class="n">11.52</td><td class="n">8.22%</td></tr><tr><td>Energy Storage / Battery</td><td class="n">1</td><td class="n">9.88</td><td class="n">9.57%</td></tr><tr><td>Steel</td><td class="n">1</td><td class="n">0.83</td><td class="n">1.32%</td></tr><tr><td>Display &amp; Optical</td><td class="n">1</td><td class="n">62.77</td><td class="n">13.08%</td></tr><tr><td>Passive Components</td><td class="n">1</td><td class="n">125.36</td><td class="n">25.84%</td></tr></tbody>
+    </table><p class="dim" style="margin:10px 18px 4px;font-weight:600;">前 5 大類・每類前 3 家代表股</p><ul class="deplist" style="margin:0 18px 8px;"><li><b>Semiconductor Equipment &amp; Materials</b><span class="dim" title="量漲價漲檔數">（4 檔）</span><span class="dim">2360 致茂（26.3）、2347 聯強（25.0）、2404 漢唐（21.4）</span></li><li><b>EV / Auto Electronics</b><span class="dim" title="量漲價漲檔數">（4 檔）</span><span class="dim">2360 致茂（26.3）、3665 貿聯-KY（18.0）、2207 和泰車（10.6）</span></li><li><b>Advanced Packaging</b><span class="dim" title="量漲價漲檔數">（3 檔）</span><span class="dim">6239 力成（29.3）、2330 台積電（19.1）、2449 京元電子（15.0）</span></li><li><b>PCB / HDI / IC Substrate</b><span class="dim" title="量漲價漲檔數">（3 檔）</span><span class="dim">4958 臻鼎-KY（74.8）、2383 台光電（48.7）、2368 金像電（19.2）</span></li><li><b>CCL / High-Speed Materials</b><span class="dim" title="量漲價漲檔數">（3 檔）</span><span class="dim">6213 聯茂（205.0）、2383 台光電（48.7）、1802 台玻（7.9）</span></li></ul><p class="dim" style="margin:8px 18px 0;">量漲價漲個股在 Phase 2 供應鏈的分佈（23 檔已映射股票、共 33 筆鏈歸屬——同一檔股票掛多條鏈會分別計入）。這是「訊號集中在哪條鏈」的視角，跟上面「Phase 1 全市場」卡片的官方產業視角互補。</p>
+      <h4 style="margin:18px 18px 4px;color:var(--navy);">📉 Phase 1 全市場量漲價跌</h4>
+      
+    <table>
+      <thead>
+        <tr><th>官方產業（Phase 1）</th><th class="n">量漲價跌檔數</th>
+            <th class="n">平均 Point</th><th class="n">平均 4W 報酬</th>
+            <th class="n" title="有進入 Phase 2 IndustryMappingTable 的檔數">Phase2 內</th>
+            <th class="n" title="不在 Phase 2 IndustryMappingTable 的檔數（中小型股機會）">Phase2 外</th>
+            <th class="n" title="這個產業的量漲價跌訊號，有多少比例落在 Phase 2 核心池之外">未映射%</th></tr>
+      </thead>
+      <tbody><tr><td>電子工業</td><td class="n">3</td><td class="n">5.73</td><td class="n">-8.10%</td><td class="n">3</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>電機機械</td><td class="n">1</td><td class="n">4.12</td><td class="n">-8.95%</td><td class="n">1</td><td class="n">0</td><td class="n">0%</td></tr><tr><td>航運業</td><td class="n">1</td><td class="n">1.79</td><td class="n">-0.19%</td><td class="n">0</td><td class="n">1</td><td class="n" style="color:#b91c1c;font-weight:700;">100%</td></tr></tbody>
+    </table><p class="dim" style="margin:10px 18px 4px;font-weight:600;">前 3 大類・每類前 3 家代表股</p><ul class="deplist" style="margin:0 18px 8px;"><li><b>電子工業</b><span class="dim" title="量漲價跌檔數">（3 檔）</span><span class="dim">6515 穎崴（-20.4）、2317 鴻海（13.8）、7769 鴻勁（23.8）</span></li><li><b>電機機械</b><span class="dim" title="量漲價跌檔數">（1 檔）</span><span class="dim">1590 亞德客-KY（4.1）</span></li><li><b>航運業</b><span class="dim" title="量漲價跌檔數">（1 檔）</span><span class="dim">2633 台灣高鐵（1.8）</span></li></ul><p class="dim" style="margin:8px 18px 0;">全市場量漲價跌（P-V+，4 週價跌但量增）共 5 檔——4 檔在 Phase 2 產業鏈研究池內、<b>1 檔在核心池之外</b>（多為中小型股，Phase 1 板塊層級已經確認訊號，但目前沒有供應鏈脈絡可查，不是資料缺失）。「未映射%」≥50% 標紅，代表該產業的量漲價跌訊號主要來自 Phase 2 尚未觸及的股票。</p>
+      <h4 style="margin:18px 18px 4px;color:var(--navy);">⚠️ Phase 2 供應鏈量漲價跌</h4>
+      
+    <table>
+      <thead>
+        <tr><th>Supply Chain（Phase 2）</th><th class="n">量漲價跌檔數</th>
+            <th class="n">平均 Point</th><th class="n">平均 4W 報酬</th></tr>
+      </thead>
+      <tbody><tr><td>AI Server / ODM</td><td class="n">1</td><td class="n">13.82</td><td class="n">-3.23%</td></tr><tr><td>Robotics / Automation</td><td class="n">1</td><td class="n">4.12</td><td class="n">-8.95%</td></tr><tr><td>Cloud / Data Center / Cybersecurity</td><td class="n">1</td><td class="n">13.82</td><td class="n">-3.23%</td></tr><tr><td>Advanced Packaging</td><td class="n">1</td><td class="n">-20.39</td><td class="n">-17.27%</td></tr><tr><td>Semiconductor Equipment &amp; Materials</td><td class="n">1</td><td class="n">23.77</td><td class="n">-3.80%</td></tr></tbody>
+    </table><p class="dim" style="margin:10px 18px 4px;font-weight:600;">前 5 大類・每類前 3 家代表股</p><ul class="deplist" style="margin:0 18px 8px;"><li><b>AI Server / ODM</b><span class="dim" title="量漲價跌檔數">（1 檔）</span><span class="dim">2317 鴻海（13.8）</span></li><li><b>Robotics / Automation</b><span class="dim" title="量漲價跌檔數">（1 檔）</span><span class="dim">1590 亞德客-KY（4.1）</span></li><li><b>Cloud / Data Center / Cybersecurity</b><span class="dim" title="量漲價跌檔數">（1 檔）</span><span class="dim">2317 鴻海（13.8）</span></li><li><b>Advanced Packaging</b><span class="dim" title="量漲價跌檔數">（1 檔）</span><span class="dim">6515 穎崴（-20.4）</span></li><li><b>Semiconductor Equipment &amp; Materials</b><span class="dim" title="量漲價跌檔數">（1 檔）</span><span class="dim">7769 鴻勁（23.8）</span></li></ul><p class="dim" style="margin:8px 18px 0;">量漲價跌個股在 Phase 2 供應鏈的分佈（4 檔已映射股票、共 5 筆鏈歸屬——同一檔股票掛多條鏈會分別計入）。這是「訊號集中在哪條鏈」的視角，跟上面「Phase 1 全市場」卡片的官方產業視角互補。</p>
+    </div>
+  </details>
+
+  <div class="foot">
+    產生時間 2026-10-14 17:41 UTC · FinMind 額度用量 102 / 300 次/小時 ·
+    失敗 0 檔 · Phase 1（Layer 0-3，官方粗分類）+ Phase 2（IndustryMappingTable）+
+    Phase 2.1（Price Lag）·
+    <a href="daily-latest.html">看美股板塊報表</a>
+    <br><br>
+    <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
+  </div>
+
+</div>
+</body>
+</html>
