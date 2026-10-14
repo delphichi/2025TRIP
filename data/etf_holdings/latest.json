@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-13",
-  "generated_at": "2026-10-14T01:42:09+08:00",
-  "consensus_date": "2026-10-13",
+  "date": "2026-10-14",
+  "generated_at": "2026-10-14T23:18:49+08:00",
+  "consensus_date": "2026-10-14",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20261013.csv",
-      "snapshot_date": "2026-10-13",
+      "snapshot": "00991A_20261014.csv",
+      "snapshot_date": "2026-10-14",
       "holdings_count": 50,
       "actions": {
         "new": [],
@@ -16,30 +16,11 @@
           {
             "code": "3008",
             "name": "大立光電",
-            "pct": 27.906976744186046,
-            "weight": 1.074
-          },
-          {
-            "code": "1303",
-            "name": "南亞塑膠",
-            "pct": 2.3529411764705883,
-            "weight": 3.724
-          },
-          {
-            "code": "3037",
-            "name": "欣興電子",
-            "pct": 1.3257575757575757,
-            "weight": 8.47
+            "pct": 18.181818181818183,
+            "weight": 1.193
           }
         ],
-        "reduce": [
-          {
-            "code": "2308",
-            "name": "台達電子",
-            "pct": -99.5,
-            "weight": 0.002
-          }
-        ],
+        "reduce": [],
         "build": []
       }
     },
@@ -110,38 +91,50 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20261013.csv",
-      "snapshot_date": "2026-10-13",
+      "snapshot": "00403A_20261014.csv",
+      "snapshot_date": "2026-10-14",
       "holdings_count": 51,
       "actions": {
-        "new": [
-          {
-            "code": "2313",
-            "name": "華通",
-            "weight": 0.14
-          }
-        ],
+        "new": [],
         "drop": [],
         "add": [
           {
+            "code": "2313",
+            "name": "華通",
+            "pct": 50.0,
+            "weight": 0.21
+          },
+          {
             "code": "3008",
             "name": "大立光",
-            "pct": 21.5,
-            "weight": 1.24
+            "pct": 37.86008230452675,
+            "weight": 1.75
+          },
+          {
+            "code": "8996",
+            "name": "高力",
+            "pct": 4.444444444444445,
+            "weight": 2.32
           }
         ],
         "reduce": [
           {
-            "code": "6805",
-            "name": "富世達",
-            "pct": -51.42857142857142,
-            "weight": 0.27
-          },
-          {
             "code": "6488",
             "name": "環球晶",
-            "pct": -12.5,
-            "weight": 0.54
+            "pct": -57.14285714285714,
+            "weight": 0.22
+          },
+          {
+            "code": "2481",
+            "name": "強茂",
+            "pct": -46.15384615384615,
+            "weight": 0.08
+          },
+          {
+            "code": "3037",
+            "name": "欣興",
+            "pct": -10.256410256410255,
+            "weight": 5.95
           }
         ],
         "build": []
@@ -150,20 +143,28 @@
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20261013.csv",
-      "snapshot_date": "2026-10-13",
+      "snapshot": "00988A_20261014.csv",
+      "snapshot_date": "2026-10-14",
       "holdings_count": 8,
       "actions": {
         "new": [],
-        "drop": [
+        "drop": [],
+        "add": [
           {
-            "code": "3081",
-            "name": "聯亞",
-            "weight": 0.44
+            "code": "2308",
+            "name": "台達電",
+            "pct": 100.0,
+            "weight": 0.74
           }
         ],
-        "add": [],
-        "reduce": [],
+        "reduce": [
+          {
+            "code": "2454",
+            "name": "聯發科",
+            "pct": -10.526315789473683,
+            "weight": 3.06
+          }
+        ],
         "build": []
       }
     }
