@@ -1,0 +1,12 @@
+chain,chain_state,upstream_count,upstream_confirmed,upstream_confirmed_pct,upstream_total_weight,upstream_confirmed_weight,upstream_coherence_pct,upstream_states
+Advanced Packaging,⚠️ Price Leading,2,2,100.0,1.7,1.7,100.0,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""PCB / HDI / IC Substrate"": ""🚀 Confirmed""}"
+Display & Optical,⚠️ Price Leading,1,1,100.0,0.6,0.6,100.0,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading""}"
+Data Center Power / PSU,💰 Capital Leading,1,1,100.0,0.7,0.7,100.0,"{""Passive Components"": ""🚀 Confirmed""}"
+Smart Grid / Transformer,💰 Capital Leading,2,2,100.0,1.1,1.1,100.0,"{""Passive Components"": ""🚀 Confirmed"", ""Steel"": ""💰 Capital Leading""}"
+PCB / HDI / IC Substrate,🚀 Confirmed,1,1,100.0,1.0,1.0,100.0,"{""CCL / High-Speed Materials"": ""🚀 Confirmed""}"
+EV / Auto Electronics,💰 Capital Leading,3,2,66.7,2.2,1.6,72.7,"{""Energy Storage / Battery"": ""💰 Capital Leading"", ""AI / HPC Semiconductor"": ""⚠️ Price Leading"", ""Passive Components"": ""🚀 Confirmed""}"
+AI Server / ODM,❄️ Weak,9,6,66.7,8.6,5.6,65.1,"{""AI / HPC Semiconductor"": ""⚠️ Price Leading"", ""Memory / HBM"": ""❄️ Weak"", ""Advanced Packaging"": ""⚠️ Price Leading"", ""PCB / HDI / IC Substrate"": ""🚀 Confirmed"", ""CCL / High-Speed Materials"": ""🚀 Confirmed"", ""Thermal / Liquid Cooling"": ""🚀 Confirmed"", ""Data Center Power / PSU"": ""💰 Capital Leading"", ""Optical Communication / AI Networking"": ""💰 Capital Leading"", ""Passive Components"": ""🚀 Confirmed""}"
+AI / HPC Semiconductor,⚠️ Price Leading,2,1,50.0,1.8,1.0,55.6,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""Advanced Packaging"": ""⚠️ Price Leading""}"
+Memory / HBM,❄️ Weak,2,1,50.0,1.8,1.0,55.6,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""Advanced Packaging"": ""⚠️ Price Leading""}"
+Cloud / Data Center / Cybersecurity,❄️ Weak,2,1,50.0,1.8,0.8,44.4,"{""AI Server / ODM"": ""❄️ Weak"", ""Optical Communication / AI Networking"": ""💰 Capital Leading""}"
+Robotics / Automation,💰 Capital Leading,2,1,50.0,1.2,0.5,41.7,"{""AI / HPC Semiconductor"": ""⚠️ Price Leading"", ""Semiconductor Equipment & Materials"": ""💰 Capital Leading""}"
