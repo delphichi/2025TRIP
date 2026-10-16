@@ -1,51 +1,44 @@
 {
-  "date": "2026-10-15",
-  "generated_at": "2026-10-15T23:10:58+08:00",
-  "consensus_date": "2026-10-15",
+  "date": "2026-10-16",
+  "generated_at": "2026-10-16T22:57:34+08:00",
+  "consensus_date": "2026-10-16",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20261015.csv",
-      "snapshot_date": "2026-10-15",
+      "snapshot": "00991A_20261016.csv",
+      "snapshot_date": "2026-10-16",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
         "add": [
           {
-            "code": "6505",
-            "name": "台塑石化",
-            "pct": 50.0,
-            "weight": 2.384
+            "code": "3711",
+            "name": "日月光投",
+            "pct": 11.76470588235294,
+            "weight": 1.798
           },
           {
-            "code": "3008",
-            "name": "大立光電",
-            "pct": 15.384615384615385,
-            "weight": 1.412
+            "code": "3026",
+            "name": "禾伸堂企",
+            "pct": 7.6923076923076925,
+            "weight": 3.183
           },
           {
             "code": "3653",
             "name": "健策精密",
-            "pct": 10.344827586206897,
-            "weight": 3.086
+            "pct": 6.25,
+            "weight": 3.227
           },
           {
             "code": "1303",
             "name": "南亞塑膠",
-            "pct": 10.344827586206897,
-            "weight": 4.304
+            "pct": 4.166666666666666,
+            "weight": 4.33
           }
         ],
-        "reduce": [
-          {
-            "code": "6669",
-            "name": "緯穎科技",
-            "pct": -99.91304499052191,
-            "weight": 0.003
-          }
-        ],
+        "reduce": [],
         "build": []
       }
     },
@@ -116,84 +109,54 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20261015.csv",
-      "snapshot_date": "2026-10-15",
+      "snapshot": "00403A_20261016.csv",
+      "snapshot_date": "2026-10-16",
       "holdings_count": 50,
       "actions": {
         "new": [],
-        "drop": [
-          {
-            "code": "7769",
-            "name": "鴻勁",
-            "weight": 0.0
-          }
-        ],
-        "add": [
-          {
-            "code": "5274",
-            "name": "信驊",
-            "pct": 23.829787234042556,
-            "weight": 1.83
-          },
-          {
-            "code": "6274",
-            "name": "台燿",
-            "pct": 3.8095238095238098,
-            "weight": 2.71
-          },
-          {
-            "code": "3443",
-            "name": "創意",
-            "pct": 2.34375,
-            "weight": 3.87
-          }
-        ],
-        "reduce": [
-          {
-            "code": "2303",
-            "name": "聯電",
-            "pct": -25.0,
-            "weight": 1.53
-          }
-        ],
-        "build": [
-          {
-            "code": "2481",
-            "name": "強茂",
-            "weight": 0.04
-          }
-        ]
-      }
-    },
-    {
-      "code": "00988A",
-      "name": "統一全球創新",
-      "snapshot": "00988A_20261015.csv",
-      "snapshot_date": "2026-10-15",
-      "holdings_count": 9,
-      "actions": {
-        "new": [
-          {
-            "code": "6223",
-            "name": "旺矽",
-            "weight": 0.59
-          }
-        ],
         "drop": [],
         "add": [
           {
-            "code": "3017",
-            "name": "奇鋐",
-            "pct": 9.803921568627452,
-            "weight": 3.62
+            "code": "6274",
+            "name": "台燿",
+            "pct": 5.5045871559633035,
+            "weight": 2.85
           }
         ],
         "reduce": [
           {
             "code": "2454",
             "name": "聯發科",
-            "pct": -20.588235294117645,
-            "weight": 2.41
+            "pct": -12.82051282051282,
+            "weight": 5.4
+          }
+        ],
+        "build": []
+      }
+    },
+    {
+      "code": "00988A",
+      "name": "統一全球創新",
+      "snapshot": "00988A_20261016.csv",
+      "snapshot_date": "2026-10-16",
+      "holdings_count": 9,
+      "actions": {
+        "new": [],
+        "drop": [],
+        "add": [
+          {
+            "code": "6223",
+            "name": "旺矽",
+            "pct": 60.0,
+            "weight": 0.96
+          }
+        ],
+        "reduce": [
+          {
+            "code": "2454",
+            "name": "聯發科",
+            "pct": -18.51851851851852,
+            "weight": 2.02
           }
         ],
         "build": []
@@ -201,6 +164,15 @@
     }
   ],
   "consensus_buy": [],
-  "consensus_sell": [],
+  "consensus_sell": [
+    {
+      "stock_id": "2454",
+      "funds": [
+        "統一全球創新",
+        "統一升級50"
+      ],
+      "name": "聯發科技"
+    }
+  ],
   "divergence": []
 }
