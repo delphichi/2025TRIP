@@ -1,25 +1,18 @@
 {
-  "date": "2026-10-21",
-  "generated_at": "2026-10-21T23:28:19+08:00",
-  "consensus_date": "2026-10-21",
+  "date": "2026-10-22",
+  "generated_at": "2026-10-22T23:27:21+08:00",
+  "consensus_date": "2026-10-22",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20261021.csv",
-      "snapshot_date": "2026-10-21",
+      "snapshot": "00991A_20261022.csv",
+      "snapshot_date": "2026-10-22",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [
-          {
-            "code": "3711",
-            "name": "日月光投",
-            "pct": 10.526315789473683,
-            "weight": 2.04
-          }
-        ],
+        "add": [],
         "reduce": [],
         "build": []
       }
@@ -91,66 +84,70 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20261021.csv",
-      "snapshot_date": "2026-10-21",
+      "snapshot": "00403A_20261022.csv",
+      "snapshot_date": "2026-10-22",
       "holdings_count": 50,
       "actions": {
-        "new": [],
-        "drop": [],
+        "new": [
+          {
+            "code": "2883",
+            "name": "凱基金",
+            "weight": 0.06
+          }
+        ],
+        "drop": [
+          {
+            "code": "2404",
+            "name": "漢唐",
+            "weight": 0.0
+          }
+        ],
         "add": [
           {
             "code": "1560",
             "name": "中砂",
-            "pct": 33.33333333333333,
-            "weight": 0.27
-          },
-          {
-            "code": "2059",
-            "name": "川湖",
             "pct": 20.0,
-            "weight": 0.71
+            "weight": 0.32
           },
           {
-            "code": "6669",
-            "name": "緯穎",
-            "pct": 9.01083420300644,
-            "weight": 2.77
+            "code": "3008",
+            "name": "大立光",
+            "pct": 11.940298507462686,
+            "weight": 1.77
+          },
+          {
+            "code": "5274",
+            "name": "信驊",
+            "pct": 7.560137457044673,
+            "weight": 1.98
+          },
+          {
+            "code": "1303",
+            "name": "南亞",
+            "pct": 4.3478260869565215,
+            "weight": 2.95
           },
           {
             "code": "3017",
             "name": "奇鋐",
-            "pct": 2.803738317757009,
-            "weight": 5.68
+            "pct": 1.5909090909090908,
+            "weight": 5.54
           }
         ],
-        "reduce": [
-          {
-            "code": "2303",
-            "name": "聯電",
-            "pct": -33.33333333333333,
-            "weight": 0.99
-          }
-        ],
+        "reduce": [],
         "build": []
       }
     },
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20261021.csv",
-      "snapshot_date": "2026-10-21",
+      "snapshot": "00988A_20261022.csv",
+      "snapshot_date": "2026-10-22",
       "holdings_count": 9,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [
-          {
-            "code": "3443",
-            "name": "創意",
-            "pct": 60.0,
-            "weight": 0.81
-          }
-        ],
+        "add": [],
         "reduce": [],
         "build": []
       }
