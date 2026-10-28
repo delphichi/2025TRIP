@@ -1,33 +1,46 @@
 {
-  "date": "2026-10-27",
-  "generated_at": "2026-10-27T23:56:57+08:00",
-  "consensus_date": "2026-10-27",
+  "date": "2026-10-28",
+  "generated_at": "2026-10-29T00:45:20+08:00",
+  "consensus_date": "2026-10-28",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20261027.csv",
-      "snapshot_date": "2026-10-27",
+      "snapshot": "00991A_20261028.csv",
+      "snapshot_date": "2026-10-28",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
         "add": [
           {
-            "code": "3711",
-            "name": "日月光投",
-            "pct": 14.285714285714285,
-            "weight": 2.29
+            "code": "3017",
+            "name": "奇鋐科技",
+            "pct": 3.7037037037037033,
+            "weight": 6.295
           },
           {
-            "code": "1303",
-            "name": "南亞塑膠",
-            "pct": 2.0,
-            "weight": 4.447
+            "code": "3653",
+            "name": "健策精密",
+            "pct": 2.941176470588235,
+            "weight": 3.121
           }
         ],
-        "reduce": [],
-        "build": []
+        "reduce": [
+          {
+            "code": "6505",
+            "name": "台塑石化",
+            "pct": -13.333333333333334,
+            "weight": 1.873
+          }
+        ],
+        "build": [
+          {
+            "code": "8299",
+            "name": "群聯電子",
+            "weight": 0.485
+          }
+        ]
       }
     },
     {
@@ -97,9 +110,54 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20261027.csv",
-      "snapshot_date": "2026-10-27",
+      "snapshot": "00403A_20261028.csv",
+      "snapshot_date": "2026-10-28",
       "holdings_count": 50,
+      "actions": {
+        "new": [],
+        "drop": [],
+        "add": [
+          {
+            "code": "5274",
+            "name": "信驊",
+            "pct": 8.945686900958465,
+            "weight": 2.16
+          },
+          {
+            "code": "3017",
+            "name": "奇鋐",
+            "pct": 2.417582417582418,
+            "weight": 5.77
+          }
+        ],
+        "reduce": [
+          {
+            "code": "2303",
+            "name": "聯電",
+            "pct": -40.0,
+            "weight": 0.58
+          }
+        ],
+        "build": [
+          {
+            "code": "3711",
+            "name": "日月光投控",
+            "weight": 0.21
+          },
+          {
+            "code": "2883",
+            "name": "凱基金",
+            "weight": 0.12
+          }
+        ]
+      }
+    },
+    {
+      "code": "00988A",
+      "name": "統一全球創新",
+      "snapshot": "00988A_20261028.csv",
+      "snapshot_date": "2026-10-28",
+      "holdings_count": 9,
       "actions": {
         "new": [],
         "drop": [],
@@ -107,37 +165,18 @@
         "reduce": [],
         "build": []
       }
-    },
-    {
-      "code": "00988A",
-      "name": "統一全球創新",
-      "snapshot": "00988A_20261023.csv",
-      "snapshot_date": "2026-10-23",
-      "holdings_count": 9,
-      "actions": {
-        "new": [],
-        "drop": [],
-        "add": [
-          {
-            "code": "3443",
-            "name": "創意",
-            "pct": 66.66666666666666,
-            "weight": 1.36
-          }
-        ],
-        "reduce": [
-          {
-            "code": "2454",
-            "name": "聯發科",
-            "pct": -51.515151515151516,
-            "weight": 0.7
-          }
-        ],
-        "build": []
-      }
     }
   ],
-  "consensus_buy": [],
+  "consensus_buy": [
+    {
+      "stock_id": "3017",
+      "funds": [
+        "復華未來50",
+        "統一升級50"
+      ],
+      "name": "奇鋐科技"
+    }
+  ],
   "consensus_sell": [],
   "divergence": []
 }
