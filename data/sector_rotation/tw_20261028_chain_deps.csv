@@ -1,0 +1,12 @@
+chain,chain_state,upstream_count,upstream_confirmed,upstream_confirmed_pct,upstream_total_weight,upstream_confirmed_weight,upstream_coherence_pct,upstream_states
+Advanced Packaging,❄️ Weak,2,2,100.0,1.7,1.7,100.0,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""PCB / HDI / IC Substrate"": ""🚀 Confirmed""}"
+Data Center Power / PSU,❄️ Weak,1,1,100.0,0.7,0.7,100.0,"{""Passive Components"": ""🚀 Confirmed""}"
+Cloud / Data Center / Cybersecurity,💰 Capital Leading,2,2,100.0,1.8,1.8,100.0,"{""AI Server / ODM"": ""💰 Capital Leading"", ""Optical Communication / AI Networking"": ""💰 Capital Leading""}"
+Smart Grid / Transformer,💰 Capital Leading,2,2,100.0,1.1,1.1,100.0,"{""Passive Components"": ""🚀 Confirmed"", ""Steel"": ""💰 Capital Leading""}"
+PCB / HDI / IC Substrate,🚀 Confirmed,1,1,100.0,1.0,1.0,100.0,"{""CCL / High-Speed Materials"": ""🚀 Confirmed""}"
+Display & Optical,🚀 Confirmed,1,1,100.0,0.6,0.6,100.0,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading""}"
+AI / HPC Semiconductor,⚠️ Price Leading,2,1,50.0,1.8,1.0,55.6,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""Advanced Packaging"": ""❄️ Weak""}"
+Memory / HBM,🚀 Confirmed,2,1,50.0,1.8,1.0,55.6,"{""Semiconductor Equipment & Materials"": ""💰 Capital Leading"", ""Advanced Packaging"": ""❄️ Weak""}"
+AI Server / ODM,💰 Capital Leading,9,5,55.6,8.6,4.6,53.5,"{""AI / HPC Semiconductor"": ""⚠️ Price Leading"", ""Memory / HBM"": ""🚀 Confirmed"", ""Advanced Packaging"": ""❄️ Weak"", ""PCB / HDI / IC Substrate"": ""🚀 Confirmed"", ""CCL / High-Speed Materials"": ""🚀 Confirmed"", ""Thermal / Liquid Cooling"": ""❄️ Weak"", ""Data Center Power / PSU"": ""❄️ Weak"", ""Optical Communication / AI Networking"": ""💰 Capital Leading"", ""Passive Components"": ""🚀 Confirmed""}"
+Robotics / Automation,💰 Capital Leading,2,1,50.0,1.2,0.5,41.7,"{""AI / HPC Semiconductor"": ""⚠️ Price Leading"", ""Semiconductor Equipment & Materials"": ""💰 Capital Leading""}"
+EV / Auto Electronics,❄️ Weak,3,1,33.3,2.2,0.6,27.3,"{""Energy Storage / Battery"": ""❄️ Weak"", ""AI / HPC Semiconductor"": ""⚠️ Price Leading"", ""Passive Components"": ""🚀 Confirmed""}"
