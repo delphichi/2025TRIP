@@ -1,0 +1,23 @@
+sector,as_of_date,stock_count,point,ret_4w,ret_13w,ret_26w,breadth_pct,breadth_up,breadth_total,inst_net_20d_shares,inst_net_20d_est_NTD_M,inst_net_20d_est_NTD_M_per_stock,point_5d_avg,acceleration,z_point,z_capital,cpd,cpd_quadrant,prev_cpd_quadrant,transition_label,transition_dir,market_state
+化學生技醫療,2026-11-03,1,67.85,2.94,19.51,124.48,100.0,1,1,3184111.0,3900.5,3900.5,55.24,12.61,2.42,0.25,-2.17,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+塑膠工業,2026-11-03,3,58.05,-3.14,45.13,95.1,33.3,1,3,-17142984.0,-12564.099999999999,-4188.03,71.18,-13.13,1.95,0.14,-1.82,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🔥 Overheated
+油電燃氣業,2026-11-03,1,50.88,-3.75,32.54,87.37,0.0,0,1,33880008.0,3215.2,3215.2,57.41,-6.53,1.62,0.24,-1.37,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🔥 Overheated
+金融保險,2026-11-03,15,31.43,5.15,18.25,51.16,93.3,14,15,1243405916.0,68440.70000000001,4562.71,35.16,-3.73,0.7,0.68,-0.02,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+光電業,2026-11-03,1,31.3,-21.22,-0.48,73.46,0.0,0,1,-62827838.0,-2588.5,-2588.5,48.18,-16.88,0.7,0.21,-0.49,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+航運業,2026-11-03,6,21.69,5.47,15.46,32.92,100.0,6,6,399873810.0,32333.0,5388.83,23.46,-1.77,0.24,0.44,0.2,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+玻璃陶瓷,2026-11-03,1,21.0,14.17,58.92,5.45,100.0,1,1,71690717.0,4853.5,4853.5,5.13,15.87,0.21,0.26,0.04,🚀 Confirmed,💰 Capital Leading,💰 Capital Leading → 🚀 Confirmed,ADVANCING,🚀 Confirmed
+電腦及週邊設備業,2026-11-03,9,15.2,-11.34,13.43,29.35,0.0,0,9,-664077.0,-12178.399999999998,-1353.16,19.39,-4.19,-0.06,0.14,0.2,💰 Capital Leading,🚀 Confirmed,🚀 Confirmed → 💰 Capital Leading,REVERSING,💰 Capital Leading
+食品工業,2026-11-03,1,14.52,11.55,7.28,19.62,100.0,1,1,122720532.0,9952.6,9952.6,11.3,3.22,-0.09,0.29,0.38,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+水泥工業,2026-11-03,2,13.97,9.1,14.44,16.17,100.0,2,2,163165368.0,5038.299999999999,2519.15,14.97,-1.0,-0.12,0.26,0.37,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+電子工業,2026-11-03,31,13.59,-15.21,18.13,25.73,22.6,7,31,-2024443440.0,-676066.6,-21808.6,22.55,-8.96,-0.14,-4.33,-4.2,❄️ Weak,⚠️ Price Leading,⚠️ Price Leading → ❄️ Weak,REVERSING,❄️ Weak
+電器電纜,2026-11-03,1,12.56,-8.85,22.38,18.37,0.0,0,1,3074397.0,107.6,107.6,13.28,-0.72,-0.18,0.22,0.41,💰 Capital Leading,🚀 Confirmed,🚀 Confirmed → 💰 Capital Leading,REVERSING,💰 Capital Leading
+電子零組件業,2026-11-03,14,12.12,-21.97,29.96,20.24,0.0,0,14,-178016785.0,-151187.79999999996,-10799.13,28.88,-16.76,-0.2,-0.8,-0.59,❄️ Weak,⚠️ Price Leading,⚠️ Price Leading → ❄️ Weak,REVERSING,❄️ Weak
+紡織纖維,2026-11-03,1,9.59,2.88,5.16,15.17,100.0,1,1,24049395.0,686.6,686.6,8.49,1.1,-0.32,0.23,0.55,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+汽車工業,2026-11-03,1,9.58,6.67,-1.27,16.46,100.0,1,1,1339184.0,728.5,728.5,8.37,1.21,-0.32,0.23,0.55,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+存託憑證,2026-11-03,1,7.34,10.15,2.62,8.3,100.0,1,1,414700.0,10.6,10.6,7.15,0.19,-0.43,0.22,0.65,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+電子通路業,2026-11-03,3,4.43,-8.84,5.02,10.78,0.0,0,3,30199630.0,1940.4999999999998,646.83,9.46,-5.03,-0.57,0.24,0.8,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+鋼鐵工業,2026-11-03,1,3.13,2.38,2.11,4.02,100.0,1,1,294874554.0,5705.8,5705.8,1.96,1.17,-0.63,0.26,0.89,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+貿易百貨,2026-11-03,1,1.68,5.45,-3.26,2.27,100.0,1,1,26161846.0,5821.0,5821.0,0.46,1.22,-0.7,0.26,0.96,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+其他,2026-11-03,1,-2.81,-0.47,-4.98,-2.88,0.0,0,1,-65779.0,-6.9,-6.9,-3.71,0.9,-0.91,0.22,1.13,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+電機機械,2026-11-03,3,-13.2,-13.32,-8.21,-15.64,0.0,0,3,-5301537.0,-5442.4,-1814.13,-0.33,-12.87,-1.4,0.19,1.58,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+其他電子業,2026-11-03,2,-21.34,-29.83,-10.04,-22.75,0.0,0,2,-11320377.0,-10118.3,-5059.15,-30.25,8.91,-1.78,0.15,1.93,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading

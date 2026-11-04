@@ -1,0 +1,90 @@
+ticker,stock_name,supply_chain,as_of_date,chain_point,chain_z_point,chain_state,stock_point,stock_z_in_chain,chain_size,price_lag,early_flag
+2383,台光電,CCL / High-Speed Materials,2026-11-03,58.7,1.78,🔥 Overheated,-8.47,-1.07,4,2.85,
+1802,台玻,CCL / High-Speed Materials,2026-11-03,58.7,1.78,🔥 Overheated,21.0,-0.6,4,2.38,
+3665,貿聯-KY,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,-33.33,-2.16,14,2.31,🎯 EARLY
+2345,智邦,Cloud / Data Center / Cybersecurity,2026-11-03,8.45,-0.1,💰 Capital Leading,-28.03,-1.98,8,1.88,🎯 EARLY
+2610,華航,Shipping / Logistics,2026-11-03,25.66,0.54,🚀 Confirmed,10.04,-1.32,5,1.86,🎯 EARLY
+3481,群創,Display & Optical,2026-11-03,37.99,1.0,🚀 Confirmed,31.3,-0.8,3,1.8,🎯 EARLY
+6515,穎崴,Advanced Packaging,2026-11-03,2.41,-0.33,❄️ Weak,-42.9,-2.11,8,1.78,
+3661,世芯-KY,AI / HPC Semiconductor,2026-11-03,17.47,0.23,⚠️ Price Leading,-13.68,-1.43,7,1.66,
+2337,旺宏,Memory / HBM,2026-11-03,12.21,0.04,⚠️ Price Leading,-27.34,-1.31,4,1.35,
+2308,台達電,Thermal / Liquid Cooling,2026-11-03,9.72,-0.06,❄️ Weak,-31.81,-1.39,4,1.33,
+2409,友達,Display & Optical,2026-11-03,37.99,1.0,🚀 Confirmed,35.3,-0.32,3,1.32,🎯 EARLY
+6213,聯茂,CCL / High-Speed Materials,2026-11-03,58.7,1.78,🔥 Overheated,96.76,0.61,4,1.17,
+2330,台積電,AI / HPC Semiconductor,2026-11-03,17.47,0.23,⚠️ Price Leading,-0.67,-0.83,7,1.06,
+3533,嘉澤,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,-18.17,-1.34,10,1.05,🎯 EARLY
+2360,致茂,Semiconductor Equipment & Materials,2026-11-03,-5.29,-0.62,💰 Capital Leading,-22.7,-1.55,7,0.93,🎯 EARLY
+2618,長榮航,Shipping / Logistics,2026-11-03,25.66,0.54,🚀 Confirmed,21.0,-0.39,5,0.93,🎯 EARLY
+1590,亞德客-KY,Robotics / Automation,2026-11-03,7.85,-0.13,💰 Capital Leading,-20.13,-0.99,3,0.86,🎯 EARLY
+2382,廣達,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,1.33,-0.62,14,0.77,🎯 EARLY
+2609,陽明,Shipping / Logistics,2026-11-03,25.66,0.54,🚀 Confirmed,23.03,-0.22,5,0.76,🎯 EARLY
+1303,南亞,CCL / High-Speed Materials,2026-11-03,58.7,1.78,🔥 Overheated,125.49,1.06,4,0.72,
+6669,緯穎,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,3.06,-0.54,14,0.69,🎯 EARLY
+2368,金像電,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,-12.01,-0.96,10,0.67,🎯 EARLY
+2324,仁寶,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,4.2,-0.49,14,0.64,🎯 EARLY
+2313,華通,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,-11.21,-0.91,10,0.62,🎯 EARLY
+2317,鴻海,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,6.35,-0.39,14,0.54,🎯 EARLY
+2376,技嘉,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,7.15,-0.36,14,0.51,🎯 EARLY
+2303,聯電,AI / HPC Semiconductor,2026-11-03,17.47,0.23,⚠️ Price Leading,12.35,-0.24,7,0.47,
+2383,台光電,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,-8.47,-0.74,10,0.45,🎯 EARLY
+2308,台達電,Data Center Power / PSU,2026-11-03,-5.95,-0.64,❄️ Weak,-31.81,-1.04,4,0.4,
+2382,廣達,Cloud / Data Center / Cybersecurity,2026-11-03,8.45,-0.1,💰 Capital Leading,1.33,-0.39,8,0.29,🎯 EARLY
+7769,鴻勁,Semiconductor Equipment & Materials,2026-11-03,-5.29,-0.62,💰 Capital Leading,-15.36,-0.9,7,0.28,🎯 EARLY
+1519,華城,Smart Grid / Transformer,2026-11-03,-7.4,-0.7,💰 Capital Leading,-26.62,-0.96,4,0.26,🎯 EARLY
+2356,英業達,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,12.62,-0.11,14,0.26,🎯 EARLY
+6770,力積電,Memory / HBM,2026-11-03,12.21,0.04,⚠️ Price Leading,5.74,-0.21,4,0.25,
+6669,緯穎,Cloud / Data Center / Cybersecurity,2026-11-03,8.45,-0.1,💰 Capital Leading,3.06,-0.29,8,0.19,🎯 EARLY
+3231,緯創,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,15.06,0.0,14,0.15,
+2301,光寶科,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,16.29,0.05,14,0.1,
+2360,致茂,Smart Grid / Transformer,2026-11-03,-7.4,-0.7,💰 Capital Leading,-22.7,-0.76,4,0.06,🎯 EARLY
+2327,國巨*,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,17.69,0.11,14,0.04,
+2360,致茂,Data Center Power / PSU,2026-11-03,-5.95,-0.64,❄️ Weak,-22.7,-0.67,4,0.03,
+2454,聯發科,AI / HPC Semiconductor,2026-11-03,17.47,0.23,⚠️ Price Leading,22.1,0.21,7,0.02,
+2317,鴻海,Cloud / Data Center / Cybersecurity,2026-11-03,8.45,-0.1,💰 Capital Leading,6.35,-0.11,8,0.01,🎯 EARLY
+3017,奇鋐,Thermal / Liquid Cooling,2026-11-03,9.72,-0.06,❄️ Weak,7.52,-0.07,4,0.01,
+3034,聯詠,AI / HPC Semiconductor,2026-11-03,17.47,0.23,⚠️ Price Leading,23.39,0.27,7,-0.04,
+2379,瑞昱,AI / HPC Semiconductor,2026-11-03,17.47,0.23,⚠️ Price Leading,23.64,0.28,7,-0.05,
+1504,東元,Robotics / Automation,2026-11-03,7.85,-0.13,💰 Capital Leading,7.16,-0.02,3,-0.11,🎯 EARLY
+3008,大立光,Display & Optical,2026-11-03,37.99,1.0,🚀 Confirmed,47.36,1.12,3,-0.12,
+2603,長榮,Shipping / Logistics,2026-11-03,25.66,0.54,🚀 Confirmed,33.58,0.67,5,-0.13,
+2330,台積電,Advanced Packaging,2026-11-03,2.41,-0.33,❄️ Weak,-0.67,-0.14,8,-0.19,
+2449,京元電子,Advanced Packaging,2026-11-03,2.41,-0.33,❄️ Weak,-0.18,-0.12,8,-0.21,
+3037,欣興,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,2.38,-0.06,10,-0.23,🎯 EARLY
+4938,和碩,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,23.95,0.39,14,-0.24,
+6139,亞翔,Semiconductor Equipment & Materials,2026-11-03,-5.29,-0.62,💰 Capital Leading,-9.34,-0.36,7,-0.26,🎯 EARLY
+3037,欣興,Advanced Packaging,2026-11-03,2.41,-0.33,❄️ Weak,2.38,0.0,8,-0.33,
+4904,遠傳,Cloud / Data Center / Cybersecurity,2026-11-03,8.45,-0.1,💰 Capital Leading,14.16,0.31,8,-0.41,
+6239,力成,Advanced Packaging,2026-11-03,2.41,-0.33,❄️ Weak,4.31,0.09,8,-0.42,
+3665,貿聯-KY,EV / Auto Electronics,2026-11-03,-19.56,-1.15,💰 Capital Leading,-33.33,-0.69,4,-0.46,🎯 EARLY
+2412,中華電,Cloud / Data Center / Cybersecurity,2026-11-03,8.45,-0.1,💰 Capital Leading,15.89,0.4,8,-0.5,
+2344,華邦電,Memory / HBM,2026-11-03,12.21,0.04,⚠️ Price Leading,28.71,0.55,4,-0.51,
+2308,台達電,EV / Auto Electronics,2026-11-03,-19.56,-1.15,💰 Capital Leading,-31.81,-0.61,4,-0.54,🎯 EARLY
+8046,南電,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,8.57,0.32,10,-0.61,
+8046,南電,Advanced Packaging,2026-11-03,2.41,-0.33,❄️ Weak,8.57,0.29,8,-0.62,
+3045,台灣大,Cloud / Data Center / Cybersecurity,2026-11-03,8.45,-0.1,💰 Capital Leading,18.29,0.53,8,-0.63,
+2357,華碩,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,32.91,0.79,14,-0.64,
+3044,健鼎,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,9.39,0.37,10,-0.66,
+2615,萬海,Shipping / Logistics,2026-11-03,25.66,0.54,🚀 Confirmed,40.67,1.27,5,-0.73,
+3653,健策,Thermal / Liquid Cooling,2026-11-03,9.72,-0.06,❄️ Weak,30.28,0.69,4,-0.75,
+4958,臻鼎-KY,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,10.89,0.47,10,-0.76,
+2404,漢唐,Semiconductor Equipment & Materials,2026-11-03,-5.29,-0.62,💰 Capital Leading,-2.91,0.21,7,-0.83,
+2357,華碩,Thermal / Liquid Cooling,2026-11-03,9.72,-0.06,❄️ Weak,32.91,0.77,4,-0.83,
+3711,日月光投控,Advanced Packaging,2026-11-03,2.41,-0.33,❄️ Weak,13.98,0.54,8,-0.87,
+2377,微星,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,37.96,1.02,14,-0.87,
+2408,南亞科,Memory / HBM,2026-11-03,12.21,0.04,⚠️ Price Leading,41.73,0.98,4,-0.94,
+2360,致茂,EV / Auto Electronics,2026-11-03,-19.56,-1.15,💰 Capital Leading,-22.7,-0.16,4,-0.99,🎯 EARLY
+2395,研華,Robotics / Automation,2026-11-03,7.85,-0.13,💰 Capital Leading,36.52,1.01,3,-1.14,
+3702,大聯大,Semiconductor Equipment & Materials,2026-11-03,-5.29,-0.62,💰 Capital Leading,0.71,0.53,7,-1.15,
+6805,富世達,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,18.79,0.96,10,-1.25,
+3036,文曄,Semiconductor Equipment & Materials,2026-11-03,-5.29,-0.62,💰 Capital Leading,2.6,0.7,7,-1.32,
+1504,東元,Smart Grid / Transformer,2026-11-03,-7.4,-0.7,💰 Capital Leading,7.16,0.72,4,-1.42,
+6415,矽力*-KY,Data Center Power / PSU,2026-11-03,-5.95,-0.64,❄️ Weak,14.43,0.82,4,-1.46,
+3443,創意,AI / HPC Semiconductor,2026-11-03,17.47,0.23,⚠️ Price Leading,55.15,1.73,7,-1.5,
+2301,光寶科,Data Center Power / PSU,2026-11-03,-5.95,-0.64,❄️ Weak,16.29,0.89,4,-1.53,
+2395,研華,Cloud / Data Center / Cybersecurity,2026-11-03,8.45,-0.1,💰 Capital Leading,36.52,1.52,8,-1.62,
+1605,華新,Smart Grid / Transformer,2026-11-03,-7.4,-0.7,💰 Capital Leading,12.56,0.99,4,-1.69,
+3189,景碩,Advanced Packaging,2026-11-03,2.41,-0.33,❄️ Weak,33.77,1.46,8,-1.79,
+2347,聯強,Semiconductor Equipment & Materials,2026-11-03,-5.29,-0.62,💰 Capital Leading,9.99,1.36,7,-1.98,
+2059,川湖,AI Server / ODM,2026-11-03,15.15,0.15,🚀 Confirmed,66.84,2.3,14,-2.15,
+3189,景碩,PCB / HDI / IC Substrate,2026-11-03,3.39,-0.29,💰 Capital Leading,33.77,1.89,10,-2.18,
+2207,和泰車,EV / Auto Electronics,2026-11-03,-19.56,-1.15,💰 Capital Leading,9.58,1.46,4,-2.61,
