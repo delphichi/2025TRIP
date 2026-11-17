@@ -1,18 +1,43 @@
 {
-  "date": "2026-11-16",
-  "generated_at": "2026-11-17T04:37:12+08:00",
-  "consensus_date": "2026-11-16",
+  "date": "2026-11-17",
+  "generated_at": "2026-11-18T03:16:06+08:00",
+  "consensus_date": "2026-11-17",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20261116.csv",
-      "snapshot_date": "2026-11-16",
+      "snapshot": "00991A_20261117.csv",
+      "snapshot_date": "2026-11-17",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [],
+        "add": [
+          {
+            "code": "3665",
+            "name": "貿聯-KY",
+            "pct": 19.047619047619047,
+            "weight": 0.652
+          },
+          {
+            "code": "4958",
+            "name": "臻鼎-KY",
+            "pct": 6.666666666666667,
+            "weight": 1.097
+          },
+          {
+            "code": "6223",
+            "name": "旺矽科技",
+            "pct": 6.25,
+            "weight": 1.256
+          },
+          {
+            "code": "2368",
+            "name": "金像電子",
+            "pct": 6.153846153846154,
+            "weight": 1.066
+          }
+        ],
         "reduce": [],
         "build": []
       }
@@ -84,60 +109,48 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20261116.csv",
-      "snapshot_date": "2026-11-16",
+      "snapshot": "00403A_20261117.csv",
+      "snapshot_date": "2026-11-17",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
         "add": [
           {
-            "code": "6515",
-            "name": "穎崴",
-            "pct": 200.0,
-            "weight": 0.3
-          },
-          {
-            "code": "3711",
-            "name": "日月光投控",
-            "pct": 12.648221343873518,
-            "weight": 1.38
-          },
-          {
-            "code": "3443",
-            "name": "創意",
-            "pct": 4.0,
-            "weight": 5.43
-          },
-          {
-            "code": "3017",
-            "name": "奇鋐",
-            "pct": 2.0,
-            "weight": 6.27
-          },
-          {
-            "code": "2454",
-            "name": "聯發科",
-            "pct": 1.5957446808510638,
-            "weight": 6.36
+            "code": "2882",
+            "name": "國泰金",
+            "pct": 20.0,
+            "weight": 0.58
           }
         ],
         "reduce": [
           {
+            "code": "3211",
+            "name": "順達",
+            "pct": -23.134328358208954,
+            "weight": 0.21
+          },
+          {
             "code": "6274",
             "name": "台燿",
-            "pct": -43.75,
-            "weight": 0.71
+            "pct": -16.666666666666664,
+            "weight": 0.57
           }
         ],
-        "build": []
+        "build": [
+          {
+            "code": "2301",
+            "name": "光寶科",
+            "weight": 0.05
+          }
+        ]
       }
     },
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20261116.csv",
-      "snapshot_date": "2026-11-16",
+      "snapshot": "00988A_20261117.csv",
+      "snapshot_date": "2026-11-17",
       "holdings_count": 9,
       "actions": {
         "new": [],
@@ -146,14 +159,14 @@
           {
             "code": "1303",
             "name": "南亞",
-            "pct": 20.28985507246377,
-            "weight": 3.01
+            "pct": 15.66265060240964,
+            "weight": 3.64
           },
           {
-            "code": "3443",
-            "name": "創意",
-            "pct": 4.8034934497816595,
-            "weight": 4.67
+            "code": "3017",
+            "name": "奇鋐",
+            "pct": 7.5,
+            "weight": 4.9
           }
         ],
         "reduce": [],
@@ -161,16 +174,7 @@
       }
     }
   ],
-  "consensus_buy": [
-    {
-      "stock_id": "3443",
-      "funds": [
-        "統一全球創新",
-        "統一升級50"
-      ],
-      "name": "創意電子"
-    }
-  ],
+  "consensus_buy": [],
   "consensus_sell": [],
   "divergence": []
 }
