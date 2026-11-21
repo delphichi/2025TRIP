@@ -1,31 +1,31 @@
 {
-  "generated_at": "2026-09-18T23:50:19.277709+00:00",
-  "as_of_date": "2026-09-17",
+  "generated_at": "2026-11-21T02:58:23.544384+00:00",
+  "as_of_date": "2026-11-20",
   "market_context": {
-    "as_of_date": "2026-09-17",
+    "as_of_date": "2026-11-20",
     "voo": {
-      "price": 701.03,
-      "vs_60d_pct": 3.95,
-      "ma50": 698.16,
-      "vs_50ma_pct": 0.41
+      "price": 635.54,
+      "vs_60d_pct": -10.1,
+      "ma50": 698.65,
+      "vs_50ma_pct": -9.03
     },
     "vix": {
-      "value": 15.44
+      "value": 35.89
     },
     "tnx": {
-      "value": 4.95,
-      "raw": 4.95
+      "value": 4.91,
+      "raw": 4.91
     },
-    "trend_label": "🟢",
-    "vs_50ma_label": "🟡",
-    "quadrant_key": "🟡+🟢",
+    "trend_label": "🔴",
+    "vs_50ma_label": "❄",
+    "quadrant_key": "❄+🔴",
     "allocation": {
-      "core": 30,
-      "momentum": 25,
+      "core": 0,
+      "momentum": 0,
       "sprint": 0,
-      "cash": 45
+      "cash": 100
     },
-    "vix_override_all_cash": false,
+    "vix_override_all_cash": true,
     "tnx_boost": [
       "XLE",
       "XLF",
@@ -37,27 +37,28 @@
       "XLU"
     ],
     "notes": [
-      "📈 TNX=4.95% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "⛔ VIX=35.9 > 30 · 全倉現金覆蓋所有象限",
+      "📈 TNX=4.91% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ],
     "regime_stats": {
       "historical": {
         "🟢 多頭": {
-          "n": 1593,
-          "mean": 1.09,
-          "win_rate": 71.9,
-          "p25": -0.4,
-          "p50": 1.83,
-          "p75": 3.32,
+          "n": 1588,
+          "mean": 1.05,
+          "win_rate": 71.5,
+          "p25": -0.42,
+          "p50": 1.77,
+          "p75": 3.31,
           "worst": -30.99,
           "best": 7.72
         },
         "🟡 中性": {
-          "n": 214,
-          "mean": 0.15,
-          "win_rate": 59.8,
-          "p25": -3.43,
-          "p50": 1.49,
-          "p75": 4.27,
+          "n": 219,
+          "mean": 0.04,
+          "win_rate": 58.4,
+          "p25": -3.62,
+          "p50": 1.33,
+          "p75": 4.25,
           "worst": -21.77,
           "best": 9.15
         },
@@ -82,32 +83,32 @@
           "best": 23.07
         }
       },
-      "current_regime": "🟢 多頭",
+      "current_regime": "🟠 警戒",
       "current_conditions": {
-        "spy_price": 761.69,
-        "spy_60d_ago": 733.24,
-        "price_up_60d": true,
-        "ma50": 759.73,
-        "ma50_up": true,
-        "ma200": 714.24,
+        "spy_price": 689.81,
+        "spy_60d_ago": 769.19,
+        "price_up_60d": false,
+        "ma50": 760.03,
+        "ma50_up": false,
+        "ma200": 730.29,
         "ma200_up": true
       },
       "current": {
-        "n": 1593,
-        "mean": 1.09,
-        "win_rate": 71.9,
-        "p25": -0.4,
-        "p50": 1.83,
-        "p75": 3.32,
-        "worst": -30.99,
-        "best": 7.72
+        "n": 275,
+        "mean": 0.58,
+        "win_rate": 57.1,
+        "p25": -3.28,
+        "p50": 1.23,
+        "p75": 5.38,
+        "worst": -20.31,
+        "best": 12.79
       },
       "unconditional": {
         "n": 2284,
-        "mean": 1.23,
-        "win_rate": 69.2,
-        "p25": -0.86,
-        "p50": 1.89,
+        "mean": 1.19,
+        "win_rate": 68.7,
+        "p25": -0.95,
+        "p50": 1.83,
         "p75": 3.82,
         "worst": -30.99,
         "best": 23.07
@@ -116,165 +117,146 @@
   },
   "effective_sectors": [
     {
-      "sector": "XLE",
-      "sector_name": "能源",
-      "composite_rank": 2,
+      "sector": "XLP",
+      "sector_name": "必需消費",
+      "composite_rank": 1,
       "point_rank": 2,
-      "cms_a": 2.6,
-      "tnx_flag": "boost"
-    },
-    {
-      "sector": "XLC",
-      "sector_name": "通訊服務",
-      "composite_rank": 3,
-      "point_rank": 6,
-      "cms_a": 4.5,
+      "cms_a": 1.4,
       "tnx_flag": null
     },
     {
       "sector": "XLV",
       "sector_name": "醫療保健",
-      "composite_rank": 4,
+      "composite_rank": 3,
+      "point_rank": 1,
+      "cms_a": 2.8,
+      "tnx_flag": "boost"
+    },
+    {
+      "sector": "XLF",
+      "sector_name": "金融",
+      "composite_rank": 5,
       "point_rank": 3,
-      "cms_a": 3.7,
+      "cms_a": 5.2,
       "tnx_flag": "boost"
     }
   ],
   "demoted_sectors": [
     {
-      "sector": "XLK",
-      "sector_name": "資訊科技",
+      "sector": "XLRE",
+      "sector_name": "房地產",
+      "reason": "TNX 濾網降級"
+    },
+    {
+      "sector": "XLU",
+      "sector_name": "公用事業",
       "reason": "TNX 濾網降級"
     }
   ],
   "allocation": {
-    "core": 30,
-    "momentum": 25,
+    "core": 0,
+    "momentum": 0,
     "sprint": 0,
-    "cash": 45
+    "cash": 100
   },
   "positions": {
     "core": [],
     "momentum": [
       {
-        "symbol": "MRNA",
-        "name": "Moderna",
+        "symbol": "AIZ",
+        "name": "Assurant",
+        "sector": "Financials",
+        "sector_etf": "XLF",
+        "point": 17.66,
+        "cms_a": 5.8,
+        "di": 1.0,
+        "cum_ret_4w": 10.27,
+        "cum_ret_13w": 11.83,
+        "cum_ret_26w": 24.27,
+        "vcp": false,
+        "vp_ratio_stock": 1.391,
+        "pct_from_high": -3.16,
+        "high_52w": 326.99,
+        "surprise_l1": 30.53,
+        "surprise_l2": 23.73,
+        "pre_earnings_14d": false,
+        "tier": "momentum",
+        "reason": "TNX順風 + VP 1.39 + 4W +10.3%"
+      },
+      {
+        "symbol": "REGN",
+        "name": "Regeneron Pharmaceuticals",
         "sector": "Health Care",
         "sector_etf": "XLV",
-        "point": 151.34,
-        "cms_a": 1.0,
+        "point": 29.46,
+        "cms_a": 7.2,
         "di": 1.0,
-        "cum_ret_4w": 18.56,
-        "cum_ret_13w": 185.32,
-        "cum_ret_26w": 200.74,
+        "cum_ret_4w": 14.11,
+        "cum_ret_13w": 10.5,
+        "cum_ret_26w": 46.61,
         "vcp": false,
-        "vp_ratio_stock": 1.077,
-        "pct_from_high": -10.52,
-        "high_52w": 176.66,
-        "surprise_l1": 4.33,
-        "surprise_l2": 12.37,
+        "vp_ratio_stock": 1.315,
+        "pct_from_high": -7.07,
+        "high_52w": 990.72,
+        "surprise_l1": 23.54,
+        "surprise_l2": 39.99,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.08 + 4W +18.6%",
-        "weight_pct": 6.25
-      },
-      {
-        "symbol": "VLO",
-        "name": "Valero Energy",
-        "sector": "Energy",
-        "sector_etf": "XLE",
-        "point": 62.83,
-        "cms_a": 1.2,
-        "di": 1.0,
-        "cum_ret_4w": 20.8,
-        "cum_ret_13w": 69.63,
-        "cum_ret_26w": 80.45,
-        "vcp": false,
-        "vp_ratio_stock": 1.068,
-        "pct_from_high": -0.22,
-        "high_52w": 413.44,
-        "surprise_l1": 23.84,
-        "surprise_l2": 33.47,
-        "pre_earnings_14d": false,
-        "tier": "momentum",
-        "reason": "TNX順風 + VP 1.07 + 4W +20.8%",
-        "weight_pct": 6.25
-      },
-      {
-        "symbol": "PSX",
-        "name": "Phillips 66",
-        "sector": "Energy",
-        "sector_etf": "XLE",
-        "point": 49.0,
-        "cms_a": 3.0,
-        "di": 1.0,
-        "cum_ret_4w": 14.25,
-        "cum_ret_13w": 60.27,
-        "cum_ret_26w": 60.74,
-        "vcp": false,
-        "vp_ratio_stock": 1.008,
-        "pct_from_high": 0.0,
-        "high_52w": 274.21,
-        "surprise_l1": 25.45,
-        "surprise_l2": 225.68,
-        "pre_earnings_14d": false,
-        "tier": "momentum",
-        "reason": "TNX順風 + VP 1.01 + 4W +14.2%",
-        "weight_pct": 6.25
-      },
-      {
-        "symbol": "RVTY",
-        "name": "Revvity",
-        "sector": "Health Care",
-        "sector_etf": "XLV",
-        "point": 51.67,
-        "cms_a": 3.5,
-        "di": 1.0,
-        "cum_ret_4w": 18.21,
-        "cum_ret_13w": 45.05,
-        "cum_ret_26w": 71.72,
-        "vcp": false,
-        "vp_ratio_stock": 1.255,
-        "pct_from_high": -1.87,
-        "high_52w": 149.52,
-        "surprise_l1": 15.93,
-        "surprise_l2": 4.47,
-        "pre_earnings_14d": false,
-        "tier": "momentum",
-        "reason": "TNX順風 + VP 1.25 + 4W +18.2%",
-        "weight_pct": 6.25
+        "reason": "TNX順風 + VP 1.31 + 4W +14.1%"
       }
     ],
     "sprint": [
       {
-        "symbol": "MPC",
-        "name": "Marathon Petroleum",
-        "sector": "Energy",
-        "sector_etf": "XLE",
-        "point": 65.57,
-        "cms_a": 1.8,
-        "di": 1.0,
-        "cum_ret_4w": 17.79,
-        "cum_ret_13w": 68.93,
-        "cum_ret_26w": 87.78,
+        "symbol": "MRNA",
+        "name": "Moderna",
+        "sector": "Health Care",
+        "sector_etf": "XLV",
+        "point": 171.36,
+        "cms_a": 18.0,
+        "di": 0.667,
+        "cum_ret_4w": -1.94,
+        "cum_ret_13w": 34.36,
+        "cum_ret_26w": 326.51,
         "vcp": false,
-        "vp_ratio_stock": 0.967,
-        "pct_from_high": -0.44,
-        "high_52w": 423.83,
-        "surprise_l1": 27.08,
-        "surprise_l2": 120.63,
+        "vp_ratio_stock": 1.358,
+        "pct_from_high": -30.56,
+        "high_52w": 280.8,
+        "surprise_l1": 130.29,
+        "surprise_l2": 4.33,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "CMS_A=1.8 靠前但缺 VCP 或非 TNX 順風"
+        "reason": "破格 · 全場 Point 最高(171.4)且領先池內第 3 名 50%+"
       }
     ],
-    "hold_earnings": []
+    "hold_earnings": [
+      {
+        "symbol": "DLTR",
+        "name": "Dollar Tree",
+        "sector": "Consumer Staples",
+        "sector_etf": "XLP",
+        "point": 29.97,
+        "cms_a": 7.2,
+        "di": 1.0,
+        "cum_ret_4w": 10.44,
+        "cum_ret_13w": 4.93,
+        "cum_ret_26w": 52.26,
+        "vcp": false,
+        "vp_ratio_stock": 1.017,
+        "pct_from_high": -7.12,
+        "high_52w": 148.54,
+        "surprise_l1": 136.13,
+        "surprise_l2": 12.89,
+        "pre_earnings_14d": true,
+        "tier": "hold",
+        "reason": "財報 14 天內 · 暫緩 · 等公告後再評估"
+      }
+    ]
   },
   "totals": {
     "core_count": 0,
-    "momentum_count": 4,
+    "momentum_count": 2,
     "sprint_count": 1,
-    "hold_count": 0
+    "hold_count": 1
   },
   "correlation_warnings": [
     {

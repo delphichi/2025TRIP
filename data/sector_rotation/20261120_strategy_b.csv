@@ -1,0 +1,8 @@
+symbol,name,sector,as_of_date,t_price,prev_price,daily_drop_pct,ma50,ma200,ma50_up,ma200_up,rsi_14,vol_today,vol_20d_avg,vol_ratio_vs_20d
+URI,United Rentals,Industrials,2026-11-20,973.43,1059.56,-8.13,1070.01,984.36,True,True,28.8,823000,520810,1.58
+CDNS,Cadence Design Systems,Information Technology,2026-11-20,281.58,304.88,-7.64,322.29,328.65,True,True,29.7,2845000,2299005,1.24
+ADI,Analog Devices,Information Technology,2026-11-20,345.92,377.44,-8.35,395.63,376.84,True,True,31.5,10199800,4856720,2.1
+PYPL,PayPal,Financials,2026-11-20,53.29,56.37,-5.46,55.95,50.27,True,True,31.7,16931000,10412270,1.63
+P,Everpure,Information Technology,2026-11-20,92.05,105.5,-12.75,121.43,88.08,True,True,35.3,4480100,3474950,1.29
+TXN,Texas Instruments,Information Technology,2026-11-20,263.75,285.75,-7.7,285.45,264.08,True,True,35.6,16820600,8461490,1.99
+NXPI,NXP Semiconductors,Information Technology,2026-11-20,235.15,251.76,-6.6,242.13,247.06,True,True,37.4,9772800,5526650,1.77
