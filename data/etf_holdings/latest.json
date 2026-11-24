@@ -1,82 +1,48 @@
 {
-  "date": "2026-11-23",
-  "generated_at": "2026-11-24T06:08:23+08:00",
-  "consensus_date": "2026-11-23",
+  "date": "2026-11-24",
+  "generated_at": "2026-11-25T04:44:43+08:00",
+  "consensus_date": "2026-11-24",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20261123.csv",
-      "snapshot_date": "2026-11-23",
+      "snapshot": "00991A_20261124.csv",
+      "snapshot_date": "2026-11-24",
       "holdings_count": 50,
       "actions": {
         "new": [
           {
-            "code": "2395",
-            "name": "研華股份",
-            "weight": 0.234
+            "code": "3293",
+            "name": "鈊象電子",
+            "weight": 0.164
           }
         ],
         "drop": [
           {
-            "code": "2360",
-            "name": "致茂電子",
-            "weight": 0.002
+            "code": "2379",
+            "name": "瑞昱半導",
+            "weight": 0.001
           }
         ],
-        "add": [
+        "add": [],
+        "reduce": [],
+        "build": [
           {
-            "code": "3665",
-            "name": "貿聯-KY",
-            "pct": 40.0,
-            "weight": 1.039
+            "code": "2412",
+            "name": "中華電信",
+            "weight": 0.161
           },
           {
-            "code": "6223",
-            "name": "旺矽科技",
-            "pct": 26.903553299492383,
-            "weight": 1.975
+            "code": "2603",
+            "name": "長榮海運",
+            "weight": 0.896
           },
           {
-            "code": "3231",
-            "name": "緯創資通",
-            "pct": 13.043478260869565,
-            "weight": 0.802
-          },
-          {
-            "code": "2317",
-            "name": "鴻海精密",
-            "pct": 12.121212121212121,
-            "weight": 0.791
+            "code": "2382",
+            "name": "廣達電腦",
+            "weight": 0.583
           }
-        ],
-        "reduce": [
-          {
-            "code": "2327",
-            "name": "國巨股份",
-            "pct": -62.5,
-            "weight": 0.193
-          },
-          {
-            "code": "7769",
-            "name": "鴻勁精密",
-            "pct": -50.0,
-            "weight": 0.242
-          },
-          {
-            "code": "6805",
-            "name": "富世達股",
-            "pct": -25.0,
-            "weight": 0.68
-          },
-          {
-            "code": "3443",
-            "name": "創意電子",
-            "pct": -25.0,
-            "weight": 0.638
-          }
-        ],
-        "build": []
+        ]
       }
     },
     {
@@ -146,54 +112,78 @@
     {
       "code": "00403A",
       "name": "統一升級50",
-      "snapshot": "00403A_20261123.csv",
-      "snapshot_date": "2026-11-23",
+      "snapshot": "00403A_20261124.csv",
+      "snapshot_date": "2026-11-24",
       "holdings_count": 50,
       "actions": {
         "new": [],
         "drop": [],
-        "add": [],
+        "add": [
+          {
+            "code": "3661",
+            "name": "世芯-KY",
+            "pct": 11.666666666666666,
+            "weight": 0.47
+          },
+          {
+            "code": "3443",
+            "name": "創意",
+            "pct": 2.564102564102564,
+            "weight": 4.04
+          },
+          {
+            "code": "2330",
+            "name": "台積電",
+            "pct": 1.0602409638554215,
+            "weight": 16.8
+          }
+        ],
         "reduce": [
           {
             "code": "3583",
             "name": "辛耘",
-            "pct": -33.75,
-            "weight": 0.12
+            "pct": -50.0,
+            "weight": 0.06
           },
           {
-            "code": "2059",
-            "name": "川湖",
-            "pct": -25.0,
-            "weight": 0.41
+            "code": "6488",
+            "name": "環球晶",
+            "pct": -20.0,
+            "weight": 0.11
+          },
+          {
+            "code": "6442",
+            "name": "光聖",
+            "pct": -9.803921568627452,
+            "weight": 0.2
+          },
+          {
+            "code": "3189",
+            "name": "景碩",
+            "pct": -5.617977528089887,
+            "weight": 1.94
           }
         ],
-        "build": [
-          {
-            "code": "2301",
-            "name": "光寶科",
-            "weight": 0.0
-          }
-        ]
+        "build": []
       }
     },
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20261123.csv",
-      "snapshot_date": "2026-11-23",
-      "holdings_count": 9,
+      "snapshot": "00988A_20261124.csv",
+      "snapshot_date": "2026-11-24",
+      "holdings_count": 8,
       "actions": {
         "new": [],
-        "drop": [],
-        "add": [],
-        "reduce": [
+        "drop": [
           {
             "code": "2383",
             "name": "台光電",
-            "pct": -7.333333333333333,
             "weight": 1.19
           }
         ],
+        "add": [],
+        "reduce": [],
         "build": []
       }
     }
