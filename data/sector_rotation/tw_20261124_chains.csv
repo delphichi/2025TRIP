@@ -1,0 +1,21 @@
+supply_chain,as_of_date,stock_count,point,breadth_pct,breadth_up,breadth_total,inst_net_20d_est_NTD_M,inst_net_20d_est_NTD_M_per_stock,node_count,resonance_pct,z_point,z_capital,cpd,cpd_quadrant,prev_cpd_quadrant,transition_label,transition_dir,market_state
+CCL / High-Speed Materials,2026-11-24,4,25.21,0.0,0,4,-32704.6,-8176.15,3,66.7,1.95,0.2,-1.74,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+Biotech / Innovative Drug / CDMO,2026-11-24,1,25.08,0.0,0,1,6122.0,6122.0,1,,1.94,0.57,-1.37,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+Shipping / Logistics,2026-11-24,5,16.25,40.0,2,5,20741.9,4148.38,2,100.0,1.48,0.7,-0.78,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+Steel,2026-11-24,2,1.75,0.0,0,2,-3487.3,-1743.65,2,50.0,0.74,0.48,-0.26,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+AI / HPC Semiconductor,2026-11-24,7,-0.15,14.3,1,7,-370958.6,-52994.09,6,50.0,0.64,-2.96,-3.6,⚠️ Price Leading,⚠️ Price Leading,⚠️ Price Leading（持平）,STEADY,⚠️ Price Leading
+Cloud / Data Center / Cybersecurity,2026-11-24,8,-2.55,12.5,1,8,9589.1,1198.64,4,50.0,0.52,0.6,0.08,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+Display & Optical,2026-11-24,3,-3.74,0.0,0,3,-3609.0,-1203.0,2,0.0,0.45,0.48,0.02,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+Thermal / Liquid Cooling,2026-11-24,4,-7.65,0.0,0,4,-52656.4,-13164.1,2,50.0,0.25,0.02,-0.24,🚀 Confirmed,⚠️ Price Leading,⚠️ Price Leading → 🚀 Confirmed,ADVANCING,🚀 Confirmed
+AI Server / ODM,2026-11-24,13,-7.88,7.7,1,13,-53202.1,-4092.47,6,16.7,0.24,0.01,-0.23,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+Robotics / Automation,2026-11-24,3,-9.41,0.0,0,3,51.3,17.1,2,50.0,0.16,0.51,0.35,🚀 Confirmed,🚀 Confirmed,🚀 Confirmed（持平）,STEADY,🚀 Confirmed
+PCB / HDI / IC Substrate,2026-11-24,10,-22.35,0.0,0,10,-75539.5,-7553.95,7,14.3,-0.51,-0.2,0.31,❄️ Weak,❄️ Weak,❄️ Weak（持平）,STEADY,❄️ Weak
+Advanced Packaging,2026-11-24,8,-23.57,0.0,0,8,-343696.2,-42962.03,3,0.0,-0.57,-2.71,-2.14,❄️ Weak,❄️ Weak,❄️ Weak（持平）,STEADY,❄️ Weak
+Memory / HBM,2026-11-24,4,-24.5,0.0,0,4,-26033.3,-6508.33,4,0.0,-0.62,0.27,0.88,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+EV / Auto Electronics,2026-11-24,3,-26.27,0.0,0,3,-44481.2,-14827.07,2,0.0,-0.71,0.09,0.8,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+Smart Grid / Transformer,2026-11-24,4,-26.91,0.0,0,4,-2385.4,-596.35,3,0.0,-0.74,0.49,1.23,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+Semiconductor Equipment & Materials,2026-11-24,7,-27.07,0.0,0,7,-245.6,-35.09,5,0.0,-0.75,0.51,1.26,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+Optical Communication / AI Networking,2026-11-24,1,-30.6,0.0,0,1,-1061.8,-1061.8,1,,-0.93,0.5,1.43,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+Data Center Power / PSU,2026-11-24,4,-33.34,0.0,0,4,-50523.6,-12630.9,4,0.0,-1.07,0.04,1.11,💰 Capital Leading,❄️ Weak,❄️ Weak → 💰 Capital Leading,ADVANCING,💰 Capital Leading
+Passive Components,2026-11-24,1,-34.69,0.0,0,1,-17051.6,-17051.6,1,,-1.14,0.35,1.49,💰 Capital Leading,💰 Capital Leading,💰 Capital Leading（持平）,STEADY,💰 Capital Leading
+Energy Storage / Battery,2026-11-24,1,-38.48,0.0,0,1,-47080.7,-47080.7,1,,-1.34,0.07,1.41,💰 Capital Leading,❄️ Weak,❄️ Weak → 💰 Capital Leading,ADVANCING,💰 Capital Leading
