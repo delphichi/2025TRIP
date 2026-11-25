@@ -1,46 +1,63 @@
 {
-  "date": "2026-11-24",
-  "generated_at": "2026-11-25T04:44:43+08:00",
-  "consensus_date": "2026-11-24",
+  "date": "2026-11-25",
+  "generated_at": "2026-11-26T04:01:35+08:00",
+  "consensus_date": "2026-11-25",
   "funds": [
     {
       "code": "00991A",
       "name": "復華未來50",
-      "snapshot": "00991A_20261124.csv",
-      "snapshot_date": "2026-11-24",
+      "snapshot": "00991A_20261125.csv",
+      "snapshot_date": "2026-11-25",
       "holdings_count": 50,
       "actions": {
-        "new": [
+        "new": [],
+        "drop": [],
+        "add": [
           {
-            "code": "3293",
-            "name": "鈊象電子",
-            "weight": 0.164
+            "code": "2308",
+            "name": "台達電子",
+            "pct": 72.54901960784314,
+            "weight": 1.344
+          },
+          {
+            "code": "3665",
+            "name": "貿聯-KY",
+            "pct": 71.42857142857143,
+            "weight": 1.415
+          },
+          {
+            "code": "2368",
+            "name": "金像電子",
+            "pct": 52.77777777777778,
+            "weight": 1.441
           }
         ],
-        "drop": [
-          {
-            "code": "2379",
-            "name": "瑞昱半導",
-            "weight": 0.001
-          }
-        ],
-        "add": [],
         "reduce": [],
         "build": [
           {
-            "code": "2412",
-            "name": "中華電信",
-            "weight": 0.161
+            "code": "2891",
+            "name": "中國信託",
+            "weight": 0.61
           },
           {
-            "code": "2603",
-            "name": "長榮海運",
-            "weight": 0.896
+            "code": "2885",
+            "name": "元大金融",
+            "weight": 0.623
           },
           {
-            "code": "2382",
-            "name": "廣達電腦",
-            "weight": 0.583
+            "code": "6669",
+            "name": "緯穎科技",
+            "weight": 0.621
+          },
+          {
+            "code": "2882",
+            "name": "國泰金融",
+            "weight": 0.625
+          },
+          {
+            "code": "2881",
+            "name": "富邦金融",
+            "weight": 0.604
           }
         ]
       }
@@ -170,20 +187,34 @@
     {
       "code": "00988A",
       "name": "統一全球創新",
-      "snapshot": "00988A_20261124.csv",
-      "snapshot_date": "2026-11-24",
+      "snapshot": "00988A_20261125.csv",
+      "snapshot_date": "2026-11-25",
       "holdings_count": 8,
       "actions": {
         "new": [],
-        "drop": [
+        "drop": [],
+        "add": [
           {
-            "code": "2383",
-            "name": "台光電",
-            "weight": 1.19
+            "code": "2454",
+            "name": "聯發科",
+            "pct": 39.166666666666664,
+            "weight": 1.78
           }
         ],
-        "add": [],
-        "reduce": [],
+        "reduce": [
+          {
+            "code": "3037",
+            "name": "欣興",
+            "pct": -34.61538461538461,
+            "weight": 2.74
+          },
+          {
+            "code": "3017",
+            "name": "奇鋐",
+            "pct": -14.728682170542637,
+            "weight": 3.76
+          }
+        ],
         "build": []
       }
     }
