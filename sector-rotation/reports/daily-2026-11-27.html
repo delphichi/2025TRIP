@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>板塊研究日報 · 2026-11-27</title>
+<style>
+  :root {
+    --navy:#1b2a4a; --navy-d:#0f1930; --gold:#c9a24b; --gold-l:#e8d9ae;
+    --bg:#f4f5f7; --card:#ffffff; --line:#e2e5ea;
+    --text:#2a2f3a; --muted:#6b7280;
+    --green:#1e8449; --red:#c0392b; --amber:#d97706; --blue:#2563eb;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:24px; background:var(--bg);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--text); line-height:1.55;
+  }
+  .sheet { max-width:1180px; margin:0 auto; }
+  .up { color:var(--green); font-weight:700; }
+  .down { color:var(--red); font-weight:700; }
+  .flat { color:var(--muted); font-weight:600; }
+  .dim { color:var(--muted); font-size:12px; }
+
+  .header {
+    background:var(--card); border-radius:10px; padding:22px 26px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:14px;
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+  }
+  .logo {
+    width:56px; height:56px; border-radius:50%;
+    background:linear-gradient(135deg,var(--navy),var(--navy-d));
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold-l); font-weight:800; font-size:22px; border:2px solid var(--gold);
+  }
+  .htitle { flex:1; min-width:280px; }
+  .htitle .tag {
+    display:inline-block; background:var(--navy); color:var(--gold-l);
+    font-size:11px; padding:2px 10px; border-radius:12px; margin-bottom:6px; letter-spacing:1px;
+  }
+  .htitle h1 { margin:0 0 6px 0; font-size:22px; color:var(--navy); }
+  .htitle p { margin:0; font-size:13px; color:var(--muted); }
+
+  .tldr {
+    background:linear-gradient(90deg,#0f1930,#1b2a4a); color:#fef3c7;
+    padding:16px 22px; border-radius:10px; margin-bottom:14px;
+    font-size:14px; line-height:1.7; border-left:4px solid var(--gold);
+  }
+  .tldr b { color:#fff; }
+
+  .snap {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:10px; margin-bottom:14px;
+  }
+  .snap-cell {
+    background:var(--card); padding:12px 14px; border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .snap-cell .l { font-size:10.5px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }
+  .snap-cell .v { font-size:20px; font-weight:800; color:var(--navy); margin-top:2px; }
+  .snap-cell .s { font-size:11px; color:var(--muted); margin-top:2px; }
+
+  .card {
+    background:var(--card); border-radius:10px; overflow:hidden; margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  .card-h {
+    background:var(--navy); color:#fff; padding:10px 18px; font-size:13.5px; font-weight:700;
+    letter-spacing:.5px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .card-h .n { background:var(--gold); color:var(--navy-d); font-size:11px; padding:2px 8px; border-radius:10px; }
+  .card-b { padding:14px 18px; }
+
+  .quads {
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  }
+  @media(max-width:700px) { .quads { grid-template-columns:1fr; } }
+  .quad { padding:14px; border-radius:8px; min-height:110px; }
+  .quad-leading   { background:#dcfce7; border-left:4px solid var(--green); }
+  .quad-weakening { background:#fef3c7; border-left:4px solid var(--amber); }
+  .quad-improving { background:#dbeafe; border-left:4px solid var(--blue); }
+  .quad-lagging   { background:#fee2e2; border-left:4px solid var(--red); }
+  .q-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .q-emoji { font-size:18px; }
+  .q-head b { font-size:14px; }
+  .q-tag { font-size:11px; color:var(--muted); margin-left:auto; }
+  .q-body { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:4px 10px; border-radius:14px; font-size:12px;
+    background:rgba(255,255,255,.7); color:var(--text);
+  }
+  .chip.big { background:#fef3c7; border:1px solid var(--gold); font-weight:700; }
+  .chip-acc { font-size:10.5px; color:var(--muted); margin-left:4px; font-variant-numeric:tabular-nums; }
+
+  .health-line { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .hchip { padding:5px 12px; border-radius:14px; font-size:12.5px; }
+  .hchip b { font-size:14px; }
+  .hchip-overheated     { background:#fee2e2; color:#991b1b; }
+  .hchip-sweet_spot     { background:#dcfce7; color:#166534; font-weight:600; }
+  .hchip-early_reversal { background:#dbeafe; color:#1e40af; }
+  .hchip-coiling        { background:#fef3c7; color:#92400e; }
+  .hchip-cold           { background:#e2e8f0; color:#475569; }
+  .hchip-neutral        { background:#f3f4f6; color:#6b7280; }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th {
+    text-align:left; padding:8px 10px; background:#f9fafb; color:var(--muted);
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.5px;
+    border-bottom:2px solid var(--line); font-weight:600;
+  }
+  td { padding:7px 10px; border-bottom:1px solid var(--line); }
+  td.n { text-align:right; font-variant-numeric:tabular-nums; }
+  tr:last-child td { border-bottom:none; }
+  td.tag { text-align:center; font-size:15px; }
+  .empty { text-align:center; padding:16px; color:var(--muted); font-style:italic; }
+  .alert { background:#fef3c7; color:#92400e; padding:1px 8px; border-radius:10px; font-size:11px; }
+  .badge {
+    display:inline-block; padding:2px 10px; border-radius:12px; font-size:11.5px; font-weight:600;
+  }
+  .b-sweet_spot     { background:#dcfce7; color:#166534; }
+  .b-coiling        { background:#fef3c7; color:#92400e; }
+  .b-cold           { background:#e2e8f0; color:#475569; }
+  .b-overheated     { background:#fee2e2; color:#991b1b; }
+  .b-early_reversal { background:#dbeafe; color:#1e40af; }
+  .b-neutral        { background:#f3f4f6; color:#6b7280; }
+
+  /* Dow Theory 頭頭低/底底高 · 4 個狀態顏色 + 訊號衝突警示 */
+  .dow {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .dow-long    { background:#dcfce7; color:#166534; }
+  .dow-short   { background:#fee2e2; color:#991b1b; }
+  .dow-squeeze { background:#fef3c7; color:#92400e; }
+  .dow-broaden { background:#ede9fe; color:#6d28d9; }
+  .dow-none    { color:#94a3b8; font-size:10px; }
+  .dow-sig    { font-size:10px; color:var(--muted); margin-left:4px; }
+  .dow-conflict {
+    display:inline-block; margin-left:4px; padding:1px 6px; border-radius:8px;
+    background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;
+    animation:pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+  /* 量價象限判定 · 4W/13W/26W 三期價量狀態綜合 */
+  .pv {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;
+    white-space:nowrap;
+  }
+  .pv-strong  { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .pv-warn    { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+  .pv-weak    { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+  .pv-early   { background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }
+  .pv-neutral { background:#f3f4f6; color:#6b7280; }
+
+  /* 暴漲判定 · 4 分類 */
+  .exp {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700;
+    white-space:nowrap;
+  }
+  .exp-boom { background:#fef3c7; color:#92400e; border:1px solid #fbbf24; }
+  .exp-cand { background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
+  .exp-risk { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+  .exp-none { color:#94a3b8; }
+
+  /* 暴漲候選池 · 3 個 column */
+  .expcols {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
+  }
+  @media(max-width:800px) { .expcols { grid-template-columns:1fr; } }
+  .expcol {
+    background:#f9fafb; border-radius:8px; padding:10px 12px;
+    border-left:3px solid var(--muted);
+  }
+  .expcol.boom { border-left-color:#f59e0b; background:#fffbeb; }
+  .expcol.cand { border-left-color:#3b82f6; background:#eff6ff; }
+  .expcol.risk { border-left-color:#ef4444; background:#fef2f2; }
+  .expcol h4 { margin:0 0 6px 0; font-size:13px; color:var(--navy); }
+  .expcol .cnt { font-size:11px; color:var(--muted); margin-left:6px; }
+  .expcol ul { margin:0; padding-left:0; list-style:none; font-size:12px; }
+  .expcol li { padding:2px 0; display:flex; justify-content:space-between; }
+  .expcol li b { font-weight:600; }
+  .expcol .sec { color:var(--muted); font-size:10.5px; }
+  .expcol .empty { color:var(--muted); font-style:italic; font-size:11px; }
+
+  .mover {
+    background:linear-gradient(90deg,#fef3c7,#fde68a); padding:12px 18px; border-radius:8px;
+    border-left:4px solid var(--gold); margin-top:12px; font-size:13.5px;
+  }
+  .mover b { color:#92400e; }
+
+  .foot {
+    background:var(--card); border-radius:10px; padding:16px 20px;
+    margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);
+    text-align:center; font-size:12px; color:var(--muted);
+  }
+  .foot a { color:var(--navy); text-decoration:none; border-bottom:1px dotted var(--navy); }
+  .conf {
+    display:flex; justify-content:center; gap:18px; flex-wrap:wrap;
+    margin:8px 0 10px; font-size:12.5px;
+  }
+  .conf b { color:var(--navy); }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="logo">📈</div>
+    <div class="htitle">
+      <span class="tag">DAILY SECTOR RESEARCH</span>
+      <h1>板塊研究日報 · 2026-11-27</h1>
+      <p>Layer 1.5 象限 + strong_buy + explosive · 11 樣本回測支持</p>
+    </div>
+  </div>
+
+  <div class="tldr">
+    <b>TL;DR：</b>領先：必需消費、材料、非必需消費· 落後：工業、資訊科技· 最大位移 資訊科技 (-23.8) · 訊號共 12 支（💎 strong_buy 10 + 🚀 explosive 2）
+  </div>
+
+  <div class="snap">
+    <div class="snap-cell"><div class="l">SPY / VOO</div><div class="v">$669.79</div><div class="s">vs 60d: -4.53%</div></div>
+    <div class="snap-cell"><div class="l">VIX</div><div class="v">23.8</div><div class="s">⚠ 警戒</div></div>
+    <div class="snap-cell"><div class="l">10Y TNX</div><div class="v">4.94%</div><div class="s">❄+🔴</div></div>
+    <div class="snap-cell"><div class="l">💎 strong_buy</div><div class="v" style="color:var(--gold);">10</div><div class="s">歷史 1y avg +45.9%</div></div>
+    <div class="snap-cell"><div class="l">🚀 explosive</div><div class="v" style="color:#7c3aed;">2</div><div class="s">歷史 1y avg +45.6%</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🧭 Layer 1.5 · 板塊輪動四象限</div>
+    <div class="card-b">
+      <div class="quads">
+        
+        <div class="quad quad-leading">
+          <div class="q-head"><span class="q-emoji">🟢</span><b>領先</b><span class="q-tag">資金持續流入、動能未退</span></div>
+          <div class="q-body"><span class="chip">✨ 必需消費<span class="chip-acc">+9.1</span></span><span class="chip">✨ 醫療保健<span class="chip-acc">+5.2</span></span><span class="chip">✨ 非必需消費<span class="chip-acc">+4.1</span></span><span class="chip">➡️ 材料<span class="chip-acc">+1.3</span></span></div>
+        </div>
+        
+        <div class="quad quad-weakening">
+          <div class="q-head"><span class="q-emoji">🟠</span><b>減弱</b><span class="q-tag">高位但動能見頂</span></div>
+          <div class="q-body"><span class="chip">🧊 能源<span class="chip-acc">-8.1</span></span><span class="chip">🧊 金融<span class="chip-acc">-2.5</span></span></div>
+        </div>
+        
+        <div class="quad quad-improving">
+          <div class="q-head"><span class="q-emoji">🔵</span><b>改善</b><span class="q-tag">落後翻轉候選</span></div>
+          <div class="q-body"><span class="chip">✨ 公用事業<span class="chip-acc">+4.2</span></span><span class="chip">➡️ 房地產<span class="chip-acc">+1.1</span></span><span class="chip">➡️ 通訊服務<span class="chip-acc">+1.0</span></span></div>
+        </div>
+        
+        <div class="quad quad-lagging">
+          <div class="q-head"><span class="q-emoji">🔴</span><b>落後</b><span class="q-tag">資金持續流出</span></div>
+          <div class="q-body"><span class="chip big">🧊 資訊科技<span class="chip-acc">-23.8</span></span><span class="chip">🧊 工業<span class="chip-acc">-1.3</span></span></div>
+        </div>
+      </div>
+      <div class="mover">📍 <b>最大位移</b>：資訊科技 XLK · point -13.1 vs 5 日均 10.8 · 加速度 <b>-23.8</b> · 進入「落後」象限</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🩺 板塊健康度分佈 <span class="n">6 級標籤</span></div>
+    <div class="card-b">
+      <div class="health-line"><span class="hchip hchip-sweet_spot" title="必需消費、非必需消費、醫療保健、公用事業">✨ 甜蜜點 · <b>4</b></span> <span class="hchip hchip-cold" title="金融、能源、工業、資訊科技">🧊 冷凍 · <b>4</b></span> <span class="hchip hchip-neutral" title="材料、房地產、通訊服務">➡️ 中性 · <b>3</b></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💥 暴漲候選池 <span class="n">from all.csv · S&P 500 全掃</span></div>
+    <div class="card-b">
+      
+    <div class="expcols">
+      <div class="expcol boom"><h4>🚀 暴漲中<span class="cnt">(5)</span></h4><ul><li><span><b>COST</b><a href="../../valuation/index.html?ticker=COST" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Consum</span></span><span class="dim">+14.6 · 26W +13%</span></li><li><span><b>HD</b><a href="../../valuation/index.html?ticker=HD" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Consum</span></span><span class="dim">+14.4 · 26W +18%</span></li><li><span><b>LOW</b><a href="../../valuation/index.html?ticker=LOW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Consum</span></span><span class="dim">+13.5 · 26W +13%</span></li><li><span><b>SYK</b><a href="../../valuation/index.html?ticker=SYK" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Health</span></span><span class="dim">+8.4 · 26W +7%</span></li><li><span><b>TSN</b><a href="../../valuation/index.html?ticker=TSN" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Consum</span></span><span class="dim">+5.9 · 26W -1%</span></li></ul></div>
+      <div class="expcol cand"><h4>🎯 潛在暴漲<span class="cnt">(16)</span></h4><ul><li><span><b>AMGN</b><a href="../../valuation/index.html?ticker=AMGN" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Health</span></span><span class="dim">+24.2 · 26W +43%</span></li><li><span><b>BRK-B</b><a href="../../valuation/index.html?ticker=BRK-B" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Financ</span></span><span class="dim">+15.6 · 26W +20%</span></li><li><span><b>ECL</b><a href="../../valuation/index.html?ticker=ECL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Materi</span></span><span class="dim">+14.7 · 26W +23%</span></li><li><span><b>EXR</b><a href="../../valuation/index.html?ticker=EXR" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Real E</span></span><span class="dim">+12.8 · 26W +15%</span></li><li><span><b>CHD</b><a href="../../valuation/index.html?ticker=CHD" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Consum</span></span><span class="dim">+12.5 · 26W +17%</span></li><li><span><b>CL</b><a href="../../valuation/index.html?ticker=CL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Consum</span></span><span class="dim">+9.9 · 26W +12%</span></li><li><span><b>APD</b><a href="../../valuation/index.html?ticker=APD" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Materi</span></span><span class="dim">+7.3 · 26W +12%</span></li><li><span><b>KMB</b><a href="../../valuation/index.html?ticker=KMB" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Consum</span></span><span class="dim">+7.0 · 26W +13%</span></li><li><span><b>DOC</b><a href="../../valuation/index.html?ticker=DOC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Real E</span></span><span class="dim">+6.7 · 26W +8%</span></li><li><span><b>LYV</b><a href="../../valuation/index.html?ticker=LYV" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Commun</span></span><span class="dim">+5.6 · 26W +10%</span></li><li><span><b>AEE</b><a href="../../valuation/index.html?ticker=AEE" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Utilit</span></span><span class="dim">+5.5 · 26W +5%</span></li><li><span><b>FE</b><a href="../../valuation/index.html?ticker=FE" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Utilit</span></span><span class="dim">+3.1 · 26W +4%</span></li><li><span><b>AMT</b><a href="../../valuation/index.html?ticker=AMT" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Real E</span></span><span class="dim">+2.5 · 26W +2%</span></li><li><span><b>SCHW</b><a href="../../valuation/index.html?ticker=SCHW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Financ</span></span><span class="dim">+1.6 · 26W +6%</span></li><li><span><b>O</b><a href="../../valuation/index.html?ticker=O" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Real E</span></span><span class="dim">+1.2 · 26W -0%</span></li></ul><div class="dim" style="font-size:10.5px;margin-top:4px;">... 另 1 支</div></div>
+      <div class="expcol risk"><h4>🔥 追高風險<span class="cnt">(4)</span></h4><ul><li><span><b>MRNA</b><a href="../../valuation/index.html?ticker=MRNA" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Health</span></span><span class="dim">+208.9 · 26W +386%</span></li><li><span><b>OKTA</b><a href="../../valuation/index.html?ticker=OKTA" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Inform</span></span><span class="dim">+65.5 · 26W +121%</span></li><li><span><b>CRL</b><a href="../../valuation/index.html?ticker=CRL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Health</span></span><span class="dim">+59.6 · 26W +115%</span></li><li><span><b>APP</b><a href="../../valuation/index.html?ticker=APP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:6px;font-size:9px;font-weight:700;" title="3 日內新訊號">🆕</span> <span class="sec">Commun</span></span><span class="dim">+14.4 · 26W -22%</span></li></ul></div>
+    </div>
+    
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💎 strong_buy 訊號 <span class="n">10 · stage 2 as of 2026-11-27</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>Alert</th><th title="Dow Theory 頭頭低/底底高 · ⚠ 頂區=擴散喇叭 · ⚠ 衝突=Dow 說空頭">Dow</th><th title="4W/13W/26W 三期價漲跌 × 量漲跌 綜合判定">量價</th><th title="綜合 momentum+Dow+pv+VCP 4 訊號 · 🚀 暴漲中/🎯 潛在/🔥 追高">暴漲</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>DLTR</b><a href="../../valuation/index.html?ticker=DLTR" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Dollar Tree</span></td>
+          <td>Consumer Staples</td>
+          <td class="n">36.2</td>
+          <td class="n">99</td>
+          <td class="n">+10.9%</td>
+          <td class="n">+58.5%</td>
+          <td> </td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 空轉多預警">📈 多頭</span><span class="dow-sig">空轉多預警</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V-">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>REGN</b><a href="../../valuation/index.html?ticker=REGN" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Regeneron Pharmaceuticals</span></td>
+          <td>Health Care</td>
+          <td class="n">35.8</td>
+          <td class="n">100</td>
+          <td class="n">+7.0%</td>
+          <td class="n">+56.7%</td>
+          <td> </td>
+          <td><span class="dow dow-broaden" title="頭頭高·底底低 · 多頭確認">🔻 擴散</span><span class="dow-sig">多頭確認</span><span class="dow-conflict" title="動能訊號 + Dow 擴散喇叭 = 頂區警訊">⚠ 頂區</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V+">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>VLTO</b><a href="../../valuation/index.html?ticker=VLTO" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Veralto</span></td>
+          <td>Industrials</td>
+          <td class="n">27.5</td>
+          <td class="n">100</td>
+          <td class="n">+8.1%</td>
+          <td class="n">+39.9%</td>
+          <td> </td>
+          <td><span class="dow dow-long" title="頭頭高·底底高">📈 多頭</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V+">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>TSCO</b><a href="../../valuation/index.html?ticker=TSCO" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Tractor Supply</span></td>
+          <td>Consumer Discretionary</td>
+          <td class="n">27.2</td>
+          <td class="n">100</td>
+          <td class="n">+18.6%</td>
+          <td class="n">+37.1%</td>
+          <td> </td>
+          <td><span class="dow dow-short" title="頭頭低·底底低 · 多轉空預警 / 多頭確認">📉 空頭</span><span class="dow-sig">多轉空預警 / 多頭確認</span><span class="dow-conflict" title="動能訊號 + Dow 空頭 = 訊號衝突">⚠ 衝突</span></td>
+          <td><span class="pv pv-warn" title="4W:P+V- · 13W:P+V- · 26W:P+V+">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>WTW</b><a href="../../valuation/index.html?ticker=WTW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Willis Towers Watson</span></td>
+          <td>Financials</td>
+          <td class="n">25.0</td>
+          <td class="n">100</td>
+          <td class="n">+10.9%</td>
+          <td class="n">+41.4%</td>
+          <td> </td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 多頭確認">📈 多頭</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V-">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>MSI</b><a href="../../valuation/index.html?ticker=MSI" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Motorola Solutions</span></td>
+          <td>Information Technology</td>
+          <td class="n">22.5</td>
+          <td class="n">97</td>
+          <td class="n">+10.8%</td>
+          <td class="n">+33.5%</td>
+          <td> </td>
+          <td><span class="dow dow-broaden" title="頭頭高·底底低">🔻 擴散</span><span class="dow-conflict" title="動能訊號 + Dow 擴散喇叭 = 頂區警訊">⚠ 頂區</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V-">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>DIS</b><a href="../../valuation/index.html?ticker=DIS" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Walt Disney Company (The)</span></td>
+          <td>Communication Services</td>
+          <td class="n">20.5</td>
+          <td class="n">100</td>
+          <td class="n">+14.7%</td>
+          <td class="n">+24.1%</td>
+          <td> </td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 多頭確認">📈 多頭</span><span class="dow-sig">多頭確認</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V-">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>WELL</b><a href="../../valuation/index.html?ticker=WELL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Welltower</span></td>
+          <td>Real Estate</td>
+          <td class="n">10.5</td>
+          <td class="n">100</td>
+          <td class="n">+6.8%</td>
+          <td class="n">+15.3%</td>
+          <td> </td>
+          <td><span class="dow dow-broaden" title="頭頭高·底底低">🔻 擴散</span><span class="dow-conflict" title="動能訊號 + Dow 擴散喇叭 = 頂區警訊">⚠ 頂區</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V-">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>CSGP</b><a href="../../valuation/index.html?ticker=CSGP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">CoStar Group</span></td>
+          <td>Real Estate</td>
+          <td class="n">10.5</td>
+          <td class="n">100</td>
+          <td class="n">+15.7%</td>
+          <td class="n">+7.4%</td>
+          <td> </td>
+          <td><span class="dow dow-squeeze" title="頭頭低·底底高 · 多轉空預警 / 多頭確認">🔺 收斂</span><span class="dow-sig">多轉空預警 / 多頭確認</span></td>
+          <td><span class="pv pv-warn" title="4W:P+V- · 13W:P+V- · 26W:P+V+">⚠️ 頂部背離</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">💎</td>
+          <td><b>EXC</b><a href="../../valuation/index.html?ticker=EXC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Exelon</span></td>
+          <td>Utilities</td>
+          <td class="n">3.7</td>
+          <td class="n">100</td>
+          <td class="n">+1.1%</td>
+          <td class="n">+3.3%</td>
+          <td><span class="alert">剛爆發</span> </td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 空轉多預警">📈 多頭</span><span class="dow-sig">空轉多預警</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V-">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🚀 strong_buy_explosive 訊號 <span class="n">2</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th></th><th>Symbol / Name</th><th>Sector</th><th class="n">Point</th><th class="n">vp</th><th class="n">4W</th><th class="n">26W</th><th>L1+L2</th><th title="Dow Theory 頭頭低/底底高 · ⚠ 頂區=擴散喇叭 · ⚠ 衝突=Dow 說空頭">Dow</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="tag">🚀</td>
+          <td><b>BAX</b><a href="../../valuation/index.html?ticker=BAX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Baxter International</span></td>
+          <td>Health Care</td>
+          <td class="n">24.2</td>
+          <td class="n">100</td>
+          <td class="n">+16.5%</td>
+          <td class="n">+38.4%</td>
+          <td><span class="alert">剛爆發</span> <span class="dim">L1+L2 64%</span></td>
+          <td><span class="dow dow-broaden" title="頭頭高·底底低">🔻 擴散</span><span class="dow-conflict" title="動能訊號 + Dow 擴散喇叭 = 頂區警訊">⚠ 頂區</span></td>
+          <td><span class="pv pv-weak" title="4W:P+V- · 13W:P+V- · 26W:P+V-">⚠️ 量能衰竭</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr>
+        <tr>
+          <td class="tag">🚀</td>
+          <td><b>AIZ</b><a href="../../valuation/index.html?ticker=AIZ" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Assurant</span></td>
+          <td>Financials</td>
+          <td class="n">21.4</td>
+          <td class="n">100</td>
+          <td class="n">+12.1%</td>
+          <td class="n">+29.0%</td>
+          <td><span class="alert">剛爆發</span> <span class="dim">L1+L2 54%</span></td>
+          <td><span class="dow dow-long" title="頭頭高·底底高 · 空轉多預警 / 多頭確認">📈 多頭</span><span class="dow-sig">空轉多預警 / 多頭確認</span></td>
+          <td><span class="pv pv-neutral" title="4W:P+V+ · 13W:P+V- · 26W:P+V+">➡️ 中性</span></td>
+          <td><span style="color:var(--text-dim)">—</span></td>
+        </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📊 11 Sector 深度儀表板 · 依 90d 百分位排序</div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th><th class="n" title="Point > 0 連續天數 · 抓動能持續">連續</th><th class="n" title="30 日資金流向 · net/gross · +% = 淨買入 · -% = 淨賣出">30d 流向</th><th class="n">30d</th><th class="n">90d</th><th class="n">365d</th><th class="n">寬度</th><th>健康度</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td><b>必需消費</b> <span class="dim">XLP</span></td>
+          <td class="n">9.49</td>
+          <td class="n up">+9.11</td>
+          <td class="n"><span>2</span></td>
+          <td class="n"><span class="up" title="30d net +4461M · gross 55108M">▲ +8.1%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">100.0</td>
+          <td class="n">94.7</td>
+          <td class="n">68.8%</td>
+          <td><span class="badge b-sweet_spot">✨ 甜蜜點</span></td>
+        </tr>
+        <tr>
+          <td><b>非必需消費</b> <span class="dim">XLY</span></td>
+          <td class="n">2.36</td>
+          <td class="n up">+4.10</td>
+          <td class="n"><span>1</span></td>
+          <td class="n"><span class="down" title="30d net -4894M · gross 32608M">▼ -15.0%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">100.0</td>
+          <td class="n">90.0</td>
+          <td class="n">46.8%</td>
+          <td><span class="badge b-sweet_spot">✨ 甜蜜點</span></td>
+        </tr>
+        <tr>
+          <td><b>醫療保健</b> <span class="dim">XLV</span></td>
+          <td class="n">14.38</td>
+          <td class="n up">+5.23</td>
+          <td class="n"><span style="color:var(--green);font-weight:700;">🔥 20</span></td>
+          <td class="n"><span class="down" title="30d net -10871M · gross 65218M">▼ -16.7%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">100.0</td>
+          <td class="n">100.0</td>
+          <td class="n">40.0%</td>
+          <td><span class="badge b-sweet_spot">✨ 甜蜜點</span></td>
+        </tr>
+        <tr>
+          <td><b>公用事業</b> <span class="dim">XLU</span></td>
+          <td class="n">-0.42</td>
+          <td class="n up">+4.16</td>
+          <td class="n"><span class="dim">0</span></td>
+          <td class="n"><span class="up" title="30d net +6695M · gross 32357M">▲ +20.7%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">100.0</td>
+          <td class="n">75.0</td>
+          <td class="n">67.7%</td>
+          <td><span class="badge b-sweet_spot">✨ 甜蜜點</span></td>
+        </tr>
+        <tr>
+          <td><b>材料</b> <span class="dim">XLB</span></td>
+          <td class="n">0.89</td>
+          <td class="n up">+1.26</td>
+          <td class="n"><span>1</span></td>
+          <td class="n"><span class="up" title="30d net +3189M · gross 18934M">▲ +16.8%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">62.5</td>
+          <td class="n">30.0</td>
+          <td class="n">25.0%</td>
+          <td><span class="badge b-neutral">➡️ 中性</span></td>
+        </tr>
+        <tr>
+          <td><b>通訊服務</b> <span class="dim">XLC</span></td>
+          <td class="n">-2.12</td>
+          <td class="n up">+1.03</td>
+          <td class="n"><span class="dim">0</span></td>
+          <td class="n"><span class="down" title="30d net -2764M · gross 23856M">▼ -11.6%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">62.5</td>
+          <td class="n">50.0</td>
+          <td class="n">50.0%</td>
+          <td><span class="badge b-neutral">➡️ 中性</span></td>
+        </tr>
+        <tr>
+          <td><b>房地產</b> <span class="dim">XLRE</span></td>
+          <td class="n">0.69</td>
+          <td class="n up">+1.05</td>
+          <td class="n"><span>1</span></td>
+          <td class="n"><span class="up" title="30d net +2156M · gross 10260M">▲ +21.0%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">50.0</td>
+          <td class="n">25.0</td>
+          <td class="n">40.0%</td>
+          <td><span class="badge b-neutral">➡️ 中性</span></td>
+        </tr>
+        <tr>
+          <td><b>金融</b> <span class="dim">XLF</span></td>
+          <td class="n">5.57</td>
+          <td class="n down">-2.50</td>
+          <td class="n"><span style="color:var(--green);font-weight:700;">🔥 19</span></td>
+          <td class="n"><span class="flat" title="30d net +1877M · gross 64229M">▲ +2.9%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">12.5</td>
+          <td class="n">15.0</td>
+          <td class="n">36.8%</td>
+          <td><span class="badge b-cold">🧊 冷凍</span></td>
+        </tr>
+        <tr>
+          <td><b>能源</b> <span class="dim">XLE</span></td>
+          <td class="n">0.92</td>
+          <td class="n down">-8.06</td>
+          <td class="n"><span>1</span></td>
+          <td class="n"><span class="down" title="30d net -5854M · gross 68894M">▼ -8.5%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">12.5</td>
+          <td class="n">5.0</td>
+          <td class="n">0.0%</td>
+          <td><span class="badge b-cold">🧊 冷凍</span></td>
+        </tr>
+        <tr>
+          <td><b>工業</b> <span class="dim">XLI</span></td>
+          <td class="n">-4.33</td>
+          <td class="n down">-1.28</td>
+          <td class="n"><span class="dim">0</span></td>
+          <td class="n"><span class="down" title="30d net -5474M · gross 45262M">▼ -12.1%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">12.5</td>
+          <td class="n">5.0</td>
+          <td class="n">35.8%</td>
+          <td><span class="badge b-cold">🧊 冷凍</span></td>
+        </tr>
+        <tr>
+          <td><b>資訊科技</b> <span class="dim">XLK</span></td>
+          <td class="n">-13.09</td>
+          <td class="n down">-23.84</td>
+          <td class="n"><span class="dim">0</span></td>
+          <td class="n"><span class="down" title="30d net -19784M · gross 73646M">▼ -26.9%</span></td>
+          <td class="n">100.0</td>
+          <td class="n">12.5</td>
+          <td class="n">5.0</td>
+          <td class="n">6.7%</td>
+          <td><span class="badge b-cold">🧊 冷凍</span></td>
+        </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">📊 Layer 2.1 · 加速度歷史百分位 <span class="n">30d / 90d / 365d · 依 90d 排序</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector</th><th class="n">Point</th><th class="n">加速度</th>
+              <th class="n" title="當前加速度在過去 30 日中的相對位置">30d 百分位</th>
+              <th class="n" title="90 日百分位">90d 百分位</th>
+              <th class="n" title="365 日百分位">365d 百分位</th>
+              <th title="健康度標籤">健</th></tr>
+        </thead>
+        <tbody><tr><td><b>必需消費</b> <span class="dim">XLP</span></td><td class="n">9.49</td><td class="n up">+9.11</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>✨</td></tr><tr><td><b>材料</b> <span class="dim">XLB</span></td><td class="n">0.89</td><td class="n up">+1.26</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>➡️</td></tr><tr><td><b>房地產</b> <span class="dim">XLRE</span></td><td class="n">0.69</td><td class="n up">+1.05</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>➡️</td></tr><tr><td><b>金融</b> <span class="dim">XLF</span></td><td class="n">5.57</td><td class="n down">-2.50</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>🧊</td></tr><tr><td><b>非必需消費</b> <span class="dim">XLY</span></td><td class="n">2.36</td><td class="n up">+4.10</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>✨</td></tr><tr><td><b>醫療保健</b> <span class="dim">XLV</span></td><td class="n">14.38</td><td class="n up">+5.23</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>✨</td></tr><tr><td><b>公用事業</b> <span class="dim">XLU</span></td><td class="n">-0.42</td><td class="n up">+4.16</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>✨</td></tr><tr><td><b>通訊服務</b> <span class="dim">XLC</span></td><td class="n">-2.12</td><td class="n up">+1.03</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>➡️</td></tr><tr><td><b>能源</b> <span class="dim">XLE</span></td><td class="n">0.92</td><td class="n down">-8.06</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>🧊</td></tr><tr><td><b>工業</b> <span class="dim">XLI</span></td><td class="n">-4.33</td><td class="n down">-1.28</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>🧊</td></tr><tr><td><b>資訊科技</b> <span class="dim">XLK</span></td><td class="n">-13.09</td><td class="n down">-23.84</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td>🧊</td></tr></tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;">🔥 ≥80 過熱 · ▲ ≥60 偏強 · ▼ ≤40 偏弱 · ❄ ≤20 過冷</div>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">🗺️ ETF 位階地圖 <span class="n">距 MA · RSI14 · 20 日區間位置</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector ETF</th>
+              <th class="n" title="收盤距 20MA %">距 20MA</th>
+              <th class="n" title="收盤距 50MA %">距 50MA</th>
+              <th class="n" title="Wilder RSI(14)">RSI14</th>
+              <th class="n" title="收盤在近 20 日 low ~ high 的位置">20d 位階</th>
+              <th class="n" title="近 20 日最高">壓力</th>
+              <th class="n" title="近 20 日最低">支撐</th></tr>
+        </thead>
+        <tbody><tr><td><b>必需消費</b> <span class="dim">XLP</span></td><td class="n up">▲ +1.7%</td><td class="n up">▲ +6.5%</td><td class="n">63</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:100%;height:100%;background:#1e8449;"></div></div> <span class="dim" style="font-size:11px;">100</span></td><td class="n dim">92.68</td><td class="n dim">88.95</td></tr><tr><td><b>公用事業</b> <span class="dim">XLU</span></td><td class="n up">▲ +0.5%</td><td class="n up">▲ +3.9%</td><td class="n">58</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:73%;height:100%;background:#1e8449;"></div></div> <span class="dim" style="font-size:11px;">73</span></td><td class="n dim">44.12</td><td class="n dim">42.69</td></tr><tr><td><b>房地產</b> <span class="dim">XLRE</span></td><td class="n up">▲ +0.6%</td><td class="n up">▲ +3.6%</td><td class="n">57</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:63%;height:100%;background:#1e8449;"></div></div> <span class="dim" style="font-size:11px;">63</span></td><td class="n dim">45.12</td><td class="n dim">42.46</td></tr><tr><td><b>非必需消費</b> <span class="dim">XLY</span></td><td class="n up">▲ +1.4%</td><td class="n up">▲ +4.6%</td><td class="n">57</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:76%;height:100%;background:#1e8449;"></div></div> <span class="dim" style="font-size:11px;">76</span></td><td class="n dim">122.33</td><td class="n dim">112.46</td></tr><tr><td><b>材料</b> <span class="dim">XLB</span></td><td class="n up">▲ +0.8%</td><td class="n up">▲ +2.6%</td><td class="n">55</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:68%;height:100%;background:#1e8449;"></div></div> <span class="dim" style="font-size:11px;">68</span></td><td class="n dim">53.90</td><td class="n dim">48.34</td></tr><tr><td><b>醫療保健</b> <span class="dim">XLV</span></td><td class="n down">▼ -0.3%</td><td class="n up">▲ +3.7%</td><td class="n">54</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:56%;height:100%;background:#6b7280;"></div></div> <span class="dim" style="font-size:11px;">56</span></td><td class="n dim">189.66</td><td class="n dim">177.24</td></tr><tr><td><b>通訊服務</b> <span class="dim">XLC</span></td><td class="n up">▲ +2.5%</td><td class="n down">▼ -0.4%</td><td class="n">54</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:86%;height:100%;background:#1e8449;"></div></div> <span class="dim" style="font-size:11px;">86</span></td><td class="n dim">108.69</td><td class="n dim">99.90</td></tr><tr><td><b>金融</b> <span class="dim">XLF</span></td><td class="n down">▼ -0.1%</td><td class="n up">▲ +2.3%</td><td class="n">53</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:56%;height:100%;background:#6b7280;"></div></div> <span class="dim" style="font-size:11px;">56</span></td><td class="n dim">59.20</td><td class="n dim">54.57</td></tr><tr><td><b>工業</b> <span class="dim">XLI</span></td><td class="n down">▼ -0.1%</td><td class="n down">▼ -1.1%</td><td class="n">50</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:62%;height:100%;background:#1e8449;"></div></div> <span class="dim" style="font-size:11px;">62</span></td><td class="n dim">171.32</td><td class="n dim">156.37</td></tr><tr><td><b>能源</b> <span class="dim">XLE</span></td><td class="n down">▼ -2.1%</td><td class="n down">▼ -4.2%</td><td class="n">43</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:18%;height:100%;background:#c0392b;"></div></div> <span class="dim" style="font-size:11px;">18</span></td><td class="n dim">70.02</td><td class="n dim">59.87</td></tr><tr><td><b>資訊科技</b> <span class="dim">XLK</span></td><td class="n down">▼ -3.8%</td><td class="n down">▼ -12.2%</td><td class="n">41</td><td class="n"><div style="display:inline-block;width:60px;height:8px;background:#e2e5ea;border-radius:4px;overflow:hidden;vertical-align:middle;position:relative;"><div style="width:36%;height:100%;background:#c0392b;"></div></div> <span class="dim" style="font-size:11px;">36</span></td><td class="n dim">179.51</td><td class="n dim">149.01</td></tr></tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;">🔥 RSI≥70 過買 · ❄ RSI≤30 過賣 · 20d 位階 &gt;60 靠近壓力 · &lt;40 靠近支撐</div>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">💰 板塊 30 日資金流向 <span class="n">Σ 成交金額 × 方向 · 30 交易日</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector ETF</th>
+              <th class="n" title="近 5 交易日報酬">5d</th>
+              <th class="n" title="近 20 交易日 (~1 月) 報酬">20d</th>
+              <th class="n" title="近 65 交易日 (~3 月) 報酬">65d</th>
+              <th class="n" title="Σ(volume × close × sign(Δclose)) · +淨買入 / -淨賣出">淨流入 $M</th>
+              <th class="n" title="Σ(volume × close) · 30 日總成交金額">總成交 $M</th>
+              <th class="n" title="net / gross · -100% ~ +100% · 跨 sector 可比">流向比</th>
+              <th class="n" title="30 日中 ETF 收盤上漲的天數 %">ETF 上漲天</th></tr>
+        </thead>
+        <tbody><tr><td><b>房地產</b> <span class="dim">XLRE</span></td><td class="n up">+2.9%</td><td class="n up">+2.5%</td><td class="n down">-0.3%</td><td class="n up">+2,156M</td><td class="n dim">10,260M</td><td class="n up">🟢 +21.0%</td><td class="n up">60%</td></tr><tr><td><b>公用事業</b> <span class="dim">XLU</span></td><td class="n up">+1.7%</td><td class="n up">+1.4%</td><td class="n up">+2.0%</td><td class="n up">+6,695M</td><td class="n dim">32,357M</td><td class="n up">🟢 +20.7%</td><td class="n up">60%</td></tr><tr><td><b>材料</b> <span class="dim">XLB</span></td><td class="n up">+5.5%</td><td class="n down">-0.7%</td><td class="n down">-1.6%</td><td class="n up">+3,189M</td><td class="n dim">18,934M</td><td class="n up">🟢 +16.8%</td><td class="n up">60%</td></tr><tr><td><b>必需消費</b> <span class="dim">XLP</span></td><td class="n up">+3.1%</td><td class="n up">+5.1%</td><td class="n up">+9.7%</td><td class="n up">+4,461M</td><td class="n dim">55,108M</td><td class="n up">▲ +8.1%</td><td class="n flat">53%</td></tr><tr><td><b>金融</b> <span class="dim">XLF</span></td><td class="n up">+2.8%</td><td class="n up">+0.4%</td><td class="n down">-0.9%</td><td class="n up">+1,877M</td><td class="n dim">64,229M</td><td class="n flat">▪ +2.9%</td><td class="n up">57%</td></tr><tr><td><b>能源</b> <span class="dim">XLE</span></td><td class="n up">+1.3%</td><td class="n down">-10.2%</td><td class="n down">-0.4%</td><td class="n down">-5,854M</td><td class="n dim">68,894M</td><td class="n down">▼ -8.5%</td><td class="n flat">53%</td></tr><tr><td><b>通訊服務</b> <span class="dim">XLC</span></td><td class="n up">+4.6%</td><td class="n up">+6.2%</td><td class="n down">-3.2%</td><td class="n down">-2,764M</td><td class="n dim">23,856M</td><td class="n down">▼ -11.6%</td><td class="n flat">47%</td></tr><tr><td><b>工業</b> <span class="dim">XLI</span></td><td class="n up">+2.6%</td><td class="n down">-2.7%</td><td class="n down">-7.2%</td><td class="n down">-5,474M</td><td class="n dim">45,262M</td><td class="n down">▼ -12.1%</td><td class="n flat">47%</td></tr><tr><td><b>非必需消費</b> <span class="dim">XLY</span></td><td class="n up">+3.5%</td><td class="n up">+3.2%</td><td class="n up">+3.8%</td><td class="n down">-4,894M</td><td class="n dim">32,608M</td><td class="n down">🔴 -15.0%</td><td class="n flat">47%</td></tr><tr><td><b>醫療保健</b> <span class="dim">XLV</span></td><td class="n up">+3.8%</td><td class="n up">+0.1%</td><td class="n up">+7.8%</td><td class="n down">-10,871M</td><td class="n dim">65,218M</td><td class="n down">🔴 -16.7%</td><td class="n down">43%</td></tr><tr><td><b>資訊科技</b> <span class="dim">XLK</span></td><td class="n down">-0.3%</td><td class="n down">-15.2%</td><td class="n down">-15.0%</td><td class="n down">-19,784M</td><td class="n dim">73,646M</td><td class="n down">🔴 -26.9%</td><td class="n down">43%</td></tr></tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;">🟢 ≥+15% 強力吸金 · ▲ ≥+5% 溫和流入 · ▪ 中性 · ▼ ≤-5% 流出 · 🔴 ≤-15% 強力賣壓</div>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">📐 SPMO 動能選股 <span class="n" title="Invesco S&P 500 Momentum ETF 官方選股邏輯：12個月報酬（排除最近1個月）÷ 過去1年週報酬年化波動度">風險調整動能 Top 10</span></div>
+    <div class="card-b">
+    <table style="font-size:12px;">
+      <thead><tr>
+        <th>#</th><th>Symbol</th><th>Sector</th><th class="n">價</th>
+        <th class="n" title="12個月報酬，排除最近1個月">12-1 動能</th>
+        <th class="n" title="過去1年週報酬年化標準差">年化波動</th>
+        <th class="n" title="12-1動能 ÷ 年化波動 · SPMO 官方選股排序依據">SPMO Score</th>
+      </tr></thead>
+      <tbody><tr><td class="n dim">1</td><td><b>MRNA</b> <span class="dim">Moderna</span></td><td class="dim">Health Care</td><td class="n">228.64</td><td class="n up">+790.7%</td><td class="n">135.0%</td><td class="n"><b>5.86</b></td></tr><tr><td class="n dim">2</td><td><b>MU</b> <span class="dim">Micron Technology</span></td><td class="dim">Information Technology</td><td class="n">646.95</td><td class="n up">+306.2%</td><td class="n">91.7%</td><td class="n"><b>3.34</b></td></tr><tr><td class="n dim">3</td><td><b>DELL</b> <span class="dim">Dell Technologies</span></td><td class="dim">Information Technology</td><td class="n">316.96</td><td class="n up">+260.6%</td><td class="n">82.8%</td><td class="n"><b>3.15</b></td></tr><tr><td class="n dim">4</td><td><b>VLO</b> <span class="dim">Valero Energy</span></td><td class="dim">Energy</td><td class="n">329.39</td><td class="n up">+123.7%</td><td class="n">41.2%</td><td class="n"><b>3.00</b></td></tr><tr><td class="n dim">5</td><td><b>VTRS</b> <span class="dim">Viatris</span></td><td class="dim">Health Care</td><td class="n">20.20</td><td class="n up">+84.7%</td><td class="n">30.5%</td><td class="n"><b>2.77</b></td></tr><tr><td class="n dim">6</td><td><b>PSX</b> <span class="dim">Phillips 66</span></td><td class="dim">Energy</td><td class="n">242.12</td><td class="n up">+107.0%</td><td class="n">38.6%</td><td class="n"><b>2.77</b></td></tr><tr><td class="n dim">7</td><td><b>MPC</b> <span class="dim">Marathon Petroleum</span></td><td class="dim">Energy</td><td class="n">359.80</td><td class="n up">+128.2%</td><td class="n">47.8%</td><td class="n"><b>2.68</b></td></tr><tr><td class="n dim">8</td><td><b>TGT</b> <span class="dim">Target Corporation</span></td><td class="dim">Consumer Staples</td><td class="n">171.97</td><td class="n up">+73.7%</td><td class="n">29.3%</td><td class="n"><b>2.51</b></td></tr><tr><td class="n dim">9</td><td><b>HST</b> <span class="dim">Host Hotels &amp; Resorts</span></td><td class="dim">Real Estate</td><td class="n">25.07</td><td class="n up">+56.4%</td><td class="n">22.8%</td><td class="n"><b>2.48</b></td></tr><tr><td class="n dim">10</td><td><b>ILMN</b> <span class="dim">Illumina, Inc.</span></td><td class="dim">Health Care</td><td class="n">205.74</td><td class="n up">+123.5%</td><td class="n">49.9%</td><td class="n"><b>2.48</b></td></tr></tbody>
+    </table>
+    <div class="dim" style="font-size:11px;margin-top:10px;line-height:1.6;">
+      <b>SPMO 選股邏輯</b>（Invesco S&amp;P 500 Momentum ETF 官方方法論）：
+      風險調整動能分數 = 12個月報酬（排除最近1個月，避免短期反轉雜訊）÷ 過去1年
+      週報酬年化波動度。分數越高代表「漲得又穩又久」，不是單純漲最多——這是
+      Top 10，示意排序清單，不是真正 SPMO 基金的完整持股或權重。
+    </div>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">💵 個股層 20 日資金流向 Top 榜 <span class="n">from all.csv · ud_ratio 排序</span></div>
+    <div class="card-b" style="padding:14px 18px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <h4 style="margin:0 0 8px;color:var(--green);font-size:13px;">
+            🟢 資金流入 Top 15
+            <span class="dim" style="font-weight:400;font-size:11px;">· ud≥1.5 + 上漲天≥12</span>
+          </h4>
+          <table style="font-size:12px;">
+            <thead><tr>
+              <th>Symbol</th><th>Sec</th><th class="n">價</th>
+              <th class="n">20d</th><th class="n" title="上漲天/下跌天">漲/跌天</th>
+              <th class="n" title="上漲日均量/下跌日均量 · &gt;1 = 買方壓過賣方">u/d</th>
+            </tr></thead>
+            <tbody><tr><td><b>CLX</b><a href="../../valuation/index.html?ticker=CLX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Clorox</span></td><td class="dim">Consumer</td><td class="n">111.26</td><td class="n up">+25.5%</td><td class="n"><span class="up">15</span>/<span class="dim">5</span></td><td class="n"><span class="up">▲ 3.00</span></td></tr><tr><td><b>TYL</b><a href="../../valuation/index.html?ticker=TYL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Tyler Technolo</span></td><td class="dim">Informat</td><td class="n">422.47</td><td class="n up">+13.0%</td><td class="n"><span class="up">15</span>/<span class="dim">5</span></td><td class="n"><span class="up">▲ 3.00</span></td></tr><tr><td><b>EXC</b><a href="../../valuation/index.html?ticker=EXC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Exelon</span></td><td class="dim">Utilitie</td><td class="n">46.66</td><td class="n up">+1.6%</td><td class="n"><span class="up">15</span>/<span class="dim">5</span></td><td class="n"><span class="up">▲ 3.00</span></td></tr><tr><td><b>CHRW</b><a href="../../valuation/index.html?ticker=CHRW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">C.H. Robinson</span></td><td class="dim">Industri</td><td class="n">146.98</td><td class="n up">+15.3%</td><td class="n"><span class="up">14</span>/<span class="dim">5</span></td><td class="n"><span class="up">▲ 2.80</span></td></tr><tr><td><b>CMG</b><a href="../../valuation/index.html?ticker=CMG" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Chipotle Mexic</span></td><td class="dim">Consumer</td><td class="n">37.32</td><td class="n up">+19.3%</td><td class="n"><span class="up">14</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.33</span></td></tr><tr><td><b>MGM</b><a href="../../valuation/index.html?ticker=MGM" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">MGM Resorts</span></td><td class="dim">Consumer</td><td class="n">35.29</td><td class="n up">+22.4%</td><td class="n"><span class="up">14</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.33</span></td></tr><tr><td><b>HSY</b><a href="../../valuation/index.html?ticker=HSY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Hershey Compan</span></td><td class="dim">Consumer</td><td class="n">182.77</td><td class="n up">+15.0%</td><td class="n"><span class="up">14</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.33</span></td></tr><tr><td><b>CPAY</b><a href="../../valuation/index.html?ticker=CPAY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Corpay</span></td><td class="dim">Financia</td><td class="n">458.30</td><td class="n up">+15.2%</td><td class="n"><span class="up">14</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.33</span></td></tr><tr><td><b>AIZ</b><a href="../../valuation/index.html?ticker=AIZ" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Assurant</span></td><td class="dim">Financia</td><td class="n">328.18</td><td class="n up">+12.1%</td><td class="n"><span class="up">14</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.33</span></td></tr><tr><td><b>EG</b><a href="../../valuation/index.html?ticker=EG" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Everest Group</span></td><td class="dim">Financia</td><td class="n">436.00</td><td class="n up">+8.8%</td><td class="n"><span class="up">14</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.33</span></td></tr><tr><td><b>ADP</b><a href="../../valuation/index.html?ticker=ADP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Automatic Data</span></td><td class="dim">Industri</td><td class="n">319.43</td><td class="n up">+11.7%</td><td class="n"><span class="up">14</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.33</span></td></tr><tr><td><b>VLTO</b><a href="../../valuation/index.html?ticker=VLTO" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Veralto</span></td><td class="dim">Industri</td><td class="n">120.06</td><td class="n up">+15.4%</td><td class="n"><span class="up">14</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.33</span></td></tr><tr><td><b>ALL</b><a href="../../valuation/index.html?ticker=ALL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Allstate</span></td><td class="dim">Financia</td><td class="n">272.51</td><td class="n up">+6.5%</td><td class="n"><span class="up">13</span>/<span class="dim">6</span></td><td class="n"><span class="up">▲ 2.17</span></td></tr><tr><td><b>DIS</b><a href="../../valuation/index.html?ticker=DIS" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Walt Disney Co</span></td><td class="dim">Communic</td><td class="n">127.24</td><td class="n up">+14.7%</td><td class="n"><span class="up">13</span>/<span class="dim">7</span></td><td class="n"><span class="up">▲ 1.86</span></td></tr><tr><td><b>OMC</b><a href="../../valuation/index.html?ticker=OMC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Omnicom Group</span></td><td class="dim">Communic</td><td class="n">92.23</td><td class="n up">+13.9%</td><td class="n"><span class="up">13</span>/<span class="dim">7</span></td><td class="n"><span class="up">▲ 1.86</span></td></tr></tbody>
+          </table>
+        </div>
+        <div>
+          <h4 style="margin:0 0 8px;color:var(--red);font-size:13px;">
+            🔴 資金流出 Top 15
+            <span class="dim" style="font-weight:400;font-size:11px;">· ud≤0.7 + 下跌天≥12</span>
+          </h4>
+          <table style="font-size:12px;">
+            <thead><tr>
+              <th>Symbol</th><th>Sec</th><th class="n">價</th>
+              <th class="n">20d</th><th class="n" title="上漲天/下跌天">漲/跌天</th>
+              <th class="n" title="上漲日均量/下跌日均量 · &lt;1 = 賣方壓過買方">u/d</th>
+            </tr></thead>
+            <tbody><tr><td><b>MPC</b><a href="../../valuation/index.html?ticker=MPC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Marathon Petro</span></td><td class="dim">Energy</td><td class="n">359.80</td><td class="n down">-16.6%</td><td class="n"><span class="dim">6</span>/<span class="down">14</span></td><td class="n"><span class="down">▼ 0.43</span></td></tr><tr><td><b>PSX</b><a href="../../valuation/index.html?ticker=PSX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Phillips 66</span></td><td class="dim">Energy</td><td class="n">242.12</td><td class="n down">-11.1%</td><td class="n"><span class="dim">6</span>/<span class="down">14</span></td><td class="n"><span class="down">▼ 0.43</span></td></tr><tr><td><b>CRL</b><a href="../../valuation/index.html?ticker=CRL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Charles River </span></td><td class="dim">Health C</td><td class="n">337.39</td><td class="n down">-10.3%</td><td class="n"><span class="dim">6</span>/<span class="down">14</span></td><td class="n"><span class="down">▼ 0.43</span></td></tr><tr><td><b>VEEV</b><a href="../../valuation/index.html?ticker=VEEV" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Veeva Systems</span></td><td class="dim">Health C</td><td class="n">271.60</td><td class="n down">-12.5%</td><td class="n"><span class="dim">6</span>/<span class="down">14</span></td><td class="n"><span class="down">▼ 0.43</span></td></tr><tr><td><b>ULTA</b><a href="../../valuation/index.html?ticker=ULTA" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Ulta Beauty</span></td><td class="dim">Consumer</td><td class="n">642.50</td><td class="n down">-0.9%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>HAS</b><a href="../../valuation/index.html?ticker=HAS" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Hasbro</span></td><td class="dim">Consumer</td><td class="n">109.09</td><td class="n down">-8.2%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>CCL</b><a href="../../valuation/index.html?ticker=CCL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Carnival Corpo</span></td><td class="dim">Consumer</td><td class="n">28.15</td><td class="n down">-1.9%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>EBAY</b><a href="../../valuation/index.html?ticker=EBAY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">eBay Inc.</span></td><td class="dim">Consumer</td><td class="n">113.33</td><td class="n down">-6.5%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>VLO</b><a href="../../valuation/index.html?ticker=VLO" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Valero Energy</span></td><td class="dim">Energy</td><td class="n">329.39</td><td class="n down">-14.0%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>RVTY</b><a href="../../valuation/index.html?ticker=RVTY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Revvity</span></td><td class="dim">Health C</td><td class="n">151.27</td><td class="n down">-8.8%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>SWK</b><a href="../../valuation/index.html?ticker=SWK" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Stanley Black </span></td><td class="dim">Industri</td><td class="n">110.92</td><td class="n up">+7.1%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>PANW</b><a href="../../valuation/index.html?ticker=PANW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Palo Alto Netw</span></td><td class="dim">Informat</td><td class="n">366.76</td><td class="n down">-3.6%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>NTAP</b><a href="../../valuation/index.html?ticker=NTAP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">NetApp</span></td><td class="dim">Informat</td><td class="n">172.67</td><td class="n down">-20.9%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>DOW</b><a href="../../valuation/index.html?ticker=DOW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Dow Inc.</span></td><td class="dim">Material</td><td class="n">30.20</td><td class="n down">-10.2%</td><td class="n"><span class="dim">7</span>/<span class="down">13</span></td><td class="n"><span class="down">▼ 0.54</span></td></tr><tr><td><b>ABNB</b><a href="../../valuation/index.html?ticker=ABNB" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Airbnb</span></td><td class="dim">Consumer</td><td class="n">179.16</td><td class="n up">+7.6%</td><td class="n"><span class="dim">7</span>/<span class="down">12</span></td><td class="n"><span class="down">▼ 0.58</span></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="dim" style="font-size:11px;margin-top:10px;line-height:1.6;">
+        <b>ud_ratio</b> = 20 日中「上漲日的平均成交量」÷「下跌日的平均成交量」·
+        &gt;1 表示買方成交量壓過賣方 (accumulation) · &lt;1 表示賣方壓過買方 (distribution) ·
+        比 net dollar volume 更能濾掉單日爆量雜訊
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">🎯 每 Sector 資金流入 Top 3 <span class="n">多頭比 &gt; 50% · ud_ratio 排序</span></div>
+    <div class="card-b">
+      <div class="dim" style="font-size:11.5px;margin-bottom:10px;line-height:1.5;">
+        只列出 <b>30 日訊號比多頭比 &gt; 50%</b> 的 sector · 每 sector 挑 3 支資金流入最強個股（ud_ratio 大） ·
+        用「bottom-up」找 healthy sector 內的具體標的 · 迴避 XLU / XLRE 這種空頭主導 sector 的個股
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;">
+        
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid #166534;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">必需消費 <span class="dim" style="font-weight:400;">XLP</span></div>
+            <div style="font-size:11px;color:#166534;font-weight:700;">多頭比 100.0%</div>
+          </div>
+          
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><b>CLX</b><a href="../../valuation/index.html?ticker=CLX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Clorox</span></td><td class="n">111.26</td><td class="n up">+6.1%</td><td class="n up">+25.5%</td><td class="n dim">15/5</td><td class="n up">▲ 3.00</td></tr><tr><td><b>HSY</b><a href="../../valuation/index.html?ticker=HSY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Hershey Company (The</span></td><td class="n">182.77</td><td class="n up">+5.0%</td><td class="n up">+15.0%</td><td class="n dim">14/6</td><td class="n up">▲ 2.33</td></tr><tr><td><b>PEP</b><a href="../../valuation/index.html?ticker=PEP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">PepsiCo</span></td><td class="n">144.60</td><td class="n up">+4.0%</td><td class="n up">+8.1%</td><td class="n dim">13/7</td><td class="n up">▲ 1.86</td></tr></tbody>
+            </table>
+        </div>
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid #166534;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">醫療保健 <span class="dim" style="font-weight:400;">XLV</span></div>
+            <div style="font-size:11px;color:#166534;font-weight:700;">多頭比 90.5%</div>
+          </div>
+          
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><b>CAH</b><a href="../../valuation/index.html?ticker=CAH" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Cardinal Health</span></td><td class="n">282.86</td><td class="n up">+3.9%</td><td class="n up">+12.7%</td><td class="n dim">13/7</td><td class="n up">▲ 1.86</td></tr><tr><td><b>BAX</b><a href="../../valuation/index.html?ticker=BAX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Baxter International</span></td><td class="n">26.79</td><td class="n up">+5.5%</td><td class="n up">+14.0%</td><td class="n dim">12/7</td><td class="n up">▲ 1.71</td></tr><tr><td><b>BDX</b><a href="../../valuation/index.html?ticker=BDX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Becton Dickinson</span></td><td class="n">219.36</td><td class="n up">+3.1%</td><td class="n up">+10.6%</td><td class="n dim">12/8</td><td class="n up">▲ 1.50</td></tr></tbody>
+            </table>
+        </div>
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid #166534;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">金融 <span class="dim" style="font-weight:400;">XLF</span></div>
+            <div style="font-size:11px;color:#166534;font-weight:700;">多頭比 87.5%</div>
+          </div>
+          
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><b>CPAY</b><a href="../../valuation/index.html?ticker=CPAY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Corpay</span></td><td class="n">458.30</td><td class="n up">+5.5%</td><td class="n up">+15.2%</td><td class="n dim">14/6</td><td class="n up">▲ 2.33</td></tr><tr><td><b>AIZ</b><a href="../../valuation/index.html?ticker=AIZ" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Assurant</span></td><td class="n">328.18</td><td class="n up">+3.8%</td><td class="n up">+12.1%</td><td class="n dim">14/6</td><td class="n up">▲ 2.33</td></tr><tr><td><b>EG</b><a href="../../valuation/index.html?ticker=EG" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Everest Group</span></td><td class="n">436.00</td><td class="n up">+3.3%</td><td class="n up">+8.8%</td><td class="n dim">14/6</td><td class="n up">▲ 2.33</td></tr></tbody>
+            </table>
+        </div>
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid #166534;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">工業 <span class="dim" style="font-weight:400;">XLI</span></div>
+            <div style="font-size:11px;color:#166534;font-weight:700;">多頭比 83.3%</div>
+          </div>
+          
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><b>CHRW</b><a href="../../valuation/index.html?ticker=CHRW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">C.H. Robinson</span></td><td class="n">146.98</td><td class="n up">+6.5%</td><td class="n up">+15.3%</td><td class="n dim">14/5</td><td class="n up">▲ 2.80</td></tr><tr><td><b>ADP</b><a href="../../valuation/index.html?ticker=ADP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Automatic Data Proce</span></td><td class="n">319.43</td><td class="n up">+6.1%</td><td class="n up">+11.7%</td><td class="n dim">14/6</td><td class="n up">▲ 2.33</td></tr><tr><td><b>VLTO</b><a href="../../valuation/index.html?ticker=VLTO" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Veralto</span></td><td class="n">120.06</td><td class="n up">+3.4%</td><td class="n up">+15.4%</td><td class="n dim">14/6</td><td class="n up">▲ 2.33</td></tr></tbody>
+            </table>
+        </div>
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid #166534;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">材料 <span class="dim" style="font-weight:400;">XLB</span></div>
+            <div style="font-size:11px;color:#166534;font-weight:700;">多頭比 80.0%</div>
+          </div>
+          
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><b>APD</b><a href="../../valuation/index.html?ticker=APD" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Air Products</span></td><td class="n">319.09</td><td class="n up">+5.0%</td><td class="n up">+2.4%</td><td class="n dim">12/8</td><td class="n up">▲ 1.50</td></tr><tr><td><b>CF</b><a href="../../valuation/index.html?ticker=CF" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">CF Industries</span></td><td class="n">119.50</td><td class="n up">+3.2%</td><td class="n up">+1.7%</td><td class="n dim">12/8</td><td class="n up">▲ 1.50</td></tr></tbody>
+            </table>
+        </div>
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid #166534;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">非必需消費 <span class="dim" style="font-weight:400;">XLY</span></div>
+            <div style="font-size:11px;color:#166534;font-weight:700;">多頭比 77.8%</div>
+          </div>
+          
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><b>CMG</b><a href="../../valuation/index.html?ticker=CMG" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Chipotle Mexican Gri</span></td><td class="n">37.32</td><td class="n up">+2.8%</td><td class="n up">+19.3%</td><td class="n dim">14/6</td><td class="n up">▲ 2.33</td></tr><tr><td><b>MGM</b><a href="../../valuation/index.html?ticker=MGM" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">MGM Resorts</span></td><td class="n">35.29</td><td class="n up">+5.6%</td><td class="n up">+22.4%</td><td class="n dim">14/6</td><td class="n up">▲ 2.33</td></tr><tr><td><b>DPZ</b><a href="../../valuation/index.html?ticker=DPZ" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Domino&#x27;s</span></td><td class="n">358.30</td><td class="n up">+1.7%</td><td class="n up">+14.8%</td><td class="n dim">13/7</td><td class="n up">▲ 1.86</td></tr></tbody>
+            </table>
+        </div>
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid #1e40af;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">公用事業 <span class="dim" style="font-weight:400;">XLU</span></div>
+            <div style="font-size:11px;color:#1e40af;font-weight:700;">多頭比 62.5%</div>
+          </div>
+          
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><b>EXC</b><a href="../../valuation/index.html?ticker=EXC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Exelon</span></td><td class="n">46.66</td><td class="n up">+2.7%</td><td class="n up">+1.6%</td><td class="n dim">15/5</td><td class="n up">▲ 3.00</td></tr><tr><td><b>WEC</b><a href="../../valuation/index.html?ticker=WEC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">WEC Energy Group</span></td><td class="n">119.08</td><td class="n up">+2.6%</td><td class="n up">+4.7%</td><td class="n dim">13/7</td><td class="n up">▲ 1.86</td></tr><tr><td><b>DUK</b><a href="../../valuation/index.html?ticker=DUK" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Duke Energy</span></td><td class="n">131.91</td><td class="n up">+2.4%</td><td class="n up">+5.7%</td><td class="n dim">13/7</td><td class="n up">▲ 1.86</td></tr></tbody>
+            </table>
+        </div>
+        <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border-left:3px solid #1e40af;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">資訊科技 <span class="dim" style="font-weight:400;">XLK</span></div>
+            <div style="font-size:11px;color:#1e40af;font-weight:700;">多頭比 57.9%</div>
+          </div>
+          
+            <table style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Symbol</th><th class="n">價</th>
+                  <th class="n">5d</th><th class="n">20d</th>
+                  <th class="n" title="上漲天/下跌天">漲/跌</th>
+                  <th class="n" title="ud_ratio">u/d</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><b>TYL</b><a href="../../valuation/index.html?ticker=TYL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Tyler Technologies</span></td><td class="n">422.47</td><td class="n up">+4.5%</td><td class="n up">+13.0%</td><td class="n dim">15/5</td><td class="n up">▲ 3.00</td></tr><tr><td><b>VRSN</b><a href="../../valuation/index.html?ticker=VRSN" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Verisign</span></td><td class="n">320.20</td><td class="n up">+4.5%</td><td class="n up">+4.9%</td><td class="n dim">13/7</td><td class="n up">▲ 1.86</td></tr><tr><td><b>OKTA</b><a href="../../valuation/index.html?ticker=OKTA" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim" style="font-size:11px;">Okta, Inc.</span></td><td class="n">207.46</td><td class="n up">+0.3%</td><td class="n down">-6.5%</td><td class="n dim">12/8</td><td class="n up">▲ 1.50</td></tr></tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">📖 投資 Playbook · 分類 + 3 種組合 <span class="n">Universe: 每 sector Top 3 (9 sector × 3 = 27 支)</span></div>
+    <div class="card-b">
+      <div class="dim" style="font-size:11.5px;margin-bottom:10px;line-height:1.5;">
+        從上方「每 sector Top 3」的 27 支健康個股 pool 中 · 依固定門檻自動分類與組合 ·
+        <b>分類</b>幫你認清每支個股的狀態；<b>組合</b>幫你直接執行不同時間框架的策略。
+        建議倉位為等權重 · 實際下單前需自行檢查基本面 / 財報 / 停損位。
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;">🔬 個股分類（互斥門檻）</div>
+      
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px;margin-bottom:12px;">
+        
+        <div style="background:#fffbeb;padding:10px 12px;border-radius:8px;border-left:3px solid #92400e;">
+          <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:2px;">🏆 主升段龍頭
+            <span style="font-weight:400;font-size:11px;">(6)</span></div>
+          <div class="dim" style="font-size:10.5px;margin-bottom:6px;">20d ≥ +15% + ud ≥ 1.7</div>
+          <div style="font-size:11.5px;color:#92400e;margin-bottom:6px;line-height:1.4;">動能已確認 · 資金持續 accumulation · 適合順勢持有 · 但已在高位 · 追高有拉回風險</div>
+          
+        <table style="font-size:11.5px;">
+          <thead>
+            <tr>
+              <th>Symbol</th><th>Sector</th>
+              <th class="n">5d</th><th class="n">20d</th>
+              <th class="n">ud</th>
+              <th class="n" title="進場後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
+              
+            </tr>
+          </thead>
+          <tbody><tr><td><b>CLX</b><a href="../../valuation/index.html?ticker=CLX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">必需消費 XLP</td><td class="n up">+6.1%</td><td class="n up">+25.5%</td><td class="n up">▲ 3.00</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>MGM</b><a href="../../valuation/index.html?ticker=MGM" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">非必需消費 XLY</td><td class="n up">+5.6%</td><td class="n up">+22.4%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>CMG</b><a href="../../valuation/index.html?ticker=CMG" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">非必需消費 XLY</td><td class="n up">+2.8%</td><td class="n up">+19.3%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>VLTO</b><a href="../../valuation/index.html?ticker=VLTO" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">工業 XLI</td><td class="n up">+3.4%</td><td class="n up">+15.4%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>CHRW</b><a href="../../valuation/index.html?ticker=CHRW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">工業 XLI</td><td class="n up">+6.5%</td><td class="n up">+15.3%</td><td class="n up">▲ 2.80</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>CPAY</b><a href="../../valuation/index.html?ticker=CPAY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">金融 XLF</td><td class="n up">+5.5%</td><td class="n up">+15.2%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr></tbody>
+        </table>
+          
+        </div>
+        
+        <div style="background:#eff6ff;padding:10px 12px;border-radius:8px;border-left:3px solid #1e40af;">
+          <div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:2px;">🚀 剛啟動 5d 爆量
+            <span style="font-weight:400;font-size:11px;">(6)</span></div>
+          <div class="dim" style="font-size:10.5px;margin-bottom:6px;">5d ≥ +4% + ud ≥ 1.7 · 未在主升段</div>
+          <div style="font-size:11.5px;color:#1e40af;margin-bottom:6px;line-height:1.4;">近 1 週突然放量上漲 · 可能是新一波啟動 · 適合短線追動能 · 但需 confirm 續強</div>
+          
+        <table style="font-size:11.5px;">
+          <thead>
+            <tr>
+              <th>Symbol</th><th>Sector</th>
+              <th class="n">5d</th><th class="n">20d</th>
+              <th class="n">ud</th>
+              <th class="n" title="進場後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
+              
+            </tr>
+          </thead>
+          <tbody><tr><td><b>ADP</b><a href="../../valuation/index.html?ticker=ADP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">工業 XLI</td><td class="n up">+6.1%</td><td class="n up">+11.7%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>BAX</b><a href="../../valuation/index.html?ticker=BAX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">醫療保健 XLV</td><td class="n up">+5.5%</td><td class="n up">+14.0%</td><td class="n up">▲ 1.71</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>HSY</b><a href="../../valuation/index.html?ticker=HSY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">必需消費 XLP</td><td class="n up">+5.0%</td><td class="n up">+15.0%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>TYL</b><a href="../../valuation/index.html?ticker=TYL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">資訊科技 XLK</td><td class="n up">+4.5%</td><td class="n up">+13.0%</td><td class="n up">▲ 3.00</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>VRSN</b><a href="../../valuation/index.html?ticker=VRSN" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">資訊科技 XLK</td><td class="n up">+4.5%</td><td class="n up">+4.9%</td><td class="n up">▲ 1.86</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr><tr><td><b>PEP</b><a href="../../valuation/index.html?ticker=PEP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">必需消費 XLP</td><td class="n up">+4.0%</td><td class="n up">+8.1%</td><td class="n up">▲ 1.86</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td></tr></tbody>
+        </table>
+          
+        </div>
+        
+        <div style="background:#fef2f2;padding:10px 12px;border-radius:8px;border-left:3px solid #991b1b;">
+          <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:2px;">⚠️ 動能疲軟需觀察
+            <span style="font-weight:400;font-size:11px;">(0)</span></div>
+          <div class="dim" style="font-size:10.5px;margin-bottom:6px;">5d ≤ -1.5% + 20d ≥ +5%</div>
+          <div style="font-size:11.5px;color:#991b1b;margin-bottom:6px;line-height:1.4;">20d 賺了不少但近週開始拉回 · 可能是短線頂 · 減碼 / 停利觀察 · 別追高</div>
+          <div class="empty" style="padding:8px;font-size:11.5px;">無符合條件</div>
+          
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;margin-top:6px;">📦 可執行投資組合（等權重）</div>
+      
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px;">
+        
+        <div style="background:#fef3c7;padding:10px 12px;border-radius:8px;border-left:3px solid #92400e;">
+          <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:2px;">💨 組合 A · 短線動能追漲
+            <span style="font-weight:400;font-size:11px;">(6)</span></div>
+          <div class="dim" style="font-size:10.5px;margin-bottom:6px;">leaders + breakouts 中 5d 正 · 按 5d desc Top 6</div>
+          <div style="font-size:11.5px;color:#92400e;margin-bottom:6px;line-height:1.4;">持有天期 5-10 天 · 追短期爆發個股 · 停利設 +8% / 停損 -4%</div>
+          
+        <table style="font-size:11.5px;">
+          <thead>
+            <tr>
+              <th>Symbol</th><th>Sector</th>
+              <th class="n">5d</th><th class="n">20d</th>
+              <th class="n">ud</th>
+              <th class="n" title="進場後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
+              <th class="n" title="等權重建議倉位">建議 %</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><b>CHRW</b><a href="../../valuation/index.html?ticker=CHRW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">工業 XLI</td><td class="n up">+6.5%</td><td class="n up">+15.3%</td><td class="n up">▲ 2.80</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>CLX</b><a href="../../valuation/index.html?ticker=CLX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">必需消費 XLP</td><td class="n up">+6.1%</td><td class="n up">+25.5%</td><td class="n up">▲ 3.00</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>ADP</b><a href="../../valuation/index.html?ticker=ADP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">工業 XLI</td><td class="n up">+6.1%</td><td class="n up">+11.7%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>MGM</b><a href="../../valuation/index.html?ticker=MGM" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">非必需消費 XLY</td><td class="n up">+5.6%</td><td class="n up">+22.4%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>BAX</b><a href="../../valuation/index.html?ticker=BAX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">醫療保健 XLV</td><td class="n up">+5.5%</td><td class="n up">+14.0%</td><td class="n up">▲ 1.71</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>CPAY</b><a href="../../valuation/index.html?ticker=CPAY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">金融 XLF</td><td class="n up">+5.5%</td><td class="n up">+15.2%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr></tbody>
+        </table>
+          <div class="dim" style="font-size:10.5px;margin-top:4px;">等權重 · 每支 17%</div>
+        </div>
+        
+        <div style="background:#dcfce7;padding:10px 12px;border-radius:8px;border-left:3px solid #166534;">
+          <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:2px;">⚖️ 組合 B · 中線分散配置
+            <span style="font-weight:400;font-size:11px;">(8)</span></div>
+          <div class="dim" style="font-size:10.5px;margin-bottom:6px;">每 sector 挑 ud 最高一支 · 分散 9 板塊</div>
+          <div style="font-size:11.5px;color:#166534;margin-bottom:6px;line-height:1.4;">持有天期 1-3 個月 · 跨 sector 分散風險 · 對抗單一板塊 rotation</div>
+          
+        <table style="font-size:11.5px;">
+          <thead>
+            <tr>
+              <th>Symbol</th><th>Sector</th>
+              <th class="n">5d</th><th class="n">20d</th>
+              <th class="n">ud</th>
+              <th class="n" title="進場後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
+              <th class="n" title="等權重建議倉位">建議 %</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><b>CLX</b><a href="../../valuation/index.html?ticker=CLX" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">必需消費 XLP</td><td class="n up">+6.1%</td><td class="n up">+25.5%</td><td class="n up">▲ 3.00</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">12%</td></tr><tr><td><b>EXC</b><a href="../../valuation/index.html?ticker=EXC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">公用事業 XLU</td><td class="n up">+2.7%</td><td class="n up">+1.6%</td><td class="n up">▲ 3.00</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">12%</td></tr><tr><td><b>TYL</b><a href="../../valuation/index.html?ticker=TYL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">資訊科技 XLK</td><td class="n up">+4.5%</td><td class="n up">+13.0%</td><td class="n up">▲ 3.00</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">12%</td></tr><tr><td><b>CHRW</b><a href="../../valuation/index.html?ticker=CHRW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">工業 XLI</td><td class="n up">+6.5%</td><td class="n up">+15.3%</td><td class="n up">▲ 2.80</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">12%</td></tr><tr><td><b>CPAY</b><a href="../../valuation/index.html?ticker=CPAY" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">金融 XLF</td><td class="n up">+5.5%</td><td class="n up">+15.2%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">12%</td></tr><tr><td><b>CMG</b><a href="../../valuation/index.html?ticker=CMG" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">非必需消費 XLY</td><td class="n up">+2.8%</td><td class="n up">+19.3%</td><td class="n up">▲ 2.33</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">12%</td></tr><tr><td><b>CAH</b><a href="../../valuation/index.html?ticker=CAH" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">醫療保健 XLV</td><td class="n up">+3.9%</td><td class="n up">+12.7%</td><td class="n up">▲ 1.86</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">12%</td></tr><tr><td><b>APD</b><a href="../../valuation/index.html?ticker=APD" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">材料 XLB</td><td class="n up">+5.0%</td><td class="n up">+2.4%</td><td class="n up">▲ 1.50</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">12%</td></tr></tbody>
+        </table>
+          <div class="dim" style="font-size:10.5px;margin-top:4px;">等權重 · 每支 12%</div>
+        </div>
+        
+        <div style="background:#dbeafe;padding:10px 12px;border-radius:8px;border-left:3px solid #1e40af;">
+          <div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:2px;">🌱 組合 C · 底部反轉
+            <span style="font-weight:400;font-size:11px;">(6)</span></div>
+          <div class="dim" style="font-size:10.5px;margin-bottom:6px;">20d 尚未大漲 (0-8%) + ud ≥ 1.5</div>
+          <div style="font-size:11.5px;color:#1e40af;margin-bottom:6px;line-height:1.4;">持有天期 3-6 個月 · 低位健康 accumulation · 潛在補漲 · 適合逆勢</div>
+          
+        <table style="font-size:11.5px;">
+          <thead>
+            <tr>
+              <th>Symbol</th><th>Sector</th>
+              <th class="n">5d</th><th class="n">20d</th>
+              <th class="n">ud</th>
+              <th class="n" title="進場後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
+              <th class="n" title="等權重建議倉位">建議 %</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><b>EXC</b><a href="../../valuation/index.html?ticker=EXC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">公用事業 XLU</td><td class="n up">+2.7%</td><td class="n up">+1.6%</td><td class="n up">▲ 3.00</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>WEC</b><a href="../../valuation/index.html?ticker=WEC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">公用事業 XLU</td><td class="n up">+2.6%</td><td class="n up">+4.7%</td><td class="n up">▲ 1.86</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>DUK</b><a href="../../valuation/index.html?ticker=DUK" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">公用事業 XLU</td><td class="n up">+2.4%</td><td class="n up">+5.7%</td><td class="n up">▲ 1.86</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>VRSN</b><a href="../../valuation/index.html?ticker=VRSN" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">資訊科技 XLK</td><td class="n up">+4.5%</td><td class="n up">+4.9%</td><td class="n up">▲ 1.86</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>APD</b><a href="../../valuation/index.html?ticker=APD" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">材料 XLB</td><td class="n up">+5.0%</td><td class="n up">+2.4%</td><td class="n up">▲ 1.50</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr><tr><td><b>CF</b><a href="../../valuation/index.html?ticker=CF" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a></td><td class="dim" style="font-size:11px;">材料 XLB</td><td class="n up">+3.2%</td><td class="n up">+1.7%</td><td class="n up">▲ 1.50</td><td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td><td class="n">17%</td></tr></tbody>
+        </table>
+          <div class="dim" style="font-size:10.5px;margin-top:4px;">等權重 · 每支 17%</div>
+        </div>
+      </div>
+      <div class="dim" style="font-size:10.5px;margin-top:10px;line-height:1.5;">
+        <b>方法論</b>：組合 A 從「主升段龍頭 + 剛啟動」中挑 5d 正的 → 追爆發動能 ·
+        組合 B 從 27 支每 sector 挑 ud 最高一支 → 跨 sector 均衡 ·
+        組合 C 從 20d &lt; 8% 但 ud ≥ 1.5 的 → 尚未起漲但已 accumulation 的候選<br>
+        <b>👔 內部人加持 badge</b>（近 90 天 SEC Form 4 · Yahoo Finance）：
+        <span style="background:#dcfce7;color:#166534;padding:1px 5px;border-radius:6px;font-size:10px;">🔥 ≥+1M + officer buy</span> 極強 ·
+        <span style="background:#dcfce7;color:#166534;padding:1px 5px;border-radius:6px;font-size:10px;">👔 ≥+0.3M + officer</span> 強 ·
+        <span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:6px;font-size:10px;">▲ ≥+0.1M</span> 中 ·
+        <span style="background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px;font-size:10px;">▼ ≤-1M</span> 派發警訊<br>
+        <b>📈 4W/13W/52W 後</b>：這批個股被 pool 選中「當時」之後的實際報酬 · 用來回測驗證這套
+        分類/組合邏輯準不準 · 由 enrich_forward_returns.py 隨 Stage 2（週五）執行後回填 ·
+        未滿週期或缺資料顯示 —，不是 0%
+      </div>
+    </div>
+  </div>
+
+  
+
+  
+  <div class="card">
+    <div class="card-h">📶 板塊 30 日訊號比 <span class="n">stage 2 個股 · 多頭 vs 空頭</span></div>
+    <div class="card-b" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Sector</th>
+              <th class="n" title="過去 30 日 stage 2 個股 trend_state=多頭 累計次數">多頭訊號</th>
+              <th class="n" title="過去 30 日 trend_state=空頭 累計">空頭訊號</th>
+              <th class="n">總計</th>
+              <th class="n" title="up / (up+down) · 板塊過去 30 日訊號寬度">多頭比</th>
+              <th class="n" title="ETF 收盤上漲天數 % · 從資金流向表拉">ETF 上漲天</th>
+              <th title="比對 個股多頭比 vs ETF 上漲天 · 判 5 種情境">背離判定</th></tr>
+        </thead>
+        <tbody><tr><td><b>必需消費</b> <span class="dim">XLP</span></td><td class="n up">17</td><td class="n down">0</td><td class="n dim">17</td><td class="n up">🟢 100.0%</td><td class="n dim">53%</td><td><span class="badge b-early_reversal" title="個股寬度領先 ETF +47% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選">🔵 健康補漲</span></td></tr><tr><td><b>醫療保健</b> <span class="dim">XLV</span></td><td class="n up">19</td><td class="n down">2</td><td class="n dim">21</td><td class="n up">🟢 90.5%</td><td class="n dim">43%</td><td><span class="badge b-early_reversal" title="個股寬度領先 ETF +47% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選">🔵 健康補漲</span></td></tr><tr><td><b>金融</b> <span class="dim">XLF</span></td><td class="n up">14</td><td class="n down">2</td><td class="n dim">16</td><td class="n up">🟢 87.5%</td><td class="n dim">57%</td><td><span class="badge b-early_reversal" title="個股寬度領先 ETF +31% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選">🔵 健康補漲</span></td></tr><tr><td><b>工業</b> <span class="dim">XLI</span></td><td class="n up">10</td><td class="n down">2</td><td class="n dim">12</td><td class="n up">🟢 83.3%</td><td class="n dim">47%</td><td><span class="badge b-early_reversal" title="個股寬度領先 ETF +37% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選">🔵 健康補漲</span></td></tr><tr><td><b>材料</b> <span class="dim">XLB</span></td><td class="n up">8</td><td class="n down">2</td><td class="n dim">10</td><td class="n up">🟢 80.0%</td><td class="n dim">60%</td><td><span class="badge b-early_reversal" title="個股寬度領先 ETF +20% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選">🔵 健康補漲</span></td></tr><tr><td><b>非必需消費</b> <span class="dim">XLY</span></td><td class="n up">14</td><td class="n down">4</td><td class="n dim">18</td><td class="n up">🟢 77.8%</td><td class="n dim">47%</td><td><span class="badge b-early_reversal" title="個股寬度領先 ETF +31% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選">🔵 健康補漲</span></td></tr><tr><td><b>公用事業</b> <span class="dim">XLU</span></td><td class="n up">5</td><td class="n down">3</td><td class="n dim">8</td><td class="n up">🔵 62.5%</td><td class="n dim">60%</td><td><span class="badge b-sweet_spot" title="個股 + ETF 一致偏多 · 健康趨勢">🟢 齊步多頭</span></td></tr><tr><td><b>資訊科技</b> <span class="dim">XLK</span></td><td class="n up">11</td><td class="n down">8</td><td class="n dim">19</td><td class="n up">🔵 57.9%</td><td class="n dim">43%</td><td><span class="badge b-neutral" title="個股 + ETF 一致中性 · 觀望">⚪ 中性</span></td></tr><tr><td><b>通訊服務</b> <span class="dim">XLC</span></td><td class="n up">5</td><td class="n down">6</td><td class="n dim">11</td><td class="n flat">⚪ 45.5%</td><td class="n dim">47%</td><td><span class="badge b-neutral" title="個股 + ETF 一致中性 · 觀望">⚪ 中性</span></td></tr><tr><td><b>房地產</b> <span class="dim">XLRE</span></td><td class="n up">3</td><td class="n down">8</td><td class="n dim">11</td><td class="n down">🔴 27.3%</td><td class="n dim">60%</td><td><span class="badge b-overheated" title="ETF 上漲天領先個股寬度 +33% · 幾支權值股獨撐 · 中小型走弱 · 頂部背離警訊">🟠 多頭衰竭</span></td></tr><tr><td><b>能源</b> <span class="dim">XLE</span></td><td class="n up">3</td><td class="n down">9</td><td class="n dim">12</td><td class="n down">🔴 25.0%</td><td class="n dim">53%</td><td><span class="badge b-coiling" title="ETF 領先 +28% 但個股寬度弱 · 權值獨撐 · 對 ETF 小心">🟠 板塊分化</span></td></tr></tbody>
+      </table>
+      <div class="dim" style="padding:8px 14px;font-size:11px;line-height:1.6;">
+        <b>多頭比：</b>🟢 ≥70% 強勢上升 · 🔵 ≥55% 上升主導 · ⚪ 中性 · 🔴 &lt;45% 空頭主導<br>
+        <b>背離判定（個股多頭比 vs ETF 上漲天）：</b>
+        <span style="color:#1e40af;">🔵 <b>健康補漲</b></span> 個股領先≥15% + 偏多 · 等權值 catch up ·
+        <span style="color:#991b1b;">🟠 <b>多頭衰竭</b></span> ETF 領先≥15% + 表面強 · 權值獨撐 頂部背離 ·
+        <span style="color:#166534;">🟢 <b>齊步多頭</b></span> 兩者一致偏多 ·
+        <span style="color:#475569;">🔴 <b>齊步空頭</b></span> 兩者一致偏空 ·
+        <span style="color:#92400e;">🟠 <b>板塊分化</b></span> 差距大但整體弱 · 板塊分化
+      </div>
+      <div style="padding:8px 14px;"><div class="dim" style="font-size:11px;margin-bottom:6px;font-weight:600;">🔍 重點解讀（按情境分組 · 僅列 actionable 訊號）</div><div style="background:#dbeafe;padding:10px 14px;border-radius:8px;border-left:4px solid #1e40af;margin:8px 0;"><div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:4px;">🔵 健康補漲 (6)</div><div style="font-size:11.5px;color:#1e40af;margin-bottom:6px;">個股寬度領先 ETF 15% 以上 · 中小型廣泛走多但權值股卡住 → **底部反轉候選**（等權值 catch up）</div><ul style="margin:0;padding-left:16px;font-size:12px;"><li style="margin:4px 0;line-height:1.5;"><b style="color:#1e40af;">必需消費</b> <span class="dim">XLP</span> · 個股多頭比 <b>100.0%</b> vs ETF 上漲天 <b>53%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">個股寬度領先 ETF +47% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選</div></li><li style="margin:4px 0;line-height:1.5;"><b style="color:#1e40af;">醫療保健</b> <span class="dim">XLV</span> · 個股多頭比 <b>90.5%</b> vs ETF 上漲天 <b>43%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">個股寬度領先 ETF +47% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選</div></li><li style="margin:4px 0;line-height:1.5;"><b style="color:#1e40af;">金融</b> <span class="dim">XLF</span> · 個股多頭比 <b>87.5%</b> vs ETF 上漲天 <b>57%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">個股寬度領先 ETF +31% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選</div></li><li style="margin:4px 0;line-height:1.5;"><b style="color:#1e40af;">工業</b> <span class="dim">XLI</span> · 個股多頭比 <b>83.3%</b> vs ETF 上漲天 <b>47%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">個股寬度領先 ETF +37% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選</div></li><li style="margin:4px 0;line-height:1.5;"><b style="color:#1e40af;">材料</b> <span class="dim">XLB</span> · 個股多頭比 <b>80.0%</b> vs ETF 上漲天 <b>60%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">個股寬度領先 ETF +20% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選</div></li><li style="margin:4px 0;line-height:1.5;"><b style="color:#1e40af;">非必需消費</b> <span class="dim">XLY</span> · 個股多頭比 <b>77.8%</b> vs ETF 上漲天 <b>47%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">個股寬度領先 ETF +31% · 中小型廣泛走多但權值股卡住 · 等 catch up · 底部反轉候選</div></li></ul></div><div style="background:#fee2e2;padding:10px 14px;border-radius:8px;border-left:4px solid #991b1b;margin:8px 0;"><div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:4px;">🟠 多頭衰竭 (1)</div><div style="font-size:11.5px;color:#991b1b;margin-bottom:6px;">ETF 上漲天領先個股寬度 15% 以上 · 幾支權值股獨撐 · 中小型走弱 → **頂部背離警訊**</div><ul style="margin:0;padding-left:16px;font-size:12px;"><li style="margin:4px 0;line-height:1.5;"><b style="color:#991b1b;">房地產</b> <span class="dim">XLRE</span> · 個股多頭比 <b>27.3%</b> vs ETF 上漲天 <b>60%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">ETF 上漲天領先個股寬度 +33% · 幾支權值股獨撐 · 中小型走弱 · 頂部背離警訊</div></li></ul></div><div style="background:#dcfce7;padding:10px 14px;border-radius:8px;border-left:4px solid #166534;margin:8px 0;"><div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:4px;">🟢 齊步多頭 (1)</div><div style="font-size:11.5px;color:#166534;margin-bottom:6px;">個股 + ETF 一致偏多（都 ≥55%）→ 健康趨勢 · 順勢持有</div><ul style="margin:0;padding-left:16px;font-size:12px;"><li style="margin:4px 0;line-height:1.5;"><b style="color:#166534;">公用事業</b> <span class="dim">XLU</span> · 個股多頭比 <b>62.5%</b> vs ETF 上漲天 <b>60%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">個股 + ETF 一致偏多 · 健康趨勢</div></li></ul></div><div style="background:#fef3c7;padding:10px 14px;border-radius:8px;border-left:4px solid #92400e;margin:8px 0;"><div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px;">🟠 板塊分化 (1)</div><div style="font-size:11.5px;color:#92400e;margin-bottom:6px;">個股寬度與 ETF 差距大但整體偏弱 → 板塊分化 · 從個股層面找標的</div><ul style="margin:0;padding-left:16px;font-size:12px;"><li style="margin:4px 0;line-height:1.5;"><b style="color:#92400e;">能源</b> <span class="dim">XLE</span> · 個股多頭比 <b>25.0%</b> vs ETF 上漲天 <b>53%</b><div style="color:#4b5563;font-size:11.5px;margin-left:12px;margin-top:2px;">ETF 領先 +28% 但個股寬度弱 · 權值獨撐 · 對 ETF 小心</div></li></ul></div></div>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">📈 歷史相同市況統計 <span class="n">SPY 10y · 4 級 regime</span></div>
+    <div class="card-b">
+      <div style="background:#fef3c7;padding:10px 14px;border-radius:8px;margin-bottom:10px;border-left:4px solid var(--gold);">
+        <div style="font-size:13px;"><b>今日：🟠 警戒</b> · 歷史出現 <b>275</b> 次</div>
+        <div style="font-size:14px;margin-top:6px;">
+          SPY 20 日後 · 平均 <span class="up"><b>+0.58%</b></span>
+          · 勝率 <b>57.1%</b>
+        </div>
+        <div class="dim" style="margin-top:4px;font-size:11px;">SPY 728.32 vs 60d 前 763.26 (↓) · 50MA 757.2 (↓) · 200MA 730.98 (↑)</div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Regime</th><th class="n">n</th><th class="n">平均 20d</th><th class="n">勝率</th><th class="n">P25/P50/P75</th><th class="n">最差~最好</th></tr>
+        </thead>
+        <tbody><tr style=""><td>🟢 多頭</td><td class="n">1586</td><td class="n up">+1.03%</td><td class="n">71.4%</td><td class="n dim">-0.4 / +1.8 / +3.3</td><td class="n dim">-31.0 ~ +7.7</td></tr><tr style=""><td>🟡 中性</td><td class="n">221</td><td class="n down">-0.02%</td><td class="n">57.9%</td><td class="n dim">-3.8 / +1.2 / +4.2</td><td class="n dim">-21.8 ~ +9.2</td></tr><tr style="background:#fef3c7;font-weight:700;"><td>🟠 警戒</td><td class="n">275</td><td class="n up">+0.58%</td><td class="n">57.1%</td><td class="n dim">-3.3 / +1.2 / +5.4</td><td class="n dim">-20.3 ~ +12.8</td></tr><tr style=""><td>🔴 空頭</td><td class="n">202</td><td class="n up">+4.35%</td><td class="n">73.8%</td><td class="n dim">-0.3 / +5.3 / +8.0</td><td class="n dim">-8.6 ~ +23.1</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <div class="card-h">🎯 感測器投資建議 · Opportunity Score<span class="n">12</span></div>
+    <div class="card-b" style="padding:0;">
+      <div style="padding:12px 14px 0;font-size:12.5px;color:var(--muted);line-height:1.6;">
+        找「資金正在進入、但價格還沒完全反映」的地方：<b>S1 板塊變強</b> + <b>S2 個股變強</b> + <b>S3 成交量確認</b> +
+        <b>S4 趨勢沒破壞</b> + <b>S5 還沒過度遠離合理進場位置</b>，五個同時成立才算真正機會。
+        <b>訊號矛盾（強動能但 Dow 結構已破壞 / 已列追高風險）直接扣總分，不是平均掉</b>——表面很強但結構有問題的標的會被攔進 AVOID。
+        <b>4W/13W/52W 後</b>是這檔股票被列入這組「當時」之後的實際報酬，由 enrich_forward_returns.py 隨 Stage 2
+        （週五）回填，用來檢驗 TODAY/TRIGGER/AVOID 這套分類準不準——未滿週期或缺資料顯示 —，不是 0%。
+      </div>
+      <div style="padding:14px 14px 4px;font-weight:700;">🟢 TODAY · 已形成機會</div>
+      <table>
+          <thead>
+            <tr>
+              <th></th><th>Symbol / Name</th><th>Sector</th>
+              <th class="n" title="板塊強度：quadrant + 30d 資金流向 + 30d 訊號寬度">S1</th>
+              <th class="n" title="個股強度：sector 內排名 + 動能方向 + 量價分數">S2</th>
+              <th class="n" title="成交量確認：pv_verdict + 上漲/下跌日均量比">S3</th>
+              <th class="n" title="趨勢完整性：Dow 型態 + 訊號">S4</th>
+              <th class="n" title="位置/空間：離 52w 高點距離 + 暴漲判定 + gap alert">S5</th>
+              <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分（不平均掉）">Total</th>
+              <th class="n" title="進場（被列入這組候選）後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
+              <th>備註</th>
+            </tr>
+          </thead>
+          <tbody>
+        <tr>
+          <td class="n">1</td>
+          <td><b>VLTO</b><a href="../../valuation/index.html?ticker=VLTO" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Veralto</span></td>
+          <td>Industrials</td>
+          <td class="n">8</td>
+          <td class="n">18</td>
+          <td class="n">11</td>
+          <td class="n">14</td>
+          <td class="n">9</td>
+          <td class="n"><b>60</b></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dim">➡️ 中性</span></td>
+        </tr>
+        <tr>
+          <td class="n">2</td>
+          <td><b>CSGP</b><a href="../../valuation/index.html?ticker=CSGP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">CoStar Group</span></td>
+          <td>Real Estate</td>
+          <td class="n">12</td>
+          <td class="n">20</td>
+          <td class="n">5</td>
+          <td class="n">15</td>
+          <td class="n">7</td>
+          <td class="n"><b>59</b></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dim">⚠️ 頂部背離</span></td>
+        </tr></tbody>
+        </table>
+      <div style="padding:16px 14px 4px;font-weight:700;">🔵 TRIGGER · 等待確認</div>
+      <table>
+          <thead>
+            <tr>
+              <th></th><th>Symbol / Name</th><th>Sector</th>
+              <th class="n" title="板塊強度：quadrant + 30d 資金流向 + 30d 訊號寬度">S1</th>
+              <th class="n" title="個股強度：sector 內排名 + 動能方向 + 量價分數">S2</th>
+              <th class="n" title="成交量確認：pv_verdict + 上漲/下跌日均量比">S3</th>
+              <th class="n" title="趨勢完整性：Dow 型態 + 訊號">S4</th>
+              <th class="n" title="位置/空間：離 52w 高點距離 + 暴漲判定 + gap alert">S5</th>
+              <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分（不平均掉）">Total</th>
+              <th class="n" title="進場（被列入這組候選）後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
+              <th>Trigger（升級 TODAY 需要的條件）</th>
+            </tr>
+          </thead>
+          <tbody>
+        <tr>
+          <td class="n">1</td>
+          <td><b>DLTR</b><a href="../../valuation/index.html?ticker=DLTR" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Dollar Tree</span></td>
+          <td>Consumer Staples</td>
+          <td class="n">17</td>
+          <td class="n">18</td>
+          <td class="n">9</td>
+          <td class="n">17</td>
+          <td class="n">15</td>
+          <td class="n"><b>76</b></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dim">🎯 量價轉強（➡️ 中性 → 健康多頭）</span></td>
+        </tr>
+        <tr>
+          <td class="n">2</td>
+          <td><b>EXC</b><a href="../../valuation/index.html?ticker=EXC" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Exelon</span></td>
+          <td>Utilities</td>
+          <td class="n">14</td>
+          <td class="n">16</td>
+          <td class="n">12</td>
+          <td class="n">17</td>
+          <td class="n">17</td>
+          <td class="n"><b>76</b></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dim">🎯 量價轉強（➡️ 中性 → 健康多頭）</span></td>
+        </tr>
+        <tr>
+          <td class="n">3</td>
+          <td><b>DIS</b><a href="../../valuation/index.html?ticker=DIS" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Walt Disney Company (The</span></td>
+          <td>Communication Services</td>
+          <td class="n">12</td>
+          <td class="n">18</td>
+          <td class="n">10</td>
+          <td class="n">20</td>
+          <td class="n">9</td>
+          <td class="n"><b>69</b></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dim">🎯 量價轉強（➡️ 中性 → 健康多頭）</span></td>
+        </tr>
+        <tr>
+          <td class="n">4</td>
+          <td><b>WTW</b><a href="../../valuation/index.html?ticker=WTW" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Willis Towers Watson</span></td>
+          <td>Financials</td>
+          <td class="n">11</td>
+          <td class="n">18</td>
+          <td class="n">10</td>
+          <td class="n">20</td>
+          <td class="n">9</td>
+          <td class="n"><b>68</b></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dim">🎯 量價轉強（➡️ 中性 → 健康多頭）</span></td>
+        </tr>
+        <tr>
+          <td class="n">5</td>
+          <td><b>AIZ</b><a href="../../valuation/index.html?ticker=AIZ" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Assurant</span></td>
+          <td>Financials</td>
+          <td class="n">11</td>
+          <td class="n">12</td>
+          <td class="n">11</td>
+          <td class="n">20</td>
+          <td class="n">11</td>
+          <td class="n"><b>65</b></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dim">🎯 量價轉強（➡️ 中性 → 健康多頭）</span></td>
+        </tr></tbody>
+        </table>
+      <div style="padding:16px 14px 4px;font-weight:700;">🔴 AVOID · 訊號矛盾或風險過高</div>
+      <table>
+          <thead>
+            <tr>
+              <th></th><th>Symbol / Name</th><th>Sector</th>
+              <th class="n" title="板塊強度：quadrant + 30d 資金流向 + 30d 訊號寬度">S1</th>
+              <th class="n" title="個股強度：sector 內排名 + 動能方向 + 量價分數">S2</th>
+              <th class="n" title="成交量確認：pv_verdict + 上漲/下跌日均量比">S3</th>
+              <th class="n" title="趨勢完整性：Dow 型態 + 訊號">S4</th>
+              <th class="n" title="位置/空間：離 52w 高點距離 + 暴漲判定 + gap alert">S5</th>
+              <th class="n" title="S1+S2+S3+S4+S5，矛盾另外扣分（不平均掉）">Total</th>
+              <th class="n" title="進場（被列入這組候選）後 4 週實際報酬（回測驗證用 · 未滿週期或缺資料顯示 —）">4W後</th>
+              <th class="n" title="進場後 13 週實際報酬">13W後</th>
+              <th class="n" title="進場後 52 週實際報酬">52W後</th>
+              <th>矛盾 / 風險</th>
+            </tr>
+          </thead>
+          <tbody>
+        <tr>
+          <td class="n">1</td>
+          <td><b>OKTA</b><a href="../../valuation/index.html?ticker=OKTA" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Okta, Inc.</span></td>
+          <td>Information Technology</td>
+          <td class="n">5</td>
+          <td class="n">14</td>
+          <td class="n">6</td>
+          <td class="n">0</td>
+          <td class="n">8</td>
+          <td class="n"><b>8</b> <span class="dim">(-25)</span></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dow-conflict">⚠ 訊號衝突（動能強但 Dow 空頭） · ⚠ 追高風險</span></td>
+        </tr>
+        <tr>
+          <td class="n">2</td>
+          <td><b>APP</b><a href="../../valuation/index.html?ticker=APP" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">AppLovin</span></td>
+          <td>Communication Services</td>
+          <td class="n">12</td>
+          <td class="n">12</td>
+          <td class="n">10</td>
+          <td class="n">6</td>
+          <td class="n">2</td>
+          <td class="n"><b>24</b> <span class="dim">(-18)</span></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dow-conflict">⚠ 頂區警訊（Dow 擴散喇叭） · ⚠ 追高風險</span></td>
+        </tr>
+        <tr>
+          <td class="n">3</td>
+          <td><b>TSCO</b><a href="../../valuation/index.html?ticker=TSCO" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Tractor Supply</span></td>
+          <td>Consumer Discretionary</td>
+          <td class="n">16</td>
+          <td class="n">20</td>
+          <td class="n">5</td>
+          <td class="n">6</td>
+          <td class="n">10</td>
+          <td class="n"><b>42</b> <span class="dim">(-15)</span></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dow-conflict">⚠ 訊號衝突（動能強但 Dow 空頭）</span></td>
+        </tr>
+        <tr>
+          <td class="n">4</td>
+          <td><b>MRNA</b><a href="../../valuation/index.html?ticker=MRNA" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Moderna</span></td>
+          <td>Health Care</td>
+          <td class="n">15</td>
+          <td class="n">10</td>
+          <td class="n">2</td>
+          <td class="n">14</td>
+          <td class="n">5</td>
+          <td class="n"><b>31</b> <span class="dim">(-15)</span></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dow-conflict">⚠ 追高風險 · ⚠ 吃老本未見量能確認</span></td>
+        </tr>
+        <tr>
+          <td class="n">5</td>
+          <td><b>CRL</b><a href="../../valuation/index.html?ticker=CRL" target="_blank" title="開啟估值分析器 · PE / PBR / EPS / 現金流 / 內部人（新分頁）" style="text-decoration:none;margin-left:3px;font-size:10px;opacity:0.7;">📊</a> <span class="dim">Charles River Laboratori</span></td>
+          <td>Health Care</td>
+          <td class="n">15</td>
+          <td class="n">5</td>
+          <td class="n">6</td>
+          <td class="n">14</td>
+          <td class="n">5</td>
+          <td class="n"><b>30</b> <span class="dim">(-15)</span></td>
+          <td class="n dim">—</td><td class="n dim">—</td><td class="n dim">—</td>
+          <td><span class="dow-conflict">⚠ 追高風險 · ⚠ 吃老本未見量能確認</span></td>
+        </tr></tbody>
+        </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="conf">
+      💎 <b>strong_buy</b> · 11-sample 1y avg <b>+45.9%</b> / 命中 <b>90.2%</b> (n=61)
+      &nbsp;·&nbsp;
+      🚀 <b>explosive</b> · 1y avg <b>+45.6%</b> / 命中 <b>75.0%</b> (n=40)
+    </div>
+    產生時間 2026-11-28 03:43 UTC · <a href="../index.html">回主頁</a> · <a href="8-sample-analysis.html">看回測方法論</a> · <a href="backtest-summary.html">看 pipeline 回測</a> · <a href="daily-tw-latest.html">看台股板塊報表</a>
+    <br><br>
+    <span style="color:#94a3b8;">投資有風險 · 本報告為系統化訊號記錄 · 不構成投資建議</span>
+  </div>
+
+</div>
+</body>
+</html>

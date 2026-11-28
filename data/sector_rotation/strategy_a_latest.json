@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-11-21T02:58:23.544384+00:00",
-  "as_of_date": "2026-11-20",
+  "generated_at": "2026-11-28T03:42:48.454468+00:00",
+  "as_of_date": "2026-11-27",
   "market_context": {
-    "as_of_date": "2026-11-20",
+    "as_of_date": "2026-11-27",
     "voo": {
-      "price": 635.54,
-      "vs_60d_pct": -10.1,
-      "ma50": 698.65,
-      "vs_50ma_pct": -9.03
+      "price": 669.79,
+      "vs_60d_pct": -4.53,
+      "ma50": 696.07,
+      "vs_50ma_pct": -3.78
     },
     "vix": {
-      "value": 35.89
+      "value": 23.81
     },
     "tnx": {
-      "value": 4.91,
-      "raw": 4.91
+      "value": 4.94,
+      "raw": 4.94
     },
     "trend_label": "🔴",
     "vs_50ma_label": "❄",
@@ -25,7 +25,7 @@
       "sprint": 0,
       "cash": 100
     },
-    "vix_override_all_cash": true,
+    "vix_override_all_cash": false,
     "tnx_boost": [
       "XLE",
       "XLF",
@@ -37,28 +37,27 @@
       "XLU"
     ],
     "notes": [
-      "⛔ VIX=35.9 > 30 · 全倉現金覆蓋所有象限",
-      "📈 TNX=4.91% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
+      "📈 TNX=4.94% > 4.0% · 利多 XLE/XLF/XLV · 利空 XLK/XLRE/XLU"
     ],
     "regime_stats": {
       "historical": {
         "🟢 多頭": {
-          "n": 1588,
-          "mean": 1.05,
-          "win_rate": 71.5,
-          "p25": -0.42,
-          "p50": 1.77,
+          "n": 1586,
+          "mean": 1.03,
+          "win_rate": 71.4,
+          "p25": -0.44,
+          "p50": 1.76,
           "p75": 3.31,
           "worst": -30.99,
           "best": 7.72
         },
         "🟡 中性": {
-          "n": 219,
-          "mean": 0.04,
-          "win_rate": 58.4,
-          "p25": -3.62,
-          "p50": 1.33,
-          "p75": 4.25,
+          "n": 221,
+          "mean": -0.02,
+          "win_rate": 57.9,
+          "p25": -3.78,
+          "p50": 1.16,
+          "p75": 4.23,
           "worst": -21.77,
           "best": 9.15
         },
@@ -85,12 +84,12 @@
       },
       "current_regime": "🟠 警戒",
       "current_conditions": {
-        "spy_price": 689.81,
-        "spy_60d_ago": 769.19,
+        "spy_price": 728.32,
+        "spy_60d_ago": 763.26,
         "price_up_60d": false,
-        "ma50": 760.03,
+        "ma50": 757.2,
         "ma50_up": false,
-        "ma200": 730.29,
+        "ma200": 730.98,
         "ma200_up": true
       },
       "current": {
@@ -105,10 +104,10 @@
       },
       "unconditional": {
         "n": 2284,
-        "mean": 1.19,
-        "win_rate": 68.7,
-        "p25": -0.95,
-        "p50": 1.83,
+        "mean": 1.17,
+        "win_rate": 68.6,
+        "p25": -0.97,
+        "p50": 1.82,
         "p75": 3.82,
         "worst": -30.99,
         "best": 23.07
@@ -121,21 +120,21 @@
       "sector_name": "必需消費",
       "composite_rank": 1,
       "point_rank": 2,
-      "cms_a": 1.4,
+      "cms_a": 2.2,
       "tnx_flag": null
     },
     {
-      "sector": "XLV",
-      "sector_name": "醫療保健",
-      "composite_rank": 3,
-      "point_rank": 1,
-      "cms_a": 2.8,
-      "tnx_flag": "boost"
+      "sector": "XLB",
+      "sector_name": "材料",
+      "composite_rank": 2,
+      "point_rank": 6,
+      "cms_a": 7.9,
+      "tnx_flag": null
     },
     {
       "sector": "XLF",
       "sector_name": "金融",
-      "composite_rank": 5,
+      "composite_rank": 4,
       "point_rank": 3,
       "cms_a": 5.2,
       "tnx_flag": "boost"
@@ -145,11 +144,6 @@
     {
       "sector": "XLRE",
       "sector_name": "房地產",
-      "reason": "TNX 濾網降級"
-    },
-    {
-      "sector": "XLU",
-      "sector_name": "公用事業",
       "reason": "TNX 濾網降級"
     }
   ],
@@ -163,89 +157,152 @@
     "core": [],
     "momentum": [
       {
-        "symbol": "AIZ",
-        "name": "Assurant",
+        "symbol": "CPAY",
+        "name": "Corpay",
         "sector": "Financials",
         "sector_etf": "XLF",
-        "point": 17.66,
-        "cms_a": 5.8,
+        "point": 22.5,
+        "cms_a": 5.5,
         "di": 1.0,
-        "cum_ret_4w": 10.27,
-        "cum_ret_13w": 11.83,
-        "cum_ret_26w": 24.27,
+        "cum_ret_4w": 14.31,
+        "cum_ret_13w": 13.53,
+        "cum_ret_26w": 31.09,
         "vcp": false,
-        "vp_ratio_stock": 1.391,
-        "pct_from_high": -3.16,
-        "high_52w": 326.99,
-        "surprise_l1": 30.53,
-        "surprise_l2": 23.73,
+        "vp_ratio_stock": 1.452,
+        "pct_from_high": -4.43,
+        "high_52w": 479.53,
+        "surprise_l1": 4.68,
+        "surprise_l2": 6.3,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.39 + 4W +10.3%"
+        "reason": "TNX順風 + VP 1.45 + 4W +14.3%"
       },
       {
-        "symbol": "REGN",
-        "name": "Regeneron Pharmaceuticals",
-        "sector": "Health Care",
-        "sector_etf": "XLV",
-        "point": 29.46,
-        "cms_a": 7.2,
+        "symbol": "MRSH",
+        "name": "Marsh McLennan",
+        "sector": "Financials",
+        "sector_etf": "XLF",
+        "point": 24.11,
+        "cms_a": 5.7,
         "di": 1.0,
-        "cum_ret_4w": 14.11,
-        "cum_ret_13w": 10.5,
-        "cum_ret_26w": 46.61,
+        "cum_ret_4w": 8.68,
+        "cum_ret_13w": 15.43,
+        "cum_ret_26w": 36.17,
         "vcp": false,
-        "vp_ratio_stock": 1.315,
-        "pct_from_high": -7.07,
-        "high_52w": 990.72,
-        "surprise_l1": 23.54,
-        "surprise_l2": 39.99,
+        "vp_ratio_stock": 1.099,
+        "pct_from_high": -0.43,
+        "high_52w": 218.99,
+        "surprise_l1": 3.16,
+        "surprise_l2": 2.26,
         "pre_earnings_14d": false,
         "tier": "momentum",
-        "reason": "TNX順風 + VP 1.31 + 4W +14.1%"
+        "reason": "TNX順風 + VP 1.10 + 4W +8.7%"
       }
     ],
     "sprint": [
       {
-        "symbol": "MRNA",
-        "name": "Moderna",
-        "sector": "Health Care",
-        "sector_etf": "XLV",
-        "point": 171.36,
-        "cms_a": 18.0,
-        "di": 0.667,
-        "cum_ret_4w": -1.94,
-        "cum_ret_13w": 34.36,
-        "cum_ret_26w": 326.51,
+        "symbol": "AVY",
+        "name": "Avery Dennison",
+        "sector": "Materials",
+        "sector_etf": "XLB",
+        "point": 14.38,
+        "cms_a": 3.8,
+        "di": 1.0,
+        "cum_ret_4w": 5.51,
+        "cum_ret_13w": 8.43,
+        "cum_ret_26w": 21.79,
         "vcp": false,
-        "vp_ratio_stock": 1.358,
-        "pct_from_high": -30.56,
-        "high_52w": 280.8,
-        "surprise_l1": 130.29,
-        "surprise_l2": 4.33,
+        "vp_ratio_stock": 1.001,
+        "pct_from_high": -1.98,
+        "high_52w": 196.15,
+        "surprise_l1": 4.12,
+        "surprise_l2": 17.0,
         "pre_earnings_14d": false,
         "tier": "sprint",
-        "reason": "破格 · 全場 Point 最高(171.4)且領先池內第 3 名 50%+"
-      }
-    ],
-    "hold_earnings": [
+        "reason": "CMS_A=3.8 靠前但缺 VCP 或非 TNX 順風"
+      },
+      {
+        "symbol": "PPG",
+        "name": "PPG Industries",
+        "sector": "Materials",
+        "sector_etf": "XLB",
+        "point": 11.65,
+        "cms_a": 4.2,
+        "di": 1.0,
+        "cum_ret_4w": 5.11,
+        "cum_ret_13w": 10.71,
+        "cum_ret_26w": 15.39,
+        "vcp": false,
+        "vp_ratio_stock": 1.05,
+        "pct_from_high": -4.1,
+        "high_52w": 130.22,
+        "surprise_l1": 6.04,
+        "surprise_l2": -1.04,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "CMS_A=4.2 靠前但缺 VCP 或非 TNX 順風"
+      },
       {
         "symbol": "DLTR",
         "name": "Dollar Tree",
         "sector": "Consumer Staples",
         "sector_etf": "XLP",
-        "point": 29.97,
-        "cms_a": 7.2,
+        "point": 36.23,
+        "cms_a": 4.2,
         "di": 1.0,
-        "cum_ret_4w": 10.44,
-        "cum_ret_13w": 4.93,
-        "cum_ret_26w": 52.26,
+        "cum_ret_4w": 10.95,
+        "cum_ret_13w": 16.95,
+        "cum_ret_26w": 58.52,
         "vcp": false,
-        "vp_ratio_stock": 1.017,
-        "pct_from_high": -7.12,
-        "high_52w": 148.54,
-        "surprise_l1": 136.13,
-        "surprise_l2": 12.89,
+        "vp_ratio_stock": 1.189,
+        "pct_from_high": -5.39,
+        "high_52w": 156.99,
+        "surprise_l1": 25.43,
+        "surprise_l2": 136.13,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "CMS_A=4.2 靠前但缺 VCP 或非 TNX 順風"
+      },
+      {
+        "symbol": "MRNA",
+        "name": "Moderna",
+        "sector": "Health Care",
+        "sector_etf": "XLV",
+        "point": 208.9,
+        "cms_a": 14.0,
+        "di": 1.0,
+        "cum_ret_4w": 3.12,
+        "cum_ret_13w": 60.15,
+        "cum_ret_26w": 386.16,
+        "vcp": false,
+        "vp_ratio_stock": 1.218,
+        "pct_from_high": -18.58,
+        "high_52w": 280.8,
+        "surprise_l1": 130.29,
+        "surprise_l2": 4.33,
+        "pre_earnings_14d": false,
+        "tier": "sprint",
+        "reason": "破格 · 全場 Point 最高(208.9)且領先池內第 3 名 50%+"
+      }
+    ],
+    "hold_earnings": [
+      {
+        "symbol": "COST",
+        "name": "Costco",
+        "sector": "Consumer Staples",
+        "sector_etf": "XLP",
+        "point": 14.55,
+        "cms_a": 5.5,
+        "di": 1.0,
+        "cum_ret_4w": 11.5,
+        "cum_ret_13w": 20.93,
+        "cum_ret_26w": 12.88,
+        "vcp": false,
+        "vp_ratio_stock": 1.148,
+        "pct_from_high": -0.32,
+        "high_52w": 1101.3,
+        "surprise_l1": 3.41,
+        "surprise_l2": -0.85,
         "pre_earnings_14d": true,
         "tier": "hold",
         "reason": "財報 14 天內 · 暫緩 · 等公告後再評估"
@@ -255,19 +312,19 @@
   "totals": {
     "core_count": 0,
     "momentum_count": 2,
-    "sprint_count": 1,
+    "sprint_count": 4,
     "hold_count": 1
   },
-  "correlation_warnings": [
+  "correlation_warnings": [],
+  "dark_horses": [
     {
-      "kind": "low_corr_ok",
-      "sectors": [
-        "XLV"
-      ],
-      "msg": "✅ XLV 與多數板塊低相關 · 分散配置佳"
+      "sector": "XLB",
+      "sector_name": "材料",
+      "point_rank": 6,
+      "vp_score_rank": 5,
+      "vol_rank": 1
     }
   ],
-  "dark_horses": [],
   "watchlist_promoted": [],
   "notes": [
     "策略 A 九步驟輸出 · 每檔 weight_pct = 該 tier 配置上限 / 該 tier 檔數",
